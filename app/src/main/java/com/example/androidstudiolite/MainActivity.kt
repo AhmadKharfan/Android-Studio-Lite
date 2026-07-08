@@ -4,44 +4,32 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.androidstudiolite.ui.theme.AndroidStudioLiteTheme
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.androidstudiolite.core.designsystem.theme.AslAppTheme
+import com.example.androidstudiolite.di.AppContainer
+import com.example.androidstudiolite.domain.model.AppPreferences
+import com.example.androidstudiolite.domain.model.AppThemeMode
+import com.example.androidstudiolite.navigation.AslNavHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AndroidStudioLiteTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            val preferences by AppContainer.preferencesRepository.observePreferences()
+                .collectAsStateWithLifecycle(initialValue = AppPreferences())
+            val darkTheme = when (preferences.themeMode) {
+                AppThemeMode.LIGHT -> false
+                AppThemeMode.DARK -> true
+                AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            AslAppTheme(darkTheme = darkTheme) {
+                AslNavHost()
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AndroidStudioLiteTheme {
-        Greeting("Android")
     }
 }
