@@ -1,6 +1,7 @@
 package com.example.androidstudiolite.core.designsystem.component.buttons
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,12 +18,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button as M3Button
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.modifier.pressScale
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -49,8 +52,10 @@ fun AslButton(
 ) {
     val colors = AslTheme.colors
     val inactive = disabled || loading
+    val interactionSource = remember { MutableInteractionSource() }
     val sizedModifier = (if (fullWidth) modifier.fillMaxWidth() else modifier.widthIn(min = 64.dp))
         .height(size.height)
+        .pressScale(interactionSource, pressedScale = 0.96f)
     val shape = AslShape.md
     val content: @Composable () -> Unit = {
         when {
@@ -72,6 +77,7 @@ fun AslButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = !inactive,
+            interactionSource = interactionSource,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.accentPrimary,
@@ -86,6 +92,7 @@ fun AslButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = !inactive,
+            interactionSource = interactionSource,
             shape = shape,
             border = BorderStroke(1.dp, if (inactive) Color.Transparent else colors.borderStrong),
             colors = ButtonDefaults.outlinedButtonColors(
@@ -101,6 +108,7 @@ fun AslButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = !inactive,
+            interactionSource = interactionSource,
             shape = shape,
             colors = ButtonDefaults.textButtonColors(
                 contentColor = colors.accentPrimary,
@@ -113,6 +121,7 @@ fun AslButton(
             onClick = onClick,
             modifier = sizedModifier,
             enabled = !inactive,
+            interactionSource = interactionSource,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.error,

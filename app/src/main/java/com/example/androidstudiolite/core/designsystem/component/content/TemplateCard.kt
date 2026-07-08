@@ -1,8 +1,17 @@
 package com.example.androidstudiolite.core.designsystem.component.content
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,12 +24,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslChip
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslChipKind
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.modifier.pressScale
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -36,11 +51,29 @@ fun AslTemplateCard(
     onClick: () -> Unit = {},
 ) {
     val colors = AslTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) 2.dp else 1.dp,
+        animationSpec = AslMotion.standardSpec(),
+        label = "templateBorderWidth",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) colors.accentPrimary else colors.borderDefault,
+        animationSpec = AslMotion.standardSpec(),
+        label = "templateBorderColor",
+    )
     Box(
         modifier = modifier
+            .pressScale(interactionSource)
+            .clip(AslShape.lg)
             .background(colors.surface, AslShape.lg)
-            .border(if (selected) 2.dp else 1.dp, if (selected) colors.accentPrimary else colors.borderDefault, AslShape.lg)
-            .clickable(onClick = onClick)
+            .border(borderWidth, borderColor, AslShape.lg)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
             .padding(16.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -66,10 +99,14 @@ fun AslTemplateCard(
                 }
             }
         }
-        if (selected) {
+        AnimatedVisibility(
+            visible = selected,
+            modifier = Modifier.align(Alignment.TopEnd),
+            enter = scaleIn(AslMotion.emphasizedSpec(), initialScale = 0.4f) + fadeIn(AslMotion.enterSpec()),
+            exit = scaleOut(AslMotion.exitSpec(), targetScale = 0.4f) + fadeOut(AslMotion.exitSpec()),
+        ) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
                     .padding(10.dp)
                     .size(20.dp)
                     .background(colors.accentPrimary, CircleShape),

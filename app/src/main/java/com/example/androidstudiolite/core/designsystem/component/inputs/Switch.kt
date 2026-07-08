@@ -1,5 +1,6 @@
 package com.example.androidstudiolite.core.designsystem.component.inputs
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.theme.AslMotion
@@ -38,21 +40,33 @@ fun AslSwitch(
     disabled: Boolean = false,
 ) {
     val colors = AslTheme.colors
-    val trackColor = when {
-        disabled -> colors.surfaceContainerHigh
-        checked -> colors.accentPrimary
-        else -> colors.surfaceContainerHigh
-    }
-    val borderColor = if (checked && !disabled) colors.accentPrimary else colors.borderStrong
-    val thumbColor = when {
-        disabled -> colors.textDisabled
-        checked -> colors.accentOnPrimary
-        else -> colors.textTertiary
-    }
+    val trackColor by animateColorAsState(
+        targetValue = when {
+            disabled -> colors.surfaceContainerHigh
+            checked -> colors.accentPrimary
+            else -> colors.surfaceContainerHigh
+        },
+        animationSpec = AslMotion.standardSpec(),
+        label = "switchTrack",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (checked && !disabled) colors.accentPrimary else colors.borderStrong,
+        animationSpec = AslMotion.standardSpec(),
+        label = "switchBorder",
+    )
+    val thumbColor by animateColorAsState(
+        targetValue = when {
+            disabled -> colors.textDisabled
+            checked -> colors.accentOnPrimary
+            else -> colors.textTertiary
+        },
+        animationSpec = AslMotion.standardSpec(),
+        label = "switchThumb",
+    )
     val thumbOffset by animateDpAsState(
         targetValue = if (checked) 21.dp else 3.dp,
-        animationSpec = tween(AslMotion.fast),
-        label = "switchThumb",
+        animationSpec = tween(AslMotion.normal, easing = AslMotion.easeStandard),
+        label = "switchThumbOffset",
     )
 
     val interactionSource = remember { MutableInteractionSource() }
@@ -81,7 +95,8 @@ fun AslSwitch(
         Box(
             modifier = Modifier
                 .size(width = 44.dp, height = 26.dp)
-                .indication(interactionSource, ripple(radius = 28.dp))
+                .clip(CircleShape)
+                .indication(interactionSource, ripple(bounded = false, radius = 24.dp))
                 .background(trackColor, CircleShape)
                 .border(1.dp, borderColor, CircleShape),
         ) {

@@ -1,5 +1,6 @@
 package com.example.androidstudiolite.core.designsystem.component.ide
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
 data class AslThemeSwatch(val id: String, val name: String, val colors: List<Color>)
@@ -51,10 +54,15 @@ fun AslThemeSwatchPicker(
         ) {
             swatches.forEach { swatch ->
                 val selected = swatch.id == value
+                val ringColor by animateColorAsState(
+                    targetValue = if (selected) colors.accentPrimary else Color.Transparent,
+                    animationSpec = AslMotion.standardSpec(),
+                    label = "swatchRing",
+                )
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .border(2.dp, if (selected) colors.accentPrimary else Color.Transparent, CircleShape)
+                        .border(2.dp, ringColor, CircleShape)
                         .padding(3.dp)
                         .clip(CircleShape)
                         .selectable(

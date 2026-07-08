@@ -1,5 +1,11 @@
 package com.example.androidstudiolite.core.designsystem.component.content
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,15 +19,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
 import com.example.androidstudiolite.core.designsystem.theme.AslMetrics
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -85,7 +94,19 @@ private fun AslFileTreeRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isDir) {
-                AslIcon(name = if (expanded) "chevron-down" else "chevron-right", size = 14.dp, tint = colors.textTertiary)
+                // Rotate a single chevron rather than swapping icons, so the toggle reads as one
+                // continuous turn instead of a snap between two unrelated glyphs.
+                val rotation by animateFloatAsState(
+                    targetValue = if (expanded) 90f else 0f,
+                    animationSpec = AslMotion.standardSpec(),
+                    label = "chevronRotation",
+                )
+                AslIcon(
+                    name = "chevron-right",
+                    size = 14.dp,
+                    tint = colors.textTertiary,
+                    modifier = Modifier.rotate(rotation),
+                )
             } else {
                 Box(modifier = Modifier.width(14.dp))
             }
@@ -114,16 +135,24 @@ private fun AslFileTreeRow(
             }
         }
     }
-    if (isDir && expanded) {
-        node.children!!.forEach { child ->
-            AslFileTreeRow(
-                node = child,
-                depth = depth + 1,
-                expandedIds = expandedIds,
-                selectedId = selectedId,
-                onToggle = onToggle,
-                onSelect = onSelect,
-            )
+    if (isDir) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+            exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+        ) {
+            Column {
+                node.children!!.forEach { child ->
+                    AslFileTreeRow(
+                        node = child,
+                        depth = depth + 1,
+                        expandedIds = expandedIds,
+                        selectedId = selectedId,
+                        onToggle = onToggle,
+                        onSelect = onSelect,
+                    )
+                }
+            }
         }
     }
 }

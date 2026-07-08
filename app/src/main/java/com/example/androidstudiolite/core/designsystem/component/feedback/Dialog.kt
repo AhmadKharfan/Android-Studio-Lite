@@ -1,5 +1,11 @@
 package com.example.androidstudiolite.core.designsystem.component.feedback
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,11 +18,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonVariant
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -38,6 +46,13 @@ fun AslDialog(
 ) {
     val colors = AslTheme.colors
     Dialog(onDismissRequest = onDismiss) {
+        // Play a scale+fade entrance the first time the dialog is composed.
+        val transitionState = remember { MutableTransitionState(false).apply { targetState = true } }
+        AnimatedVisibility(
+            visibleState = transitionState,
+            enter = fadeIn(AslMotion.enterSpec()) + scaleIn(AslMotion.emphasizedSpec(), initialScale = 0.90f),
+            exit = fadeOut(AslMotion.exitSpec()) + scaleOut(AslMotion.exitSpec(), targetScale = 0.90f),
+        ) {
         Surface(
             modifier = modifier.widthIn(max = 360.dp),
             shape = AslShape.xl,
@@ -78,6 +93,7 @@ fun AslDialog(
                     )
                 }
             }
+        }
         }
     }
 }

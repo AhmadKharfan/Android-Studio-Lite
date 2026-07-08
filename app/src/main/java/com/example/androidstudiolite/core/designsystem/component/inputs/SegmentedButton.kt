@@ -1,5 +1,6 @@
 package com.example.androidstudiolite.core.designsystem.component.inputs
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,12 +18,15 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -44,6 +48,7 @@ fun AslSegmentedButton(
         modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
             .height(40.dp)
+            .clip(AslShape.md)
             .border(1.dp, colors.borderStrong, AslShape.md)
             .selectableGroup(),
     ) {
@@ -57,16 +62,25 @@ fun AslSegmentedButton(
                 )
             }
             val selected = option.value == value
-            val fg = when {
-                disabled -> colors.textDisabled
-                selected -> colors.accentPrimary
-                else -> colors.textSecondary
-            }
+            val fg by animateColorAsState(
+                targetValue = when {
+                    disabled -> colors.textDisabled
+                    selected -> colors.accentPrimary
+                    else -> colors.textSecondary
+                },
+                animationSpec = AslMotion.standardSpec(),
+                label = "segmentFg",
+            )
+            val segmentBg by animateColorAsState(
+                targetValue = if (!disabled && selected) colors.accentPrimaryContainer else Color.Transparent,
+                animationSpec = AslMotion.standardSpec(),
+                label = "segmentBg",
+            )
             Row(
                 modifier = Modifier
                     .then(if (fullWidth) Modifier.weight(1f) else Modifier)
                     .fillMaxHeight()
-                    .background(if (!disabled && selected) colors.accentPrimaryContainer else Color.Transparent)
+                    .background(segmentBg)
                     .selectable(
                         selected = selected,
                         enabled = !disabled,

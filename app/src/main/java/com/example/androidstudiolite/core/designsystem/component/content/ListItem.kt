@@ -1,7 +1,9 @@
 package com.example.androidstudiolite.core.designsystem.component.content
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -12,13 +14,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.modifier.pressScale
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
 /** ListItem.jsx — general list row: one/two-line, leading icon, trailing slot, hairline divider. */
@@ -36,13 +44,33 @@ fun AslListItem(
     onClick: (() -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
+    val background by animateColorAsState(
+        targetValue = if (selected) colors.accentPrimaryContainer else Color.Transparent,
+        animationSpec = AslMotion.standardSpec(),
+        label = "listItemBackground",
+    )
+    val interactionSource = remember { MutableInteractionSource() }
+    val clickableRow = onClick != null && !disabled
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = if (subtitle != null) 60.dp else 48.dp)
-                .background(if (selected) colors.accentPrimaryContainer else Color.Transparent)
-                .then(if (onClick != null && !disabled) Modifier.clickable(onClick = onClick) else Modifier)
+                // Scale encloses the whole row so the press "give" covers its background too.
+                .then(if (clickableRow) Modifier.pressScale(interactionSource) else Modifier)
+                .background(background)
+                .then(
+                    if (clickableRow) {
+                        Modifier.clickable(
+                            interactionSource = interactionSource,
+                            indication = ripple(),
+                            role = Role.Button,
+                            onClick = onClick!!,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

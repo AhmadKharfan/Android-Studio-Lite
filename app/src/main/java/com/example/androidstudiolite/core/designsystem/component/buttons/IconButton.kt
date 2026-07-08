@@ -1,5 +1,6 @@
 package com.example.androidstudiolite.core.designsystem.component.buttons
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -43,18 +46,26 @@ fun AslIconButton(
     badge: String? = null,
 ) {
     val colors = AslTheme.colors
-    val containerColor = when {
-        disabled -> Color.Transparent
-        variant == AslIconButtonVariant.Filled -> colors.accentPrimary
-        active -> colors.accentPrimaryContainer
-        else -> Color.Transparent
-    }
-    val contentColor = when {
-        disabled -> colors.textDisabled
-        variant == AslIconButtonVariant.Filled -> colors.accentOnPrimary
-        active -> colors.accentPrimary
-        else -> colors.textSecondary
-    }
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            disabled -> Color.Transparent
+            variant == AslIconButtonVariant.Filled -> colors.accentPrimary
+            active -> colors.accentPrimaryContainer
+            else -> Color.Transparent
+        },
+        animationSpec = AslMotion.standardSpec(),
+        label = "iconButtonContainer",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            disabled -> colors.textDisabled
+            variant == AslIconButtonVariant.Filled -> colors.accentOnPrimary
+            active -> colors.accentPrimary
+            else -> colors.textSecondary
+        },
+        animationSpec = AslMotion.standardSpec(),
+        label = "iconButtonContent",
+    )
     val border = if (variant == AslIconButtonVariant.Outlined && !disabled) {
         BorderStroke(1.dp, colors.borderStrong)
     } else {

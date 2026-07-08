@@ -1,5 +1,6 @@
 package com.example.androidstudiolite.core.designsystem.component.inputs
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,11 +12,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 
@@ -36,20 +41,24 @@ fun AslChip(
     onClick: (() -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
-    val (bg, fg, border) = when {
+    val (targetBg, targetFg, targetBorder) = when {
         kind == AslChipKind.Status -> statusColors(status, colors)
         disabled -> Triple(colors.surfaceContainerLow, colors.textDisabled, colors.borderSubtle)
         kind == AslChipKind.Filter && selected -> Triple(colors.accentPrimaryContainer, colors.accentPrimary, Color.Transparent)
         else -> Triple(Color.Transparent, colors.textPrimary, colors.borderStrong)
     }
+    val bg by animateColorAsState(targetBg, AslMotion.standardSpec(), label = "chipBg")
+    val fg by animateColorAsState(targetFg, AslMotion.standardSpec(), label = "chipFg")
+    val border by animateColorAsState(targetBorder, AslMotion.standardSpec(), label = "chipBorder")
     val interactive = !disabled && (onClick != null || kind == AslChipKind.Filter)
 
     Row(
         modifier = modifier
             .height(32.dp)
+            .clip(AslShape.full)
             .background(bg, AslShape.full)
             .border(1.dp, border, AslShape.full)
-            .then(if (interactive && onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (interactive && onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
