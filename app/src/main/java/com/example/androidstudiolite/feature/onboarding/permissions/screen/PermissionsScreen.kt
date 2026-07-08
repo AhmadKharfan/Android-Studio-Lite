@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -16,7 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import com.example.androidstudiolite.core.designsystem.animation.AslStaggeredAppear
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.core.designsystem.component.ide.AslPermissionCard
@@ -30,7 +31,7 @@ import com.example.androidstudiolite.feature.onboarding.permissions.viewModel.Pe
 @Composable
 fun PermissionsRoute(
     onContinue: () -> Unit,
-    viewModel: PermissionsViewModel = viewModel(),
+    viewModel: PermissionsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     PermissionsScreen(
@@ -68,14 +69,16 @@ private fun PermissionsScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(uiState.permissions, key = { it.id }) { permission ->
-                    AslPermissionCard(
-                        title = permission.title,
-                        reason = permission.reason,
-                        icon = permission.icon,
-                        granted = permission.granted,
-                        onGrant = { onInteraction(PermissionsInteraction.GrantPermission(permission.id)) },
-                    )
+                itemsIndexed(uiState.permissions, key = { _, it -> it.id }) { index, permission ->
+                    AslStaggeredAppear(index = index) {
+                        AslPermissionCard(
+                            title = permission.title,
+                            reason = permission.reason,
+                            icon = permission.icon,
+                            granted = permission.granted,
+                            onGrant = { onInteraction(PermissionsInteraction.GrantPermission(permission.id)) },
+                        )
+                    }
                 }
             }
             Column(modifier = Modifier.padding(top = 14.dp)) {

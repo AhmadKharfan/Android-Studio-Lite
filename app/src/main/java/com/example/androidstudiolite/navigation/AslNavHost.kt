@@ -35,7 +35,14 @@ import com.example.androidstudiolite.feature.uidesigner.screen.DesignerRoute
 
 @Composable
 fun AslNavHost(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+    NavHost(
+        navController = navController,
+        startDestination = Routes.SPLASH,
+        enterTransition = { aslEnter() },
+        exitTransition = { aslExit() },
+        popEnterTransition = { aslPopEnter() },
+        popExitTransition = { aslPopExit() },
+    ) {
         composable(Routes.SPLASH) {
             SplashRoute(
                 onNavigateToOnboarding = {

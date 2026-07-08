@@ -22,7 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import com.example.androidstudiolite.core.designsystem.animation.AslStaggeredAppear
 import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.core.designsystem.component.ide.AslApiKeyCard
 import com.example.androidstudiolite.core.designsystem.component.ide.AslApiKeyStatus
@@ -39,7 +40,7 @@ import com.example.androidstudiolite.feature.settings.aiagent.viewModel.AiAgentV
 @Composable
 fun AiAgentSettingsRoute(
     onBack: () -> Unit,
-    viewModel: AiAgentViewModel = viewModel(),
+    viewModel: AiAgentViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     AiAgentSettingsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
@@ -82,17 +83,19 @@ private fun AiAgentSettingsScreen(
                 val expanded = uiState.providers.filter { it.featured || it.id in expandedIds }
                 val collapsed = uiState.providers.filterNot { it.featured || it.id in expandedIds }
 
-                expanded.forEach { provider ->
-                    AslApiKeyCard(
-                        provider = provider.name,
-                        providerIcon = provider.icon,
-                        description = provider.description,
-                        value = provider.apiKey,
-                        onValueChange = { onInteraction(AiAgentInteraction.ApiKeyChanged(provider.id, it)) },
-                        status = provider.status.toAslStatus(),
-                        testing = provider.status == ApiKeyStatus.TESTING,
-                        onTest = { onInteraction(AiAgentInteraction.TestApiKey(provider.id)) },
-                    )
+                expanded.forEachIndexed { index, provider ->
+                    AslStaggeredAppear(index = index) {
+                        AslApiKeyCard(
+                            provider = provider.name,
+                            providerIcon = provider.icon,
+                            description = provider.description,
+                            value = provider.apiKey,
+                            onValueChange = { onInteraction(AiAgentInteraction.ApiKeyChanged(provider.id, it)) },
+                            status = provider.status.toAslStatus(),
+                            testing = provider.status == ApiKeyStatus.TESTING,
+                            onTest = { onInteraction(AiAgentInteraction.TestApiKey(provider.id)) },
+                        )
+                    }
                 }
 
                 if (collapsed.isNotEmpty()) {

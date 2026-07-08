@@ -1,5 +1,12 @@
 package com.example.androidstudiolite.feature.editor.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -7,9 +14,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.androidstudiolite.core.designsystem.animation.AslStateCrossfade
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.content.AslFileTree
 import com.example.androidstudiolite.core.designsystem.component.content.AslFileTreeNode
@@ -19,6 +31,7 @@ import com.example.androidstudiolite.core.designsystem.component.feedback.AslSke
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolRail
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolRailEntry
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolWindowPanel
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.domain.model.GitFileStatus
 import com.example.androidstudiolite.feature.editor.aichat.screen.AiChatRoute
 import com.example.androidstudiolite.feature.editor.assets.screen.AssetsRoute
@@ -79,32 +92,63 @@ fun EditorDrawer(
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
 ) {
-    if (openTool == null) return
-    Row(modifier = modifier.fillMaxSize()) {
-        EditorToolRail(
-            activeId = openTool.toRailId(),
-            onSelectTool = onSelectTool,
-            onOpenSettings = onOpenSettings,
-            onCloseProject = onCloseProject,
-        )
-        EditorToolPanelContent(
-            openTool = openTool,
-            fileTree = fileTree,
-            expandedFolderIds = expandedFolderIds,
-            selectedFileId = selectedFileId,
-            onToggleFolder = onToggleFolder,
-            onSelectFile = onSelectFile,
-            onDismiss = onDismiss,
-            onOpenAiAgentSettings = onOpenAiAgentSettings,
-            isLoadingFileTree = isLoadingFileTree,
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f)
-                .background(Color.Black.copy(alpha = 0.4f))
-                .clickable(onClick = onDismiss),
-        )
+    val visible = openTool != null
+    // Retain the last opened tool so the slide-out keeps rendering its content while it animates away.
+    var lastTool by remember { mutableStateOf<EditorRailTool?>(null) }
+    if (openTool != null) lastTool = openTool
+    val tool = lastTool ?: return
+
+    // Both transitions are seeded at `false` regardless of `visible`'s first value — a plain
+    // `AnimatedVisibility(visible = ...)` initializes its MutableTransitionState AT that first value,
+    // so if this composable's very first composition already has visible = true (the first time the
+    // drawer is ever opened), there is nothing to animate *from* and it just snaps in. Forcing the
+    // initial state to false makes the very first open play the same enter animation as every later one.
+    val scrimState = remember { MutableTransitionState(false) }
+    scrimState.targetState = visible
+    val panelState = remember { MutableTransitionState(false) }
+    panelState.targetState = visible
+
+    Box(modifier = modifier.fillMaxSize()) {
+        // Dim scrim fades in/out and only intercepts touches while the drawer is present.
+        AnimatedVisibility(
+            visibleState = scrimState,
+            modifier = Modifier.fillMaxSize(),
+            enter = fadeIn(AslMotion.standardSpec()),
+            exit = fadeOut(AslMotion.standardSpec()),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(onClick = onDismiss),
+            )
+        }
+        // Rail + tool panel slide in from the leading edge.
+        AnimatedVisibility(
+            visibleState = panelState,
+            enter = slideInHorizontally(AslMotion.offsetSpec()) { -it } + fadeIn(AslMotion.enterSpec()),
+            exit = slideOutHorizontally(AslMotion.offsetSpec(AslMotion.fast)) { -it } + fadeOut(AslMotion.exitSpec()),
+        ) {
+            Row(modifier = Modifier.fillMaxHeight()) {
+                EditorToolRail(
+                    activeId = tool.toRailId(),
+                    onSelectTool = onSelectTool,
+                    onOpenSettings = onOpenSettings,
+                    onCloseProject = onCloseProject,
+                )
+                EditorToolPanelContent(
+                    openTool = tool,
+                    fileTree = fileTree,
+                    expandedFolderIds = expandedFolderIds,
+                    selectedFileId = selectedFileId,
+                    onToggleFolder = onToggleFolder,
+                    onSelectFile = onSelectFile,
+                    onDismiss = onDismiss,
+                    onOpenAiAgentSettings = onOpenAiAgentSettings,
+                    isLoadingFileTree = isLoadingFileTree,
+                )
+            }
+        }
     }
 }
 
@@ -182,31 +226,41 @@ private fun EditorToolPanelContent(
     onOpenAiAgentSettings: () -> Unit,
     isLoadingFileTree: Boolean = false,
 ) {
-    when (openTool) {
-        EditorRailTool.Files -> AslToolWindowPanel(
-            title = "Project",
-            width = 252.dp,
-            onClose = onDismiss,
-            actions = {
-                AslIconButton(icon = "file-plus-2", contentDescription = "New file", onClick = {}, size = 32.dp, iconSize = 16.dp)
-            },
-        ) {
-            if (isLoadingFileTree) {
-                AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
-            } else {
-                AslFileTree(
-                    items = fileTree.map { it.toAslNode() },
-                    expandedIds = expandedFolderIds,
-                    selectedId = selectedFileId,
-                    onToggle = onToggleFolder,
-                    onSelect = { onSelectFile(it.id, it.name) },
-                )
+    // Cross-fade between Files/Git/AI Agent/Variants/Assets on rail switch, instead of an instant
+    // swap; animateContentSize smooths the width change too (each tool panel has its own fixed width).
+    AslStateCrossfade(
+        targetState = openTool,
+        modifier = Modifier.animateContentSize(AslMotion.standardSpec()),
+        label = "toolPanel",
+    ) { tool ->
+        when (tool) {
+            EditorRailTool.Files -> AslToolWindowPanel(
+                title = "Project",
+                width = 252.dp,
+                onClose = onDismiss,
+                actions = {
+                    AslIconButton(icon = "file-plus-2", contentDescription = "New file", onClick = {}, size = 32.dp, iconSize = 16.dp)
+                },
+            ) {
+                AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
+                    if (loading) {
+                        AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
+                    } else {
+                        AslFileTree(
+                            items = fileTree.map { it.toAslNode() },
+                            expandedIds = expandedFolderIds,
+                            selectedId = selectedFileId,
+                            onToggle = onToggleFolder,
+                            onSelect = { onSelectFile(it.id, it.name) },
+                        )
+                    }
+                }
             }
+            EditorRailTool.Git -> GitPanelRoute(onClose = onDismiss)
+            EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
+            EditorRailTool.Variants -> VariantsRoute(onClose = onDismiss)
+            EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)
         }
-        EditorRailTool.Git -> GitPanelRoute(onClose = onDismiss)
-        EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
-        EditorRailTool.Variants -> VariantsRoute(onClose = onDismiss)
-        EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)
     }
 }
 

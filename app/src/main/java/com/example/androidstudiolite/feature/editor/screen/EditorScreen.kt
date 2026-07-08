@@ -1,5 +1,10 @@
 package com.example.androidstudiolite.feature.editor.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -15,7 +20,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
+import com.example.androidstudiolite.core.designsystem.animation.AslStateCrossfade
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.content.AslAutocompletePopup
 import com.example.androidstudiolite.core.designsystem.component.content.AslCodeEditor
@@ -36,6 +43,7 @@ import com.example.androidstudiolite.core.designsystem.component.feedback.AslBan
 import com.example.androidstudiolite.core.designsystem.component.feedback.AslLinearProgress
 import com.example.androidstudiolite.core.designsystem.component.ide.AslMemoryChartMini
 import com.example.androidstudiolite.core.designsystem.component.ide.AslMemoryChartTone
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,7 +70,7 @@ fun EditorRoute(
     onCloseProject: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
-    viewModel: EditorViewModel = viewModel { EditorViewModel(projectId) },
+    viewModel: EditorViewModel = koinViewModel { parametersOf(projectId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     EditorScreen(
@@ -193,7 +201,11 @@ private fun EditorScreen(
                         }
                     }
                 }
-                if (uiState.memoryPressureActive) {
+                AnimatedVisibility(
+                    visible = uiState.memoryPressureActive,
+                    enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+                    exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -209,7 +221,11 @@ private fun EditorScreen(
                                 .fillMaxWidth()
                                 .clickable { onInteraction(EditorInteraction.ToggleMemoryChartExpanded) },
                         )
-                        if (uiState.memoryChartExpanded) {
+                        AnimatedVisibility(
+                            visible = uiState.memoryChartExpanded,
+                            enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+                            exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+                        ) {
                             AslMemoryChartMini(
                                 label = "Heap",
                                 value = uiState.heapUsedMb,
@@ -221,7 +237,11 @@ private fun EditorScreen(
                         }
                     }
                 }
-                if (uiState.lspUpdating) {
+                AnimatedVisibility(
+                    visible = uiState.lspUpdating,
+                    enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+                    exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -240,14 +260,17 @@ private fun EditorScreen(
                     onSelect = { onInteraction(EditorInteraction.SelectBottomTab(it)) },
                     onToggle = { onInteraction(EditorInteraction.ToggleBottomPanel) },
                 ) {
-                    EditorBottomPanelContent(
-                        activeTabId = uiState.activeBottomTabId,
-                        running = uiState.running,
-                        buildProgressPercent = uiState.buildProgressPercent,
-                        buildLines = uiState.buildLines,
-                        appLogLines = uiState.appLogLines,
-                        onJumpToTab = { onInteraction(EditorInteraction.SelectTab(it)) },
-                    )
+                    // Crossfade between Build / Logs / Problems / Terminal panes on tab change.
+                    AslStateCrossfade(targetState = uiState.activeBottomTabId, label = "bottomPanelContent") { tabId ->
+                        EditorBottomPanelContent(
+                            activeTabId = tabId,
+                            running = uiState.running,
+                            buildProgressPercent = uiState.buildProgressPercent,
+                            buildLines = uiState.buildLines,
+                            appLogLines = uiState.appLogLines,
+                            onJumpToTab = { onInteraction(EditorInteraction.SelectTab(it)) },
+                        )
+                    }
                 }
                 AslStatusBar(
                     items = buildList {

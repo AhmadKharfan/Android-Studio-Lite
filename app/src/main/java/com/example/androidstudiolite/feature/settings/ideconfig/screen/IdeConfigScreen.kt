@@ -1,5 +1,10 @@
 package com.example.androidstudiolite.feature.settings.ideconfig.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonVariant
 import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
@@ -30,6 +35,7 @@ import com.example.androidstudiolite.core.designsystem.component.inputs.AslChipK
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslChipStatus
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslTopAppBar
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 import com.example.androidstudiolite.domain.model.IdeComponentStatus
@@ -39,7 +45,7 @@ import com.example.androidstudiolite.feature.settings.ideconfig.uiState.IdeConfi
 import com.example.androidstudiolite.feature.settings.ideconfig.viewModel.IdeConfigViewModel
 
 @Composable
-fun IdeConfigRoute(onBack: () -> Unit, viewModel: IdeConfigViewModel = viewModel()) {
+fun IdeConfigRoute(onBack: () -> Unit, viewModel: IdeConfigViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     IdeConfigScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
 }
@@ -76,7 +82,11 @@ private fun IdeConfigScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (!uiState.networkAvailable) {
+                AnimatedVisibility(
+                    visible = !uiState.networkAvailable,
+                    enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+                    exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+                ) {
                     AslBanner(
                         tone = AslBannerTone.Warning,
                         message = "No internet connection — component installs unavailable.",

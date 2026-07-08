@@ -1,5 +1,10 @@
 package com.example.androidstudiolite.feature.hub.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import com.example.androidstudiolite.core.designsystem.animation.AslStaggeredAppear
+import com.example.androidstudiolite.core.designsystem.animation.AslStateCrossfade
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.core.designsystem.component.content.AslProjectCard
@@ -47,6 +54,7 @@ import com.example.androidstudiolite.core.designsystem.component.feedback.AslSna
 import com.example.androidstudiolite.core.designsystem.component.feedback.AslSnackbarTone
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
 import com.example.androidstudiolite.core.designsystem.theme.AslCode
+import com.example.androidstudiolite.core.designsystem.theme.AslMotion
 import com.example.androidstudiolite.core.designsystem.theme.AslShape
 import com.example.androidstudiolite.core.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.hub.components.HubSectionHeader
@@ -72,7 +80,7 @@ fun HubRoute(
     onBrowseFolder: () -> Unit,
     pickedFolder: String?,
     onPickedFolderConsumed: () -> Unit,
-    viewModel: HubViewModel = viewModel(),
+    viewModel: HubViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by remember { mutableStateOf<HubSheet?>(null) }
@@ -205,14 +213,25 @@ private fun HubScreen(
                     color = colors.textPrimary,
                     modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
                 )
-                if (uiState.resumeProject != null) {
-                    AslBanner(
-                        tone = AslBannerTone.Info,
-                        message = "Resume ${uiState.resumeProject.name} where you left off?",
-                        actionLabel = "Resume",
-                        onAction = { onInteraction(HubInteraction.ResumeProject) },
-                        onDismiss = { onInteraction(HubInteraction.DismissResume) },
-                    )
+                // Animate the resume banner in/out; retain the last project so its name stays rendered
+                // while the banner collapses away after dismissal.
+                val resume = uiState.resumeProject
+                var lastResume by remember { mutableStateOf(resume) }
+                if (resume != null) lastResume = resume
+                AnimatedVisibility(
+                    visible = resume != null,
+                    enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+                    exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+                ) {
+                    lastResume?.let { project ->
+                        AslBanner(
+                            tone = AslBannerTone.Info,
+                            message = "Resume ${project.name} where you left off?",
+                            actionLabel = "Resume",
+                            onAction = { onInteraction(HubInteraction.ResumeProject) },
+                            onDismiss = { onInteraction(HubInteraction.DismissResume) },
+                        )
+                    }
                 }
                 if (isTablet) {
                     Row(
@@ -277,53 +296,59 @@ private fun HubScreen(
 
 @Composable
 private fun RecentProjectsRow(uiState: HubUiState, onInteraction: (HubInteraction) -> Unit) {
-    if (uiState.isLoadingRecents) {
-        HubSectionHeader("Recent projects")
-        AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
-        return
-    }
-    if (uiState.recentProjects.isEmpty()) return
+    if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
     HubSectionHeader("Recent projects")
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        uiState.recentProjects.forEach { project ->
-            AslProjectCard(
-                name = project.name,
-                path = project.path,
-                lastOpened = project.lastOpenedText,
-                language = project.language,
-                modifier = Modifier.width(290.dp),
-                onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
-                onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
-            )
+    AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsRow") { loading ->
+        if (loading) {
+            AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                uiState.recentProjects.forEachIndexed { index, project ->
+                    AslStaggeredAppear(index = index) {
+                        AslProjectCard(
+                            name = project.name,
+                            path = project.path,
+                            lastOpened = project.lastOpenedText,
+                            language = project.language,
+                            modifier = Modifier.width(290.dp),
+                            onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
+                            onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun RecentProjectsList(uiState: HubUiState, onInteraction: (HubInteraction) -> Unit) {
-    if (uiState.isLoadingRecents) {
-        HubSectionHeader("Recent projects")
-        AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
-        return
-    }
-    if (uiState.recentProjects.isEmpty()) return
+    if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
     HubSectionHeader("Recent projects")
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        uiState.recentProjects.forEach { project ->
-            AslProjectCard(
-                name = project.name,
-                path = project.path,
-                lastOpened = project.lastOpenedText,
-                language = project.language,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
-                onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
-            )
+    AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsList") { loading ->
+        if (loading) {
+            AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
+        } else {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                uiState.recentProjects.forEachIndexed { index, project ->
+                    AslStaggeredAppear(index = index) {
+                        AslProjectCard(
+                            name = project.name,
+                            path = project.path,
+                            lastOpened = project.lastOpenedText,
+                            language = project.language,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
+                            onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }

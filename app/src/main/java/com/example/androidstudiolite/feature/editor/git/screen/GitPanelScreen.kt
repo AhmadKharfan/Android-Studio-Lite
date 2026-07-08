@@ -18,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import com.example.androidstudiolite.core.designsystem.animation.AslSlideContent
+import com.example.androidstudiolite.core.designsystem.animation.AslStateCrossfade
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.content.AslDiffLine
@@ -37,7 +39,7 @@ import com.example.androidstudiolite.feature.editor.git.uiState.GitPanelUiState
 import com.example.androidstudiolite.feature.editor.git.viewModel.GitPanelViewModel
 
 @Composable
-fun GitPanelRoute(onClose: () -> Unit, viewModel: GitPanelViewModel = viewModel()) {
+fun GitPanelRoute(onClose: () -> Unit, viewModel: GitPanelViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     GitPanelScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onClose = onClose)
 }
@@ -54,10 +56,19 @@ private fun GitPanelScreen(
         onClose = onClose,
         scrollable = false,
     ) {
-        if (uiState.selectedPath != null) {
-            DiffView(uiState = uiState, onInteraction = onInteraction)
-        } else {
-            ChangesView(uiState = uiState, onInteraction = onInteraction)
+        // Slide between the changes list (master) and a file's diff (detail); each pane keeps its own
+        // state through the animation so going back doesn't flash an empty, already-cleared diff.
+        AslSlideContent(
+            targetState = uiState,
+            contentKey = { it.selectedPath != null },
+            isForward = { initial, target -> initial.selectedPath == null && target.selectedPath != null },
+            label = "gitMasterDetail",
+        ) { state ->
+            if (state.selectedPath != null) {
+                DiffView(uiState = state, onInteraction = onInteraction)
+            } else {
+                ChangesView(uiState = state, onInteraction = onInteraction)
+            }
         }
     }
 }
@@ -66,28 +77,35 @@ private fun GitPanelScreen(
 private fun ChangesView(uiState: GitPanelUiState, onInteraction: (GitPanelInteraction) -> Unit) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
-        if (uiState.changes.isEmpty()) {
-            AslEmptyState(
-                icon = "git-commit",
-                title = "No local changes",
-                subtitle = "Edit files to see them appear here for commit.",
-                modifier = Modifier.weight(1f).fillMaxSize(),
-            )
-        } else {
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Text(
-                    text = "CHANGES (${uiState.changes.size})",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.textTertiary,
-                    modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
+        // Ease between the empty state and the populated change list (e.g. after a commit clears it).
+        AslStateCrossfade(
+            targetState = uiState.changes.isEmpty(),
+            modifier = Modifier.weight(1f).fillMaxSize(),
+            label = "gitChanges",
+        ) { isEmpty ->
+            if (isEmpty) {
+                AslEmptyState(
+                    icon = "git-commit",
+                    title = "No local changes",
+                    subtitle = "Edit files to see them appear here for commit.",
+                    modifier = Modifier.fillMaxSize(),
                 )
-                uiState.changes.forEach { change ->
-                    AslListItem(
-                        title = change.path,
-                        icon = "file-code",
-                        trailing = { GitStatusBadge(change.status) },
-                        onClick = { onInteraction(GitPanelInteraction.SelectChange(change.path)) },
+            } else {
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "CHANGES (${uiState.changes.size})",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.textTertiary,
+                        modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
                     )
+                    uiState.changes.forEach { change ->
+                        AslListItem(
+                            title = change.path,
+                            icon = "file-code",
+                            trailing = { GitStatusBadge(change.status) },
+                            onClick = { onInteraction(GitPanelInteraction.SelectChange(change.path)) },
+                        )
+                    }
                 }
             }
         }

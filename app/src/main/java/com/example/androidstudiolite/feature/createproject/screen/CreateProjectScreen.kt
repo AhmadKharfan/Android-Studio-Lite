@@ -3,8 +3,6 @@ package com.example.androidstudiolite.feature.createproject.screen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,7 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
+import com.example.androidstudiolite.core.designsystem.animation.AslSlideContent
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslWizardStepper
@@ -34,7 +33,7 @@ fun CreateProjectRoute(
     onBrowseLocation: () -> Unit,
     pickedFolder: String?,
     onPickedFolderConsumed: () -> Unit,
-    viewModel: CreateProjectViewModel = viewModel(),
+    viewModel: CreateProjectViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -79,28 +78,36 @@ private fun CreateProjectScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
-                    .let { if (uiState.step == 0) it else it.verticalScroll(rememberScrollState()) }
                     .padding(horizontal = 20.dp),
             ) {
-                when (uiState.step) {
-                    0 -> TemplateStep(
-                        templates = uiState.templates,
-                        selectedId = uiState.selectedTemplateId,
-                        onSelect = { onInteraction(CreateProjectInteraction.SelectTemplate(it)) },
-                    )
-                    1 -> ConfigureStep(
-                        projectName = uiState.projectName,
-                        packageName = uiState.packageName,
-                        location = uiState.location,
-                        minSdk = uiState.minSdk,
-                        nameError = uiState.nameError,
-                        onNameChanged = { onInteraction(CreateProjectInteraction.NameChanged(it)) },
-                        onPackageChanged = { onInteraction(CreateProjectInteraction.PackageChanged(it)) },
-                        onLocationChanged = { onInteraction(CreateProjectInteraction.LocationChanged(it)) },
-                        onMinSdkChanged = { onInteraction(CreateProjectInteraction.MinSdkChanged(it)) },
-                        onBrowseLocation = onBrowseLocation,
-                    )
-                    else -> SummaryStep(uiState = uiState)
+                // AnimatedContent needs bounded (non-scrolling) constraints to size/slide its two panes —
+                // each step scrolls internally instead of the wrapper scrolling around the animation.
+                AslSlideContent(
+                    modifier = Modifier.fillMaxSize(),
+                    targetState = uiState.step,
+                    isForward = { initial, target -> target >= initial },
+                    label = "createProjectStep",
+                ) { step ->
+                    when (step) {
+                        0 -> TemplateStep(
+                            templates = uiState.templates,
+                            selectedId = uiState.selectedTemplateId,
+                            onSelect = { onInteraction(CreateProjectInteraction.SelectTemplate(it)) },
+                        )
+                        1 -> ConfigureStep(
+                            projectName = uiState.projectName,
+                            packageName = uiState.packageName,
+                            location = uiState.location,
+                            minSdk = uiState.minSdk,
+                            nameError = uiState.nameError,
+                            onNameChanged = { onInteraction(CreateProjectInteraction.NameChanged(it)) },
+                            onPackageChanged = { onInteraction(CreateProjectInteraction.PackageChanged(it)) },
+                            onLocationChanged = { onInteraction(CreateProjectInteraction.LocationChanged(it)) },
+                            onMinSdkChanged = { onInteraction(CreateProjectInteraction.MinSdkChanged(it)) },
+                            onBrowseLocation = onBrowseLocation,
+                        )
+                        else -> SummaryStep(uiState = uiState)
+                    }
                 }
             }
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
