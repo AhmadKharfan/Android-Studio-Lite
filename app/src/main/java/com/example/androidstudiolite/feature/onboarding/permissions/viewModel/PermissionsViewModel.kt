@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.onboarding.permissions.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObserveOnboardingStateUseCase
 import com.example.androidstudiolite.domain.usecase.UpdatePermissionUseCase
 import com.example.androidstudiolite.feature.onboarding.permissions.interaction.PermissionsInteraction
@@ -22,8 +21,8 @@ private val PERMISSION_ICONS = mapOf(
 private val REQUIRED_PERMISSION_IDS = setOf("storage", "install")
 
 class PermissionsViewModel(
-    private val observeOnboardingState: ObserveOnboardingStateUseCase = ObserveOnboardingStateUseCase(AppContainer.onboardingRepository),
-    private val updatePermission: UpdatePermissionUseCase = UpdatePermissionUseCase(AppContainer.onboardingRepository),
+    private val observeOnboardingState: ObserveOnboardingStateUseCase,
+    private val updatePermission: UpdatePermissionUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PermissionsUiState())

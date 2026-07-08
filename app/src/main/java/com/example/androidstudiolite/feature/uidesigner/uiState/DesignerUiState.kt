@@ -1,9 +1,13 @@
 package com.example.androidstudiolite.feature.uidesigner.uiState
 
+import androidx.compose.runtime.Immutable
+
 enum class DesignerTab { Palette, Canvas, Properties }
 
+@Immutable
 data class PaletteWidget(val id: String, val icon: String, val label: String)
 
+@Immutable
 data class WidgetProperties(
     val id: String,
     val text: String,
@@ -20,6 +24,7 @@ val DESIGNER_PALETTE = listOf(
     PaletteWidget("switch", "toggle-left", "Switch"),
 )
 
+@Immutable
 data class DesignerUiState(
     val fileName: String = "activity_main.xml",
     val activeTab: DesignerTab = DesignerTab.Canvas,

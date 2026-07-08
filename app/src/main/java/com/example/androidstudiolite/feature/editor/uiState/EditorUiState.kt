@@ -1,9 +1,12 @@
 package com.example.androidstudiolite.feature.editor.uiState
 
+import androidx.compose.runtime.Immutable
+
 import com.example.androidstudiolite.core.designsystem.component.content.AslCodeLine
 import com.example.androidstudiolite.core.designsystem.component.content.AslLogLevel
 import com.example.androidstudiolite.domain.model.GitFileStatus
 
+@Immutable
 data class EditorTabUiModel(
     val id: String,
     val name: String,
@@ -13,6 +16,7 @@ data class EditorTabUiModel(
     val lines: List<AslCodeLine>,
 )
 
+@Immutable
 data class EditorFileNodeUiModel(
     val id: String,
     val name: String,
@@ -23,6 +27,7 @@ data class EditorFileNodeUiModel(
 
 enum class EditorRailTool { Files, Git, AiAgent, Variants, Assets }
 
+@Immutable
 data class BottomPanelTabUiModel(
     val id: String,
     val label: String,
@@ -31,6 +36,7 @@ data class BottomPanelTabUiModel(
     val error: Boolean = false,
 )
 
+@Immutable
 data class BuildOutputLineUiModel(
     val text: String,
     val depth: Int = 0,
@@ -39,6 +45,7 @@ data class BuildOutputLineUiModel(
     val jumpToTabId: String? = null,
 )
 
+@Immutable
 data class AppLogLineUiModel(
     val time: String,
     val level: AslLogLevel,
@@ -46,6 +53,7 @@ data class AppLogLineUiModel(
     val message: String,
 )
 
+@Immutable
 data class EditorUiState(
     val projectName: String = "",
     val tabs: List<EditorTabUiModel> = emptyList(),

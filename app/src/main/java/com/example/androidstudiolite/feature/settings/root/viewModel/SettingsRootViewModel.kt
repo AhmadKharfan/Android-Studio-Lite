@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.root.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObservePreferencesUseCase
 import com.example.androidstudiolite.feature.settings.root.interaction.SettingsRootInteraction
 import com.example.androidstudiolite.feature.settings.root.uiState.SettingsRootUiState
@@ -12,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SettingsRootViewModel(
-    private val observePreferences: ObservePreferencesUseCase = ObservePreferencesUseCase(AppContainer.preferencesRepository),
+    private val observePreferences: ObservePreferencesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsRootUiState())

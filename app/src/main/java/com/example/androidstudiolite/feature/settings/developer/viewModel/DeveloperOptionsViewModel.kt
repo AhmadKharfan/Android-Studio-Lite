@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.developer.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObserveIdeConfigStateUseCase
 import com.example.androidstudiolite.domain.usecase.SetNetworkAvailableUseCase
 import com.example.androidstudiolite.feature.settings.developer.interaction.DeveloperOptionsInteraction
@@ -13,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class DeveloperOptionsViewModel(
-    private val observeIdeConfigState: ObserveIdeConfigStateUseCase = ObserveIdeConfigStateUseCase(AppContainer.ideConfigRepository),
-    private val setNetworkAvailable: SetNetworkAvailableUseCase = SetNetworkAvailableUseCase(AppContainer.ideConfigRepository),
+    private val observeIdeConfigState: ObserveIdeConfigStateUseCase,
+    private val setNetworkAvailable: SetNetworkAvailableUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DeveloperOptionsUiState())

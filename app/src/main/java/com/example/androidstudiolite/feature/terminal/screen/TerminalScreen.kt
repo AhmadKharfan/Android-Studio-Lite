@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.ide.AslTerminalBlock
 import com.example.androidstudiolite.core.designsystem.theme.AslCode
@@ -41,7 +41,7 @@ import com.example.androidstudiolite.feature.terminal.viewModel.TerminalViewMode
 private val EXTRA_KEYS = listOf("Esc", "Ctrl", "Alt", "Tab", "/", "|", "←", "↑", "↓", "→")
 
 @Composable
-fun TerminalRoute(onBack: () -> Unit, viewModel: TerminalViewModel = viewModel()) {
+fun TerminalRoute(onBack: () -> Unit, viewModel: TerminalViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TerminalScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
 }

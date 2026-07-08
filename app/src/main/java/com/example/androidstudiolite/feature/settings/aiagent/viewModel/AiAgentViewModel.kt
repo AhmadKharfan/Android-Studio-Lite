@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.aiagent.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.AiProviderConfig
 import com.example.androidstudiolite.domain.usecase.ObserveAiAgentSettingsUseCase
 import com.example.androidstudiolite.domain.usecase.SetAiAgentEnabledUseCase
@@ -18,11 +17,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AiAgentViewModel(
-    private val observeSettings: ObserveAiAgentSettingsUseCase = ObserveAiAgentSettingsUseCase(AppContainer.aiAgentRepository),
-    private val setEnabled: SetAiAgentEnabledUseCase = SetAiAgentEnabledUseCase(AppContainer.aiAgentRepository),
-    private val setApiKey: SetAiProviderApiKeyUseCase = SetAiProviderApiKeyUseCase(AppContainer.aiAgentRepository),
-    private val testApiKey: TestAiProviderApiKeyUseCase = TestAiProviderApiKeyUseCase(AppContainer.aiAgentRepository),
-    private val setInstructions: SetAiAgentInstructionsUseCase = SetAiAgentInstructionsUseCase(AppContainer.aiAgentRepository),
+    private val observeSettings: ObserveAiAgentSettingsUseCase,
+    private val setEnabled: SetAiAgentEnabledUseCase,
+    private val setApiKey: SetAiProviderApiKeyUseCase,
+    private val testApiKey: TestAiProviderApiKeyUseCase,
+    private val setInstructions: SetAiAgentInstructionsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiAgentUiState())

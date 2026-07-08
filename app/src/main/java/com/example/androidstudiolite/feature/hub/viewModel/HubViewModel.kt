@@ -3,7 +3,6 @@ package com.example.androidstudiolite.feature.hub.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidstudiolite.core.util.formatRelativeTime
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.Project
 import com.example.androidstudiolite.domain.usecase.GetRecentProjectsUseCase
 import com.example.androidstudiolite.feature.hub.uiState.HubDialogUiState
@@ -20,7 +19,7 @@ private const val CURRENT_VERSION = "1.1.3"
 private const val LATEST_VERSION = "1.2.0"
 
 class HubViewModel(
-    private val getRecentProjects: GetRecentProjectsUseCase = GetRecentProjectsUseCase(AppContainer.projectRepository),
+    private val getRecentProjects: GetRecentProjectsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubUiState(greeting = greetingForNow()))

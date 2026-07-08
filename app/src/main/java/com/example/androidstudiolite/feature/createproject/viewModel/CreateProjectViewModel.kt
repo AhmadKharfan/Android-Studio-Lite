@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.createproject.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.CreateProjectUseCase
 import com.example.androidstudiolite.domain.usecase.GetProjectTemplatesUseCase
 import com.example.androidstudiolite.domain.usecase.ProjectNameValidation
@@ -16,9 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CreateProjectViewModel(
-    private val getTemplates: GetProjectTemplatesUseCase = GetProjectTemplatesUseCase(AppContainer.templateRepository),
-    private val validateProjectName: ValidateProjectNameUseCase = ValidateProjectNameUseCase(),
-    private val createProject: CreateProjectUseCase = CreateProjectUseCase(AppContainer.projectRepository),
+    private val getTemplates: GetProjectTemplatesUseCase,
+    private val validateProjectName: ValidateProjectNameUseCase,
+    private val createProject: CreateProjectUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateProjectUiState())

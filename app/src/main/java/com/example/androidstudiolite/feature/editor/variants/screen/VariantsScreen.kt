@@ -10,7 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdown
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdownOption
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolWindowPanel
@@ -25,7 +25,7 @@ private val VARIANT_OPTIONS = listOf(
 )
 
 @Composable
-fun VariantsRoute(onClose: () -> Unit, viewModel: VariantsViewModel = viewModel()) {
+fun VariantsRoute(onClose: () -> Unit, viewModel: VariantsViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     VariantsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onClose = onClose)
 }

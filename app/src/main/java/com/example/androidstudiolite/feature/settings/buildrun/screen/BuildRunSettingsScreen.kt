@@ -16,7 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslTextField
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslTopAppBar
@@ -30,7 +30,7 @@ import com.example.androidstudiolite.feature.settings.buildrun.viewModel.BuildRu
 @Composable
 fun BuildRunSettingsRoute(
     onBack: () -> Unit,
-    viewModel: BuildRunViewModel = viewModel(),
+    viewModel: BuildRunViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     BuildRunSettingsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)

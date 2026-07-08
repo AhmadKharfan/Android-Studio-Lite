@@ -1,5 +1,8 @@
 package com.example.androidstudiolite.feature.settings.buildrun.uiState
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class BuildRunUiState(
     val gradleJvmPath: String = "",
     val parallelTaskExecution: Boolean = true,

@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.onboarding.setup.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.MarkSetupCompleteUseCase
 import com.example.androidstudiolite.feature.onboarding.setup.interaction.SetupInteraction
 import com.example.androidstudiolite.feature.onboarding.setup.uiState.InstallStatus
@@ -14,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SetupViewModel(
-    private val markSetupComplete: MarkSetupCompleteUseCase = MarkSetupCompleteUseCase(AppContainer.onboardingRepository),
+    private val markSetupComplete: MarkSetupCompleteUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SetupUiState())

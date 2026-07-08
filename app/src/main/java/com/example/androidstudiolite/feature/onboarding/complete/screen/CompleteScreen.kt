@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.core.designsystem.icon.AslIcon
@@ -29,7 +29,7 @@ import com.example.androidstudiolite.feature.onboarding.complete.viewModel.Compl
 @Composable
 fun CompleteRoute(
     onOpenHub: () -> Unit,
-    viewModel: CompleteViewModel = viewModel(),
+    viewModel: CompleteViewModel = koinViewModel(),
 ) {
     CompleteScreen(onOpen = { viewModel.onFinish(onOpenHub) })
 }

@@ -1,5 +1,8 @@
 package com.example.androidstudiolite.feature.createproject.uiState
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class CreateProjectTemplateUiModel(
     val id: String,
     val name: String,
@@ -8,6 +11,7 @@ data class CreateProjectTemplateUiModel(
     val tags: List<String>,
 )
 
+@Immutable
 data class MinSdkOption(val value: String, val label: String)
 
 val MIN_SDK_OPTIONS = listOf(
@@ -16,6 +20,7 @@ val MIN_SDK_OPTIONS = listOf(
     MinSdkOption("30", "API 30 — Android 11"),
 )
 
+@Immutable
 data class CreateProjectUiState(
     val step: Int = 0,
     val templates: List<CreateProjectTemplateUiModel> = emptyList(),

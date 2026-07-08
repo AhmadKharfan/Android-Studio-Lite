@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.core.designsystem.component.ide.AslThemeSwatch
 import com.example.androidstudiolite.core.designsystem.component.ide.AslThemeSwatchPicker
@@ -44,7 +44,7 @@ private val COLOR_SCHEME_SWATCHES = listOf(
 @Composable
 fun EditorSettingsRoute(
     onBack: () -> Unit,
-    viewModel: EditorSettingsViewModel = viewModel(),
+    viewModel: EditorSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     EditorSettingsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)

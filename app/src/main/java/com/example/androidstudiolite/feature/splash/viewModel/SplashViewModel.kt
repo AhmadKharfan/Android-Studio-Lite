@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.splash.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObserveOnboardingStateUseCase
 import com.example.androidstudiolite.feature.splash.uiState.SplashUiState
 import kotlinx.coroutines.delay
@@ -15,7 +14,7 @@ import kotlinx.coroutines.launch
 private const val SPLASH_MIN_DURATION_MS = 900L
 
 class SplashViewModel(
-    private val observeOnboardingState: ObserveOnboardingStateUseCase = ObserveOnboardingStateUseCase(AppContainer.onboardingRepository),
+    private val observeOnboardingState: ObserveOnboardingStateUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SplashUiState>(SplashUiState.Loading)

@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdown
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdownOption
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslSegmentedButton
@@ -48,7 +48,7 @@ private val LANGUAGE_OPTIONS = listOf(
 @Composable
 fun GeneralRoute(
     onBack: () -> Unit,
-    viewModel: GeneralViewModel = viewModel(),
+    viewModel: GeneralViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     GeneralScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)

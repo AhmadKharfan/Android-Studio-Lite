@@ -1,5 +1,8 @@
 package com.example.androidstudiolite.feature.settings.editor.uiState
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class EditorSettingsUiState(
     val fontSize: Int = 13,
     val colorSchemeId: String = "darcula",

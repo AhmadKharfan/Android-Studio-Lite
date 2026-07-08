@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.editor.aichat.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.ApiKeyStatus
 import com.example.androidstudiolite.domain.model.ChatMessage
 import com.example.androidstudiolite.domain.model.ChatRole
@@ -20,10 +19,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AiChatViewModel(
-    private val observeMessages: ObserveChatMessagesUseCase = ObserveChatMessagesUseCase(AppContainer.aiChatRepository),
-    private val sendChatMessage: SendChatMessageUseCase = SendChatMessageUseCase(AppContainer.aiChatRepository),
-    private val markApplied: MarkChatMessageAppliedUseCase = MarkChatMessageAppliedUseCase(AppContainer.aiChatRepository),
-    private val observeAiAgentSettings: ObserveAiAgentSettingsUseCase = ObserveAiAgentSettingsUseCase(AppContainer.aiAgentRepository),
+    private val observeMessages: ObserveChatMessagesUseCase,
+    private val sendChatMessage: SendChatMessageUseCase,
+    private val markApplied: MarkChatMessageAppliedUseCase,
+    private val observeAiAgentSettings: ObserveAiAgentSettingsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiChatUiState())

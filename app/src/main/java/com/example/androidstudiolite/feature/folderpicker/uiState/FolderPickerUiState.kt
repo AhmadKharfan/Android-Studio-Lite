@@ -1,7 +1,10 @@
 package com.example.androidstudiolite.feature.folderpicker.uiState
 
+import androidx.compose.runtime.Immutable
+
 import com.example.androidstudiolite.core.designsystem.component.content.AslFileTreeNode
 
+@Immutable
 data class FolderPickerUiState(
     val breadcrumb: List<String> = emptyList(),
     val items: List<AslFileTreeNode> = emptyList(),

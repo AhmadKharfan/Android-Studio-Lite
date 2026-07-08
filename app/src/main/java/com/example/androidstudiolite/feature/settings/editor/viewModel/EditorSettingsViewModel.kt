@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.editor.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObservePreferencesUseCase
 import com.example.androidstudiolite.domain.usecase.UpdateEditorFontSizeUseCase
 import com.example.androidstudiolite.domain.usecase.UpdateEditorThemeUseCase
@@ -15,10 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class EditorSettingsViewModel(
-    private val observePreferences: ObservePreferencesUseCase = ObservePreferencesUseCase(AppContainer.preferencesRepository),
-    private val updateFontSize: UpdateEditorFontSizeUseCase = UpdateEditorFontSizeUseCase(AppContainer.preferencesRepository),
-    private val updateEditorTheme: UpdateEditorThemeUseCase = UpdateEditorThemeUseCase(AppContainer.preferencesRepository),
-    private val updatePreferences: UpdatePreferencesUseCase = UpdatePreferencesUseCase(AppContainer.preferencesRepository),
+    private val observePreferences: ObservePreferencesUseCase,
+    private val updateFontSize: UpdateEditorFontSizeUseCase,
+    private val updateEditorTheme: UpdateEditorThemeUseCase,
+    private val updatePreferences: UpdatePreferencesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditorSettingsUiState())

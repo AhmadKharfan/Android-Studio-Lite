@@ -3,7 +3,6 @@ package com.example.androidstudiolite.feature.folderpicker.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidstudiolite.core.designsystem.component.content.AslFileTreeNode
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.FolderNode
 import com.example.androidstudiolite.domain.usecase.GetFolderTreeUseCase
 import com.example.androidstudiolite.feature.folderpicker.interaction.FolderPickerInteraction
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class FolderPickerViewModel(
-    private val getFolderTree: GetFolderTreeUseCase = GetFolderTreeUseCase(AppContainer.fileSystemRepository),
+    private val getFolderTree: GetFolderTreeUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FolderPickerUiState())

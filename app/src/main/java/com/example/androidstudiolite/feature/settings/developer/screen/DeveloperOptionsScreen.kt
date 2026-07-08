@@ -14,7 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslTopAppBar
@@ -36,7 +36,7 @@ fun DeveloperOptionsRoute(
     onSimulateUnsupportedDevice: () -> Unit,
     onSimulateSdCardInstall: () -> Unit,
     onSimulateSecondaryUser: () -> Unit,
-    viewModel: DeveloperOptionsViewModel = viewModel(),
+    viewModel: DeveloperOptionsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     DeveloperOptionsScreen(

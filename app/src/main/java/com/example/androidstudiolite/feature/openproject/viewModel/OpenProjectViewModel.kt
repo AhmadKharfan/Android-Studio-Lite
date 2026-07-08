@@ -3,7 +3,6 @@ package com.example.androidstudiolite.feature.openproject.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidstudiolite.core.util.formatRelativeTime
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.Project
 import com.example.androidstudiolite.domain.usecase.GetRecentProjectsUseCase
 import com.example.androidstudiolite.feature.openproject.interaction.OpenProjectInteraction
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class OpenProjectViewModel(
-    private val getRecentProjects: GetRecentProjectsUseCase = GetRecentProjectsUseCase(AppContainer.projectRepository),
+    private val getRecentProjects: GetRecentProjectsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OpenProjectUiState())

@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.onboarding.statistics.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObservePreferencesUseCase
 import com.example.androidstudiolite.domain.usecase.UpdateShareUsageStatsUseCase
 import com.example.androidstudiolite.feature.onboarding.statistics.interaction.StatisticsInteraction
@@ -13,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class StatisticsViewModel(
-    private val observePreferences: ObservePreferencesUseCase = ObservePreferencesUseCase(AppContainer.preferencesRepository),
-    private val updateShareUsageStats: UpdateShareUsageStatsUseCase = UpdateShareUsageStatsUseCase(AppContainer.preferencesRepository),
+    private val observePreferences: ObservePreferencesUseCase,
+    private val updateShareUsageStats: UpdateShareUsageStatsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatisticsUiState())

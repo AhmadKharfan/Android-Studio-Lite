@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.general.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.ObservePreferencesUseCase
 import com.example.androidstudiolite.domain.usecase.UpdateAccentUseCase
 import com.example.androidstudiolite.domain.usecase.UpdateAutoOpenLastProjectUseCase
@@ -17,12 +16,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class GeneralViewModel(
-    private val observePreferences: ObservePreferencesUseCase = ObservePreferencesUseCase(AppContainer.preferencesRepository),
-    private val updateThemeMode: UpdateThemeModeUseCase = UpdateThemeModeUseCase(AppContainer.preferencesRepository),
-    private val updateAccent: UpdateAccentUseCase = UpdateAccentUseCase(AppContainer.preferencesRepository),
-    private val updateLanguage: UpdateLanguageUseCase = UpdateLanguageUseCase(AppContainer.preferencesRepository),
-    private val updateAutoOpenLastProject: UpdateAutoOpenLastProjectUseCase = UpdateAutoOpenLastProjectUseCase(AppContainer.preferencesRepository),
-    private val updateSnowfallEasterEgg: UpdateSnowfallEasterEggUseCase = UpdateSnowfallEasterEggUseCase(AppContainer.preferencesRepository),
+    private val observePreferences: ObservePreferencesUseCase,
+    private val updateThemeMode: UpdateThemeModeUseCase,
+    private val updateAccent: UpdateAccentUseCase,
+    private val updateLanguage: UpdateLanguageUseCase,
+    private val updateAutoOpenLastProject: UpdateAutoOpenLastProjectUseCase,
+    private val updateSnowfallEasterEgg: UpdateSnowfallEasterEggUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GeneralUiState())

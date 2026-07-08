@@ -1,5 +1,8 @@
 package com.example.androidstudiolite.feature.editor.aichat.uiState
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class ChatMessageUiModel(
     val id: String,
     val isUser: Boolean,
@@ -10,6 +13,7 @@ data class ChatMessageUiModel(
     val applied: Boolean = false,
 )
 
+@Immutable
 data class AiChatUiState(
     val hasConfiguredProvider: Boolean = true,
     val messages: List<ChatMessageUiModel> = emptyList(),

@@ -8,7 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonVariant
 import com.example.androidstudiolite.core.designsystem.component.content.AslEmptyState
@@ -26,7 +26,7 @@ fun OpenProjectRoute(
     onBrowseOtherLocation: () -> Unit,
     onCreateProject: () -> Unit,
     onCloneRepository: () -> Unit,
-    viewModel: OpenProjectViewModel = viewModel(),
+    viewModel: OpenProjectViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     OpenProjectScreen(

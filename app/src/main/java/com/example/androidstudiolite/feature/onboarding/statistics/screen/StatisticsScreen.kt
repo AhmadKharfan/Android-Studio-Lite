@@ -18,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslButtonVariant
@@ -37,7 +37,7 @@ import com.example.androidstudiolite.core.designsystem.component.inputs.AslWizar
 fun StatisticsRoute(
     onContinue: () -> Unit,
     onSkip: () -> Unit,
-    viewModel: StatisticsViewModel = viewModel(),
+    viewModel: StatisticsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     StatisticsScreen(

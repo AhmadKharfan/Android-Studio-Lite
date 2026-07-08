@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.clonerepo.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.usecase.CloneRepositoryUseCase
 import com.example.androidstudiolite.feature.clonerepo.interaction.CloneRepoInteraction
 import com.example.androidstudiolite.feature.clonerepo.uiState.CloneRepoUiState
@@ -12,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CloneRepoViewModel(
-    private val cloneRepository: CloneRepositoryUseCase = CloneRepositoryUseCase(AppContainer.projectRepository),
+    private val cloneRepository: CloneRepositoryUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CloneRepoUiState())

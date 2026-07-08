@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.navigation.AslSplash
 import com.example.androidstudiolite.feature.splash.uiState.SplashUiState
 import com.example.androidstudiolite.feature.splash.viewModel.SplashViewModel
@@ -14,7 +14,7 @@ import com.example.androidstudiolite.feature.splash.viewModel.SplashViewModel
 fun SplashRoute(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHub: () -> Unit,
-    viewModel: SplashViewModel = viewModel(),
+    viewModel: SplashViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

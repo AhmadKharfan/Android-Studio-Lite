@@ -2,7 +2,6 @@ package com.example.androidstudiolite.feature.settings.ideconfig.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.IdeComponent
 import com.example.androidstudiolite.domain.usecase.InstallIdeComponentUseCase
 import com.example.androidstudiolite.domain.usecase.ObserveIdeConfigStateUseCase
@@ -18,10 +17,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class IdeConfigViewModel(
-    private val observeState: ObserveIdeConfigStateUseCase = ObserveIdeConfigStateUseCase(AppContainer.ideConfigRepository),
-    private val installComponent: InstallIdeComponentUseCase = InstallIdeComponentUseCase(AppContainer.ideConfigRepository),
-    private val setOfflineMode: SetOfflineModeUseCase = SetOfflineModeUseCase(AppContainer.ideConfigRepository),
-    private val setNetworkAvailable: SetNetworkAvailableUseCase = SetNetworkAvailableUseCase(AppContainer.ideConfigRepository),
+    private val observeState: ObserveIdeConfigStateUseCase,
+    private val installComponent: InstallIdeComponentUseCase,
+    private val setOfflineMode: SetOfflineModeUseCase,
+    private val setNetworkAvailable: SetNetworkAvailableUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(IdeConfigUiState())

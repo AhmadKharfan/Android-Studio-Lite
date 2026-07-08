@@ -7,7 +7,6 @@ import com.example.androidstudiolite.core.designsystem.component.content.AslCode
 import com.example.androidstudiolite.core.designsystem.component.content.AslLineGit
 import com.example.androidstudiolite.core.designsystem.component.content.AslLogLevel
 import com.example.androidstudiolite.core.designsystem.component.content.AslSyntaxColor
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.FileNode
 import com.example.androidstudiolite.domain.usecase.GetFileTreeUseCase
 import com.example.androidstudiolite.domain.usecase.OpenProjectUseCase
@@ -119,8 +118,8 @@ private val APP_LOG_TEMPLATE = listOf(
 
 class EditorViewModel(
     projectId: String,
-    private val openProject: OpenProjectUseCase = OpenProjectUseCase(AppContainer.projectRepository),
-    private val getFileTree: GetFileTreeUseCase = GetFileTreeUseCase(AppContainer.fileTreeRepository),
+    private val openProject: OpenProjectUseCase,
+    private val getFileTree: GetFileTreeUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(

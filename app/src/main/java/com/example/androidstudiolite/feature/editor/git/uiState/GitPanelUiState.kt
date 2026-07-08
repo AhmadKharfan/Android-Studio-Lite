@@ -1,10 +1,14 @@
 package com.example.androidstudiolite.feature.editor.git.uiState
 
+import androidx.compose.runtime.Immutable
+
 import com.example.androidstudiolite.core.designsystem.component.content.AslDiffKind
 import com.example.androidstudiolite.domain.model.GitFileStatus
 
+@Immutable
 data class GitChangeUiModel(val path: String, val status: GitFileStatus)
 
+@Immutable
 data class GitDiffLineUiModel(
     val kind: AslDiffKind,
     val text: String,
@@ -12,6 +16,7 @@ data class GitDiffLineUiModel(
     val newNo: Int?,
 )
 
+@Immutable
 data class GitPanelUiState(
     val branch: String = "main",
     val changes: List<GitChangeUiModel> = emptyList(),

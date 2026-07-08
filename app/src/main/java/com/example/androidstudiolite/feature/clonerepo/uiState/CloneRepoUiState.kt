@@ -1,7 +1,11 @@
 package com.example.androidstudiolite.feature.clonerepo.uiState
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class CloneOptionUiModel(val id: String, val label: String, val selected: Boolean)
 
+@Immutable
 data class CloneRepoUiState(
     val url: String = "",
     val branch: String = "",

@@ -26,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButtonVariant
 import com.example.androidstudiolite.core.designsystem.component.inputs.AslSegmentedButton
@@ -45,7 +45,7 @@ import com.example.androidstudiolite.feature.uidesigner.viewModel.DesignerViewMo
 private val TABLET_BREAKPOINT = 600.dp
 
 @Composable
-fun DesignerRoute(onBack: () -> Unit, viewModel: DesignerViewModel = viewModel()) {
+fun DesignerRoute(onBack: () -> Unit, viewModel: DesignerViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     DesignerScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
 }

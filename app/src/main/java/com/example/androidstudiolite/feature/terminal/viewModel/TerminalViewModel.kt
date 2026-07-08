@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidstudiolite.core.designsystem.component.ide.AslTerminalLine
 import com.example.androidstudiolite.core.designsystem.component.ide.AslTerminalLineKind
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.TerminalLineKind
 import com.example.androidstudiolite.domain.model.TerminalOutputLine
 import com.example.androidstudiolite.domain.usecase.ExecuteTerminalCommandUseCase
@@ -28,7 +27,7 @@ private val INITIAL_LINES = listOf(
 private val INSERTABLE_KEYS = setOf("/", "|")
 
 class TerminalViewModel(
-    private val execute: ExecuteTerminalCommandUseCase = ExecuteTerminalCommandUseCase(AppContainer.terminalRepository),
+    private val execute: ExecuteTerminalCommandUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TerminalUiState(lines = INITIAL_LINES))

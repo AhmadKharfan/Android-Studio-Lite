@@ -3,7 +3,6 @@ package com.example.androidstudiolite.feature.editor.git.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidstudiolite.core.designsystem.component.content.AslDiffKind
-import com.example.androidstudiolite.di.AppContainer
 import com.example.androidstudiolite.domain.model.GitDiffKind
 import com.example.androidstudiolite.domain.usecase.CommitGitChangesUseCase
 import com.example.androidstudiolite.domain.usecase.GetGitDiffUseCase
@@ -20,10 +19,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GitPanelViewModel(
-    private val observeState: ObserveGitStateUseCase = ObserveGitStateUseCase(AppContainer.gitRepository),
-    private val getDiff: GetGitDiffUseCase = GetGitDiffUseCase(AppContainer.gitRepository),
-    private val setCommitMessage: SetGitCommitMessageUseCase = SetGitCommitMessageUseCase(AppContainer.gitRepository),
-    private val commitChanges: CommitGitChangesUseCase = CommitGitChangesUseCase(AppContainer.gitRepository),
+    private val observeState: ObserveGitStateUseCase,
+    private val getDiff: GetGitDiffUseCase,
+    private val setCommitMessage: SetGitCommitMessageUseCase,
+    private val commitChanges: CommitGitChangesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GitPanelUiState())
