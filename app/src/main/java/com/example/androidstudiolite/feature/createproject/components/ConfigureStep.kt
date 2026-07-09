@@ -8,10 +8,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdown
-import com.example.androidstudiolite.core.designsystem.component.inputs.AslDropdownOption
-import com.example.androidstudiolite.core.designsystem.component.inputs.AslTextField
-import com.example.androidstudiolite.feature.createproject.uiState.MIN_SDK_OPTIONS
+import com.example.androidstudiolite.designsystem.component.inputs.AslDropdown
+import com.example.androidstudiolite.designsystem.component.inputs.AslDropdownOption
+import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.example.androidstudiolite.feature.createproject.MIN_SDK_OPTIONS
 
 @Composable
 fun ConfigureStep(

@@ -10,15 +10,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.component.content.AslEmptyState
-import com.example.androidstudiolite.core.designsystem.component.content.AslLogLine
-import com.example.androidstudiolite.core.designsystem.component.feedback.AslLinearProgress
-import com.example.androidstudiolite.core.designsystem.component.ide.AslBuildOutputLine
-import com.example.androidstudiolite.core.designsystem.component.ide.AslTaskStatus
-import com.example.androidstudiolite.core.designsystem.theme.AslCode
-import com.example.androidstudiolite.core.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.editor.uiState.AppLogLineUiModel
-import com.example.androidstudiolite.feature.editor.uiState.BuildOutputLineUiModel
+import com.example.androidstudiolite.designsystem.component.content.AslEmptyState
+import com.example.androidstudiolite.designsystem.component.content.AslLogLine
+import com.example.androidstudiolite.designsystem.component.feedback.AslLinearProgress
+import com.example.androidstudiolite.designsystem.component.ide.AslBuildOutputLine
+import com.example.androidstudiolite.designsystem.component.ide.AslTaskStatus
+import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslTheme
+import com.example.androidstudiolite.feature.editor.AppLogLineUiModel
+import com.example.androidstudiolite.feature.editor.BuildOutputLineUiModel
 
 @Composable
 fun EditorBottomPanelContent(

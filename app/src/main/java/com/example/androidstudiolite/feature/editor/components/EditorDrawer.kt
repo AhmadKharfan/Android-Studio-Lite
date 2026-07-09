@@ -21,24 +21,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.animation.AslStateCrossfade
-import com.example.androidstudiolite.core.designsystem.component.buttons.AslIconButton
-import com.example.androidstudiolite.core.designsystem.component.content.AslFileTree
-import com.example.androidstudiolite.core.designsystem.component.content.AslFileTreeNode
-import com.example.androidstudiolite.core.designsystem.component.content.AslGitStatus
-import com.example.androidstudiolite.core.designsystem.component.feedback.AslSkeleton
-import com.example.androidstudiolite.core.designsystem.component.feedback.AslSkeletonVariant
-import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolRail
-import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolRailEntry
-import com.example.androidstudiolite.core.designsystem.component.navigation.AslToolWindowPanel
-import com.example.androidstudiolite.core.designsystem.theme.AslMotion
+import com.example.androidstudiolite.designsystem.animation.AslStateCrossfade
+import com.example.androidstudiolite.designsystem.component.buttons.AslIconButton
+import com.example.androidstudiolite.designsystem.component.content.AslFileTree
+import com.example.androidstudiolite.designsystem.component.content.AslFileTreeNode
+import com.example.androidstudiolite.designsystem.component.content.AslGitStatus
+import com.example.androidstudiolite.designsystem.component.feedback.AslSkeleton
+import com.example.androidstudiolite.designsystem.component.feedback.AslSkeletonVariant
+import com.example.androidstudiolite.designsystem.component.navigation.AslToolRail
+import com.example.androidstudiolite.designsystem.component.navigation.AslToolRailEntry
+import com.example.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.example.androidstudiolite.designsystem.theme.AslMotion
 import com.example.androidstudiolite.domain.model.GitFileStatus
-import com.example.androidstudiolite.feature.editor.aichat.screen.AiChatRoute
-import com.example.androidstudiolite.feature.editor.assets.screen.AssetsRoute
-import com.example.androidstudiolite.feature.editor.git.screen.GitPanelRoute
-import com.example.androidstudiolite.feature.editor.uiState.EditorFileNodeUiModel
-import com.example.androidstudiolite.feature.editor.uiState.EditorRailTool
-import com.example.androidstudiolite.feature.editor.variants.screen.VariantsRoute
+import com.example.androidstudiolite.feature.editor.aichat.AiChatRoute
+import com.example.androidstudiolite.feature.editor.assets.AssetsRoute
+import com.example.androidstudiolite.feature.editor.git.GitPanelRoute
+import com.example.androidstudiolite.feature.editor.EditorFileNodeUiModel
+import com.example.androidstudiolite.feature.editor.EditorRailTool
+import com.example.androidstudiolite.feature.editor.variants.VariantsRoute
 
 private val RAIL_ITEMS = listOf(
     AslToolRailEntry.Item("files", "folder", "Files"),

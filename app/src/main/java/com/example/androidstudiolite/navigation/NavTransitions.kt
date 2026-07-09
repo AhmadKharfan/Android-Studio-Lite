@@ -8,7 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
-import com.example.androidstudiolite.core.designsystem.theme.AslMotion
+import com.example.androidstudiolite.designsystem.theme.AslMotion
 import kotlin.math.roundToInt
 
 /**

@@ -7,8 +7,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.component.content.AslTemplateCard
-import com.example.androidstudiolite.feature.createproject.uiState.CreateProjectTemplateUiModel
+import com.example.androidstudiolite.designsystem.component.content.AslTemplateCard
+import com.example.androidstudiolite.feature.createproject.CreateProjectTemplateUiModel
 
 @Composable
 fun TemplateStep(

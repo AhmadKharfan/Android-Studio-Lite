@@ -10,11 +10,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.component.content.AslListItem
-import com.example.androidstudiolite.core.designsystem.component.feedback.AslLinearProgress
-import com.example.androidstudiolite.core.designsystem.theme.AslShape
-import com.example.androidstudiolite.core.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.createproject.uiState.CreateProjectUiState
+import com.example.androidstudiolite.designsystem.component.content.AslListItem
+import com.example.androidstudiolite.designsystem.component.feedback.AslLinearProgress
+import com.example.androidstudiolite.designsystem.theme.AslShape
+import com.example.androidstudiolite.designsystem.theme.AslTheme
+import com.example.androidstudiolite.feature.createproject.CreateProjectUiState
 
 @Composable
 fun SummaryStep(uiState: CreateProjectUiState, modifier: Modifier = Modifier) {

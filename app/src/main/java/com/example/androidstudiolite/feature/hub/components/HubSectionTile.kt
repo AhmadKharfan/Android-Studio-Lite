@@ -17,10 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.androidstudiolite.core.designsystem.icon.AslIcon
-import com.example.androidstudiolite.core.designsystem.modifier.pressScale
-import com.example.androidstudiolite.core.designsystem.theme.AslShape
-import com.example.androidstudiolite.core.designsystem.theme.AslTheme
+import com.example.androidstudiolite.designsystem.icon.AslIcon
+import com.example.androidstudiolite.designsystem.modifier.pressScale
+import com.example.androidstudiolite.designsystem.theme.AslShape
+import com.example.androidstudiolite.designsystem.theme.AslTheme
 
 /** The Hub's "More" grid tile — icon over label, screen-local (not a shared design-system component). */
 @Composable
@@ -59,7 +59,7 @@ fun HubSectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
-        letterSpacing = com.example.androidstudiolite.core.designsystem.theme.AslLetterSpacing.overline,
+        letterSpacing = com.example.androidstudiolite.designsystem.theme.AslLetterSpacing.overline,
         color = colors.textTertiary,
         modifier = modifier.padding(top = 20.dp, bottom = 10.dp),
     )
