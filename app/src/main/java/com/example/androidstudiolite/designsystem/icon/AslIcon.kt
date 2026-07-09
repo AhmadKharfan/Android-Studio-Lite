@@ -1,5 +1,4 @@
 package com.example.androidstudiolite.designsystem.icon
-
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,6 +50,7 @@ import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Input
 import androidx.compose.material.icons.outlined.Redo
 import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.SupportAgent
@@ -124,17 +124,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material3.Icon as M3Icon
-
-/**
- * Maps the Lucide icon names used throughout the design specs to Material icons — this app's
- * `material-icons-extended` stand-in for Lucide (which has no Compose artifact). Outlined style
- * is preferred to match the design's "1.5dp stroke, never filled" rule; a handful of base names
- * (settings, add, search, home, …) only ship a Filled glyph in Compose's icon set and fall back
- * to that. Every call site here is name-based, exactly like the source `Icon.jsx`, so swapping
- * in real Lucide vector assets later only touches this file.
- */
 private val iconMap: Map<String, ImageVector> = mapOf(
-    // navigation / chrome
     "settings" to Icons.Filled.Settings,
     "sliders-horizontal" to Icons.Outlined.Tune,
     "menu" to Icons.Filled.Menu,
@@ -148,8 +138,6 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "more-horizontal" to Icons.Outlined.MoreHoriz,
     "x" to Icons.Filled.Close,
     "search" to Icons.Filled.Search,
-
-    // actions
     "plus" to Icons.Filled.Add,
     "check" to Icons.Filled.Check,
     "check-circle" to Icons.Filled.CheckCircle,
@@ -175,8 +163,6 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "sync" to Icons.Outlined.Sync,
     "power" to Icons.Outlined.PowerSettingsNew,
     "restart" to Icons.Outlined.RestartAlt,
-
-    // files / project
     "folder" to Icons.Outlined.Folder,
     "folder-open" to Icons.Outlined.FolderOpen,
     "folder-lock" to Icons.Filled.Lock,
@@ -199,8 +185,6 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "git-branch" to Icons.Outlined.AccountTree,
     "git-commit" to Icons.Outlined.Commit,
     "history" to Icons.Outlined.History,
-
-    // IDE concepts
     "hammer" to Icons.Outlined.Build,
     "wrench" to Icons.Outlined.Construction,
     "braces" to Icons.Outlined.DataObject,
@@ -237,6 +221,7 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "blocks" to Icons.Outlined.Widgets,
     "settings-2" to Icons.Outlined.SettingsSuggest,
     "redo-2" to Icons.Outlined.Redo,
+    "undo-2" to Icons.Outlined.Undo,
     "text-cursor-input" to Icons.Outlined.Input,
     "toggle-left" to Icons.Outlined.ToggleOff,
     "grip-vertical" to Icons.Outlined.DragIndicator,
@@ -249,8 +234,6 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "box" to Icons.Outlined.Inventory2,
     "shapes" to Icons.Outlined.Category,
     "key-round" to Icons.Outlined.Key,
-
-    // people / misc
     "user" to Icons.Outlined.PersonOutline,
     "users" to Icons.Outlined.People,
     "bell" to Icons.Outlined.NotificationsNone,
@@ -272,13 +255,8 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "lock" to Icons.Filled.Lock,
     "home" to Icons.Filled.Home,
 )
-
-/** Fallback glyph for any name not (yet) present in [iconMap] — extend the map above instead
- *  of relying on this once a screen actually needs the icon. */
 private val fallbackIcon: ImageVector get() = Icons.Outlined.Circle
-
 fun aslIconFor(name: String): ImageVector = iconMap[name] ?: fallbackIcon
-
 @Composable
 fun AslIcon(
     name: String,
