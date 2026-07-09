@@ -8,52 +8,43 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.androidstudiolite.feature.acsmissing.screen.AcsMissingRoute
-import com.example.androidstudiolite.feature.blockingerror.screen.BlockingErrorRoute
-import com.example.androidstudiolite.feature.blockingerror.screen.BlockingErrorType
-import com.example.androidstudiolite.feature.createproject.screen.CreateProjectRoute
-import com.example.androidstudiolite.feature.crashreport.screen.CrashReportRoute
-import com.example.androidstudiolite.feature.editor.screen.EditorRoute
-import com.example.androidstudiolite.feature.folderpicker.screen.FolderPickerRoute
-import com.example.androidstudiolite.feature.hub.screen.HubRoute
-import com.example.androidstudiolite.feature.onboarding.complete.screen.CompleteRoute
-import com.example.androidstudiolite.feature.onboarding.permissions.screen.PermissionsRoute
-import com.example.androidstudiolite.feature.onboarding.setup.screen.SetupRoute
-import com.example.androidstudiolite.feature.onboarding.statistics.screen.StatisticsRoute
-import com.example.androidstudiolite.feature.onboarding.welcome.screen.WelcomeRoute
-import com.example.androidstudiolite.feature.settings.about.screen.AboutRoute
-import com.example.androidstudiolite.feature.settings.aiagent.screen.AiAgentSettingsRoute
-import com.example.androidstudiolite.feature.settings.buildrun.screen.BuildRunSettingsRoute
-import com.example.androidstudiolite.feature.settings.developer.screen.DeveloperOptionsRoute
-import com.example.androidstudiolite.feature.settings.editor.screen.EditorSettingsRoute
-import com.example.androidstudiolite.feature.settings.general.screen.GeneralRoute
-import com.example.androidstudiolite.feature.settings.ideconfig.screen.IdeConfigRoute
-import com.example.androidstudiolite.feature.settings.root.screen.SettingsRootRoute
-import com.example.androidstudiolite.feature.splash.screen.SplashRoute
-import com.example.androidstudiolite.feature.terminal.screen.TerminalRoute
-import com.example.androidstudiolite.feature.uidesigner.screen.DesignerRoute
+import com.example.androidstudiolite.feature.acsmissing.AcsMissingRoute
+import com.example.androidstudiolite.feature.blockingerror.BlockingErrorRoute
+import com.example.androidstudiolite.feature.blockingerror.BlockingErrorType
+import com.example.androidstudiolite.feature.createproject.CreateProjectRoute
+import com.example.androidstudiolite.feature.crashreport.CrashReportRoute
+import com.example.androidstudiolite.feature.editor.EditorRoute
+import com.example.androidstudiolite.feature.folderpicker.FolderPickerRoute
+import com.example.androidstudiolite.feature.hub.HubRoute
+import com.example.androidstudiolite.feature.onboarding.complete.CompleteRoute
+import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsRoute
+import com.example.androidstudiolite.feature.onboarding.setup.SetupRoute
+import com.example.androidstudiolite.feature.onboarding.statistics.StatisticsRoute
+import com.example.androidstudiolite.feature.onboarding.welcome.WelcomeRoute
+import com.example.androidstudiolite.feature.settings.about.AboutRoute
+import com.example.androidstudiolite.feature.settings.aiagent.AiAgentSettingsRoute
+import com.example.androidstudiolite.feature.settings.buildrun.BuildRunSettingsRoute
+import com.example.androidstudiolite.feature.settings.developer.DeveloperOptionsRoute
+import com.example.androidstudiolite.feature.settings.editor.EditorSettingsRoute
+import com.example.androidstudiolite.feature.settings.general.GeneralRoute
+import com.example.androidstudiolite.feature.settings.ideconfig.IdeConfigRoute
+import com.example.androidstudiolite.feature.settings.root.SettingsRootRoute
+import com.example.androidstudiolite.feature.terminal.TerminalRoute
+import com.example.androidstudiolite.feature.uidesigner.DesignerRoute
 
 @Composable
-fun AslNavHost(navController: NavHostController = rememberNavController()) {
+fun AslNavHost(
+    startDestination: String,
+    navController: NavHostController = rememberNavController(),
+) {
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH,
+        startDestination = startDestination,
         enterTransition = { aslEnter() },
         exitTransition = { aslExit() },
         popEnterTransition = { aslPopEnter() },
         popExitTransition = { aslPopExit() },
     ) {
-        composable(Routes.SPLASH) {
-            SplashRoute(
-                onNavigateToOnboarding = {
-                    navController.navigate(Routes.ONBOARDING_WELCOME) { popUpTo(Routes.SPLASH) { inclusive = true } }
-                },
-                onNavigateToHub = {
-                    navController.navigate(Routes.HUB) { popUpTo(Routes.SPLASH) { inclusive = true } }
-                },
-            )
-        }
-
         composable(Routes.ONBOARDING_WELCOME) {
             WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_STATISTICS) })
         }

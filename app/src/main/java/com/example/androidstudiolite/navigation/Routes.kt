@@ -1,8 +1,6 @@
 package com.example.androidstudiolite.navigation
 
 object Routes {
-    const val SPLASH = "splash"
-
     const val ONBOARDING_WELCOME = "onboarding/welcome"
     const val ONBOARDING_STATISTICS = "onboarding/statistics"
     const val ONBOARDING_PERMISSIONS = "onboarding/permissions"
