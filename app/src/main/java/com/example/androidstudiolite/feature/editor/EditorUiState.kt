@@ -1,20 +1,20 @@
 package com.example.androidstudiolite.feature.editor
 import androidx.compose.runtime.Immutable
-
-import com.example.androidstudiolite.designsystem.component.content.AslCodeLine
+import com.example.androidstudiolite.designsystem.component.content.AslLineGit
 import com.example.androidstudiolite.designsystem.component.content.AslLogLevel
 import com.example.androidstudiolite.domain.model.GitFileStatus
-
+import com.example.androidstudiolite.feature.editor.engine.EditorLanguage
 @Immutable
 data class EditorTabUiModel(
     val id: String,
     val name: String,
-    val icon: String,
+    val text: String,
+    val language: EditorLanguage,
     val modified: Boolean,
     val breadcrumb: List<String>,
-    val lines: List<AslCodeLine>,
+    val breakpoints: Set<Int> = emptySet(),
+    val gitLineStatus: Map<Int, AslLineGit> = emptyMap(),
 )
-
 @Immutable
 data class EditorFileNodeUiModel(
     val id: String,
@@ -23,9 +23,7 @@ data class EditorFileNodeUiModel(
     val icon: String? = null,
     val gitStatus: GitFileStatus? = null,
 )
-
 enum class EditorRailTool { Files, Git, AiAgent, Variants, Assets }
-
 @Immutable
 data class BottomPanelTabUiModel(
     val id: String,
@@ -34,7 +32,6 @@ data class BottomPanelTabUiModel(
     val count: Int? = null,
     val error: Boolean = false,
 )
-
 @Immutable
 data class BuildOutputLineUiModel(
     val text: String,
@@ -43,7 +40,6 @@ data class BuildOutputLineUiModel(
     val duration: String? = null,
     val jumpToTabId: String? = null,
 )
-
 @Immutable
 data class AppLogLineUiModel(
     val time: String,
@@ -51,7 +47,6 @@ data class AppLogLineUiModel(
     val tag: String?,
     val message: String,
 )
-
 @Immutable
 data class EditorUiState(
     val projectName: String = "",
@@ -81,6 +76,14 @@ data class EditorUiState(
     val appLogLines: List<AppLogLineUiModel> = emptyList(),
     val isLoadingFileTree: Boolean = true,
     val autocompletePopupVisible: Boolean = false,
+    val editorFontSize: Int = 13,
+    val editorTabSize: Int = 4,
+    val editorThemeId: String = "darcula",
+    val kotlinLspEnabled: Boolean = true,
+    val javaLspEnabled: Boolean = true,
+    val xmlLspEnabled: Boolean = false,
+    val caretLine: Int = 0,
+    val caretColumn: Int = 0,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }

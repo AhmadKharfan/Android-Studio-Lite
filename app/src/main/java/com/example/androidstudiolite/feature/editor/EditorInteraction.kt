@@ -1,6 +1,5 @@
 package com.example.androidstudiolite.feature.editor
 import com.example.androidstudiolite.feature.editor.EditorRailTool
-
 sealed interface EditorInteraction {
     data class SelectTab(val id: String) : EditorInteraction
     data class CloseTab(val id: String) : EditorInteraction
@@ -16,6 +15,8 @@ sealed interface EditorInteraction {
     data object OpenSettings : EditorInteraction
     data object OpenAiAgentSettings : EditorInteraction
     data object Save : EditorInteraction
+    data object Undo : EditorInteraction
+    data object Redo : EditorInteraction
     data object SnackbarShown : EditorInteraction
     data object SimulateBuildFailure : EditorInteraction
     data object ToggleMemoryPressure : EditorInteraction

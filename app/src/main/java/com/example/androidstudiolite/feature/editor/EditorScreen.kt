@@ -8,8 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -18,16 +23,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.example.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.example.androidstudiolite.designsystem.component.buttons.AslIconButton
-import com.example.androidstudiolite.designsystem.component.content.AslAutocompletePopup
-import com.example.androidstudiolite.designsystem.component.content.AslCodeEditor
 import com.example.androidstudiolite.designsystem.component.content.AslFindBar
-import com.example.androidstudiolite.designsystem.component.content.AslSuggestion
-import com.example.androidstudiolite.designsystem.component.content.AslSuggestionKind
 import com.example.androidstudiolite.designsystem.component.navigation.AslBottomToolPanel
 import com.example.androidstudiolite.designsystem.component.navigation.AslBreadcrumbBar
 import com.example.androidstudiolite.designsystem.component.navigation.AslEditorToolbar
@@ -44,9 +47,10 @@ import com.example.androidstudiolite.designsystem.component.ide.AslMemoryChartMi
 import com.example.androidstudiolite.designsystem.component.ide.AslMemoryChartTone
 import com.example.androidstudiolite.designsystem.theme.AslMotion
 import com.example.androidstudiolite.designsystem.theme.AslTheme
+import com.example.androidstudiolite.feature.editor.engine.EditorSession
+import com.example.androidstudiolite.feature.editor.view.AslEditableCodeEditor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.unit.dp
 import com.example.androidstudiolite.feature.editor.components.EditorBottomPanelContent
 import com.example.androidstudiolite.feature.editor.components.EditorDockedPanel
@@ -54,15 +58,6 @@ import com.example.androidstudiolite.feature.editor.components.EditorDrawer
 import com.example.androidstudiolite.feature.editor.EditorInteraction
 import com.example.androidstudiolite.feature.editor.EditorUiState
 import com.example.androidstudiolite.feature.editor.EditorViewModel
-
-private val AUTOCOMPLETE_DEMO_SUGGESTIONS = listOf(
-    AslSuggestion(label = "setContent", detail = "(content: @Composable () -> Unit)", type = "Unit", kind = AslSuggestionKind.Method),
-    AslSuggestion(label = "savedInstanceState", type = "Bundle?", kind = AslSuggestionKind.Field),
-    AslSuggestion(label = "ComponentActivity", type = "class", kind = AslSuggestionKind.Class),
-    AslSuggestion(label = "override", kind = AslSuggestionKind.Keyword),
-    AslSuggestion(label = "Log.d(TAG, …)", detail = "logging snippet", kind = AslSuggestionKind.Snippet),
-)
-
 @Composable
 fun EditorRoute(
     projectId: String,
@@ -82,37 +77,52 @@ fun EditorRoute(
                 else -> viewModel.onInteraction(interaction)
             }
         },
+        sessionFor = viewModel::sessionFor,
+        onEdited = viewModel::onSessionEdited,
+        onCaretMoved = viewModel::onCaretMoved,
     )
 }
-
 @Composable
 private fun EditorScreen(
     uiState: EditorUiState,
     onInteraction: (EditorInteraction) -> Unit,
+    sessionFor: (String?) -> EditorSession?,
+    onEdited: (String) -> Unit,
+    onCaretMoved: (Int, Int) -> Unit,
 ) {
     val colors = AslTheme.colors
     val snackbarHostState = remember { SnackbarHostState() }
-
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let {
             snackbarHostState.showSnackbar(it)
             onInteraction(EditorInteraction.SnackbarShown)
         }
     }
-
     Scaffold(
         containerColor = colors.editorCanvas,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
-        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+        val density = LocalDensity.current
+        val keyboardOpen = WindowInsets.ime.getBottom(density) > 0
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding(),
+        ) {
             val isTablet = maxWidth >= 600.dp
+            val activeTab = uiState.activeTab
             Column(modifier = Modifier.fillMaxSize()) {
-                AslEditorToolbar(
-                    projectName = uiState.projectName.ifBlank { "Loading…" },
+                Column(modifier = Modifier.fillMaxWidth().zIndex(2f)) {
+                    AslEditorToolbar(
+                        projectName = uiState.projectName.ifBlank { "Loading…" },
                     running = uiState.running,
                     onRun = { onInteraction(EditorInteraction.RunProject) },
                     onMenu = { onInteraction(EditorInteraction.ToggleMenu) },
                     actions = {
+                        AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = { onInteraction(EditorInteraction.Undo) })
+                        AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = { onInteraction(EditorInteraction.Redo) })
                         AslIconButton(icon = "save", contentDescription = "Save", onClick = { onInteraction(EditorInteraction.Save) })
                     },
                     overflowItems = listOf(
@@ -123,7 +133,6 @@ private fun EditorScreen(
                         AslOverflowMenuEntry.Item("Simulate build failure", icon = "octagon-alert"),
                         AslOverflowMenuEntry.Item("Simulate memory pressure", icon = "memory-stick"),
                         AslOverflowMenuEntry.Item("Simulate LSP reindex", icon = "loader"),
-                        AslOverflowMenuEntry.Item("Show autocomplete demo", icon = "sparkles"),
                         AslOverflowMenuEntry.Divider,
                         AslOverflowMenuEntry.Item("Close project", icon = "x"),
                     ),
@@ -134,21 +143,26 @@ private fun EditorScreen(
                             "Simulate build failure" -> onInteraction(EditorInteraction.SimulateBuildFailure)
                             "Simulate memory pressure" -> onInteraction(EditorInteraction.ToggleMemoryPressure)
                             "Simulate LSP reindex" -> onInteraction(EditorInteraction.SimulateLspReindex)
-                            "Show autocomplete demo" -> onInteraction(EditorInteraction.ToggleAutocompleteDemo)
                         }
                     },
                 )
                 AslFileTabBar(
-                    tabs = uiState.tabs.map { AslFileTab(it.id, it.name, it.icon, it.modified) },
+                    tabs = uiState.tabs.map { AslFileTab(it.id, it.name, fileIconFor(it.name), it.modified) },
                     activeId = uiState.activeTabId,
                     onSelect = { onInteraction(EditorInteraction.SelectTab(it)) },
                     onClose = { onInteraction(EditorInteraction.CloseTab(it)) },
                 )
-                val activeTab = uiState.activeTab
                 if (activeTab != null && !isTablet) {
                     AslBreadcrumbBar(segments = activeTab.breadcrumb)
                 }
-                Row(modifier = Modifier.weight(1f).fillMaxSize()) {
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .imePadding(),
+                ) {
+                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     if (isTablet) {
                         EditorDockedPanel(
                             openTool = uiState.openRailTool,
@@ -165,15 +179,31 @@ private fun EditorScreen(
                             isLoadingFileTree = uiState.isLoadingFileTree,
                         )
                     }
-                    Box(modifier = Modifier.weight(1f).fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize(),
+                    ) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             if (activeTab != null && isTablet) {
                                 AslBreadcrumbBar(segments = activeTab.breadcrumb)
                             }
-                            if (activeTab != null) {
-                                AslCodeEditor(
-                                    lines = activeTab.lines,
-                                    modifier = Modifier.weight(1f).fillMaxSize(),
+                            val activeSession = sessionFor(activeTab?.id)
+                            if (activeTab != null && activeSession != null) {
+                                AslEditableCodeEditor(
+                                    session = activeSession,
+                                    fontSizeSp = uiState.editorFontSize,
+                                    tabSize = uiState.editorTabSize,
+                                    onEdited = { onEdited(activeTab.id) },
+                                    onCaretMoved = onCaretMoved,
+                                    gitLineStatus = activeTab.gitLineStatus,
+                                    breakpoints = activeTab.breakpoints,
+                                    findQuery = if (uiState.findBarOpen) uiState.findQuery else "",
+                                    findCurrentMatch = uiState.findCurrentMatch,
+                                    lspKotlin = uiState.kotlinLspEnabled,
+                                    lspJava = uiState.javaLspEnabled,
+                                    lspXml = uiState.xmlLspEnabled,
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
                                 )
                             } else {
                                 Box(modifier = Modifier.weight(1f).fillMaxSize())
@@ -191,15 +221,9 @@ private fun EditorScreen(
                                 modifier = Modifier.padding(8.dp),
                             )
                         }
-                        if (uiState.autocompletePopupVisible) {
-                            AslAutocompletePopup(
-                                suggestions = AUTOCOMPLETE_DEMO_SUGGESTIONS,
-                                modifier = Modifier.padding(start = 48.dp, top = 96.dp),
-                                onSelect = { _, _ -> onInteraction(EditorInteraction.ToggleAutocompleteDemo) },
-                            )
-                        }
                     }
                 }
+                if (!keyboardOpen) {
                 AnimatedVisibility(
                     visible = uiState.memoryPressureActive,
                     enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
@@ -259,7 +283,6 @@ private fun EditorScreen(
                     onSelect = { onInteraction(EditorInteraction.SelectBottomTab(it)) },
                     onToggle = { onInteraction(EditorInteraction.ToggleBottomPanel) },
                 ) {
-                    // Crossfade between Build / Logs / Problems / Terminal panes on tab change.
                     AslStateCrossfade(targetState = uiState.activeBottomTabId, label = "bottomPanelContent") { tabId ->
                         EditorBottomPanelContent(
                             activeTabId = tabId,
@@ -281,7 +304,7 @@ private fun EditorScreen(
                             else -> add(AslStatusBarEntry.Item("Kotlin"))
                         }
                         add(AslStatusBarEntry.Spacer)
-                        add(AslStatusBarEntry.Item("Ln 42, Col 18"))
+                        add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
                         if (uiState.memoryPressureActive) {
                             add(AslStatusBarEntry.Item("${uiState.heapUsedMb} / ${uiState.heapMaxMb} MB", icon = "memory-stick", tone = AslStatusTone.Warning))
                         }
@@ -291,6 +314,14 @@ private fun EditorScreen(
                         }
                     },
                 )
+                } else {
+                    AslStatusBar(
+                        items = buildList {
+                            add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
+                        },
+                    )
+                }
+                }
             }
             if (!isTablet) {
                 EditorDrawer(

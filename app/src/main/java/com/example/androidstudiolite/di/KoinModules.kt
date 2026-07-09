@@ -1,7 +1,7 @@
 package com.example.androidstudiolite.di
-
 import com.example.androidstudiolite.data.fake.FakeAiAgentRepository
 import com.example.androidstudiolite.data.fake.FakeAiChatRepository
+import com.example.androidstudiolite.data.fake.FakeFileContentRepository
 import com.example.androidstudiolite.data.fake.FakeFileSystemRepository
 import com.example.androidstudiolite.data.fake.FakeFileTreeRepository
 import com.example.androidstudiolite.data.fake.FakeGitRepository
@@ -13,6 +13,7 @@ import com.example.androidstudiolite.data.fake.FakeTemplateRepository
 import com.example.androidstudiolite.data.fake.FakeTerminalRepository
 import com.example.androidstudiolite.domain.repository.AiAgentRepository
 import com.example.androidstudiolite.domain.repository.AiChatRepository
+import com.example.androidstudiolite.domain.repository.FileContentRepository
 import com.example.androidstudiolite.domain.repository.FileSystemRepository
 import com.example.androidstudiolite.domain.repository.FileTreeRepository
 import com.example.androidstudiolite.domain.repository.GitRepository
@@ -47,16 +48,12 @@ import com.example.androidstudiolite.feature.uidesigner.DesignerViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-
-/**
- * Data layer: repository implementations bound to their domain interfaces as process-wide singletons.
- * Swap any `Fake*Repository` for a real implementation here without touching domain or UI code.
- */
 val dataModule = module {
     single<OnboardingRepository> { FakeOnboardingRepository() }
     single<ProjectRepository> { FakeProjectRepository() }
     single<TemplateRepository> { FakeTemplateRepository() }
     single<FileTreeRepository> { FakeFileTreeRepository() }
+    single<FileContentRepository> { FakeFileContentRepository() }
     single<PreferencesRepository> { FakePreferencesRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<FileSystemRepository> { FakeFileSystemRepository() }
@@ -65,8 +62,6 @@ val dataModule = module {
     single<GitRepository> { FakeGitRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }
-
-/** Presentation layer: one ViewModel per screen. [EditorViewModel] receives its `projectId` at call site. */
 val viewModelModule = module {
     viewModelOf(::StatisticsViewModel)
     viewModelOf(::PermissionsViewModel)
@@ -94,9 +89,9 @@ val viewModelModule = module {
             projectId = params.get(),
             projectRepository = get(),
             fileTreeRepository = get(),
+            fileContentRepository = get(),
+            preferencesRepository = get(),
         )
     }
 }
-
-/** All Koin modules, wired up in [com.example.androidstudiolite.AslApplication]. */
 val appModules = listOf(dataModule, viewModelModule)
