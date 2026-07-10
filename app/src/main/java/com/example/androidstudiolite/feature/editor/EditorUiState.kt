@@ -3,7 +3,18 @@ import androidx.compose.runtime.Immutable
 import com.example.androidstudiolite.designsystem.component.content.AslLineGit
 import com.example.androidstudiolite.designsystem.component.content.AslLogLevel
 import com.example.androidstudiolite.domain.model.GitFileStatus
+import com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity
 import com.example.androidstudiolite.feature.editor.engine.EditorLanguage
+@Immutable
+data class DiagnosticUiModel(
+    val offset: Int,
+    val endOffset: Int,
+    val line: Int,
+    val column: Int,
+    val severity: DiagnosticSeverity,
+    val message: String,
+    val code: String? = null,
+)
 @Immutable
 data class EditorTabUiModel(
     val id: String,
@@ -84,7 +95,12 @@ data class EditorUiState(
     val xmlLspEnabled: Boolean = false,
     val caretLine: Int = 0,
     val caretColumn: Int = 0,
+    val activeDiagnostics: List<DiagnosticUiModel> = emptyList(),
+    val diagnosticRevealNonce: Int = 0,
+    val diagnosticRevealOffset: Int = 0,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }
+    val errorCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Error }
+    val warningCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Warning }
 }

@@ -19,7 +19,7 @@ private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
     BottomPanelTabUiModel("logs", "App Logs", "scroll-text"),
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
-    BottomPanelTabUiModel("diag", "Diagnostics", "stethoscope", count = 2, error = true),
+    BottomPanelTabUiModel("diag", "Diagnostics", "stethoscope"),
 )
 private val SUCCESS_TASKS = listOf(
     BuildOutputLineUiModel("> Task :app:preBuild", status = "success", duration = "0.1s"),
@@ -92,8 +92,9 @@ class EditorViewModel(
         val state = _uiState.value
         when (interaction) {
             is EditorInteraction.SelectTab -> {
-                _uiState.value = state.copy(activeTabId = interaction.id)
+                _uiState.value = state.copy(activeTabId = interaction.id, activeDiagnostics = emptyList())
             }
+            is EditorInteraction.JumpToDiagnostic -> jumpToDiagnostic(interaction.diagnostic)
             is EditorInteraction.CloseTab -> closeTab(interaction.id)
             EditorInteraction.ToggleMenu -> _uiState.value = state.copy(
                 openRailTool = if (state.openRailTool != null) null else EditorRailTool.Files,
@@ -171,6 +172,51 @@ class EditorViewModel(
             caretColumn = caret.column,
         )
     }
+    fun onDiagnostics(id: String, diagnostics: List<com.example.androidstudiolite.feature.editor.engine.Diagnostic>) {
+        if (id != _uiState.value.activeTabId) return
+        val errors = diagnostics.count { it.severity == com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Error }
+        val warnings = diagnostics.count { it.severity == com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Warning }
+        val problems = errors + warnings
+        val session = sessions[id]
+        val ui = diagnostics
+            .sortedWith(compareBy({ severityOrder(it.severity) }, { it.start }))
+            .map { d ->
+                val pos = session?.document?.offsetToPosition(d.start.coerceIn(0, session.document.length))
+                DiagnosticUiModel(
+                    offset = d.start,
+                    endOffset = d.end,
+                    line = pos?.line ?: 0,
+                    column = pos?.column ?: 0,
+                    severity = d.severity,
+                    message = d.message,
+                    code = d.code,
+                )
+            }
+        _uiState.value = _uiState.value.copy(
+            activeDiagnostics = ui,
+            bottomPanelTabs = _uiState.value.bottomPanelTabs.map {
+                if (it.id == "diag") it.copy(count = if (problems == 0) null else problems, error = errors > 0) else it
+            },
+        )
+    }
+    private fun severityOrder(s: com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity): Int = when (s) {
+        com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Error -> 0
+        com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Warning -> 1
+        com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Info -> 2
+        com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Hint -> 3
+    }
+    private fun jumpToDiagnostic(diagnostic: DiagnosticUiModel) {
+        val id = _uiState.value.activeTabId ?: return
+        val session = sessions[id] ?: return
+        session.setCaret(diagnostic.offset.coerceIn(0, session.document.length))
+        val caret = session.caretPosition
+        _uiState.value = _uiState.value.copy(
+            caretLine = caret.line,
+            caretColumn = caret.column,
+            diagnosticRevealOffset = diagnostic.offset,
+            diagnosticRevealNonce = _uiState.value.diagnosticRevealNonce + 1,
+        )
+    }
     fun onCaretMoved(line: Int, column: Int) {
         val state = _uiState.value
         if (state.caretLine == line && state.caretColumn == column) return
@@ -244,7 +290,7 @@ class EditorViewModel(
         viewModelScope.launch {
             val content = fileContentRepository.readText(id)
             val language = EditorLanguage.fromFileName(name)
-            sessions[id] = EditorSession(content, language)
+            sessions[id] = EditorSession(content, language, filePath = id)
             val tab = EditorTabUiModel(
                 id = id,
                 name = name,

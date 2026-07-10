@@ -80,6 +80,7 @@ fun EditorRoute(
         sessionFor = viewModel::sessionFor,
         onEdited = viewModel::onSessionEdited,
         onCaretMoved = viewModel::onCaretMoved,
+        onDiagnostics = viewModel::onDiagnostics,
     )
 }
 @Composable
@@ -89,6 +90,7 @@ private fun EditorScreen(
     sessionFor: (String?) -> EditorSession?,
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
+    onDiagnostics: (String, List<com.example.androidstudiolite.feature.editor.engine.Diagnostic>) -> Unit = { _, _ -> },
 ) {
     val colors = AslTheme.colors
     val snackbarHostState = remember { SnackbarHostState() }
@@ -203,6 +205,9 @@ private fun EditorScreen(
                                     lspKotlin = uiState.kotlinLspEnabled,
                                     lspJava = uiState.javaLspEnabled,
                                     lspXml = uiState.xmlLspEnabled,
+                                    onDiagnostics = { onDiagnostics(activeTab.id, it) },
+                                    revealNonce = uiState.diagnosticRevealNonce,
+                                    revealOffset = uiState.diagnosticRevealOffset,
                                     modifier = Modifier.weight(1f).fillMaxWidth(),
                                 )
                             } else {
@@ -290,7 +295,10 @@ private fun EditorScreen(
                             buildProgressPercent = uiState.buildProgressPercent,
                             buildLines = uiState.buildLines,
                             appLogLines = uiState.appLogLines,
+                            diagnostics = uiState.activeDiagnostics,
+                            activeFileName = uiState.activeTab?.name,
                             onJumpToTab = { onInteraction(EditorInteraction.SelectTab(it)) },
+                            onJumpToDiagnostic = { onInteraction(EditorInteraction.JumpToDiagnostic(it)) },
                         )
                     }
                 }
@@ -305,6 +313,15 @@ private fun EditorScreen(
                         }
                         add(AslStatusBarEntry.Spacer)
                         add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
+                        if (uiState.errorCount > 0 || uiState.warningCount > 0) {
+                            add(
+                                AslStatusBarEntry.Item(
+                                    "${uiState.errorCount} ⨯ · ${uiState.warningCount} ⚠",
+                                    icon = if (uiState.errorCount > 0) "octagon-alert" else "triangle-alert",
+                                    tone = if (uiState.errorCount > 0) AslStatusTone.Error else AslStatusTone.Warning,
+                                ),
+                            )
+                        }
                         if (uiState.memoryPressureActive) {
                             add(AslStatusBarEntry.Item("${uiState.heapUsedMb} / ${uiState.heapMaxMb} MB", icon = "memory-stick", tone = AslStatusTone.Warning))
                         }

@@ -28,4 +28,5 @@ sealed interface EditorInteraction {
     data object FindNext : EditorInteraction
     data object FindPrevious : EditorInteraction
     data object ToggleAutocompleteDemo : EditorInteraction
+    data class JumpToDiagnostic(val diagnostic: DiagnosticUiModel) : EditorInteraction
 }
