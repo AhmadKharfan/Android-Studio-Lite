@@ -11,7 +11,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue("text =" in labels)
         assertTrue("modifier =" in labels)
         assertTrue("color =" in labels)
@@ -22,7 +22,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue("text =" in labels)
     }
     @Test
@@ -31,7 +31,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val item = controller.query(s).firstOrNull { it.label == "name =" }
+        val item = controller.queryHeuristic(s).firstOrNull { it.label == "name =" }
         assertNotNull(item)
         assertTrue(item!!.insertText == "name = ")
     }
@@ -41,7 +41,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue("age =" in labels)
         assertFalse("name =" in labels)
     }
@@ -51,7 +51,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertFalse("val" in labels)
         assertFalse("for" in labels)
         assertFalse("if" in labels)
@@ -63,7 +63,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue(labels.any { it.startsWith("Color.") })
     }
     @Test
@@ -72,7 +72,7 @@ class CallArgumentCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue(labels.any { it == "padding" || it == "fillMaxSize" })
     }
 }

@@ -10,7 +10,7 @@ class TypeCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertTrue("String" in labels)
         assertFalse("if" in labels)
     }
@@ -20,7 +20,7 @@ class TypeCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertFalse(labels.any { it.endsWith(" =") })
     }
 }

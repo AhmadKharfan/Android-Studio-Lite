@@ -10,7 +10,7 @@ class FunctionBodyCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertFalse("if" in labels)
         assertFalse("for" in labels)
         assertFalse("val" in labels)
@@ -21,7 +21,7 @@ class FunctionBodyCompletionTest {
         val caret = code.indexOf('|')
         val text = code.replace("|", "")
         val s = EditorSession(text, EditorLanguage.Kotlin).also { it.setCaret(caret) }
-        val labels = controller.query(s).map { it.label }
+        val labels = controller.queryHeuristic(s).map { it.label }
         assertFalse("if" in labels)
         assertFalse("for" in labels)
         assertTrue("text =" in labels)
