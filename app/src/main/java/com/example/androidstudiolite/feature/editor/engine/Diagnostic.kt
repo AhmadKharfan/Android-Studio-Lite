@@ -1,29 +1,32 @@
 package com.example.androidstudiolite.feature.editor.engine
-enum class DiagnosticSeverity { Error, Warning, Info }
+enum class DiagnosticSeverity { Error, Warning, Info, Hint }
 data class Diagnostic(
     val start: Int,
     val end: Int,
     val severity: DiagnosticSeverity,
     val message: String = "",
+    val muted: Boolean = false,
+    val code: String? = null,
 )
-object DemoDiagnostics {
-    fun analyze(text: String): List<Diagnostic> {
-        val out = ArrayList<Diagnostic>()
-        for (marker in arrayOf("TODO", "FIXME")) {
-            var i = text.indexOf(marker)
-            while (i >= 0) {
-                out.add(Diagnostic(i, i + marker.length, DiagnosticSeverity.Warning, "$marker marker"))
-                i = text.indexOf(marker, i + marker.length)
-            }
-        }
-        var i = text.indexOf("fooBar")
-        while (i >= 0) {
-            val before = if (i > 0) text[i - 1] else ' '
-            val after = if (i + 6 < text.length) text[i + 6] else ' '
-            val isWord = (before.isLetterOrDigit() || before == '_') || (after.isLetterOrDigit() || after == '_')
-            if (!isWord) out.add(Diagnostic(i, i + 6, DiagnosticSeverity.Error, "unresolved reference: fooBar"))
-            i = text.indexOf("fooBar", i + 6)
-        }
-        return out
-    }
+
+object DiagnosticCodes {
+    const val KT_SYNTAX = "kt.syntax"
+    const val KT_UNRESOLVED = "kt.unresolved"
+    const val KT_UNUSED_IMPORT = "kt.unusedImport"
+    const val KT_UNUSED_PARAMETER = "kt.unusedParameter"
+    const val KT_VAL_REASSIGN = "kt.valReassign"
+    const val KT_LATEINIT = "kt.lateinit"
+    const val KT_MUST_BE_INITIALIZED = "kt.mustBeInitialized"
+    const val KT_NO_TYPE_NO_INITIALIZER = "kt.noTypeNoInitializer"
+    const val KT_REDUNDANT_NOT_NULL = "kt.redundantNotNull"
+    const val KT_REDUNDANT_SAFE_CALL = "kt.redundantSafeCall"
+    const val XML_STRAY_CLOSE = "xml.strayClose"
+    const val XML_EXPECTED_NAME = "xml.expectedName"
+    const val XML_MALFORMED_TAG = "xml.malformedTag"
+    const val XML_UNCLOSED_TAG = "xml.unclosedTag"
+    const val XML_UNTERMINATED_VALUE = "xml.unterminatedValue"
+    const val XML_UNQUOTED_VALUE = "xml.unquotedValue"
+    const val ANDROID_MISSING_NAMESPACE = "android.missingNamespace"
+    const val ANDROID_HARDCODED_TEXT = "android.hardcodedText"
+    const val ANDROID_MISSING_SIZE = "android.missingSize"
 }

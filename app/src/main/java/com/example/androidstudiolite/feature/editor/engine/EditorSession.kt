@@ -12,6 +12,7 @@ data class Selection(val anchor: Int, val caret: Int) {
 class EditorSession(
     initialText: String = "",
     val language: EditorLanguage = EditorLanguage.Plain,
+    val filePath: String = "",
 ) {
     val document = EditorDocument(initialText)
     private val history = EditHistory()
