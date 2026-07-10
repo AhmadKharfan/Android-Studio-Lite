@@ -24,6 +24,7 @@ data class EditorPalette(
     @ColorInt val bracketMatch: Int,
     @ColorInt val diagnosticError: Int,
     @ColorInt val diagnosticWarning: Int,
+    @ColorInt val diagnosticHint: Int,
 ) {
     @ColorInt
     fun colorFor(tokenType: TokenType): Int = when (tokenType) {

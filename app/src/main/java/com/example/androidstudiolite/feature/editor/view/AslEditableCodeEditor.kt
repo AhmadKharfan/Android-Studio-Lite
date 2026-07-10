@@ -5,8 +5,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.example.androidstudiolite.designsystem.theme.AslCode
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +37,8 @@ import com.example.androidstudiolite.designsystem.theme.AslMotion
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.editor.engine.CompletionItem
 import com.example.androidstudiolite.feature.editor.engine.CompletionKind
-import com.example.androidstudiolite.feature.editor.engine.DemoDiagnostics
+import com.example.androidstudiolite.feature.editor.engine.Diagnostic
+import com.example.androidstudiolite.feature.editor.engine.LanguageDiagnostics
 import com.example.androidstudiolite.feature.editor.engine.EditorSession
 @Composable
 fun AslEditableCodeEditor(
@@ -47,6 +55,9 @@ fun AslEditableCodeEditor(
     lspKotlin: Boolean = false,
     lspJava: Boolean = false,
     lspXml: Boolean = false,
+    onDiagnostics: (List<Diagnostic>) -> Unit = {},
+    revealNonce: Int = 0,
+    revealOffset: Int = 0,
 ) {
     val colors = AslTheme.colors
     val density = LocalDensity.current
@@ -75,6 +86,7 @@ fun AslEditableCodeEditor(
         bracketMatch = colors.accentPrimary.toArgb(),
         diagnosticError = colors.error.toArgb(),
         diagnosticWarning = colors.warning.toArgb(),
+        diagnosticHint = colors.textTertiary.toArgb(),
     )
     val gitArgb = gitLineStatus.mapValues { (_, git) ->
         when (git) {
@@ -86,7 +98,11 @@ fun AslEditableCodeEditor(
     val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
     var overlay by remember { mutableStateOf<CompletionOverlay?>(null) }
     var signatureOverlay by remember { mutableStateOf<SignatureHelpOverlay?>(null) }
+    var messageOverlay by remember { mutableStateOf<DiagnosticMessageOverlay?>(null) }
     var editorView by remember { mutableStateOf<CodeEditorView?>(null) }
+    LaunchedEffect(revealNonce) {
+        if (revealNonce > 0) editorView?.revealOffset(revealOffset)
+    }
     BoxWithConstraints(modifier = modifier) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
         val maxHeightPx = with(density) { maxHeight.toPx() }
@@ -95,12 +111,22 @@ fun AslEditableCodeEditor(
                 CodeEditorView(ctx).also { view ->
                     view.onCompletionOverlay = { overlay = it }
                     view.onSignatureHelpOverlay = { signatureOverlay = it }
-                    view.diagnosticsProvider = { text -> DemoDiagnostics.analyze(text) }
+                    view.onDiagnosticMessage = { messageOverlay = it }
                     editorView = view
                 }
             },
             modifier = Modifier.fillMaxSize().clipToBounds(),
             update = { view ->
+                view.analyzer = { s ->
+                    val semantic = when (s.language) {
+                        com.example.androidstudiolite.feature.editor.engine.EditorLanguage.Kotlin -> lspKotlin
+                        com.example.androidstudiolite.feature.editor.engine.EditorLanguage.Java -> lspJava
+                        com.example.androidstudiolite.feature.editor.engine.EditorLanguage.Xml -> lspXml
+                        com.example.androidstudiolite.feature.editor.engine.EditorLanguage.Plain -> false
+                    }
+                    LanguageDiagnostics.analyze(s.text, s.language, semantic, s.filePath)
+                }
+                view.onDiagnostics = onDiagnostics
                 view.bind(session, onEdited, onCaretMoved)
                 view.updateOptions(
                     textSizePx = fontSizePx,
@@ -162,6 +188,43 @@ fun AslEditableCodeEditor(
                         y = with(density) { yPx.toDp() },
                     ),
                 )
+            }
+        }
+        val msg = messageOverlay
+        if (msg != null) {
+            val popupWidthDp = 300.dp
+            val popupWidthPx = with(density) { popupWidthDp.toPx() }
+            val estHeightPx = with(density) { 120.dp.toPx() }
+            val xPx = msg.anchorXpx.coerceIn(0f, (maxWidthPx - popupWidthPx).coerceAtLeast(0f))
+            val yPx = (msg.anchorYpx + with(density) { 12.dp.toPx() })
+                .coerceIn(0f, (maxHeightPx - estHeightPx).coerceAtLeast(0f))
+            val tone = when (msg.severity) {
+                com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Error -> colors.error
+                com.example.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Warning -> if (msg.muted) colors.textTertiary else colors.warning
+                else -> colors.info
+            }
+            androidx.compose.material3.Surface(
+                color = colors.bgElevated,
+                contentColor = colors.textPrimary,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                shadowElevation = 6.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, tone.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .width(popupWidthDp)
+                    .heightIn(max = 200.dp)
+                    .offset(x = with(density) { xPx.toDp() }, y = with(density) { yPx.toDp() }),
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier
+                        .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    androidx.compose.material3.Text(
+                        text = msg.message,
+                        style = AslCode.codeSmall,
+                        color = colors.textPrimary,
+                    )
+                }
             }
         }
     }

@@ -33,6 +33,7 @@ import com.example.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.example.androidstudiolite.feature.editor.engine.EditorSession
 import com.example.androidstudiolite.feature.editor.engine.SmartEdit
 import com.example.androidstudiolite.feature.editor.engine.bracketMatchAt
+import com.example.androidstudiolite.feature.editor.engine.shiftDiagnostics
 import kotlin.math.abs
 import kotlin.math.max
 data class CompletionOverlay(
@@ -43,6 +44,13 @@ data class CompletionOverlay(
 )
 data class SignatureHelpOverlay(
     val help: SignatureHelpResult,
+    val anchorXpx: Float,
+    val anchorYpx: Float,
+)
+data class DiagnosticMessageOverlay(
+    val message: String,
+    val severity: DiagnosticSeverity,
+    val muted: Boolean,
     val anchorXpx: Float,
     val anchorYpx: Float,
 )
@@ -58,7 +66,10 @@ class CodeEditorView(context: Context) : View(context) {
     private var onCaretMoved: ((line: Int, column: Int) -> Unit)? = null
     var onCompletionOverlay: ((CompletionOverlay?) -> Unit)? = null
     var onSignatureHelpOverlay: ((SignatureHelpOverlay?) -> Unit)? = null
-    var diagnosticsProvider: ((String) -> List<Diagnostic>)? = null
+    var onDiagnosticMessage: ((DiagnosticMessageOverlay?) -> Unit)? = null
+    private val chipHitRects = ArrayList<Pair<android.graphics.RectF, Diagnostic>>()
+    var analyzer: ((EditorSession) -> List<Diagnostic>)? = null
+    var onDiagnostics: ((List<Diagnostic>) -> Unit)? = null
     private var palette: EditorPalette? = null
     private var textSizePx: Float = 0f
     private var tabSize: Int = 4
@@ -97,9 +108,14 @@ class CodeEditorView(context: Context) : View(context) {
     private var completionSelected = 0
     private var completionSuppressNext = false
     private var signatureHelpDismissed = false
+    private var signatureHelpAutoHidden = false
+    private var signatureHelpCallStart = -1
     private val handler = Handler(Looper.getMainLooper())
     private val completionRunnable = Runnable { runCompletion() }
     private val signatureHelpRunnable = Runnable { runSignatureHelp() }
+    private val signatureHelpHideRunnable = Runnable { autoHideSignatureHelp() }
+    private val analysisRunnable = Runnable { runAnalysis() }
+    private var diagLineSeverity: Map<Int, DiagnosticSeverity> = emptyMap()
     private var caretAlpha: Float = 1f
     private val caretAnimator = ValueAnimator.ofFloat(1f, 0f).apply {
         duration = BLINK_MS
@@ -132,7 +148,9 @@ class CodeEditorView(context: Context) : View(context) {
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val squigglePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val chipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isSubpixelText = true }
     private val squigglePath = Path()
+    private var diagChipByLine: Map<Int, Diagnostic> = emptyMap()
     private val gestureDetector = GestureDetector(context, GestureListener())
     init {
         isFocusable = true
@@ -155,7 +173,7 @@ class CodeEditorView(context: Context) : View(context) {
             renderedActiveLineTop = 0f
             dismissCompletion()
             recomputeMaxLineChars()
-            refreshDiagnostics()
+            runAnalysis()
             resetBlink()
             val caret = session.caretPosition
             onCaretMoved(caret.line, caret.column)
@@ -182,17 +200,21 @@ class CodeEditorView(context: Context) : View(context) {
         this.gitColorByLine = gitColorByLine
         this.breakpointLines = breakpointLines
         val kotlinLspChanged = lspKotlin != this.lspKotlin
+        val lspChanged = kotlinLspChanged || lspJava != this.lspJava || lspXml != this.lspXml
         this.lspKotlin = lspKotlin
         this.lspJava = lspJava
         this.lspXml = lspXml
         if (kotlinLspChanged) {
             completionController.invalidateProviders()
         }
+        if (lspChanged && session != null) scheduleAnalysis()
         val face = typeface ?: Typeface.MONOSPACE
         codePaint.typeface = face
         codePaint.textSize = textSizePx
         gutterPaint.typeface = face
         gutterPaint.textSize = textSizePx * GUTTER_TEXT_RATIO
+        chipPaint.typeface = face
+        chipPaint.textSize = textSizePx * CHIP_TEXT_RATIO
         if (metricsChanged || lineHeightPx == 0f) {
             lineHeightPx = textSizePx * LINE_HEIGHT_RATIO
             charWidthPx = codePaint.measureText("m")
@@ -236,6 +258,9 @@ class CodeEditorView(context: Context) : View(context) {
         caretAnimator.cancel()
         visualAnimator.cancel()
         handler.removeCallbacks(completionRunnable)
+        handler.removeCallbacks(signatureHelpRunnable)
+        handler.removeCallbacks(signatureHelpHideRunnable)
+        handler.removeCallbacks(analysisRunnable)
     }
     override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
         super.onWindowFocusChanged(hasWindowFocus)
@@ -278,6 +303,9 @@ class CodeEditorView(context: Context) : View(context) {
         }
         if (session.diagnostics.isNotEmpty()) {
             drawDiagnostics(canvas, session, palette, firstLine, lastLine, codeLeft)
+        }
+        if (diagChipByLine.isNotEmpty()) {
+            drawDiagnosticChips(canvas, session, palette, firstLine, lastLine, codeLeft)
         }
         if (sel.isCollapsed && isFocused) {
             val x = codeLeft + caret.column * charWidthPx - scrollXpx
@@ -352,9 +380,56 @@ class CodeEditorView(context: Context) : View(context) {
         strokePaint.strokeWidth = dp(1f)
         canvas.drawRect(left, top, left + charWidthPx, top + glyphHeightPx, strokePaint)
     }
+    private fun drawDiagnosticChips(canvas: Canvas, session: EditorSession, palette: EditorPalette, firstLine: Int, lastLine: Int, codeLeft: Float) {
+        val doc = session.document
+        val fm = chipPaint.fontMetrics
+        val chipGlyphH = fm.descent - fm.ascent
+        val padH = dp(8f)
+        val gap = dp(24f)
+        chipHitRects.clear()
+        for (line in firstLine..lastLine) {
+            val d = diagChipByLine[line] ?: continue
+            val color = when (d.severity) {
+                DiagnosticSeverity.Error -> palette.diagnosticError
+                DiagnosticSeverity.Warning -> if (d.muted) palette.gutterTextInactive else palette.diagnosticWarning
+                else -> continue
+            }
+            val lineLen = doc.lineText(line).length
+            val startX = codeLeft + lineLen * charWidthPx - scrollXpx + gap
+            val avail = width - startX - dp(12f)
+            if (avail < dp(40f)) continue
+            val msg = ellipsize(d.message, avail - padH * 2, chipPaint)
+            if (msg.isEmpty()) continue
+            val textW = chipPaint.measureText(msg)
+            val chipW = textW + padH * 2
+            val chipTop = line * lineHeightPx - scrollYpx + (lineHeightPx - chipGlyphH) / 2f - dp(1f)
+            val chipH = chipGlyphH + dp(2f)
+            val r = dp(4f)
+            fillPaint.color = withAlpha(color, 0.16f)
+            canvas.drawRoundRect(startX, chipTop, startX + chipW, chipTop + chipH, r, r, fillPaint)
+            fillPaint.alpha = 255
+            chipPaint.color = color
+            canvas.drawText(msg, startX + padH, chipTop + dp(1f) - fm.ascent, chipPaint)
+            chipHitRects.add(android.graphics.RectF(startX, chipTop, startX + chipW, chipTop + chipH) to d)
+        }
+    }
+    private fun diagnosticAt(x: Float, y: Float): Diagnostic? {
+        for ((rect, d) in chipHitRects) if (rect.contains(x, y)) return d
+        val session = session ?: return null
+        val off = offsetAt(x, y)
+        return session.diagnostics.firstOrNull { off >= it.start && off < it.end && it.end > it.start }
+    }
+    private fun ellipsize(text: String, maxWidth: Float, paint: Paint): String {
+        if (maxWidth <= 0f) return ""
+        if (paint.measureText(text) <= maxWidth) return text
+        val ell = "…"
+        val ellW = paint.measureText(ell)
+        var end = text.length
+        while (end > 0 && paint.measureText(text, 0, end) + ellW > maxWidth) end--
+        return if (end <= 0) "" else text.substring(0, end) + ell
+    }
     private fun drawDiagnostics(canvas: Canvas, session: EditorSession, palette: EditorPalette, firstLine: Int, lastLine: Int, codeLeft: Float) {
         val doc = session.document
-        squigglePaint.strokeWidth = dp(1.2f)
         val amplitude = dp(1.6f)
         val waveLen = dp(4f)
         for (diagnostic in session.diagnostics) {
@@ -365,7 +440,17 @@ class CodeEditorView(context: Context) : View(context) {
             val left = codeLeft + startPos.column * charWidthPx - scrollXpx
             val right = codeLeft + endCol * charWidthPx - scrollXpx
             val y = startPos.line * lineHeightPx - scrollYpx + glyphTopOffsetPx + glyphHeightPx
-            squigglePaint.color = if (diagnostic.severity == DiagnosticSeverity.Error) palette.diagnosticError else palette.diagnosticWarning
+            squigglePaint.color = when (diagnostic.severity) {
+                DiagnosticSeverity.Error -> palette.diagnosticError
+                DiagnosticSeverity.Warning -> palette.diagnosticWarning
+                DiagnosticSeverity.Info, DiagnosticSeverity.Hint -> palette.diagnosticHint
+            }
+            if (diagnostic.muted) {
+                squigglePaint.strokeWidth = dp(0.9f)
+                canvas.drawLine(left, y, right, y, squigglePaint)
+                continue
+            }
+            squigglePaint.strokeWidth = dp(1.2f)
             squigglePath.reset()
             squigglePath.moveTo(left, y)
             var x = left
@@ -387,10 +472,19 @@ class CodeEditorView(context: Context) : View(context) {
         val numberLeft = dp(GUTTER_START_DP) + dp(DOT_SIZE_DP) + dp(4f)
         for (line in firstLine..lastLine) {
             val top = line * lineHeightPx - scrollYpx
+            val r = dp(DOT_SIZE_DP) / 2f
             if (line in breakpointLines) {
                 fillPaint.color = palette.breakpoint
-                val r = dp(DOT_SIZE_DP) / 2f
                 canvas.drawCircle(dp(GUTTER_START_DP) + r, top + lineHeightPx / 2f, r, fillPaint)
+            } else {
+                diagLineSeverity[line]?.let { severity ->
+                    fillPaint.color = when (severity) {
+                        DiagnosticSeverity.Error -> palette.diagnosticError
+                        DiagnosticSeverity.Warning -> palette.diagnosticWarning
+                        DiagnosticSeverity.Info, DiagnosticSeverity.Hint -> palette.diagnosticHint
+                    }
+                    canvas.drawCircle(dp(GUTTER_START_DP) + r, top + lineHeightPx / 2f, r * 0.7f, fillPaint)
+                }
             }
             gutterPaint.color = if (line == activeLine) palette.gutterTextActive else palette.gutterTextInactive
             canvas.drawText((line + 1).toString(), numberLeft, top + baselineOffsetPx, gutterPaint)
@@ -445,6 +539,13 @@ class CodeEditorView(context: Context) : View(context) {
         }
         override fun onSingleTapUp(e: MotionEvent): Boolean {
             val session = session ?: return false
+            val diag = diagnosticAt(e.x, e.y)
+            if (diag != null) {
+                onDiagnosticMessage?.invoke(DiagnosticMessageOverlay(diag.message, diag.severity, diag.muted, e.x, e.y))
+                focusAndShowKeyboard()
+                return true
+            }
+            onDiagnosticMessage?.invoke(null)
             handlesVisible = false
             dismissCompletion()
             session.setCaret(offsetAt(e.x, e.y))
@@ -612,6 +713,14 @@ class CodeEditorView(context: Context) : View(context) {
         dismissCompletion()
         afterCaretChange()
     }
+    fun revealOffset(offset: Int) {
+        val session = session ?: return
+        session.setCaret(offset.coerceIn(0, session.document.length))
+        dismissCompletion()
+        handlesVisible = false
+        if (!isFocused) requestFocus()
+        afterCaretChange()
+    }
     fun triggerCompletion() {
         handler.removeCallbacks(completionRunnable)
         runCompletion()
@@ -684,6 +793,7 @@ class CodeEditorView(context: Context) : View(context) {
     }
     private fun clearSignatureHelpOverlay() {
         handler.removeCallbacks(signatureHelpRunnable)
+        handler.removeCallbacks(signatureHelpHideRunnable)
         onSignatureHelpOverlay?.invoke(null)
     }
     private fun scheduleSignatureHelp() {
@@ -695,11 +805,43 @@ class CodeEditorView(context: Context) : View(context) {
             clearSignatureHelpOverlay()
             return
         }
+        if (session.language != EditorLanguage.Kotlin) {
+            resetSignatureHelpState()
+            clearSignatureHelpOverlay()
+            return
+        }
+        val callStart = KotlinSignatureHelpResolver.enclosingCallParen(session.text, session.selection.caret)
+        if (callStart < 0) {
+            resetSignatureHelpState()
+            clearSignatureHelpOverlay()
+            return
+        }
+        if (callStart != signatureHelpCallStart) {
+            signatureHelpCallStart = callStart
+            signatureHelpDismissed = false
+            signatureHelpAutoHidden = false
+        }
         if (!shouldOfferSignatureHelp(session)) {
             clearSignatureHelpOverlay()
             return
         }
         scheduleSignatureHelp()
+    }
+    private fun armSignatureHelp() {
+        val session = session ?: return
+        signatureHelpCallStart = KotlinSignatureHelpResolver.enclosingCallParen(session.text, session.selection.caret)
+        signatureHelpDismissed = false
+        signatureHelpAutoHidden = false
+        syncSignatureHelpNow()
+    }
+    private fun autoHideSignatureHelp() {
+        signatureHelpAutoHidden = true
+        onSignatureHelpOverlay?.invoke(null)
+    }
+    private fun resetSignatureHelpState() {
+        signatureHelpCallStart = -1
+        signatureHelpDismissed = false
+        signatureHelpAutoHidden = false
     }
     private fun refreshSignatureHelp(immediate: Boolean) {
         if (immediate) {
@@ -710,8 +852,9 @@ class CodeEditorView(context: Context) : View(context) {
         }
     }
     private fun shouldOfferSignatureHelp(session: EditorSession): Boolean {
-        if (session.language != EditorLanguage.Kotlin || !lspKotlin) return false
+        if (session.language != EditorLanguage.Kotlin) return false
         if (signatureHelpDismissed) return false
+        if (signatureHelpAutoHidden) return false
         if (completionActive && completionItems.isNotEmpty()) return false
         val caret = session.selection.caret
         return KotlinSignatureHelpResolver.caretInsideCall(session.text, caret)
@@ -737,12 +880,15 @@ class CodeEditorView(context: Context) : View(context) {
         val anchorX = codeLeft + caretPos.column * charWidthPx - scrollXpx
         val anchorY = caretPos.line * lineHeightPx - scrollYpx
         onSignatureHelpOverlay?.invoke(SignatureHelpOverlay(help, anchorX, anchorY))
+        handler.removeCallbacks(signatureHelpHideRunnable)
+        handler.postDelayed(signatureHelpHideRunnable, SIGNATURE_HELP_VISIBLE_MS)
     }
     private fun dismissSignatureHelp() {
         signatureHelpDismissed = true
         clearSignatureHelpOverlay()
     }
     private fun afterTextEditTriggers(session: EditorSession, typedChar: Char? = null, isBackspace: Boolean = false) {
+        onDiagnosticMessage?.invoke(null)
         if (completionSuppressNext) {
             completionSuppressNext = false
             if (typedChar != null && typedChar != '(' && typedChar != ',' &&
@@ -753,18 +899,15 @@ class CodeEditorView(context: Context) : View(context) {
             }
         }
         when {
+            session.language == EditorLanguage.Xml ->
+                if (typedChar != null && completionController.shouldAutoPopup(session, typedChar)) scheduleCompletion() else dismissCompletion()
             typedChar == '.' -> scheduleCompletion()
-            typedChar == ':' -> scheduleCompletion()
-            typedChar == '(' || typedChar == ',' -> {
-                signatureHelpDismissed = false
-                clearSignatureHelpOverlay()
-                scheduleCompletion()
-            }
-            typedChar != null && completionController.shouldAutoPopup(session, typedChar) -> scheduleCompletion()
+            typedChar != null && (typedChar.isLetterOrDigit() || typedChar == '_') ->
+                if (completionController.shouldAutoPopup(session, typedChar)) scheduleCompletion() else dismissCompletion()
             isBackspace && completionActive -> scheduleCompletion()
             else -> dismissCompletion()
         }
-        syncSignatureHelpNow()
+        if (typedChar == '(' || typedChar == ',') armSignatureHelp() else syncSignatureHelpNow()
     }
     private fun clipboard(): ClipboardManager =
         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -792,12 +935,15 @@ class CodeEditorView(context: Context) : View(context) {
     private inline fun edit(block: () -> Unit) {
         val session = session ?: return
         val revisionBefore = session.revision
+        val textBefore = session.text
         block()
         val textChanged = session.revision != revisionBefore
         if (textChanged) {
             updateGutterWidth()
             recomputeMaxLineChars()
-            refreshDiagnostics()
+            session.diagnostics = shiftDiagnostics(session.diagnostics, textBefore, session.text)
+            rebuildDiagLines(session)
+            scheduleAnalysis()
             if (findQuery.isNotEmpty()) recomputeFindMatches()
             onEdited?.invoke()
         }
@@ -810,10 +956,40 @@ class CodeEditorView(context: Context) : View(context) {
         session?.caretPosition?.let { onCaretMoved?.invoke(it.line, it.column) }
         syncSignatureHelpNow()
     }
-    private fun refreshDiagnostics() {
+    private fun scheduleAnalysis() {
+        handler.removeCallbacks(analysisRunnable)
+        handler.postDelayed(analysisRunnable, ANALYSIS_DEBOUNCE_MS)
+    }
+    private fun runAnalysis() {
         val session = session ?: return
-        val provider = diagnosticsProvider ?: return
-        session.diagnostics = provider(session.text)
+        handler.removeCallbacks(analysisRunnable)
+        val diagnostics = analyzer?.invoke(session) ?: emptyList()
+        session.diagnostics = diagnostics
+        rebuildDiagLines(session)
+        onDiagnostics?.invoke(diagnostics)
+        invalidate()
+    }
+    private fun rebuildDiagLines(session: EditorSession) {
+        if (session.diagnostics.isEmpty()) {
+            diagLineSeverity = emptyMap()
+            diagChipByLine = emptyMap()
+            chipHitRects.clear()
+            return
+        }
+        val doc = session.document
+        val map = HashMap<Int, DiagnosticSeverity>()
+        val chips = HashMap<Int, Diagnostic>()
+        for (d in session.diagnostics) {
+            val line = doc.offsetToPosition(d.start.coerceIn(0, doc.length)).line
+            val prev = map[line]
+            if (prev == null || severityRank(d.severity) > severityRank(prev)) map[line] = d.severity
+            if (d.severity == DiagnosticSeverity.Error || d.severity == DiagnosticSeverity.Warning) {
+                val cur = chips[line]
+                if (cur == null || severityRank(d.severity) > severityRank(cur.severity)) chips[line] = d
+            }
+        }
+        diagLineSeverity = map
+        diagChipByLine = chips
     }
     private fun recomputeFindMatches() {
         val session = session
@@ -1018,9 +1194,12 @@ class CodeEditorView(context: Context) : View(context) {
     private companion object {
         const val LINE_HEIGHT_RATIO = 20f / 13f
         const val GUTTER_TEXT_RATIO = 12f / 13f
+        const val CHIP_TEXT_RATIO = 11.5f / 13f
         const val BLINK_MS = 530L
-        const val COMPLETION_DEBOUNCE_MS = 120L
+        const val COMPLETION_DEBOUNCE_MS = 110L
         const val SIGNATURE_HELP_DEBOUNCE_MS = 40L
+        const val SIGNATURE_HELP_VISIBLE_MS = 3500L
+        const val ANALYSIS_DEBOUNCE_MS = 300L
         const val SCROLL_ANIM_MS = 140L
         const val CODE_PADDING_DP = 14f
         const val GUTTER_START_DP = 6f
@@ -1029,6 +1208,12 @@ class CodeEditorView(context: Context) : View(context) {
         const val GIT_BAR_H_DP = 16f
         const val CARET_W_DP = 2f
         const val HANDLE_RADIUS_DP = 6f
+        fun severityRank(s: DiagnosticSeverity): Int = when (s) {
+            DiagnosticSeverity.Error -> 3
+            DiagnosticSeverity.Warning -> 2
+            DiagnosticSeverity.Info -> 1
+            DiagnosticSeverity.Hint -> 0
+        }
         fun isWordChar(c: Char): Boolean = c.isLetterOrDigit() || c == '_'
         fun dist(x1: Float, y1: Float, x2: Float, y2: Float): Float = abs(x1 - x2) + abs(y1 - y2)
         fun lerp(a: Float, b: Float, f: Float): Float = a + (b - a) * f
