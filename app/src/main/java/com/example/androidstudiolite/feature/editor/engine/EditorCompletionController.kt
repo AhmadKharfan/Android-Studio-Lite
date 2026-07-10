@@ -42,8 +42,23 @@ class EditorCompletionController(
     }
     fun query(session: EditorSession): List<CompletionItem> {
         if (!session.selection.isCollapsed) return emptyList()
+        if (session.language == EditorLanguage.Xml) {
+            return com.example.androidstudiolite.feature.editor.engine.xml.XmlBackend
+                .complete(session.text, session.selection.caret, session.filePath).items
+        }
+        return queryHeuristic(session)
+    }
+
+    fun queryHeuristic(session: EditorSession): List<CompletionItem> {
+        if (!session.selection.isCollapsed) return emptyList()
         val context = buildContext(session)
         if (context.suppressed || context.positionKind == CompletionPositionKind.None) return emptyList()
+        if (session.language == EditorLanguage.Kotlin &&
+            !context.memberAccess && !context.importContext &&
+            KotlinLexUtil.isDeclarationNamePosition(context.text, context.prefixStart)
+        ) {
+            return emptyList()
+        }
         if (context.prefix.isEmpty() &&
             context.positionKind == CompletionPositionKind.NameReference &&
             session.language == EditorLanguage.Kotlin &&
@@ -80,9 +95,22 @@ class EditorCompletionController(
         if (session.language == EditorLanguage.Kotlin) {
             return KotlinCompletionScanner.shouldAutoPopup(session.text, session.selection.caret, typedChar)
         }
+        if (session.language == EditorLanguage.Xml) {
+            return com.example.androidstudiolite.feature.editor.engine.xml.XmlBackend
+                .shouldAutoPopup(session.text, session.selection.caret, typedChar, session.filePath)
+        }
         return isTriggerChar(typedChar)
     }
     fun accept(session: EditorSession, item: CompletionItem) {
+        if (session.language == EditorLanguage.Xml) {
+            val (start, _) = com.example.androidstudiolite.feature.editor.engine.xml.XmlBackend
+                .replacementRangeAt(session.text, session.selection.caret, session.filePath)
+            val marker = item.insertText.indexOf("\$0")
+            val insert = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
+            val caretTarget = start + if (marker >= 0) marker else insert.length
+            session.replaceRange(start, session.selection.caret, insert, caret = caretTarget)
+            return
+        }
         val context = buildContext(session)
         val marker = item.insertText.indexOf("\$0")
         var insert = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText

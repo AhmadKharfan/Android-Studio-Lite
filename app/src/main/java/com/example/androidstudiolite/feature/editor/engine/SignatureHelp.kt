@@ -11,7 +11,9 @@ data class SignatureParameter(
     val end: Int,
 )
 object KotlinSignatureHelpResolver {
-    fun caretInsideCall(text: String, caret: Int): Boolean {
+    fun caretInsideCall(text: String, caret: Int): Boolean = enclosingCallParen(text, caret) >= 0
+
+    fun enclosingCallParen(text: String, caret: Int): Int {
         var depth = 0
         var i = (caret - 1).coerceAtMost(text.length - 1)
         var guard = 0
@@ -19,15 +21,15 @@ object KotlinSignatureHelpResolver {
             when (text[i]) {
                 ')', ']', '}' -> depth++
                 '(' -> {
-                    if (depth == 0) return true
+                    if (depth == 0) return i
                     depth--
                 }
-                '[', '{', ';' -> if (depth == 0) return false
+                '[', '{', ';' -> if (depth == 0) return -1
             }
             i--
             guard++
         }
-        return false
+        return -1
     }
     fun resolve(
         text: String,

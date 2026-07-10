@@ -83,6 +83,19 @@ object KotlinLexUtil {
         if (lineBeforeCaret.isNotEmpty() && !lineBeforeCaret.all { it.isWhitespace() }) return false
         return braceDepthBefore(text, caret) > 0
     }
+    fun isDeclarationNamePosition(text: String, nameStart: Int): Boolean {
+        if (nameStart <= 0) return false
+        var i = nameStart - 1
+        while (i >= 0 && (text[i] == ' ' || text[i] == '\t')) i--
+        if (i < 0 || text[i] == '.') return false
+        val end = i + 1
+        var s = end
+        while (s > 0 && (text[s - 1].isLetterOrDigit() || text[s - 1] == '_')) s--
+        return text.substring(s, end) in DECLARATION_NAME_KEYWORDS
+    }
+    private val DECLARATION_NAME_KEYWORDS = setOf(
+        "fun", "val", "var", "class", "object", "interface", "enum", "typealias", "annotation", "companion",
+    )
     fun isInFunctionBody(text: String, caret: Int): Boolean = braceDepthBefore(text, caret) > 0
     fun braceDepthBefore(text: String, caret: Int): Int {
         var depth = 0

@@ -42,6 +42,7 @@ object KotlinCompletionScanner {
         val ctx = scan(text, caret)
         if (ctx.suppressed) return false
         if (typedChar == '{' || typedChar == '}') return false
+        if (!ctx.memberAccess && !ctx.importContext && KotlinLexUtil.isDeclarationNamePosition(text, ctx.prefixStart)) return false
         if (ctx.prefix.isEmpty() &&
             KotlinLexUtil.isEmptyFunctionBodyLine(text, caret, ctx.prefixStart) &&
             ctx.positionKind == CompletionPositionKind.NameReference

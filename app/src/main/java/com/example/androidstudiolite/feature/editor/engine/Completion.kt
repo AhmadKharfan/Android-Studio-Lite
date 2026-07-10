@@ -33,9 +33,6 @@ data class CallSiteContext(
 fun interface CompletionProvider {
     fun complete(context: CompletionContext): List<CompletionItem>
 }
-object LspCompletionProvider : CompletionProvider {
-    override fun complete(context: CompletionContext): List<CompletionItem> = emptyList()
-}
 object JavaLanguageServicePlaceholder : CompletionProvider {
     override fun complete(context: CompletionContext): List<CompletionItem> = emptyList()
 }
