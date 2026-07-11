@@ -33,6 +33,7 @@ import com.example.androidstudiolite.designsystem.component.buttons.AslButtonVar
 import com.example.androidstudiolite.designsystem.component.feedback.AslSnackbar
 import com.example.androidstudiolite.designsystem.icon.AslIcon
 import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 
@@ -70,72 +71,17 @@ private fun CrashReportScreen(onRestart: () -> Unit, onClose: () -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .background(colors.warningContainer, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    AslIcon(name = "life-buoy", size = 28.dp, tint = colors.warning)
-                }
-                Column {
-                    Text(
-                        text = "Something went wrong",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = colors.textPrimary,
-                    )
-                    Text(
-                        text = "Android Studio Lite encountered an error and needs to restart. Your files are saved.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.textSecondary,
-                        modifier = Modifier.padding(top = 6.dp),
-                    )
-                }
-                Text(
-                    text = STACK_TRACE,
-                    style = AslCode.codeTiny,
-                    color = colors.textSecondary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .background(colors.bgSunken, AslShape.sm)
-                        .border(1.dp, colors.borderSubtle, AslShape.sm)
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .verticalScroll(rememberScrollState()),
+                CrashReportIcon(colors = colors)
+                CrashReportMessage(colors = colors)
+                CrashReportStackTrace(colors = colors, modifier = Modifier.weight(1f, fill = false))
+                CrashReportActions(
+                    onRestart = onRestart,
+                    onClose = onClose,
+                    onCopyReport = {
+                        clipboard.setText(AnnotatedString(STACK_TRACE))
+                        showCopiedSnackbar = true
+                    },
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AslButton(
-                        label = "Restart IDE",
-                        onClick = onRestart,
-                        variant = AslButtonVariant.Primary,
-                        size = AslButtonSize.Lg,
-                        icon = "rotate-ccw",
-                        fullWidth = true,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        AslButton(
-                            label = "Copy report",
-                            onClick = {
-                                clipboard.setText(AnnotatedString(STACK_TRACE))
-                                showCopiedSnackbar = true
-                            },
-                            variant = AslButtonVariant.Secondary,
-                            icon = "copy",
-                            fullWidth = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        AslButton(
-                            label = "Close",
-                            onClick = onClose,
-                            variant = AslButtonVariant.Tertiary,
-                            fullWidth = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
             }
             AnimatedVisibility(
                 visible = showCopiedSnackbar,
@@ -145,6 +91,91 @@ private fun CrashReportScreen(onRestart: () -> Unit, onClose: () -> Unit) {
             ) {
                 AslSnackbar(message = "Report copied to clipboard", icon = "check-circle")
             }
+        }
+    }
+}
+
+@Composable
+private fun CrashReportIcon(colors: AslColorScheme) {
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .background(colors.warningContainer, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        AslIcon(name = "life-buoy", size = 28.dp, tint = colors.warning)
+    }
+}
+
+@Composable
+private fun CrashReportMessage(colors: AslColorScheme) {
+    Column {
+        Text(
+            text = "Something went wrong",
+            style = MaterialTheme.typography.headlineMedium,
+            color = colors.textPrimary,
+        )
+        Text(
+            text = "Android Studio Lite encountered an error and needs to restart. Your files are saved.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun CrashReportStackTrace(
+    colors: AslColorScheme,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = STACK_TRACE,
+        style = AslCode.codeTiny,
+        color = colors.textSecondary,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.bgSunken, AslShape.sm)
+            .border(1.dp, colors.borderSubtle, AslShape.sm)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .verticalScroll(rememberScrollState()),
+    )
+}
+
+@Composable
+private fun CrashReportActions(
+    onRestart: () -> Unit,
+    onClose: () -> Unit,
+    onCopyReport: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AslButton(
+            label = "Restart IDE",
+            onClick = onRestart,
+            variant = AslButtonVariant.Primary,
+            size = AslButtonSize.Lg,
+            icon = "rotate-ccw",
+            fullWidth = true,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AslButton(
+                label = "Copy report",
+                onClick = onCopyReport,
+                variant = AslButtonVariant.Secondary,
+                icon = "copy",
+                fullWidth = true,
+                modifier = Modifier.weight(1f),
+            )
+            AslButton(
+                label = "Close",
+                onClick = onClose,
+                variant = AslButtonVariant.Tertiary,
+                fullWidth = true,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

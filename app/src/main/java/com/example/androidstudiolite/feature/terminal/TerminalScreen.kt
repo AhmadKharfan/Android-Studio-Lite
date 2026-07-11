@@ -31,9 +31,10 @@ import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.example.androidstudiolite.designsystem.component.ide.AslTerminalBlock
 import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.terminal.TerminalInteraction
+import com.example.androidstudiolite.feature.terminal.TerminalInteractionListener
 import com.example.androidstudiolite.feature.terminal.TerminalUiState
 import com.example.androidstudiolite.feature.terminal.TerminalViewModel
 
@@ -41,88 +42,115 @@ private val EXTRA_KEYS = listOf("Esc", "Ctrl", "Alt", "Tab", "/", "|", "←", "�
 
 @Composable
 fun TerminalRoute(onBack: () -> Unit, viewModel: TerminalViewModel = koinViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    TerminalScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    TerminalScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun TerminalScreen(
     uiState: TerminalUiState,
-    onInteraction: (TerminalInteraction) -> Unit,
+    interactionListener: TerminalInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Column(modifier = Modifier.background(colors.bgElevated)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = onBack)
-                    Row(
-                        modifier = Modifier.weight(1f).padding(start = 4.dp),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(text = "Terminal", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
-                        Text(
-                            text = "· session ${uiState.sessionNumber}",
-                            style = AslCode.codeTiny,
-                            color = colors.textTertiary,
-                        )
-                    }
-                    AslIconButton(icon = "plus", contentDescription = "New session", onClick = { onInteraction(TerminalInteraction.NewSession) })
-                    AslIconButton(icon = "settings-2", contentDescription = "Terminal settings", onClick = {})
-                }
-                HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .background(colors.terminalBg),
+            TerminalTopBar(uiState = uiState, interactionListener = interactionListener, onBack = onBack, colors = colors)
+            TerminalOutputAndInput(uiState = uiState, interactionListener = interactionListener, modifier = Modifier.weight(1f), colors = colors)
+            TerminalExtraKeysRow(interactionListener = interactionListener, colors = colors)
+        }
+    }
+}
+
+@Composable
+private fun TerminalTopBar(
+    uiState: TerminalUiState,
+    interactionListener: TerminalInteractionListener,
+    onBack: () -> Unit,
+    colors: AslColorScheme,
+) {
+    Column(modifier = Modifier.background(colors.bgElevated)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = onBack)
+            Row(
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                AslTerminalBlock(
-                    lines = uiState.lines,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    shape = AslShape.none,
+                Text(text = "Terminal", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+                Text(
+                    text = "· session ${uiState.sessionNumber}",
+                    style = AslCode.codeTiny,
+                    color = colors.textTertiary,
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = 18.dp)
-                        .padding(horizontal = 14.dp, vertical = 2.dp),
-                ) {
-                    Text(text = "$ ", style = AslCode.codeSmall, color = colors.terminalPrompt)
-                    BasicTextField(
-                        value = uiState.input,
-                        onValueChange = { onInteraction(TerminalInteraction.InputChanged(it)) },
-                        textStyle = AslCode.codeSmall.copy(color = colors.terminalStdout),
-                        cursorBrush = SolidColor(colors.terminalPrompt),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { onInteraction(TerminalInteraction.SubmitCommand) }),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
             }
-            Column(modifier = Modifier.background(colors.bgElevated)) {
-                HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    EXTRA_KEYS.forEach { key ->
-                        ExtraKeyChip(label = key, onClick = { onInteraction(TerminalInteraction.ExtraKeyPressed(key)) })
-                    }
-                }
+            AslIconButton(icon = "plus", contentDescription = "New session", onClick = { interactionListener.onNewSession() })
+            AslIconButton(icon = "settings-2", contentDescription = "Terminal settings", onClick = {})
+        }
+        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+    }
+}
+
+@Composable
+private fun TerminalOutputAndInput(
+    uiState: TerminalUiState,
+    interactionListener: TerminalInteractionListener,
+    modifier: Modifier = Modifier,
+    colors: AslColorScheme,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.terminalBg),
+    ) {
+        AslTerminalBlock(
+            lines = uiState.lines,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            shape = AslShape.none,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 18.dp)
+                .padding(horizontal = 14.dp, vertical = 2.dp),
+        ) {
+            Text(text = "$ ", style = AslCode.codeSmall, color = colors.terminalPrompt)
+            BasicTextField(
+                value = uiState.input,
+                onValueChange = { interactionListener.onInputChanged(it) },
+                textStyle = AslCode.codeSmall.copy(color = colors.terminalStdout),
+                cursorBrush = SolidColor(colors.terminalPrompt),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { interactionListener.onSubmitCommand() }),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TerminalExtraKeysRow(
+    interactionListener: TerminalInteractionListener,
+    colors: AslColorScheme,
+) {
+    Column(modifier = Modifier.background(colors.bgElevated)) {
+        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            EXTRA_KEYS.forEach { key ->
+                ExtraKeyChip(label = key, onClick = { interactionListener.onExtraKeyPressed(key) })
             }
         }
     }

@@ -30,6 +30,7 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.example.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.example.androidstudiolite.designsystem.icon.AslIcon
 import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 
@@ -59,58 +60,8 @@ private fun AboutScreen(onBack: () -> Unit) {
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(76.dp)
-                            .background(Color(0xFF1E1E2E), RoundedCornerShape(19.dp))
-                            .border(1.dp, colors.borderDefault, RoundedCornerShape(19.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "{ }",
-                            color = Color(0xFF34D399),
-                            fontFamily = AslCode.codeBody.fontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
-                        )
-                    }
-                    Text(
-                        text = "Android Studio Lite",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = colors.textPrimary,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        text = "Simply, an IDE for Android",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textTertiary,
-                    )
-                    AslChip(label = "v1.2.0 · build 214", kind = AslChipKind.Status)
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg),
-                ) {
-                    ABOUT_LINKS.forEachIndexed { index, link ->
-                        AslListItem(
-                            title = link.title,
-                            subtitle = link.subtitle,
-                            icon = link.icon,
-                            divider = index != ABOUT_LINKS.lastIndex,
-                            trailing = { AslIcon(name = "arrow-up-right", size = 16.dp, tint = colors.textTertiary) },
-                            onClick = {},
-                        )
-                    }
-                }
+                AboutHeader(colors = colors)
+                AboutLinksList(colors = colors)
                 AslButton(
                     label = "Contributors",
                     onClick = {},
@@ -129,6 +80,66 @@ private fun AboutScreen(onBack: () -> Unit) {
                         .padding(top = 14.dp, bottom = 20.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AboutHeader(colors: AslColorScheme) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .background(Color(0xFF1E1E2E), RoundedCornerShape(19.dp))
+                .border(1.dp, colors.borderDefault, RoundedCornerShape(19.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "{ }",
+                color = Color(0xFF34D399),
+                fontFamily = AslCode.codeBody.fontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 30.sp,
+            )
+        }
+        Text(
+            text = "Android Studio Lite",
+            style = MaterialTheme.typography.headlineMedium,
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = "Simply, an IDE for Android",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textTertiary,
+        )
+        AslChip(label = "v1.2.0 · build 214", kind = AslChipKind.Status)
+    }
+}
+
+@Composable
+private fun AboutLinksList(colors: AslColorScheme) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg),
+    ) {
+        ABOUT_LINKS.forEachIndexed { index, link ->
+            AslListItem(
+                title = link.title,
+                subtitle = link.subtitle,
+                icon = link.icon,
+                divider = index != ABOUT_LINKS.lastIndex,
+                trailing = { AslIcon(name = "arrow-up-right", size = 16.dp, tint = colors.textTertiary) },
+                onClick = {},
+            )
         }
     }
 }

@@ -1,24 +1,28 @@
 package com.example.androidstudiolite.feature.uidesigner
-import androidx.lifecycle.ViewModel
-import com.example.androidstudiolite.feature.uidesigner.DesignerInteraction
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.feature.uidesigner.DesignerUiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
-class DesignerViewModel : ViewModel() {
+class DesignerViewModel : BaseViewModel<DesignerUiState, Nothing>(
+    initialState = DesignerUiState(),
+), DesignerInteractionListener {
 
-    private val _uiState = MutableStateFlow(DesignerUiState())
-    val uiState: StateFlow<DesignerUiState> = _uiState.asStateFlow()
+    override fun onTabSelected(tab: DesignerTab) {
+        updateState { copy(activeTab = tab) }
+    }
 
-    fun onInteraction(interaction: DesignerInteraction) {
-        when (interaction) {
-            is DesignerInteraction.TabSelected -> _uiState.update { it.copy(activeTab = interaction.tab) }
-            is DesignerInteraction.IdChanged -> _uiState.update { it.copy(properties = it.properties.copy(id = interaction.value)) }
-            is DesignerInteraction.TextChanged -> _uiState.update { it.copy(properties = it.properties.copy(text = interaction.value)) }
-            is DesignerInteraction.LayoutWidthChanged -> _uiState.update { it.copy(properties = it.properties.copy(layoutWidth = interaction.value)) }
-            is DesignerInteraction.LayoutHeightChanged -> _uiState.update { it.copy(properties = it.properties.copy(layoutHeight = interaction.value)) }
-        }
+    override fun onIdChanged(value: String) {
+        updateState { copy(properties = properties.copy(id = value)) }
+    }
+
+    override fun onTextChanged(value: String) {
+        updateState { copy(properties = properties.copy(text = value)) }
+    }
+
+    override fun onLayoutWidthChanged(value: String) {
+        updateState { copy(properties = properties.copy(layoutWidth = value)) }
+    }
+
+    override fun onLayoutHeightChanged(value: String) {
+        updateState { copy(properties = properties.copy(layoutHeight = value)) }
     }
 }

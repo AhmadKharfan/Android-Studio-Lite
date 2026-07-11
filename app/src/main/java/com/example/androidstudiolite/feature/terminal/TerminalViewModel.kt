@@ -1,17 +1,11 @@
 package com.example.androidstudiolite.feature.terminal
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.designsystem.component.ide.AslTerminalLine
 import com.example.androidstudiolite.designsystem.component.ide.AslTerminalLineKind
 import com.example.androidstudiolite.domain.model.TerminalLineKind
 import com.example.androidstudiolite.domain.model.TerminalOutputLine
 import com.example.androidstudiolite.domain.repository.TerminalRepository
-import com.example.androidstudiolite.feature.terminal.TerminalInteraction
-import com.example.androidstudiolite.feature.terminal.TerminalUiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private val INITIAL_LINES = listOf(
@@ -27,37 +21,41 @@ private val INSERTABLE_KEYS = setOf("/", "|")
 
 class TerminalViewModel(
     private val terminalRepository: TerminalRepository,
-) : ViewModel() {
+) : BaseViewModel<TerminalUiState, Nothing>(
+    initialState = TerminalUiState(lines = INITIAL_LINES),
+), TerminalInteractionListener {
 
-    private val _uiState = MutableStateFlow(TerminalUiState(lines = INITIAL_LINES))
-    val uiState: StateFlow<TerminalUiState> = _uiState.asStateFlow()
+    override fun onInputChanged(value: String) {
+        updateState { copy(input = value) }
+    }
 
-    fun onInteraction(interaction: TerminalInteraction) {
-        when (interaction) {
-            is TerminalInteraction.InputChanged -> _uiState.update { it.copy(input = interaction.value) }
-            is TerminalInteraction.ExtraKeyPressed -> if (interaction.key in INSERTABLE_KEYS) {
-                _uiState.update { it.copy(input = it.input + interaction.key) }
-            }
-            TerminalInteraction.NewSession -> _uiState.update {
-                it.copy(sessionNumber = it.sessionNumber + 1, lines = emptyList(), input = "")
-            }
-            TerminalInteraction.SubmitCommand -> submitCommand()
+    override fun onExtraKeyPressed(key: String) {
+        if (key in INSERTABLE_KEYS) {
+            updateState { copy(input = input + key) }
         }
     }
 
+    override fun onNewSession() {
+        updateState { copy(sessionNumber = sessionNumber + 1, lines = emptyList(), input = "") }
+    }
+
+    override fun onSubmitCommand() {
+        submitCommand()
+    }
+
     private fun submitCommand() {
-        val command = _uiState.value.input.trim()
+        val command = state.value.input.trim()
         if (command.isEmpty()) return
         if (command == "clear") {
-            _uiState.update { it.copy(lines = emptyList(), input = "") }
+            updateState { copy(lines = emptyList(), input = "") }
             return
         }
-        _uiState.update {
-            it.copy(lines = it.lines + AslTerminalLine(command, AslTerminalLineKind.Cmd), input = "", running = true)
+        updateState {
+            copy(lines = lines + AslTerminalLine(command, AslTerminalLineKind.Cmd), input = "", running = true)
         }
         viewModelScope.launch {
             val output = terminalRepository.execute(command)
-            _uiState.update { it.copy(lines = it.lines + output.map { line -> line.toUiLine() }, running = false) }
+            updateState { copy(lines = lines + output.map { line -> line.toUiLine() }, running = false) }
         }
     }
 

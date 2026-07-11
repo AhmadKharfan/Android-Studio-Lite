@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
@@ -22,7 +23,7 @@ import com.example.androidstudiolite.designsystem.component.navigation.AslTopApp
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.hub.components.HubSectionHeader
-import com.example.androidstudiolite.feature.settings.buildrun.BuildRunInteraction
+import com.example.androidstudiolite.feature.settings.buildrun.BuildRunInteractionListener
 import com.example.androidstudiolite.feature.settings.buildrun.BuildRunUiState
 import com.example.androidstudiolite.feature.settings.buildrun.BuildRunViewModel
 
@@ -31,14 +32,14 @@ fun BuildRunSettingsRoute(
     onBack: () -> Unit,
     viewModel: BuildRunViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    BuildRunSettingsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    BuildRunSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun BuildRunSettingsScreen(
     uiState: BuildRunUiState,
-    onInteraction: (BuildRunInteraction) -> Unit,
+    interactionListener: BuildRunInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -53,66 +54,84 @@ private fun BuildRunSettingsScreen(
             ) {
                 AslTextField(
                     value = uiState.gradleJvmPath,
-                    onValueChange = { onInteraction(BuildRunInteraction.GradleJvmPathChanged(it)) },
+                    onValueChange = { interactionListener.onGradleJvmPathChanged(it) },
                     label = "Gradle JVM",
                     trailingIcon = "folder-open",
                     helper = "OpenJDK 17 · managed by IDE setup",
                 )
-                HubSectionHeader("Optimization")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg)
-                        .padding(horizontal = 16.dp),
-                ) {
-                    AslSwitch(
-                        label = "Parallel task execution",
-                        checked = uiState.parallelTaskExecution,
-                        onCheckedChange = { onInteraction(BuildRunInteraction.ToggleParallelTaskExecution(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    AslSwitch(
-                        label = "Build cache",
-                        checked = uiState.buildCacheEnabled,
-                        onCheckedChange = { onInteraction(BuildRunInteraction.ToggleBuildCache(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    AslSwitch(
-                        label = "Configuration cache",
-                        checked = uiState.configurationCacheEnabled,
-                        onCheckedChange = { onInteraction(BuildRunInteraction.ToggleConfigurationCache(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                HubSectionHeader("After build")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg)
-                        .padding(horizontal = 16.dp),
-                ) {
-                    AslSwitch(
-                        label = "Launch app after install",
-                        checked = uiState.launchAfterInstall,
-                        onCheckedChange = { onInteraction(BuildRunInteraction.ToggleLaunchAfterInstall(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    AslSwitch(
-                        label = "Install via Shizuku",
-                        checked = uiState.installViaShizuku,
-                        onCheckedChange = { onInteraction(BuildRunInteraction.ToggleInstallViaShizuku(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Text(
-                    text = "Shizuku installs APKs silently without the system prompt. Requires the Shizuku service.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.textTertiary,
-                    modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
-                )
+                BuildRunOptimizationSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
         }
     }
+}
+
+@Composable
+private fun BuildRunOptimizationSection(
+    uiState: BuildRunUiState,
+    interactionListener: BuildRunInteractionListener,
+    colors: AslColorScheme,
+) {
+    HubSectionHeader("Optimization")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(horizontal = 16.dp),
+    ) {
+        AslSwitch(
+            label = "Parallel task execution",
+            checked = uiState.parallelTaskExecution,
+            onCheckedChange = { interactionListener.onToggleParallelTaskExecution(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        AslSwitch(
+            label = "Build cache",
+            checked = uiState.buildCacheEnabled,
+            onCheckedChange = { interactionListener.onToggleBuildCache(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        AslSwitch(
+            label = "Configuration cache",
+            checked = uiState.configurationCacheEnabled,
+            onCheckedChange = { interactionListener.onToggleConfigurationCache(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun BuildRunAfterBuildSection(
+    uiState: BuildRunUiState,
+    interactionListener: BuildRunInteractionListener,
+    colors: AslColorScheme,
+) {
+    HubSectionHeader("After build")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(horizontal = 16.dp),
+    ) {
+        AslSwitch(
+            label = "Launch app after install",
+            checked = uiState.launchAfterInstall,
+            onCheckedChange = { interactionListener.onToggleLaunchAfterInstall(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        AslSwitch(
+            label = "Install via Shizuku",
+            checked = uiState.installViaShizuku,
+            onCheckedChange = { interactionListener.onToggleInstallViaShizuku(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    Text(
+        text = "Shizuku installs APKs silently without the system prompt. Requires the Shizuku service.",
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textTertiary,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+    )
 }

@@ -18,10 +18,11 @@ import com.example.androidstudiolite.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.example.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.example.androidstudiolite.designsystem.icon.AslIcon
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.hub.components.HubSectionHeader
-import com.example.androidstudiolite.feature.settings.root.SettingsRootInteraction
+import com.example.androidstudiolite.feature.settings.root.SettingsRootInteractionListener
 import com.example.androidstudiolite.feature.settings.root.SettingsRootUiState
 import com.example.androidstudiolite.feature.settings.root.SettingsRootViewModel
 
@@ -39,10 +40,10 @@ fun SettingsRootRoute(
     onOpenDeveloperOptions: () -> Unit,
     viewModel: SettingsRootViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     SettingsRootScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onBack = onBack,
         onOpenGeneral = onOpenGeneral,
         onOpenEditor = onOpenEditor,
@@ -54,11 +55,8 @@ fun SettingsRootRoute(
     )
 }
 
-@Composable
-private fun SettingsRootScreen(
+private fun buildSettingsSections(
     uiState: SettingsRootUiState,
-    onInteraction: (SettingsRootInteraction) -> Unit,
-    onBack: () -> Unit,
     onOpenGeneral: () -> Unit,
     onOpenEditor: () -> Unit,
     onOpenAiAgent: () -> Unit,
@@ -66,8 +64,7 @@ private fun SettingsRootScreen(
     onOpenAbout: () -> Unit,
     onOpenTerminal: () -> Unit,
     onOpenDeveloperOptions: () -> Unit,
-) {
-    val colors = AslTheme.colors
+): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
         SettingsRow("General", "Appearance, language, startup", "sliders-horizontal", onOpenGeneral),
         SettingsRow("Editor", "Font, color scheme, LSP", "file-code", onOpenEditor),
@@ -82,8 +79,33 @@ private fun SettingsRootScreen(
         SettingsRow("Developer options", null, "wrench", onOpenDeveloperOptions),
         SettingsRow("About", "v1.2.0", "info", onOpenAbout),
     )
+    return listOf("Configure" to configureRows, "Privacy" to privacyRows, "Advanced" to advancedRows)
+}
 
-    fun matches(row: SettingsRow) = uiState.query.isBlank() || row.title.contains(uiState.query, ignoreCase = true)
+@Composable
+private fun SettingsRootScreen(
+    uiState: SettingsRootUiState,
+    interactionListener: SettingsRootInteractionListener,
+    onBack: () -> Unit,
+    onOpenGeneral: () -> Unit,
+    onOpenEditor: () -> Unit,
+    onOpenAiAgent: () -> Unit,
+    onOpenBuildRun: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenTerminal: () -> Unit,
+    onOpenDeveloperOptions: () -> Unit,
+) {
+    val colors = AslTheme.colors
+    val sections = buildSettingsSections(
+        uiState = uiState,
+        onOpenGeneral = onOpenGeneral,
+        onOpenEditor = onOpenEditor,
+        onOpenAiAgent = onOpenAiAgent,
+        onOpenBuildRun = onOpenBuildRun,
+        onOpenAbout = onOpenAbout,
+        onOpenTerminal = onOpenTerminal,
+        onOpenDeveloperOptions = onOpenDeveloperOptions,
+    )
 
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(
@@ -92,41 +114,60 @@ private fun SettingsRootScreen(
                 .padding(padding),
         ) {
             AslTopAppBar(title = "Preferences", onBack = onBack)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                AslSearchField(
-                    value = uiState.query,
-                    onValueChange = { onInteraction(SettingsRootInteraction.QueryChanged(it)) },
-                    placeholder = "Search settings",
-                )
-                listOf("Configure" to configureRows, "Privacy" to privacyRows, "Advanced" to advancedRows).forEach { (header, rows) ->
-                    val visible = rows.filter(::matches)
-                    if (visible.isNotEmpty()) {
-                        HubSectionHeader(header)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colors.surface, AslShape.lg)
-                                .border(1.dp, colors.borderDefault, AslShape.lg),
-                        ) {
-                            visible.forEachIndexed { index, row ->
-                                AslListItem(
-                                    title = row.title,
-                                    subtitle = row.subtitle,
-                                    icon = row.icon,
-                                    divider = index != visible.lastIndex,
-                                    trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-                                    onClick = row.onClick,
-                                )
-                            }
-                        }
-                    }
-                }
+            SettingsRootContent(uiState = uiState, interactionListener = interactionListener, sections = sections, colors = colors)
+        }
+    }
+}
+
+@Composable
+private fun SettingsRootContent(
+    uiState: SettingsRootUiState,
+    interactionListener: SettingsRootInteractionListener,
+    sections: List<Pair<String, List<SettingsRow>>>,
+    colors: AslColorScheme,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        AslSearchField(
+            value = uiState.query,
+            onValueChange = { interactionListener.onQueryChanged(it) },
+            placeholder = "Search settings",
+        )
+        sections.forEach { (header, rows) ->
+            val visible = rows.filter { uiState.query.isBlank() || it.title.contains(uiState.query, ignoreCase = true) }
+            if (visible.isNotEmpty()) {
+                SettingsRowGroup(header = header, rows = visible, colors = colors)
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingsRowGroup(
+    header: String,
+    rows: List<SettingsRow>,
+    colors: AslColorScheme,
+) {
+    HubSectionHeader(header)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg),
+    ) {
+        rows.forEachIndexed { index, row ->
+            AslListItem(
+                title = row.title,
+                subtitle = row.subtitle,
+                icon = row.icon,
+                divider = index != rows.lastIndex,
+                trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+                onClick = row.onClick,
+            )
         }
     }
 }

@@ -32,9 +32,9 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslSegmentedB
 import com.example.androidstudiolite.designsystem.component.inputs.AslSegmentedOption
 import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.example.androidstudiolite.designsystem.icon.AslIcon
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.uidesigner.DesignerInteraction
 import com.example.androidstudiolite.feature.uidesigner.DesignerTab
 import com.example.androidstudiolite.feature.uidesigner.DesignerUiState
 import com.example.androidstudiolite.feature.uidesigner.PaletteWidget
@@ -45,14 +45,14 @@ private val TABLET_BREAKPOINT = 600.dp
 
 @Composable
 fun DesignerRoute(onBack: () -> Unit, viewModel: DesignerViewModel = koinViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    DesignerScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    DesignerScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun DesignerScreen(
     uiState: DesignerUiState,
-    onInteraction: (DesignerInteraction) -> Unit,
+    interactionListener: DesignerInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -61,52 +61,69 @@ private fun DesignerScreen(
             DesignerToolbar(fileName = uiState.fileName, onBack = onBack)
             BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 if (maxWidth >= TABLET_BREAKPOINT) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        Column(
-                            modifier = Modifier
-                                .width(190.dp)
-                                .fillMaxHeight()
-                                .background(colors.bgElevated),
-                        ) {
-                            PanelHeader("Palette")
-                            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-                            Palette(items = uiState.palette)
-                        }
-                        Canvas(text = uiState.properties.text, modifier = Modifier.weight(1f).fillMaxHeight())
-                        Column(
-                            modifier = Modifier
-                                .width(230.dp)
-                                .fillMaxHeight()
-                                .background(colors.bgElevated)
-                                .verticalScroll(rememberScrollState()),
-                        ) {
-                            PanelHeader("Properties · Button")
-                            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-                            Properties(properties = uiState.properties, onInteraction = onInteraction)
-                        }
-                    }
+                    DesignerTabletLayout(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 } else {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        AslSegmentedButton(
-                            value = uiState.activeTab.name.lowercase(),
-                            onValueChange = { onInteraction(DesignerInteraction.TabSelected(DesignerTab.valueOf(it.replaceFirstChar(Char::uppercase)))) },
-                            fullWidth = true,
-                            options = listOf(
-                                AslSegmentedOption("Palette", "palette"),
-                                AslSegmentedOption("Canvas", "canvas"),
-                                AslSegmentedOption("Props", "properties"),
-                            ),
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        )
-                        when (uiState.activeTab) {
-                            DesignerTab.Palette -> Palette(items = uiState.palette, modifier = Modifier.fillMaxSize())
-                            DesignerTab.Canvas -> Canvas(text = uiState.properties.text, modifier = Modifier.fillMaxSize())
-                            DesignerTab.Properties -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                                Properties(properties = uiState.properties, onInteraction = onInteraction)
-                            }
-                        }
-                    }
+                    DesignerPhoneLayout(uiState = uiState, interactionListener = interactionListener)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DesignerTabletLayout(
+    uiState: DesignerUiState,
+    interactionListener: DesignerInteractionListener,
+    colors: AslColorScheme,
+) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .width(190.dp)
+                .fillMaxHeight()
+                .background(colors.bgElevated),
+        ) {
+            PanelHeader("Palette")
+            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+            Palette(items = uiState.palette)
+        }
+        Canvas(text = uiState.properties.text, modifier = Modifier.weight(1f).fillMaxHeight())
+        Column(
+            modifier = Modifier
+                .width(230.dp)
+                .fillMaxHeight()
+                .background(colors.bgElevated)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            PanelHeader("Properties · Button")
+            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+            Properties(properties = uiState.properties, interactionListener = interactionListener)
+        }
+    }
+}
+
+@Composable
+private fun DesignerPhoneLayout(
+    uiState: DesignerUiState,
+    interactionListener: DesignerInteractionListener,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        AslSegmentedButton(
+            value = uiState.activeTab.name.lowercase(),
+            onValueChange = { interactionListener.onTabSelected(DesignerTab.valueOf(it.replaceFirstChar(Char::uppercase))) },
+            fullWidth = true,
+            options = listOf(
+                AslSegmentedOption("Palette", "palette"),
+                AslSegmentedOption("Canvas", "canvas"),
+                AslSegmentedOption("Props", "properties"),
+            ),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+        )
+        when (uiState.activeTab) {
+            DesignerTab.Palette -> Palette(items = uiState.palette, modifier = Modifier.fillMaxSize())
+            DesignerTab.Canvas -> Canvas(text = uiState.properties.text, modifier = Modifier.fillMaxSize())
+            DesignerTab.Properties -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Properties(properties = uiState.properties, interactionListener = interactionListener)
             }
         }
     }
@@ -222,16 +239,16 @@ private fun Canvas(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Properties(properties: WidgetProperties, onInteraction: (DesignerInteraction) -> Unit) {
+private fun Properties(properties: WidgetProperties, interactionListener: DesignerInteractionListener) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        AslTextField(label = "id", value = properties.id, onValueChange = { onInteraction(DesignerInteraction.IdChanged(it)) })
-        AslTextField(label = "text", value = properties.text, onValueChange = { onInteraction(DesignerInteraction.TextChanged(it)) })
-        AslTextField(label = "layout_width", value = properties.layoutWidth, onValueChange = { onInteraction(DesignerInteraction.LayoutWidthChanged(it)) })
-        AslTextField(label = "layout_height", value = properties.layoutHeight, onValueChange = { onInteraction(DesignerInteraction.LayoutHeightChanged(it)) })
+        AslTextField(label = "id", value = properties.id, onValueChange = { interactionListener.onIdChanged(it) })
+        AslTextField(label = "text", value = properties.text, onValueChange = { interactionListener.onTextChanged(it) })
+        AslTextField(label = "layout_width", value = properties.layoutWidth, onValueChange = { interactionListener.onLayoutWidthChanged(it) })
+        AslTextField(label = "layout_height", value = properties.layoutHeight, onValueChange = { interactionListener.onLayoutHeightChanged(it) })
     }
 }

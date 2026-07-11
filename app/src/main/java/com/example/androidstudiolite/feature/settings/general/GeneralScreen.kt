@@ -25,10 +25,11 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.designsystem.component.ide.AslThemeSwatch
 import com.example.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
 import com.example.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.domain.model.AppThemeMode
-import com.example.androidstudiolite.feature.settings.general.GeneralInteraction
+import com.example.androidstudiolite.feature.settings.general.GeneralInteractionListener
 import com.example.androidstudiolite.feature.settings.general.GeneralUiState
 import com.example.androidstudiolite.feature.settings.general.GeneralViewModel
 
@@ -49,14 +50,14 @@ fun GeneralRoute(
     onBack: () -> Unit,
     viewModel: GeneralViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    GeneralScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    GeneralScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun GeneralScreen(
     uiState: GeneralUiState,
-    onInteraction: (GeneralInteraction) -> Unit,
+    interactionListener: GeneralInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -69,59 +70,77 @@ private fun GeneralScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                Text(text = "UI mode", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
-                AslSegmentedButton(
-                    options = listOf(
-                        AslSegmentedOption("Light", "light", "sun"),
-                        AslSegmentedOption("Dark", "dark", "moon"),
-                        AslSegmentedOption("System", "system", "monitor"),
-                    ),
-                    value = uiState.themeMode.name.lowercase(),
-                    onValueChange = { onInteraction(GeneralInteraction.ThemeModeChanged(it.uppercase().let(AppThemeMode::valueOf))) },
-                    fullWidth = true,
-                )
+                GeneralUiModeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 AslThemeSwatchPicker(
                     label = "Accent",
                     swatches = ACCENT_SWATCHES,
                     value = uiState.accentId,
-                    onValueChange = { onInteraction(GeneralInteraction.AccentChanged(it)) },
+                    onValueChange = { interactionListener.onAccentChanged(it) },
                     modifier = Modifier.padding(top = 20.dp),
                 )
                 AslDropdown(
                     label = "Language",
                     value = uiState.language,
-                    onValueChange = { onInteraction(GeneralInteraction.LanguageChanged(it)) },
+                    onValueChange = { interactionListener.onLanguageChanged(it) },
                     options = LANGUAGE_OPTIONS,
                     modifier = Modifier.padding(top = 20.dp),
                 )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 20.dp)
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg)
-                        .padding(horizontal = 16.dp),
-                ) {
-                    AslSwitch(
-                        label = "Auto-open last project",
-                        checked = uiState.autoOpenLastProject,
-                        onCheckedChange = { onInteraction(GeneralInteraction.ToggleAutoOpenLastProject(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    AslSwitch(
-                        label = "Snowfall in December",
-                        checked = uiState.snowfallEasterEgg,
-                        onCheckedChange = { onInteraction(GeneralInteraction.ToggleSnowfallEasterEgg(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Text(
-                    text = "A quiet seasonal easter egg. Off by default.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.textTertiary,
-                    modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-                )
+                GeneralTogglesSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
         }
     }
+}
+
+@Composable
+private fun GeneralUiModeSection(
+    uiState: GeneralUiState,
+    interactionListener: GeneralInteractionListener,
+    colors: AslColorScheme,
+) {
+    Text(text = "UI mode", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
+    AslSegmentedButton(
+        options = listOf(
+            AslSegmentedOption("Light", "light", "sun"),
+            AslSegmentedOption("Dark", "dark", "moon"),
+            AslSegmentedOption("System", "system", "monitor"),
+        ),
+        value = uiState.themeMode.name.lowercase(),
+        onValueChange = { interactionListener.onThemeModeChanged(it.uppercase().let(AppThemeMode::valueOf)) },
+        fullWidth = true,
+    )
+}
+
+@Composable
+private fun GeneralTogglesSection(
+    uiState: GeneralUiState,
+    interactionListener: GeneralInteractionListener,
+    colors: AslColorScheme,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp)
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(horizontal = 16.dp),
+    ) {
+        AslSwitch(
+            label = "Auto-open last project",
+            checked = uiState.autoOpenLastProject,
+            onCheckedChange = { interactionListener.onToggleAutoOpenLastProject(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        AslSwitch(
+            label = "Snowfall in December",
+            checked = uiState.snowfallEasterEgg,
+            onCheckedChange = { interactionListener.onToggleSnowfallEasterEgg(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    Text(
+        text = "A quiet seasonal easter egg. Off by default.",
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textTertiary,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
+    )
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.designsystem.animation.AslStaggeredAppear
 import com.example.androidstudiolite.designsystem.component.content.AslListItem
@@ -32,7 +33,7 @@ import com.example.androidstudiolite.designsystem.icon.AslIcon
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.domain.model.ApiKeyStatus
-import com.example.androidstudiolite.feature.settings.aiagent.AiAgentInteraction
+import com.example.androidstudiolite.feature.settings.aiagent.AiAgentInteractionListener
 import com.example.androidstudiolite.feature.settings.aiagent.AiAgentUiState
 import com.example.androidstudiolite.feature.settings.aiagent.AiAgentViewModel
 
@@ -41,14 +42,14 @@ fun AiAgentSettingsRoute(
     onBack: () -> Unit,
     viewModel: AiAgentViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    AiAgentSettingsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onBack = onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    AiAgentSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun AiAgentSettingsScreen(
     uiState: AiAgentUiState,
-    onInteraction: (AiAgentInteraction) -> Unit,
+    interactionListener: AiAgentInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -64,80 +65,116 @@ private fun AiAgentSettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg)
-                        .padding(horizontal = 16.dp),
-                ) {
-                    AslSwitch(
-                        label = "Enable AI Agent",
-                        checked = uiState.enabled,
-                        onCheckedChange = { onInteraction(AiAgentInteraction.ToggleEnabled(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                AiAgentEnableToggle(uiState = uiState, interactionListener = interactionListener, colors = colors)
 
                 val expanded = uiState.providers.filter { it.featured || it.id in expandedIds }
                 val collapsed = uiState.providers.filterNot { it.featured || it.id in expandedIds }
 
-                expanded.forEachIndexed { index, provider ->
-                    AslStaggeredAppear(index = index) {
-                        AslApiKeyCard(
-                            provider = provider.name,
-                            providerIcon = provider.icon,
-                            description = provider.description,
-                            value = provider.apiKey,
-                            onValueChange = { onInteraction(AiAgentInteraction.ApiKeyChanged(provider.id, it)) },
-                            status = provider.status.toAslStatus(),
-                            testing = provider.status == ApiKeyStatus.TESTING,
-                            onTest = { onInteraction(AiAgentInteraction.TestApiKey(provider.id)) },
-                        )
-                    }
-                }
-
-                if (collapsed.isNotEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.surface, AslShape.lg)
-                            .border(1.dp, colors.borderDefault, AslShape.lg),
-                    ) {
-                        collapsed.forEachIndexed { index, provider ->
-                            AslListItem(
-                                title = provider.name,
-                                subtitle = provider.description,
-                                icon = provider.icon,
-                                divider = index != collapsed.lastIndex,
-                                trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-                                onClick = { expandedIds = expandedIds + provider.id },
-                            )
-                        }
-                    }
-                }
-
-                Column {
-                    Text(
-                        text = "Instructions",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.textSecondary,
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
-                    BasicTextField(
-                        value = uiState.instructions,
-                        onValueChange = { onInteraction(AiAgentInteraction.InstructionsChanged(it)) },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textSecondary),
-                        cursorBrush = SolidColor(colors.accentPrimary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.bgElevated, AslShape.md)
-                            .border(1.dp, colors.borderStrong, AslShape.md)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                    )
-                }
+                AiAgentExpandedProviderCards(providers = expanded, interactionListener = interactionListener)
+                AiAgentCollapsedProviderList(
+                    providers = collapsed,
+                    colors = colors,
+                    onExpand = { providerId -> expandedIds = expandedIds + providerId },
+                )
+                AiAgentInstructionsField(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
         }
+    }
+}
+
+@Composable
+private fun AiAgentEnableToggle(
+    uiState: AiAgentUiState,
+    interactionListener: AiAgentInteractionListener,
+    colors: AslColorScheme,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(horizontal = 16.dp),
+    ) {
+        AslSwitch(
+            label = "Enable AI Agent",
+            checked = uiState.enabled,
+            onCheckedChange = { interactionListener.onToggleEnabled(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun AiAgentExpandedProviderCards(
+    providers: List<AiProviderUiModel>,
+    interactionListener: AiAgentInteractionListener,
+) {
+    providers.forEachIndexed { index, provider ->
+        AslStaggeredAppear(index = index) {
+            AslApiKeyCard(
+                provider = provider.name,
+                providerIcon = provider.icon,
+                description = provider.description,
+                value = provider.apiKey,
+                onValueChange = { interactionListener.onApiKeyChanged(provider.id, it) },
+                status = provider.status.toAslStatus(),
+                testing = provider.status == ApiKeyStatus.TESTING,
+                onTest = { interactionListener.onTestApiKey(provider.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiAgentCollapsedProviderList(
+    providers: List<AiProviderUiModel>,
+    colors: AslColorScheme,
+    onExpand: (String) -> Unit,
+) {
+    if (providers.isEmpty()) return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg),
+    ) {
+        providers.forEachIndexed { index, provider ->
+            AslListItem(
+                title = provider.name,
+                subtitle = provider.description,
+                icon = provider.icon,
+                divider = index != providers.lastIndex,
+                trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+                onClick = { onExpand(provider.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiAgentInstructionsField(
+    uiState: AiAgentUiState,
+    interactionListener: AiAgentInteractionListener,
+    colors: AslColorScheme,
+) {
+    Column {
+        Text(
+            text = "Instructions",
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+        BasicTextField(
+            value = uiState.instructions,
+            onValueChange = { interactionListener.onInstructionsChanged(it) },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textSecondary),
+            cursorBrush = SolidColor(colors.accentPrimary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.bgElevated, AslShape.md)
+                .border(1.dp, colors.borderStrong, AslShape.md)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        )
     }
 }
 
