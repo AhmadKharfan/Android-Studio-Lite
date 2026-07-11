@@ -1,12 +1,15 @@
 package com.example.androidstudiolite.designsystem.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 
 /** M3-aligned subset of the token set — everything else (editor/syntax/terminal/semantic
  *  warning-info-success) lives only in [AslColorScheme] since M3 has no slot for it. */
@@ -60,7 +63,17 @@ fun AslAppTheme(
             colorScheme = colorScheme(aslColors, darkTheme),
             typography = AslTypography,
             shapes = AslShapes,
-            content = content,
-        )
+        ) {
+            // Paints the themed background behind the whole app *before* any screen renders, so
+            // in-flight nav transitions (sliding/fading between screens) never expose the raw
+            // (always-light) Android window background — without this, that flash reads as a
+            // stray light "ripple" through the content, worst in dark mode.
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                content()
+            }
+        }
     }
 }

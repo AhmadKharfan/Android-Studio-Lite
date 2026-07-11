@@ -3,4 +3,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="splash_background">#FF1E1E2E</color>
+    <color name="window_background">#FFF7F8FA</color>
 </resources>
