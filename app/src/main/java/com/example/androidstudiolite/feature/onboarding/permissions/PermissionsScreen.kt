@@ -21,9 +21,10 @@ import com.example.androidstudiolite.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.designsystem.component.ide.AslPermissionCard
 import com.example.androidstudiolite.designsystem.component.inputs.AslWizardStepper
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
-import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsInteraction
+import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsInteractionListener
 import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsUiState
 import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsViewModel
 
@@ -32,10 +33,10 @@ fun PermissionsRoute(
     onContinue: () -> Unit,
     viewModel: PermissionsViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     PermissionsScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onContinue = onContinue,
     )
 }
@@ -43,7 +44,7 @@ fun PermissionsRoute(
 @Composable
 private fun PermissionsScreen(
     uiState: PermissionsUiState,
-    onInteraction: (PermissionsInteraction) -> Unit,
+    interactionListener: PermissionsInteractionListener,
     onContinue: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -55,51 +56,78 @@ private fun PermissionsScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
             AslWizardStepper(steps = ONBOARDING_STEPS, current = 1, modifier = Modifier.padding(horizontal = 4.dp))
-            Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
-                Text(text = "A few permissions", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
-                Text(
-                    text = "The IDE needs these to build and install your apps.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
-            LazyColumn(
+            PermissionsHeader(colors = colors)
+            PermissionsList(
+                uiState = uiState,
+                interactionListener = interactionListener,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                itemsIndexed(uiState.permissions, key = { _, it -> it.id }) { index, permission ->
-                    AslStaggeredAppear(index = index) {
-                        AslPermissionCard(
-                            title = permission.title,
-                            reason = permission.reason,
-                            icon = permission.icon,
-                            granted = permission.granted,
-                            onGrant = { onInteraction(PermissionsInteraction.GrantPermission(permission.id)) },
-                        )
-                    }
-                }
-            }
-            Column(modifier = Modifier.padding(top = 14.dp)) {
-                AslButton(
-                    label = "Continue",
-                    onClick = onContinue,
-                    size = AslButtonSize.Lg,
-                    fullWidth = true,
-                    disabled = !uiState.canContinue,
+            )
+            PermissionsContinueSection(uiState = uiState, onContinue = onContinue, colors = colors)
+        }
+    }
+}
+
+@Composable
+private fun PermissionsHeader(colors: AslColorScheme) {
+    Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
+        Text(text = "A few permissions", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
+        Text(
+            text = "The IDE needs these to build and install your apps.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun PermissionsList(
+    uiState: PermissionsUiState,
+    interactionListener: PermissionsInteractionListener,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        itemsIndexed(uiState.permissions, key = { _, it -> it.id }) { index, permission ->
+            AslStaggeredAppear(index = index) {
+                AslPermissionCard(
+                    title = permission.title,
+                    reason = permission.reason,
+                    icon = permission.icon,
+                    granted = permission.granted,
+                    onGrant = { interactionListener.onGrantPermission(permission.id) },
                 )
-                if (!uiState.canContinue) {
-                    Text(
-                        text = "Grant storage and install access to continue",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textTertiary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                    )
-                }
             }
+        }
+    }
+}
+
+@Composable
+private fun PermissionsContinueSection(
+    uiState: PermissionsUiState,
+    onContinue: () -> Unit,
+    colors: AslColorScheme,
+) {
+    Column(modifier = Modifier.padding(top = 14.dp)) {
+        AslButton(
+            label = "Continue",
+            onClick = onContinue,
+            size = AslButtonSize.Lg,
+            fullWidth = true,
+            disabled = !uiState.canContinue,
+        )
+        if (!uiState.canContinue) {
+            Text(
+                text = "Grant storage and install access to continue",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textTertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            )
         }
     }
 }

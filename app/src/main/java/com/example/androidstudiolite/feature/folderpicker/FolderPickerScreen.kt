@@ -21,7 +21,7 @@ import com.example.androidstudiolite.designsystem.component.content.AslFileTree
 import com.example.androidstudiolite.designsystem.component.navigation.AslBreadcrumbBar
 import com.example.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.folderpicker.FolderPickerInteraction
+import com.example.androidstudiolite.feature.folderpicker.FolderPickerInteractionListener
 import com.example.androidstudiolite.feature.folderpicker.FolderPickerUiState
 import com.example.androidstudiolite.feature.folderpicker.FolderPickerViewModel
 
@@ -31,10 +31,10 @@ fun FolderPickerRoute(
     onFolderSelected: (String) -> Unit,
     viewModel: FolderPickerViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     FolderPickerScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onCancel = onCancel,
         onSelect = { uiState.selectedPath?.let(onFolderSelected) },
     )
@@ -43,7 +43,7 @@ fun FolderPickerRoute(
 @Composable
 private fun FolderPickerScreen(
     uiState: FolderPickerUiState,
-    onInteraction: (FolderPickerInteraction) -> Unit,
+    interactionListener: FolderPickerInteractionListener,
     onCancel: () -> Unit,
     onSelect: () -> Unit,
 ) {
@@ -62,8 +62,8 @@ private fun FolderPickerScreen(
                     items = uiState.items,
                     expandedIds = uiState.expandedIds,
                     selectedId = uiState.selectedId,
-                    onToggle = { onInteraction(FolderPickerInteraction.ToggleFolder(it)) },
-                    onSelect = { onInteraction(FolderPickerInteraction.SelectFolder(it.id)) },
+                    onToggle = { interactionListener.onToggleFolder(it) },
+                    onSelect = { interactionListener.onSelectFolder(it.id) },
                 )
             }
             HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)

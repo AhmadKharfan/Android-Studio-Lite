@@ -1,43 +1,43 @@
 package com.example.androidstudiolite.feature.clonerepo
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.domain.repository.ProjectRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 class CloneRepoViewModel(
     private val projectRepository: ProjectRepository,
-) : ViewModel() {
+) : BaseViewModel<CloneRepoUiState, Nothing>(
+    initialState = CloneRepoUiState(),
+), CloneRepoInteractionListener {
 
-    private val _uiState = MutableStateFlow(CloneRepoUiState())
-    val uiState: StateFlow<CloneRepoUiState> = _uiState.asStateFlow()
+    override fun onUrlChanged(url: String) {
+        updateState { copy(url = url) }
+    }
 
-    fun onInteraction(interaction: CloneRepoInteraction) {
-        when (interaction) {
-            is CloneRepoInteraction.UrlChanged -> _uiState.value = _uiState.value.copy(url = interaction.url)
-            is CloneRepoInteraction.BranchChanged -> _uiState.value = _uiState.value.copy(branch = interaction.branch)
-            is CloneRepoInteraction.ToggleOption -> _uiState.value = _uiState.value.copy(
-                options = _uiState.value.options.map { if (it.id == interaction.id) it.copy(selected = !it.selected) else it },
-            )
-            CloneRepoInteraction.StartClone -> startClone()
+    override fun onBranchChanged(branch: String) {
+        updateState { copy(branch = branch) }
+    }
+
+    override fun onToggleOption(id: String) {
+        updateState {
+            copy(options = options.map { if (it.id == id) it.copy(selected = !it.selected) else it })
         }
     }
 
-    private fun startClone() {
-        val state = _uiState.value
-        if (state.cloning || state.url.isBlank()) return
-        _uiState.value = state.copy(cloning = true)
-        viewModelScope.launch {
-            projectRepository.cloneRepository(state.url, state.branch.ifBlank { null }).collect { progress ->
-                _uiState.value = _uiState.value.copy(
-                    progressPercent = ((progress.fraction ?: 0f) * 100).toInt(),
-                    progressMessage = progress.message,
-                    clonedProjectId = progress.clonedProjectId,
-                )
-            }
-        }
+    override fun onStartClone() {
+        val current = state.value
+        if (current.cloning || current.url.isBlank()) return
+        updateState { copy(cloning = true) }
+        tryToCollect(
+            block = { projectRepository.cloneRepository(current.url, current.branch.ifBlank { null }) },
+            onCollect = { progress ->
+                updateState {
+                    copy(
+                        progressPercent = ((progress.fraction ?: 0f) * 100).toInt(),
+                        progressMessage = progress.message,
+                        clonedProjectId = progress.clonedProjectId,
+                    )
+                }
+            },
+        )
     }
 }

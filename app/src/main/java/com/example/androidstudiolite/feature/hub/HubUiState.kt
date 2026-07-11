@@ -20,6 +20,12 @@ sealed interface HubDialogUiState {
     data class InvalidFolder(val path: String) : HubDialogUiState
 }
 
+sealed interface HubSheetUiState {
+    data object None : HubSheetUiState
+    data object OpenProject : HubSheetUiState
+    data object CloneRepo : HubSheetUiState
+}
+
 @Immutable
 data class HubUiState(
     val greeting: String = "Good morning",
@@ -28,4 +34,5 @@ data class HubUiState(
     val recentProjects: List<HubProjectUiModel> = emptyList(),
     val isLoadingRecents: Boolean = true,
     val dialog: HubDialogUiState = HubDialogUiState.None,
+    val sheet: HubSheetUiState = HubSheetUiState.None,
 )

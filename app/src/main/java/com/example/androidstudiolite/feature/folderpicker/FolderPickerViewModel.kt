@@ -1,52 +1,46 @@
 package com.example.androidstudiolite.feature.folderpicker
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.designsystem.component.content.AslFileTreeNode
 import com.example.androidstudiolite.domain.model.FolderNode
 import com.example.androidstudiolite.domain.repository.FileSystemRepository
-import com.example.androidstudiolite.feature.folderpicker.FolderPickerInteraction
-import com.example.androidstudiolite.feature.folderpicker.FolderPickerUiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class FolderPickerViewModel(
     private val fileSystemRepository: FileSystemRepository,
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(FolderPickerUiState())
-    val uiState: StateFlow<FolderPickerUiState> = _uiState.asStateFlow()
+) : BaseViewModel<FolderPickerUiState, Nothing>(
+    initialState = FolderPickerUiState(),
+), FolderPickerInteractionListener {
 
     private var rootItems: List<FolderNode> = emptyList()
     private var breadcrumbBase: List<String> = emptyList()
 
     init {
-        viewModelScope.launch {
-            val tree = fileSystemRepository.getFolderTree()
-            rootItems = tree.items
-            breadcrumbBase = tree.breadcrumb
-            _uiState.update {
-                it.copy(
-                    breadcrumb = tree.breadcrumb,
-                    items = tree.items.map(::toUiNode),
-                    expandedIds = setOf("projects"),
-                )
-            }
+        tryToExecute(
+            block = { fileSystemRepository.getFolderTree() },
+            onSuccess = { tree ->
+                rootItems = tree.items
+                breadcrumbBase = tree.breadcrumb
+                updateState {
+                    copy(
+                        breadcrumb = tree.breadcrumb,
+                        items = tree.items.map(::toUiNode),
+                        expandedIds = setOf("projects"),
+                    )
+                }
+            },
+        )
+    }
+
+    override fun onToggleFolder(id: String) {
+        updateState {
+            val next = expandedIds.toMutableSet()
+            if (!next.add(id)) next.remove(id)
+            copy(expandedIds = next)
         }
     }
 
-    fun onInteraction(interaction: FolderPickerInteraction) {
-        when (interaction) {
-            is FolderPickerInteraction.ToggleFolder -> _uiState.update {
-                val next = it.expandedIds.toMutableSet()
-                if (!next.add(interaction.id)) next.remove(interaction.id)
-                it.copy(expandedIds = next)
-            }
-            is FolderPickerInteraction.SelectFolder -> _uiState.update {
-                it.copy(selectedId = interaction.id, selectedPath = buildPath(interaction.id))
-            }
+    override fun onSelectFolder(id: String) {
+        updateState {
+            copy(selectedId = id, selectedPath = buildPath(id))
         }
     }
 

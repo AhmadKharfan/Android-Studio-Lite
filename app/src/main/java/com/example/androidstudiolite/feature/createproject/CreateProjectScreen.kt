@@ -19,7 +19,7 @@ import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.createproject.components.ConfigureStep
 import com.example.androidstudiolite.feature.createproject.components.SummaryStep
 import com.example.androidstudiolite.feature.createproject.components.TemplateStep
-import com.example.androidstudiolite.feature.createproject.CreateProjectInteraction
+import com.example.androidstudiolite.feature.createproject.CreateProjectInteractionListener
 import com.example.androidstudiolite.feature.createproject.CreateProjectUiState
 import com.example.androidstudiolite.feature.createproject.CreateProjectViewModel
 
@@ -34,21 +34,21 @@ fun CreateProjectRoute(
     onPickedFolderConsumed: () -> Unit,
     viewModel: CreateProjectViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.createdProjectId) {
         uiState.createdProjectId?.let(onCreated)
     }
     LaunchedEffect(pickedFolder) {
         pickedFolder?.let {
-            viewModel.onInteraction(CreateProjectInteraction.LocationChanged(it))
+            viewModel.onLocationChanged(it)
             onPickedFolderConsumed()
         }
     }
 
     CreateProjectScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onBack = onBack,
         onBrowseLocation = onBrowseLocation,
     )
@@ -57,7 +57,7 @@ fun CreateProjectRoute(
 @Composable
 private fun CreateProjectScreen(
     uiState: CreateProjectUiState,
-    onInteraction: (CreateProjectInteraction) -> Unit,
+    interactionListener: CreateProjectInteractionListener,
     onBack: () -> Unit,
     onBrowseLocation: () -> Unit,
 ) {
@@ -66,66 +66,84 @@ private fun CreateProjectScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(
                 title = "Create project",
-                onBack = { if (uiState.step == 0) onBack() else onInteraction(CreateProjectInteraction.BackStep) },
+                onBack = { if (uiState.step == 0) onBack() else interactionListener.onBackStep() },
             )
             AslWizardStepper(
                 steps = CREATE_PROJECT_STEPS,
                 current = uiState.step,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-            ) {
-                // AnimatedContent needs bounded (non-scrolling) constraints to size/slide its two panes —
-                // each step scrolls internally instead of the wrapper scrolling around the animation.
-                AslSlideContent(
-                    modifier = Modifier.fillMaxSize(),
-                    targetState = uiState.step,
-                    isForward = { initial, target -> target >= initial },
-                    label = "createProjectStep",
-                ) { step ->
-                    when (step) {
-                        0 -> TemplateStep(
-                            templates = uiState.templates,
-                            selectedId = uiState.selectedTemplateId,
-                            onSelect = { onInteraction(CreateProjectInteraction.SelectTemplate(it)) },
-                        )
-                        1 -> ConfigureStep(
-                            projectName = uiState.projectName,
-                            packageName = uiState.packageName,
-                            location = uiState.location,
-                            minSdk = uiState.minSdk,
-                            nameError = uiState.nameError,
-                            onNameChanged = { onInteraction(CreateProjectInteraction.NameChanged(it)) },
-                            onPackageChanged = { onInteraction(CreateProjectInteraction.PackageChanged(it)) },
-                            onLocationChanged = { onInteraction(CreateProjectInteraction.LocationChanged(it)) },
-                            onMinSdkChanged = { onInteraction(CreateProjectInteraction.MinSdkChanged(it)) },
-                            onBrowseLocation = onBrowseLocation,
-                        )
-                        else -> SummaryStep(uiState = uiState)
-                    }
-                }
-            }
-            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                AslButton(
-                    label = if (uiState.step == 2) "Create project" else "Next",
-                    icon = if (uiState.step == 2) "hammer" else null,
-                    onClick = {
-                        if (uiState.step == 2) {
-                            onInteraction(CreateProjectInteraction.CreateProject)
-                        } else {
-                            onInteraction(CreateProjectInteraction.NextStep)
-                        }
-                    },
-                    size = AslButtonSize.Lg,
-                    fullWidth = true,
-                    disabled = !uiState.canGoNext || uiState.creating,
-                    loading = uiState.step == 2 && uiState.creating,
+            CreateProjectStepContent(
+                uiState = uiState,
+                interactionListener = interactionListener,
+                onBrowseLocation = onBrowseLocation,
+                modifier = Modifier.weight(1f).fillMaxSize().padding(horizontal = 20.dp),
+            )
+            CreateProjectPrimaryAction(uiState = uiState, interactionListener = interactionListener)
+        }
+    }
+}
+
+@Composable
+private fun CreateProjectStepContent(
+    uiState: CreateProjectUiState,
+    interactionListener: CreateProjectInteractionListener,
+    onBrowseLocation: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        // AnimatedContent needs bounded (non-scrolling) constraints to size/slide its two panes —
+        // each step scrolls internally instead of the wrapper scrolling around the animation.
+        AslSlideContent(
+            modifier = Modifier.fillMaxSize(),
+            targetState = uiState.step,
+            isForward = { initial, target -> target >= initial },
+            label = "createProjectStep",
+        ) { step ->
+            when (step) {
+                0 -> TemplateStep(
+                    templates = uiState.templates,
+                    selectedId = uiState.selectedTemplateId,
+                    onSelect = { interactionListener.onSelectTemplate(it) },
                 )
+                1 -> ConfigureStep(
+                    projectName = uiState.projectName,
+                    packageName = uiState.packageName,
+                    location = uiState.location,
+                    minSdk = uiState.minSdk,
+                    nameError = uiState.nameError,
+                    onNameChanged = { interactionListener.onNameChanged(it) },
+                    onPackageChanged = { interactionListener.onPackageChanged(it) },
+                    onLocationChanged = { interactionListener.onLocationChanged(it) },
+                    onMinSdkChanged = { interactionListener.onMinSdkChanged(it) },
+                    onBrowseLocation = onBrowseLocation,
+                )
+                else -> SummaryStep(uiState = uiState)
             }
         }
+    }
+}
+
+@Composable
+private fun CreateProjectPrimaryAction(
+    uiState: CreateProjectUiState,
+    interactionListener: CreateProjectInteractionListener,
+) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        AslButton(
+            label = if (uiState.step == 2) "Create project" else "Next",
+            icon = if (uiState.step == 2) "hammer" else null,
+            onClick = {
+                if (uiState.step == 2) {
+                    interactionListener.onCreateProject()
+                } else {
+                    interactionListener.onNextStep()
+                }
+            },
+            size = AslButtonSize.Lg,
+            fullWidth = true,
+            disabled = !uiState.canGoNext || uiState.creating,
+            loading = uiState.step == 2 && uiState.creating,
+        )
     }
 }

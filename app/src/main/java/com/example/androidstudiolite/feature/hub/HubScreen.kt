@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 import com.example.androidstudiolite.designsystem.animation.AslStaggeredAppear
 import com.example.androidstudiolite.designsystem.animation.AslStateCrossfade
@@ -53,20 +54,14 @@ import com.example.androidstudiolite.designsystem.component.feedback.AslSnackbar
 import com.example.androidstudiolite.designsystem.component.feedback.AslSnackbarTone
 import com.example.androidstudiolite.designsystem.icon.AslIcon
 import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslMotion
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.example.androidstudiolite.feature.hub.components.HubSectionTile
-import com.example.androidstudiolite.feature.hub.HubInteraction
-import com.example.androidstudiolite.feature.hub.HubDialogUiState
-import com.example.androidstudiolite.feature.hub.HubProjectUiModel
-import com.example.androidstudiolite.feature.hub.HubUiState
-import com.example.androidstudiolite.feature.hub.HubViewModel
 import com.example.androidstudiolite.feature.openproject.OpenProjectRoute
 import com.example.androidstudiolite.feature.clonerepo.CloneRepoRoute
-
-private enum class HubSheet { OpenProject, CloneRepo }
 
 @Composable
 fun HubRoute(
@@ -81,35 +76,30 @@ fun HubRoute(
     onPickedFolderConsumed: () -> Unit,
     viewModel: HubViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var activeSheet by remember { mutableStateOf<HubSheet?>(null) }
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(pickedFolder) {
         pickedFolder?.let { path ->
-            viewModel.handlePickedFolder(path, onOpenProject)
+            viewModel.handlePickedFolder(path)
             onPickedFolderConsumed()
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.effect.collectLatest { effect ->
+            when (effect) {
+                is HubEffect.NavigateToProject -> onOpenProject(effect.id)
+                HubEffect.NavigateToCreateProject -> onCreateProject()
+                HubEffect.NavigateToPreferences -> onOpenPreferences()
+                HubEffect.NavigateToTerminal -> onOpenTerminal()
+                HubEffect.NavigateToIdeConfig -> onOpenIdeConfig()
+                HubEffect.NavigateToDocs -> onOpenDocs()
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        HubScreen(
-            uiState = uiState,
-            onInteraction = { interaction ->
-                when (interaction) {
-                    is HubInteraction.OpenProject -> onOpenProject(interaction.id)
-                    is HubInteraction.ProjectMenu -> Unit
-                    HubInteraction.ResumeProject -> uiState.resumeProject?.let { onOpenProject(it.id) }
-                    HubInteraction.DismissResume -> viewModel.dismissResume()
-                    HubInteraction.CreateProject -> onCreateProject()
-                    HubInteraction.OpenProjectPicker -> activeSheet = HubSheet.OpenProject
-                    HubInteraction.CloneRepository -> activeSheet = HubSheet.CloneRepo
-                    HubInteraction.OpenPreferences -> onOpenPreferences()
-                    HubInteraction.OpenTerminal -> onOpenTerminal()
-                    HubInteraction.OpenIdeConfig -> onOpenIdeConfig()
-                    HubInteraction.OpenDocs -> onOpenDocs()
-                }
-            },
-        )
+        HubScreen(uiState = uiState, interactionListener = viewModel)
 
         if (uiState.dialog is HubDialogUiState.InvalidFolder) {
             AslSnackbar(
@@ -121,28 +111,54 @@ fun HubRoute(
         }
     }
 
-    when (activeSheet) {
-        HubSheet.OpenProject -> OpenProjectRoute(
-            onDismiss = { activeSheet = null },
-            onProjectSelected = { id -> activeSheet = null; onOpenProject(id) },
-            onBrowseOtherLocation = { activeSheet = null; onBrowseFolder() },
-            onCreateProject = { activeSheet = null; onCreateProject() },
-            onCloneRepository = { activeSheet = HubSheet.CloneRepo },
-        )
-        HubSheet.CloneRepo -> CloneRepoRoute(
-            onDismiss = { activeSheet = null },
-            onCloned = { id -> activeSheet = null; onOpenProject(id) },
-        )
-        null -> Unit
-    }
+    HubSheetHost(
+        uiState = uiState,
+        viewModel = viewModel,
+        onOpenProject = onOpenProject,
+        onCreateProject = onCreateProject,
+        onBrowseFolder = onBrowseFolder,
+    )
 
+    HubDialogHost(uiState = uiState, viewModel = viewModel, onBrowseFolder = onBrowseFolder)
+}
+
+@Composable
+private fun HubSheetHost(
+    uiState: HubUiState,
+    viewModel: HubViewModel,
+    onOpenProject: (String) -> Unit,
+    onCreateProject: () -> Unit,
+    onBrowseFolder: () -> Unit,
+) {
+    when (uiState.sheet) {
+        HubSheetUiState.OpenProject -> OpenProjectRoute(
+            onDismiss = { viewModel.dismissSheet() },
+            onProjectSelected = { id -> viewModel.dismissSheet(); onOpenProject(id) },
+            onBrowseOtherLocation = { viewModel.dismissSheet(); onBrowseFolder() },
+            onCreateProject = { viewModel.dismissSheet(); onCreateProject() },
+            onCloneRepository = { viewModel.onCloneRepository() },
+        )
+        HubSheetUiState.CloneRepo -> CloneRepoRoute(
+            onDismiss = { viewModel.dismissSheet() },
+            onCloned = { id -> viewModel.dismissSheet(); onOpenProject(id) },
+        )
+        HubSheetUiState.None -> Unit
+    }
+}
+
+@Composable
+private fun HubDialogHost(
+    uiState: HubUiState,
+    viewModel: HubViewModel,
+    onBrowseFolder: () -> Unit,
+) {
     when (val dialog = uiState.dialog) {
         is HubDialogUiState.ResumeProject -> AslDialog(
             title = "Open last project?",
             body = "${dialog.projectName}\n${dialog.path}",
             confirmLabel = "Open",
             cancelLabel = "Not now",
-            onConfirm = { viewModel.confirmResumeDialog(onOpenProject) },
+            onConfirm = { viewModel.confirmResumeDialog() },
             onDismiss = { viewModel.dismissResumeDialog() },
         )
         is HubDialogUiState.UpdateAvailable -> AslDialog(
@@ -170,7 +186,7 @@ private val TABLET_BREAKPOINT = 600.dp
 @Composable
 private fun HubScreen(
     uiState: HubUiState,
-    onInteraction: (HubInteraction) -> Unit,
+    interactionListener: HubInteractionListener,
 ) {
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
@@ -182,111 +198,13 @@ private fun HubScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 4.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(30.dp)
-                            .background(Color(0xFF1E1E2E), RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(text = "{ }", color = Color(0xFF34D399), fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                    }
-                    Text(
-                        text = "Android Studio Lite",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.textPrimary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (isTablet) {
-                        AslIconButton(icon = "terminal", contentDescription = "Terminal", onClick = { onInteraction(HubInteraction.OpenTerminal) })
-                    }
-                    AslIconButton(icon = "settings", contentDescription = "Preferences", onClick = { onInteraction(HubInteraction.OpenPreferences) })
-                }
-                Text(
-                    text = "${uiState.greeting}, ${uiState.userName}",
-                    style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
-                    color = colors.textPrimary,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
-                )
-                // Animate the resume banner in/out; retain the last project so its name stays rendered
-                // while the banner collapses away after dismissal.
-                val resume = uiState.resumeProject
-                var lastResume by remember { mutableStateOf(resume) }
-                if (resume != null) lastResume = resume
-                AnimatedVisibility(
-                    visible = resume != null,
-                    enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-                    exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-                ) {
-                    lastResume?.let { project ->
-                        AslBanner(
-                            tone = AslBannerTone.Info,
-                            message = "Resume ${project.name} where you left off?",
-                            actionLabel = "Resume",
-                            onAction = { onInteraction(HubInteraction.ResumeProject) },
-                            onDismiss = { onInteraction(HubInteraction.DismissResume) },
-                        )
-                    }
-                }
+                HubTopBar(interactionListener = interactionListener, isTablet = isTablet, colors = colors)
+                HubGreeting(uiState = uiState, isTablet = isTablet, colors = colors)
+                HubResumeBanner(uiState = uiState, interactionListener = interactionListener)
                 if (isTablet) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(28.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1.5f)) {
-                            RecentProjectsList(uiState = uiState, onInteraction = onInteraction)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            StartSection(onInteraction = onInteraction)
-                            HubSectionHeader("More")
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(colors.surface, AslShape.lg),
-                            ) {
-                                AslListItem(
-                                    title = "IDE configurations",
-                                    icon = "wrench",
-                                    trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-                                    onClick = { onInteraction(HubInteraction.OpenIdeConfig) },
-                                )
-                                AslListItem(
-                                    title = "Preferences",
-                                    icon = "sliders-horizontal",
-                                    trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-                                    onClick = { onInteraction(HubInteraction.OpenPreferences) },
-                                )
-                                AslListItem(
-                                    title = "Documentation",
-                                    icon = "book-open",
-                                    divider = false,
-                                    trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-                                    onClick = { onInteraction(HubInteraction.OpenDocs) },
-                                )
-                            }
-                        }
-                    }
+                    HubTabletLayout(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 } else {
-                    RecentProjectsRow(uiState = uiState, onInteraction = onInteraction)
-                    StartSection(onInteraction = onInteraction)
-                    HubSectionHeader("More")
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(88.dp),
-                    ) {
-                        item { HubSectionTile(icon = "terminal", label = "Terminal", onClick = { onInteraction(HubInteraction.OpenTerminal) }) }
-                        item { HubSectionTile(icon = "wrench", label = "IDE config", onClick = { onInteraction(HubInteraction.OpenIdeConfig) }) }
-                        item { HubSectionTile(icon = "sliders-horizontal", label = "Preferences", onClick = { onInteraction(HubInteraction.OpenPreferences) }) }
-                        item { HubSectionTile(icon = "book-open", label = "Docs", onClick = { onInteraction(HubInteraction.OpenDocs) }) }
-                    }
+                    HubPhoneLayout(uiState = uiState, interactionListener = interactionListener)
                 }
             }
         }
@@ -294,7 +212,156 @@ private fun HubScreen(
 }
 
 @Composable
-private fun RecentProjectsRow(uiState: HubUiState, onInteraction: (HubInteraction) -> Unit) {
+private fun HubTopBar(
+    interactionListener: HubInteractionListener,
+    isTablet: Boolean,
+    colors: AslColorScheme,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .background(Color(0xFF1E1E2E), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "{ }", color = Color(0xFF34D399), fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+        }
+        Text(
+            text = "Android Studio Lite",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        if (isTablet) {
+            AslIconButton(icon = "terminal", contentDescription = "Terminal", onClick = { interactionListener.onOpenTerminal() })
+        }
+        AslIconButton(icon = "settings", contentDescription = "Preferences", onClick = { interactionListener.onOpenPreferences() })
+    }
+}
+
+@Composable
+private fun HubGreeting(
+    uiState: HubUiState,
+    isTablet: Boolean,
+    colors: AslColorScheme,
+) {
+    Text(
+        text = "${uiState.greeting}, ${uiState.userName}",
+        style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
+        color = colors.textPrimary,
+        modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
+    )
+}
+
+@Composable
+private fun HubResumeBanner(
+    uiState: HubUiState,
+    interactionListener: HubInteractionListener,
+) {
+    // Animate the resume banner in/out; retain the last project so its name stays rendered
+    // while the banner collapses away after dismissal.
+    val resume = uiState.resumeProject
+    var lastResume by remember { mutableStateOf(resume) }
+    if (resume != null) lastResume = resume
+    AnimatedVisibility(
+        visible = resume != null,
+        enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
+        exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
+    ) {
+        lastResume?.let { project ->
+            AslBanner(
+                tone = AslBannerTone.Info,
+                message = "Resume ${project.name} where you left off?",
+                actionLabel = "Resume",
+                onAction = { interactionListener.onResumeProject() },
+                onDismiss = { interactionListener.onDismissResume() },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HubTabletLayout(
+    uiState: HubUiState,
+    interactionListener: HubInteractionListener,
+    colors: AslColorScheme,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(28.dp),
+    ) {
+        Column(modifier = Modifier.weight(1.5f)) {
+            RecentProjectsList(uiState = uiState, interactionListener = interactionListener)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            StartSection(interactionListener = interactionListener)
+            HubMoreSectionTablet(interactionListener = interactionListener, colors = colors)
+        }
+    }
+}
+
+@Composable
+private fun HubMoreSectionTablet(
+    interactionListener: HubInteractionListener,
+    colors: AslColorScheme,
+) {
+    HubSectionHeader("More")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg),
+    ) {
+        AslListItem(
+            title = "IDE configurations",
+            icon = "wrench",
+            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+            onClick = { interactionListener.onOpenIdeConfig() },
+        )
+        AslListItem(
+            title = "Preferences",
+            icon = "sliders-horizontal",
+            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+            onClick = { interactionListener.onOpenPreferences() },
+        )
+        AslListItem(
+            title = "Documentation",
+            icon = "book-open",
+            divider = false,
+            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+            onClick = { interactionListener.onOpenDocs() },
+        )
+    }
+}
+
+@Composable
+private fun HubPhoneLayout(
+    uiState: HubUiState,
+    interactionListener: HubInteractionListener,
+) {
+    RecentProjectsRow(uiState = uiState, interactionListener = interactionListener)
+    StartSection(interactionListener = interactionListener)
+    HubSectionHeader("More")
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(4),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(88.dp),
+    ) {
+        item { HubSectionTile(icon = "terminal", label = "Terminal", onClick = { interactionListener.onOpenTerminal() }) }
+        item { HubSectionTile(icon = "wrench", label = "IDE config", onClick = { interactionListener.onOpenIdeConfig() }) }
+        item { HubSectionTile(icon = "sliders-horizontal", label = "Preferences", onClick = { interactionListener.onOpenPreferences() }) }
+        item { HubSectionTile(icon = "book-open", label = "Docs", onClick = { interactionListener.onOpenDocs() }) }
+    }
+}
+
+@Composable
+private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
     HubSectionHeader("Recent projects")
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsRow") { loading ->
@@ -315,8 +382,8 @@ private fun RecentProjectsRow(uiState: HubUiState, onInteraction: (HubInteractio
                             lastOpened = project.lastOpenedText,
                             language = project.language,
                             modifier = Modifier.width(290.dp),
-                            onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
-                            onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
+                            onClick = { interactionListener.onOpenProject(project.id) },
+                            onMenu = { interactionListener.onProjectMenu(project.id) },
                         )
                     }
                 }
@@ -326,7 +393,7 @@ private fun RecentProjectsRow(uiState: HubUiState, onInteraction: (HubInteractio
 }
 
 @Composable
-private fun RecentProjectsList(uiState: HubUiState, onInteraction: (HubInteraction) -> Unit) {
+private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
     HubSectionHeader("Recent projects")
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsList") { loading ->
@@ -342,8 +409,8 @@ private fun RecentProjectsList(uiState: HubUiState, onInteraction: (HubInteracti
                             lastOpened = project.lastOpenedText,
                             language = project.language,
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { onInteraction(HubInteraction.OpenProject(project.id)) },
-                            onMenu = { onInteraction(HubInteraction.ProjectMenu(project.id)) },
+                            onClick = { interactionListener.onOpenProject(project.id) },
+                            onMenu = { interactionListener.onProjectMenu(project.id) },
                         )
                     }
                 }
@@ -353,7 +420,7 @@ private fun RecentProjectsList(uiState: HubUiState, onInteraction: (HubInteracti
 }
 
 @Composable
-private fun StartSection(onInteraction: (HubInteraction) -> Unit) {
+private fun StartSection(interactionListener: HubInteractionListener) {
     val colors = AslTheme.colors
     HubSectionHeader("Start")
     Column(
@@ -367,14 +434,14 @@ private fun StartSection(onInteraction: (HubInteraction) -> Unit) {
             icon = "plus",
             iconColor = colors.accentPrimary,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { onInteraction(HubInteraction.CreateProject) },
+            onClick = { interactionListener.onCreateProject() },
         )
         AslListItem(
             title = "Open project",
             subtitle = "Browse device storage",
             icon = "folder-open",
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { onInteraction(HubInteraction.OpenProjectPicker) },
+            onClick = { interactionListener.onOpenProjectPicker() },
         )
         AslListItem(
             title = "Clone repository",
@@ -382,7 +449,7 @@ private fun StartSection(onInteraction: (HubInteraction) -> Unit) {
             icon = "git-branch",
             divider = false,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { onInteraction(HubInteraction.CloneRepository) },
+            onClick = { interactionListener.onCloneRepository() },
         )
     }
 }

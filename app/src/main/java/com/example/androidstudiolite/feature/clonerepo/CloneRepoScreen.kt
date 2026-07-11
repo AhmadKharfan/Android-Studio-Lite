@@ -24,7 +24,7 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.example.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.clonerepo.CloneRepoInteraction
+import com.example.androidstudiolite.feature.clonerepo.CloneRepoInteractionListener
 import com.example.androidstudiolite.feature.clonerepo.CloneRepoUiState
 import com.example.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 
@@ -34,7 +34,7 @@ fun CloneRepoRoute(
     onCloned: (String) -> Unit,
     viewModel: CloneRepoViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.clonedProjectId) {
         uiState.clonedProjectId?.let(onCloned)
@@ -42,7 +42,7 @@ fun CloneRepoRoute(
 
     CloneRepoScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onDismiss = onDismiss,
     )
 }
@@ -50,10 +50,9 @@ fun CloneRepoRoute(
 @Composable
 private fun CloneRepoScreen(
     uiState: CloneRepoUiState,
-    onInteraction: (CloneRepoInteraction) -> Unit,
+    interactionListener: CloneRepoInteractionListener,
     onDismiss: () -> Unit,
 ) {
-    val colors = AslTheme.colors
     AslBottomSheet(
         onDismiss = onDismiss,
         title = if (uiState.cloning) "Cloning…" else "Clone repository",
@@ -63,51 +62,73 @@ private fun CloneRepoScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (uiState.cloning) {
-                AslStatusChip(status = AslStatus.Syncing, label = "Cloning · ${uiState.progressMessage}")
-                AslLinearProgress(
-                    value = uiState.progressPercent.toFloat(),
-                    label = "Receiving objects",
-                    detail = "${uiState.progressPercent}%",
-                )
-                AslButton(label = "Cancel", onClick = onDismiss, variant = AslButtonVariant.Secondary, fullWidth = true)
+                CloneRepoProgress(uiState = uiState, onDismiss = onDismiss)
             } else {
-                AslTextField(
-                    value = uiState.url,
-                    onValueChange = { onInteraction(CloneRepoInteraction.UrlChanged(it)) },
-                    label = "Repository URL",
-                    placeholder = "https://github.com/user/repo.git",
-                    leadingIcon = "link",
-                )
-                AslTextField(
-                    value = uiState.branch,
-                    onValueChange = { onInteraction(CloneRepoInteraction.BranchChanged(it)) },
-                    label = "Branch",
-                    placeholder = "main",
-                    helper = "Optional — defaults to the remote's default branch",
-                )
-                Column {
-                    Text(text = "Options", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-                    Row(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        uiState.options.forEach { option ->
-                            AslChip(
-                                label = option.label,
-                                kind = AslChipKind.Filter,
-                                selected = option.selected,
-                                onClick = { onInteraction(CloneRepoInteraction.ToggleOption(option.id)) },
-                            )
-                        }
-                    }
-                }
-                AslButton(
-                    label = "Clone",
-                    onClick = { onInteraction(CloneRepoInteraction.StartClone) },
-                    size = AslButtonSize.Lg,
-                    fullWidth = true,
-                    icon = "git-branch",
-                    disabled = uiState.url.isBlank(),
+                CloneRepoForm(uiState = uiState, interactionListener = interactionListener)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CloneRepoProgress(uiState: CloneRepoUiState, onDismiss: () -> Unit) {
+    AslStatusChip(status = AslStatus.Syncing, label = "Cloning · ${uiState.progressMessage}")
+    AslLinearProgress(
+        value = uiState.progressPercent.toFloat(),
+        label = "Receiving objects",
+        detail = "${uiState.progressPercent}%",
+    )
+    AslButton(label = "Cancel", onClick = onDismiss, variant = AslButtonVariant.Secondary, fullWidth = true)
+}
+
+@Composable
+private fun CloneRepoForm(
+    uiState: CloneRepoUiState,
+    interactionListener: CloneRepoInteractionListener,
+) {
+    AslTextField(
+        value = uiState.url,
+        onValueChange = { interactionListener.onUrlChanged(it) },
+        label = "Repository URL",
+        placeholder = "https://github.com/user/repo.git",
+        leadingIcon = "link",
+    )
+    AslTextField(
+        value = uiState.branch,
+        onValueChange = { interactionListener.onBranchChanged(it) },
+        label = "Branch",
+        placeholder = "main",
+        helper = "Optional — defaults to the remote's default branch",
+    )
+    CloneRepoOptions(uiState = uiState, interactionListener = interactionListener)
+    AslButton(
+        label = "Clone",
+        onClick = { interactionListener.onStartClone() },
+        size = AslButtonSize.Lg,
+        fullWidth = true,
+        icon = "git-branch",
+        disabled = uiState.url.isBlank(),
+    )
+}
+
+@Composable
+private fun CloneRepoOptions(
+    uiState: CloneRepoUiState,
+    interactionListener: CloneRepoInteractionListener,
+) {
+    val colors = AslTheme.colors
+    Column {
+        Text(text = "Options", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+        Row(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            uiState.options.forEach { option ->
+                AslChip(
+                    label = option.label,
+                    kind = AslChipKind.Filter,
+                    selected = option.selected,
+                    onClick = { interactionListener.onToggleOption(option.id) },
                 )
             }
         }

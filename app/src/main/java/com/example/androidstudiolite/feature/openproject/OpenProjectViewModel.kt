@@ -1,41 +1,32 @@
 package com.example.androidstudiolite.feature.openproject
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.domain.model.Project
 import com.example.androidstudiolite.domain.repository.ProjectRepository
 import com.example.androidstudiolite.feature.formatRelativeTime
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 class OpenProjectViewModel(
     private val projectRepository: ProjectRepository,
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(OpenProjectUiState())
-    val uiState: StateFlow<OpenProjectUiState> = _uiState.asStateFlow()
+) : BaseViewModel<OpenProjectUiState, OpenProjectEffect>(
+    initialState = OpenProjectUiState(),
+), OpenProjectInteractionListener {
 
     init {
-        viewModelScope.launch {
-            projectRepository.observeRecentProjects().collect { projects ->
+        tryToCollect(
+            block = { projectRepository.observeRecentProjects() },
+            onCollect = { projects ->
                 val models = projects.map { it.toUiModel() }
-                _uiState.value = _uiState.value.copy(allProjects = models, filteredProjects = filter(models, _uiState.value.query))
-            }
-        }
+                updateState { copy(allProjects = models, filteredProjects = filter(models, query)) }
+            },
+        )
     }
 
-    fun onInteraction(interaction: OpenProjectInteraction) {
-        when (interaction) {
-            is OpenProjectInteraction.QueryChanged -> {
-                _uiState.value = _uiState.value.copy(
-                    query = interaction.query,
-                    filteredProjects = filter(_uiState.value.allProjects, interaction.query),
-                )
-            }
-            is OpenProjectInteraction.SelectProject -> Unit
-        }
+    override fun onQueryChanged(query: String) {
+        updateState { copy(query = query, filteredProjects = filter(allProjects, query)) }
+    }
+
+    override fun onSelectProject(id: String) {
+        emitEffect(OpenProjectEffect.NavigateToProject(id))
     }
 
     private fun filter(models: List<OpenProjectItemUiModel>, query: String): List<OpenProjectItemUiModel> =

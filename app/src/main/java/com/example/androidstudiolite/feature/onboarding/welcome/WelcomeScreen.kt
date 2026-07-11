@@ -25,6 +25,7 @@ import com.example.androidstudiolite.designsystem.component.buttons.AslButton
 import com.example.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.example.androidstudiolite.designsystem.icon.AslIcon
 import com.example.androidstudiolite.designsystem.theme.AslCode
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 
 @Composable
@@ -42,52 +43,8 @@ private fun WelcomeScreen(onGetStarted: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
-            Column(
-                modifier = Modifier.weight(1.1f).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(88.dp)
-                            .background(Color(0xFF1E1E2E), RoundedCornerShape(22.dp))
-                            .border(1.dp, colors.borderDefault, RoundedCornerShape(22.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "{ }",
-                            color = Color(0xFF34D399),
-                            fontFamily = AslCode.codeBody.fontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 34.sp,
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Welcome to\nAndroid Studio Lite",
-                            style = MaterialTheme.typography.displaySmall,
-                            textAlign = TextAlign.Center,
-                            color = colors.textPrimary,
-                        )
-                        Text(
-                            text = "Build real Android apps, entirely on your device.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.textSecondary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 10.dp),
-                        )
-                    }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-                WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Assemble, install and run debug APKs on-device.")
-                WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion, navigation and diagnostics for Kotlin & Java.")
-                WelcomeBullet(icon = "git-branch", title = "Git & AI built-in", text = "Clone, commit, and generate code with the AI agent.")
-            }
+            WelcomeHero(colors = colors, modifier = Modifier.weight(1.1f).fillMaxWidth())
+            WelcomeBulletList(modifier = Modifier.padding(vertical = 8.dp))
             AslButton(
                 label = "Get started",
                 onClick = onGetStarted,
@@ -95,6 +52,60 @@ private fun WelcomeScreen(onGetStarted: () -> Unit) {
                 fullWidth = true,
             )
         }
+    }
+}
+
+@Composable
+private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .background(Color(0xFF1E1E2E), RoundedCornerShape(22.dp))
+                    .border(1.dp, colors.borderDefault, RoundedCornerShape(22.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "{ }",
+                    color = Color(0xFF34D399),
+                    fontFamily = AslCode.codeBody.fontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 34.sp,
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Welcome to\nAndroid Studio Lite",
+                    style = MaterialTheme.typography.displaySmall,
+                    textAlign = TextAlign.Center,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = "Build real Android apps, entirely on your device.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeBulletList(modifier: Modifier = Modifier) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = modifier) {
+        WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Assemble, install and run debug APKs on-device.")
+        WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion, navigation and diagnostics for Kotlin & Java.")
+        WelcomeBullet(icon = "git-branch", title = "Git & AI built-in", text = "Clone, commit, and generate code with the AI agent.")
     }
 }
 

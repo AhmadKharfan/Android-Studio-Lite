@@ -25,11 +25,12 @@ import com.example.androidstudiolite.designsystem.component.feedback.AslLinearPr
 import com.example.androidstudiolite.designsystem.component.feedback.AslStatus
 import com.example.androidstudiolite.designsystem.component.feedback.AslStatusChip
 import com.example.androidstudiolite.designsystem.component.inputs.AslWizardStepper
+import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
-import com.example.androidstudiolite.feature.onboarding.setup.SetupInteraction
 import com.example.androidstudiolite.feature.onboarding.setup.InstallStatus
+import com.example.androidstudiolite.feature.onboarding.setup.SetupInteractionListener
 import com.example.androidstudiolite.feature.onboarding.setup.SetupUiState
 import com.example.androidstudiolite.feature.onboarding.setup.SetupViewModel
 
@@ -39,10 +40,10 @@ fun SetupRoute(
     onSkip: () -> Unit,
     viewModel: SetupViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     SetupScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onContinue = onContinue,
         onSkip = onSkip,
     )
@@ -51,7 +52,7 @@ fun SetupRoute(
 @Composable
 private fun SetupScreen(
     uiState: SetupUiState,
-    onInteraction: (SetupInteraction) -> Unit,
+    interactionListener: SetupInteractionListener,
     onContinue: () -> Unit,
     onSkip: () -> Unit,
 ) {
@@ -69,65 +70,88 @@ private fun SetupScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
             AslWizardStepper(steps = ONBOARDING_STEPS, current = 2, modifier = Modifier.padding(horizontal = 4.dp))
-            Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
-                Text(text = "IDE environment", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
-                Text(
-                    text = "A JDK and the Android SDK are installed once, locally.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(
-                    modifier = Modifier
-                        .background(colors.surface, AslShape.lg)
-                        .border(1.dp, colors.borderDefault, AslShape.lg)
-                        .padding(4.dp),
-                ) {
-                    AslListItem(
-                        title = "OpenJDK 17",
-                        subtitle = "jdk-17.0.11 · 289 MB",
-                        icon = "coffee",
-                        trailing = { AslStatusChip(status = AslStatus.Success, label = "Installed") },
-                    )
-                    AslListItem(
-                        title = "Android SDK 34",
-                        subtitle = "platform-34 + build-tools",
-                        icon = "smartphone",
-                        divider = false,
-                        trailing = {
-                            when (uiState.sdkStatus) {
-                                InstallStatus.Installed -> AslStatusChip(status = AslStatus.Success, label = "Installed")
-                                InstallStatus.Installing -> AslStatusChip(status = AslStatus.Building, label = "Installing")
-                                InstallStatus.Failed -> AslStatusChip(status = AslStatus.Failed, label = "Failed")
-                                InstallStatus.Pending -> AslStatusChip(status = AslStatus.Indexing, label = "Queued")
-                            }
-                        },
-                    )
-                    if (uiState.sdkStatus == InstallStatus.Installing) {
-                        AslLinearProgress(
-                            value = uiState.sdkProgressPercent.toFloat(),
-                            label = "Downloading platform-34",
-                            detail = uiState.sdkDetail,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
+            SetupHeader(colors = colors)
+            SetupInstallSection(uiState = uiState, colors = colors, modifier = Modifier.weight(1f))
+            SetupActions(uiState = uiState, interactionListener = interactionListener, onSkip = onSkip)
+        }
+    }
+}
+
+@Composable
+private fun SetupHeader(colors: AslColorScheme) {
+    Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
+        Text(text = "IDE environment", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
+        Text(
+            text = "A JDK and the Android SDK are installed once, locally.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun SetupInstallSection(
+    uiState: SetupUiState,
+    colors: AslColorScheme,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier
+                .background(colors.surface, AslShape.lg)
+                .border(1.dp, colors.borderDefault, AslShape.lg)
+                .padding(4.dp),
+        ) {
+            AslListItem(
+                title = "OpenJDK 17",
+                subtitle = "jdk-17.0.11 · 289 MB",
+                icon = "coffee",
+                trailing = { AslStatusChip(status = AslStatus.Success, label = "Installed") },
+            )
+            AslListItem(
+                title = "Android SDK 34",
+                subtitle = "platform-34 + build-tools",
+                icon = "smartphone",
+                divider = false,
+                trailing = {
+                    when (uiState.sdkStatus) {
+                        InstallStatus.Installed -> AslStatusChip(status = AslStatus.Success, label = "Installed")
+                        InstallStatus.Installing -> AslStatusChip(status = AslStatus.Building, label = "Installing")
+                        InstallStatus.Failed -> AslStatusChip(status = AslStatus.Failed, label = "Failed")
+                        InstallStatus.Pending -> AslStatusChip(status = AslStatus.Indexing, label = "Queued")
                     }
-                }
-                AslBanner(tone = AslBannerTone.Info, message = "Setup runs in the terminal — you can watch or hide it.")
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-                AslButton(
-                    label = "Continue setup",
-                    onClick = { onInteraction(SetupInteraction.StartSetup) },
-                    size = AslButtonSize.Lg,
-                    fullWidth = true,
-                    icon = "terminal",
-                    loading = uiState.sdkStatus == InstallStatus.Installing,
+                },
+            )
+            if (uiState.sdkStatus == InstallStatus.Installing) {
+                AslLinearProgress(
+                    value = uiState.sdkProgressPercent.toFloat(),
+                    label = "Downloading platform-34",
+                    detail = uiState.sdkDetail,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                AslButton(label = "I'll do this later", onClick = onSkip, variant = AslButtonVariant.Tertiary, fullWidth = true)
-                AslBanner(tone = AslBannerTone.Warning, message = "Projects can't build until setup completes.")
             }
         }
+        AslBanner(tone = AslBannerTone.Info, message = "Setup runs in the terminal — you can watch or hide it.")
+    }
+}
+
+@Composable
+private fun SetupActions(
+    uiState: SetupUiState,
+    interactionListener: SetupInteractionListener,
+    onSkip: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+        AslButton(
+            label = "Continue setup",
+            onClick = { interactionListener.onStartSetup() },
+            size = AslButtonSize.Lg,
+            fullWidth = true,
+            icon = "terminal",
+            loading = uiState.sdkStatus == InstallStatus.Installing,
+        )
+        AslButton(label = "I'll do this later", onClick = onSkip, variant = AslButtonVariant.Tertiary, fullWidth = true)
+        AslBanner(tone = AslBannerTone.Warning, message = "Projects can't build until setup completes.")
     }
 }
