@@ -30,7 +30,7 @@ import com.example.androidstudiolite.designsystem.component.content.AslEmptyStat
 import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.example.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.editor.aichat.AiChatInteraction
+import com.example.androidstudiolite.feature.editor.aichat.AiChatInteractionListener
 import com.example.androidstudiolite.feature.editor.aichat.AiChatUiState
 import com.example.androidstudiolite.feature.editor.aichat.ChatMessageUiModel
 import com.example.androidstudiolite.feature.editor.aichat.AiChatViewModel
@@ -41,10 +41,10 @@ fun AiChatRoute(
     onOpenAiAgentSettings: () -> Unit,
     viewModel: AiChatViewModel = koinViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     AiChatScreen(
         uiState = uiState,
-        onInteraction = viewModel::onInteraction,
+        interactionListener = viewModel,
         onClose = onClose,
         onOpenAiAgentSettings = onOpenAiAgentSettings,
     )
@@ -53,7 +53,7 @@ fun AiChatRoute(
 @Composable
 private fun AiChatScreen(
     uiState: AiChatUiState,
-    onInteraction: (AiChatInteraction) -> Unit,
+    interactionListener: AiChatInteractionListener,
     onClose: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
 ) {
@@ -73,7 +73,7 @@ private fun AiChatScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                ChatContent(uiState = uiState, onInteraction = onInteraction)
+                ChatContent(uiState = uiState, interactionListener = interactionListener)
             }
         }
     }
@@ -82,58 +82,75 @@ private fun AiChatScreen(
 @Composable
 private fun ChatContent(
     uiState: AiChatUiState,
-    onInteraction: (AiChatInteraction) -> Unit,
+    interactionListener: AiChatInteractionListener,
 ) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
-            val scrollState = rememberScrollState()
-            LaunchedEffect(uiState.messages.size) {
-                scrollState.animateScrollTo(scrollState.maxValue)
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                uiState.messages.forEach { message ->
-                    // Each newly-appended message fades + lifts in rather than popping into the list.
-                    AslStaggeredAppear {
-                        ChatMessageBubble(message = message, onInteraction = onInteraction)
-                    }
-                }
-                if (uiState.sending) {
-                    Text(text = "AI is typing…", style = MaterialTheme.typography.labelSmall, color = colors.textTertiary)
-                }
-            }
-            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                AslTextField(
-                    value = uiState.input,
-                    onValueChange = { onInteraction(AiChatInteraction.InputChanged(it)) },
-                    placeholder = "Ask the AI agent…",
-                    modifier = Modifier.weight(1f),
-                )
-                AslIconButton(
-                    icon = "send",
-                    contentDescription = "Send",
-                    onClick = { onInteraction(AiChatInteraction.Send) },
-                    disabled = uiState.input.isBlank() || uiState.sending,
-                )
-            }
-        }
+        ChatMessageList(uiState = uiState, interactionListener = interactionListener, modifier = Modifier.weight(1f))
+        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        ChatInputRow(uiState = uiState, interactionListener = interactionListener)
     }
+}
 
 @Composable
-private fun ChatMessageBubble(message: ChatMessageUiModel, onInteraction: (AiChatInteraction) -> Unit) {
+private fun ChatMessageList(
+    uiState: AiChatUiState,
+    interactionListener: AiChatInteractionListener,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AslTheme.colors
+    val scrollState = rememberScrollState()
+    LaunchedEffect(uiState.messages.size) {
+        scrollState.animateScrollTo(scrollState.maxValue)
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        uiState.messages.forEach { message ->
+            // Each newly-appended message fades + lifts in rather than popping into the list.
+            AslStaggeredAppear {
+                ChatMessageBubble(message = message, interactionListener = interactionListener)
+            }
+        }
+        if (uiState.sending) {
+            Text(text = "AI is typing…", style = MaterialTheme.typography.labelSmall, color = colors.textTertiary)
+        }
+    }
+}
+
+@Composable
+private fun ChatInputRow(
+    uiState: AiChatUiState,
+    interactionListener: AiChatInteractionListener,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        AslTextField(
+            value = uiState.input,
+            onValueChange = { interactionListener.onInputChanged(it) },
+            placeholder = "Ask the AI agent…",
+            modifier = Modifier.weight(1f),
+        )
+        AslIconButton(
+            icon = "send",
+            contentDescription = "Send",
+            onClick = { interactionListener.onSend() },
+            disabled = uiState.input.isBlank() || uiState.sending,
+        )
+    }
+}
+
+@Composable
+private fun ChatMessageBubble(message: ChatMessageUiModel, interactionListener: AiChatInteractionListener) {
     val clipboard = LocalClipboardManager.current
     val colors = AslTheme.colors
     AslChatBubble(
@@ -147,7 +164,7 @@ private fun ChatMessageBubble(message: ChatMessageUiModel, onInteraction: (AiCha
                 language = message.codeLanguage ?: "text",
                 applied = message.applied,
                 onCopy = { clipboard.setText(AnnotatedString(message.code)) },
-                onApply = { onInteraction(AiChatInteraction.MarkApplied(message.id)) },
+                onApply = { interactionListener.onMarkApplied(message.id) },
                 modifier = Modifier.padding(top = 8.dp),
             )
         }

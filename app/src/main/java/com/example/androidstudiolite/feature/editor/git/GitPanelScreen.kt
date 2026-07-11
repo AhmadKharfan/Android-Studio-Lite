@@ -32,21 +32,21 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.example.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.domain.model.GitFileStatus
-import com.example.androidstudiolite.feature.editor.git.GitPanelInteraction
+import com.example.androidstudiolite.feature.editor.git.GitPanelInteractionListener
 import com.example.androidstudiolite.feature.editor.git.GitChangeUiModel
 import com.example.androidstudiolite.feature.editor.git.GitPanelUiState
 import com.example.androidstudiolite.feature.editor.git.GitPanelViewModel
 
 @Composable
 fun GitPanelRoute(onClose: () -> Unit, viewModel: GitPanelViewModel = koinViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    GitPanelScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onClose = onClose)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    GitPanelScreen(uiState = uiState, interactionListener = viewModel, onClose = onClose)
 }
 
 @Composable
 private fun GitPanelScreen(
     uiState: GitPanelUiState,
-    onInteraction: (GitPanelInteraction) -> Unit,
+    interactionListener: GitPanelInteractionListener,
     onClose: () -> Unit,
 ) {
     AslToolWindowPanel(
@@ -64,76 +64,94 @@ private fun GitPanelScreen(
             label = "gitMasterDetail",
         ) { state ->
             if (state.selectedPath != null) {
-                DiffView(uiState = state, onInteraction = onInteraction)
+                DiffView(uiState = state, interactionListener = interactionListener)
             } else {
-                ChangesView(uiState = state, onInteraction = onInteraction)
+                ChangesView(uiState = state, interactionListener = interactionListener)
             }
         }
     }
 }
 
 @Composable
-private fun ChangesView(uiState: GitPanelUiState, onInteraction: (GitPanelInteraction) -> Unit) {
+private fun ChangesView(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
-        // Ease between the empty state and the populated change list (e.g. after a commit clears it).
-        AslStateCrossfade(
-            targetState = uiState.changes.isEmpty(),
-            modifier = Modifier.weight(1f).fillMaxSize(),
-            label = "gitChanges",
-        ) { isEmpty ->
-            if (isEmpty) {
-                AslEmptyState(
-                    icon = "git-commit",
-                    title = "No local changes",
-                    subtitle = "Edit files to see them appear here for commit.",
-                    modifier = Modifier.fillMaxSize(),
+        GitChangedFileList(uiState = uiState, interactionListener = interactionListener, modifier = Modifier.weight(1f).fillMaxSize())
+        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        GitCommitBox(uiState = uiState, interactionListener = interactionListener)
+    }
+}
+
+@Composable
+private fun GitChangedFileList(
+    uiState: GitPanelUiState,
+    interactionListener: GitPanelInteractionListener,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AslTheme.colors
+    // Ease between the empty state and the populated change list (e.g. after a commit clears it).
+    AslStateCrossfade(
+        targetState = uiState.changes.isEmpty(),
+        modifier = modifier,
+        label = "gitChanges",
+    ) { isEmpty ->
+        if (isEmpty) {
+            AslEmptyState(
+                icon = "git-commit",
+                title = "No local changes",
+                subtitle = "Edit files to see them appear here for commit.",
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Text(
+                    text = "CHANGES (${uiState.changes.size})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textTertiary,
+                    modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
                 )
-            } else {
-                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = "CHANGES (${uiState.changes.size})",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.textTertiary,
-                        modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
+                uiState.changes.forEach { change ->
+                    AslListItem(
+                        title = change.path,
+                        icon = "file-code",
+                        trailing = { GitStatusBadge(change.status) },
+                        onClick = { interactionListener.onSelectChange(change.path) },
                     )
-                    uiState.changes.forEach { change ->
-                        AslListItem(
-                            title = change.path,
-                            icon = "file-code",
-                            trailing = { GitStatusBadge(change.status) },
-                            onClick = { onInteraction(GitPanelInteraction.SelectChange(change.path)) },
-                        )
-                    }
                 }
             }
         }
-        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            AslTextField(
-                value = uiState.commitMessage,
-                onValueChange = { onInteraction(GitPanelInteraction.CommitMessageChanged(it)) },
-                placeholder = "Commit message",
-            )
-            AslButton(
-                label = "Commit",
-                onClick = { onInteraction(GitPanelInteraction.Commit) },
-                icon = "git-commit",
-                fullWidth = true,
-                loading = uiState.committing,
-                disabled = uiState.commitMessage.isBlank() || uiState.changes.isEmpty(),
-            )
-        }
     }
 }
 
 @Composable
-private fun DiffView(uiState: GitPanelUiState, onInteraction: (GitPanelInteraction) -> Unit) {
+private fun GitCommitBox(
+    uiState: GitPanelUiState,
+    interactionListener: GitPanelInteractionListener,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AslTextField(
+            value = uiState.commitMessage,
+            onValueChange = { interactionListener.onCommitMessageChanged(it) },
+            placeholder = "Commit message",
+        )
+        AslButton(
+            label = "Commit",
+            onClick = { interactionListener.onCommit() },
+            icon = "git-commit",
+            fullWidth = true,
+            loading = uiState.committing,
+            disabled = uiState.commitMessage.isBlank() || uiState.changes.isEmpty(),
+        )
+    }
+}
+
+@Composable
+private fun DiffView(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -142,7 +160,7 @@ private fun DiffView(uiState: GitPanelUiState, onInteraction: (GitPanelInteracti
                 .padding(start = 4.dp, end = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = { onInteraction(GitPanelInteraction.CloseDiff) })
+            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = { interactionListener.onCloseDiff() })
             Text(
                 text = uiState.selectedPath.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,

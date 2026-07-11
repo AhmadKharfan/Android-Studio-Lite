@@ -14,7 +14,7 @@ import com.example.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.example.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.example.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.feature.editor.variants.VariantsInteraction
+import com.example.androidstudiolite.feature.editor.variants.VariantsInteractionListener
 import com.example.androidstudiolite.feature.editor.variants.VariantsUiState
 import com.example.androidstudiolite.feature.editor.variants.VariantsViewModel
 
@@ -25,14 +25,14 @@ private val VARIANT_OPTIONS = listOf(
 
 @Composable
 fun VariantsRoute(onClose: () -> Unit, viewModel: VariantsViewModel = koinViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    VariantsScreen(uiState = uiState, onInteraction = viewModel::onInteraction, onClose = onClose)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    VariantsScreen(uiState = uiState, interactionListener = viewModel, onClose = onClose)
 }
 
 @Composable
 private fun VariantsScreen(
     uiState: VariantsUiState,
-    onInteraction: (VariantsInteraction) -> Unit,
+    interactionListener: VariantsInteractionListener,
     onClose: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -42,7 +42,7 @@ private fun VariantsScreen(
                 label = uiState.module,
                 value = uiState.selectedVariant,
                 options = VARIANT_OPTIONS,
-                onValueChange = { onInteraction(VariantsInteraction.SelectVariant(it)) },
+                onValueChange = { interactionListener.onSelectVariant(it) },
             )
             Text(
                 text = if (uiState.selectedVariant == "debug") {

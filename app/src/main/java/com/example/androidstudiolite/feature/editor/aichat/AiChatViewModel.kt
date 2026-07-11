@@ -1,56 +1,51 @@
 package com.example.androidstudiolite.feature.editor.aichat
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.androidstudiolite.core.BaseViewModel
 import com.example.androidstudiolite.domain.model.ApiKeyStatus
 import com.example.androidstudiolite.domain.model.ChatMessage
 import com.example.androidstudiolite.domain.model.ChatRole
 import com.example.androidstudiolite.domain.repository.AiAgentRepository
 import com.example.androidstudiolite.domain.repository.AiChatRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class AiChatViewModel(
     private val aiChatRepository: AiChatRepository,
     private val aiAgentRepository: AiAgentRepository,
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(AiChatUiState())
-    val uiState: StateFlow<AiChatUiState> = _uiState.asStateFlow()
+) : BaseViewModel<AiChatUiState, Nothing>(
+    initialState = AiChatUiState(),
+), AiChatInteractionListener {
 
     init {
-        viewModelScope.launch {
-            aiChatRepository.observeMessages().collect { messages ->
-                _uiState.update { it.copy(messages = messages.map { m -> m.toUiModel() }) }
-            }
-        }
-        viewModelScope.launch {
-            aiAgentRepository.observeSettings().collect { settings ->
+        tryToCollect(
+            block = { aiChatRepository.observeMessages() },
+            onCollect = { messages ->
+                updateState { copy(messages = messages.map { m -> m.toUiModel() }) }
+            },
+        )
+        tryToCollect(
+            block = { aiAgentRepository.observeSettings() },
+            onCollect = { settings ->
                 val configured = settings.enabled && settings.providers.any { it.status == ApiKeyStatus.VALID }
-                _uiState.update { it.copy(hasConfiguredProvider = configured) }
-            }
-        }
+                updateState { copy(hasConfiguredProvider = configured) }
+            },
+        )
     }
 
-    fun onInteraction(interaction: AiChatInteraction) {
-        when (interaction) {
-            is AiChatInteraction.InputChanged -> _uiState.update { it.copy(input = interaction.value) }
-            AiChatInteraction.Send -> send()
-            is AiChatInteraction.MarkApplied -> viewModelScope.launch { aiChatRepository.markApplied(interaction.messageId) }
-        }
+    override fun onInputChanged(value: String) {
+        updateState { copy(input = value) }
     }
 
-    private fun send() {
-        val text = _uiState.value.input.trim()
-        if (text.isEmpty() || _uiState.value.sending) return
-        _uiState.update { it.copy(input = "", sending = true) }
-        viewModelScope.launch {
-            aiChatRepository.sendMessage(text)
-            _uiState.update { it.copy(sending = false) }
-        }
+    override fun onSend() {
+        val text = state.value.input.trim()
+        if (text.isEmpty() || state.value.sending) return
+        updateState { copy(input = "", sending = true) }
+        tryToExecute(
+            block = { aiChatRepository.sendMessage(text) },
+            onSuccess = { updateState { copy(sending = false) } },
+        )
+    }
+
+    override fun onMarkApplied(messageId: String) {
+        tryToExecute(block = { aiChatRepository.markApplied(messageId) })
     }
 
     private fun ChatMessage.toUiModel() = ChatMessageUiModel(
