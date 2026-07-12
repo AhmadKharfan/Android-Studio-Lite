@@ -5,19 +5,19 @@ import com.example.androidstudiolite.data.fake.FakeFileContentRepository
 import com.example.androidstudiolite.data.fake.FakeFileSystemRepository
 import com.example.androidstudiolite.data.fake.FakeFileTreeRepository
 import com.example.androidstudiolite.data.fake.FakeGitRepository
-import com.example.androidstudiolite.data.fake.FakeIdeConfigRepository
-import com.example.androidstudiolite.data.fake.FakeOnboardingRepository
 import com.example.androidstudiolite.data.fake.FakePreferencesRepository
 import com.example.androidstudiolite.data.fake.FakeProjectRepository
 import com.example.androidstudiolite.data.fake.FakeTemplateRepository
 import com.example.androidstudiolite.data.fake.FakeTerminalRepository
+import com.example.androidstudiolite.data.environment.AndroidIdeEnvironmentRepository
+import com.example.androidstudiolite.data.onboarding.AndroidOnboardingRepository
 import com.example.androidstudiolite.domain.repository.AiAgentRepository
 import com.example.androidstudiolite.domain.repository.AiChatRepository
 import com.example.androidstudiolite.domain.repository.FileContentRepository
 import com.example.androidstudiolite.domain.repository.FileSystemRepository
 import com.example.androidstudiolite.domain.repository.FileTreeRepository
 import com.example.androidstudiolite.domain.repository.GitRepository
-import com.example.androidstudiolite.domain.repository.IdeConfigRepository
+import com.example.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.example.androidstudiolite.domain.repository.OnboardingRepository
 import com.example.androidstudiolite.domain.repository.PreferencesRepository
 import com.example.androidstudiolite.domain.repository.ProjectRepository
@@ -34,7 +34,6 @@ import com.example.androidstudiolite.feature.hub.HubViewModel
 import com.example.androidstudiolite.feature.onboarding.complete.CompleteViewModel
 import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsViewModel
 import com.example.androidstudiolite.feature.onboarding.setup.SetupViewModel
-import com.example.androidstudiolite.feature.onboarding.statistics.StatisticsViewModel
 import com.example.androidstudiolite.feature.openproject.OpenProjectViewModel
 import com.example.androidstudiolite.feature.settings.aiagent.AiAgentViewModel
 import com.example.androidstudiolite.feature.settings.buildrun.BuildRunViewModel
@@ -45,11 +44,15 @@ import com.example.androidstudiolite.feature.settings.ideconfig.IdeConfigViewMod
 import com.example.androidstudiolite.feature.settings.root.SettingsRootViewModel
 import com.example.androidstudiolite.feature.terminal.TerminalViewModel
 import com.example.androidstudiolite.feature.uidesigner.DesignerViewModel
+import com.example.androidstudiolite.core.network.NetworkMonitor
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 val dataModule = module {
-    single<OnboardingRepository> { FakeOnboardingRepository() }
+    single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
+    single<IdeEnvironmentRepository> { AndroidIdeEnvironmentRepository(androidContext()) }
+    single { NetworkMonitor(androidContext()) }
     single<ProjectRepository> { FakeProjectRepository() }
     single<TemplateRepository> { FakeTemplateRepository() }
     single<FileTreeRepository> { FakeFileTreeRepository() }
@@ -57,13 +60,11 @@ val dataModule = module {
     single<PreferencesRepository> { FakePreferencesRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<FileSystemRepository> { FakeFileSystemRepository() }
-    single<IdeConfigRepository> { FakeIdeConfigRepository() }
     single<TerminalRepository> { FakeTerminalRepository() }
     single<GitRepository> { FakeGitRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }
 val viewModelModule = module {
-    viewModelOf(::StatisticsViewModel)
     viewModelOf(::PermissionsViewModel)
     viewModelOf(::SetupViewModel)
     viewModelOf(::CompleteViewModel)
