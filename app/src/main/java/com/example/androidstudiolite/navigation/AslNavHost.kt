@@ -19,7 +19,6 @@ import com.example.androidstudiolite.feature.hub.HubRoute
 import com.example.androidstudiolite.feature.onboarding.complete.CompleteRoute
 import com.example.androidstudiolite.feature.onboarding.permissions.PermissionsRoute
 import com.example.androidstudiolite.feature.onboarding.setup.SetupRoute
-import com.example.androidstudiolite.feature.onboarding.statistics.StatisticsRoute
 import com.example.androidstudiolite.feature.onboarding.welcome.WelcomeRoute
 import com.example.androidstudiolite.feature.settings.about.AboutRoute
 import com.example.androidstudiolite.feature.settings.aiagent.AiAgentSettingsRoute
@@ -46,13 +45,7 @@ fun AslNavHost(
         popExitTransition = { aslPopExit() },
     ) {
         composable(Routes.ONBOARDING_WELCOME) {
-            WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_STATISTICS) })
-        }
-        composable(Routes.ONBOARDING_STATISTICS) {
-            StatisticsRoute(
-                onContinue = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) },
-                onSkip = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) },
-            )
+            WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
         }
         composable(Routes.ONBOARDING_PERMISSIONS) {
             PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_SETUP) })

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,7 +30,6 @@ import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
 import com.example.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
-import com.example.androidstudiolite.feature.onboarding.setup.InstallStatus
 import com.example.androidstudiolite.feature.onboarding.setup.SetupInteractionListener
 import com.example.androidstudiolite.feature.onboarding.setup.SetupUiState
 import com.example.androidstudiolite.feature.onboarding.setup.SetupViewModel
@@ -69,7 +69,7 @@ private fun SetupScreen(
                 .padding(padding)
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
-            AslWizardStepper(steps = ONBOARDING_STEPS, current = 2, modifier = Modifier.padding(horizontal = 4.dp))
+            AslWizardStepper(steps = ONBOARDING_STEPS, current = 1, modifier = Modifier.padding(horizontal = 4.dp))
             SetupHeader(colors = colors)
             SetupInstallSection(uiState = uiState, colors = colors, modifier = Modifier.weight(1f))
             SetupActions(uiState = uiState, interactionListener = interactionListener, onSkip = onSkip)
@@ -82,7 +82,7 @@ private fun SetupHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
         Text(text = "IDE environment", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
         Text(
-            text = "A JDK and the Android SDK are installed once, locally.",
+            text = "Sets up and verifies the on-device runtime. Language toolchains download on first build.",
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
@@ -97,42 +97,67 @@ private fun SetupInstallSection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (uiState.unsupportedDevice) {
+            AslBanner(
+                tone = AslBannerTone.Warning,
+                message = "This device's CPU architecture isn't supported yet — only arm64-v8a and armeabi-v7a devices can run the on-device build.",
+            )
+            return@Column
+        }
+
         Column(
             modifier = Modifier
                 .background(colors.surface, AslShape.lg)
                 .border(1.dp, colors.borderDefault, AslShape.lg)
                 .padding(4.dp),
         ) {
-            AslListItem(
-                title = "OpenJDK 17",
-                subtitle = "jdk-17.0.11 · 289 MB",
-                icon = "coffee",
-                trailing = { AslStatusChip(status = AslStatus.Success, label = "Installed") },
-            )
-            AslListItem(
-                title = "Android SDK 34",
-                subtitle = "platform-34 + build-tools",
-                icon = "smartphone",
-                divider = false,
-                trailing = {
-                    when (uiState.sdkStatus) {
-                        InstallStatus.Installed -> AslStatusChip(status = AslStatus.Success, label = "Installed")
-                        InstallStatus.Installing -> AslStatusChip(status = AslStatus.Building, label = "Installing")
-                        InstallStatus.Failed -> AslStatusChip(status = AslStatus.Failed, label = "Failed")
-                        InstallStatus.Pending -> AslStatusChip(status = AslStatus.Indexing, label = "Queued")
-                    }
-                },
-            )
-            if (uiState.sdkStatus == InstallStatus.Installing) {
-                AslLinearProgress(
-                    value = uiState.sdkProgressPercent.toFloat(),
-                    label = "Downloading platform-34",
-                    detail = uiState.sdkDetail,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+            uiState.components.forEachIndexed { index, component ->
+                SetupComponentRow(component = component, divider = index != uiState.components.lastIndex)
+            }
+            if (uiState.components.isEmpty()) {
+                AslListItem(title = "Fetching environment details…", icon = "loader", divider = false)
             }
         }
-        AslBanner(tone = AslBannerTone.Info, message = "Setup runs in the terminal — you can watch or hide it.")
+
+        val failure = uiState.components.firstOrNull { it.status == SetupComponentStatus.Failed }
+        if (failure != null) {
+            AslBanner(tone = AslBannerTone.Error, message = failure.errorMessage ?: "Setup failed. Tap retry to try again.")
+        } else {
+            AslBanner(tone = AslBannerTone.Info, message = "Setup prepares the runtime and runs a real on-device check — you can watch progress or leave this screen.")
+        }
+    }
+}
+
+@Composable
+private fun SetupComponentRow(component: SetupComponentUiModel, divider: Boolean) {
+    Column {
+        AslListItem(
+            title = component.displayName,
+            subtitle = "${component.version} · ${component.detail}",
+            icon = component.icon,
+            divider = false,
+            trailing = {
+                when (component.status) {
+                    SetupComponentStatus.Installed -> AslStatusChip(status = AslStatus.Success, label = "Installed")
+                    SetupComponentStatus.Downloading -> AslStatusChip(status = AslStatus.Building, label = "Downloading")
+                    SetupComponentStatus.Verifying -> AslStatusChip(status = AslStatus.Syncing, label = "Verifying")
+                    SetupComponentStatus.Extracting -> AslStatusChip(status = AslStatus.Building, label = "Extracting")
+                    SetupComponentStatus.Failed -> AslStatusChip(status = AslStatus.Failed, label = "Failed")
+                    SetupComponentStatus.NotInstalled -> AslStatusChip(status = AslStatus.Indexing, label = "Queued")
+                }
+            },
+        )
+        if (component.status == SetupComponentStatus.Downloading || component.status == SetupComponentStatus.Extracting) {
+            AslLinearProgress(
+                value = if (component.status == SetupComponentStatus.Downloading) component.progressPercent.toFloat() else null,
+                label = if (component.status == SetupComponentStatus.Downloading) "Downloading ${component.displayName}" else "Extracting ${component.displayName}",
+                detail = component.detail,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        if (divider) {
+            HorizontalDivider(color = AslTheme.colors.borderSubtle, thickness = 1.dp)
+        }
     }
 }
 
@@ -143,13 +168,15 @@ private fun SetupActions(
     onSkip: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+        val hasFailure = uiState.components.any { it.status == SetupComponentStatus.Failed }
         AslButton(
-            label = "Continue setup",
+            label = if (hasFailure) "Retry setup" else "Continue setup",
             onClick = { interactionListener.onStartSetup() },
             size = AslButtonSize.Lg,
             fullWidth = true,
             icon = "terminal",
-            loading = uiState.sdkStatus == InstallStatus.Installing,
+            loading = uiState.isInstalling,
+            disabled = uiState.unsupportedDevice,
         )
         AslButton(label = "I'll do this later", onClick = onSkip, variant = AslButtonVariant.Tertiary, fullWidth = true)
         AslBanner(tone = AslBannerTone.Warning, message = "Projects can't build until setup completes.")

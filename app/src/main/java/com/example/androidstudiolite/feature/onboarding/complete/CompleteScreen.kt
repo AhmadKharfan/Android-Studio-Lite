@@ -43,7 +43,7 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 24.dp, vertical = 12.dp),
         ) {
-            AslWizardStepper(steps = ONBOARDING_STEPS, current = 3, modifier = Modifier.padding(horizontal = 4.dp))
+            AslWizardStepper(steps = ONBOARDING_STEPS, current = 2, modifier = Modifier.padding(horizontal = 4.dp))
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -65,7 +65,7 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                     modifier = Modifier.padding(top = 18.dp),
                 )
                 Text(
-                    text = "JDK and SDK installed. Everything runs on this device.",
+                    text = "On-device runtime ready. Language toolchains install on your first build.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
