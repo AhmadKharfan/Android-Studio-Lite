@@ -4,7 +4,6 @@ import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiChatRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileContentRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileSystemRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileTreeRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeGitRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakePreferencesRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeProjectRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeTemplateRepository
@@ -16,18 +15,15 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileSystemRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
-import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerViewModel
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubViewModel
@@ -61,7 +57,7 @@ val dataModule = module {
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<FileSystemRepository> { FakeFileSystemRepository() }
     single<TerminalRepository> { FakeTerminalRepository() }
-    single<GitRepository> { FakeGitRepository() }
+    // GitRepository is bound in gitModule (T5, JGit-backed).
     single<AiChatRepository> { FakeAiChatRepository() }
 }
 val viewModelModule = module {
@@ -70,9 +66,8 @@ val viewModelModule = module {
     viewModelOf(::CompleteViewModel)
     viewModelOf(::HubViewModel)
     viewModelOf(::OpenProjectViewModel)
-    viewModelOf(::CloneRepoViewModel)
     viewModelOf(::CreateProjectViewModel)
-    viewModelOf(::GitPanelViewModel)
+    // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
     viewModelOf(::AiChatViewModel)
     viewModelOf(::VariantsViewModel)
     viewModelOf(::TerminalViewModel)

@@ -60,6 +60,7 @@ data class AppLogLineUiModel(
 )
 @Immutable
 data class EditorUiState(
+    val projectId: String = "",
     val projectName: String = "",
     val tabs: List<EditorTabUiModel> = emptyList(),
     val activeTabId: String? = null,

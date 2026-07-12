@@ -36,6 +36,9 @@ object IdeEnvironmentPaths {
 
     fun androidSdkHome(context: Context): File = File(home(context), "android-sdk")
 
+    /** Root under which user projects (created, imported, or git-cloned) live. */
+    fun projectsHome(context: Context): File = File(home(context), "projects").ensureExists()
+
     fun gradleUserHome(context: Context): File = File(home(context), ".gradle")
 
     /** Scratch space for in-flight downloads/extraction; safe to delete entirely between installs. */

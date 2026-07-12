@@ -1,20 +1,25 @@
 package com.ahmadkharfan.androidstudiolite.feature.clonerepo
 
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
+import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 
 class CloneRepoViewModel(
-    private val projectRepository: ProjectRepository,
+    private val gitRepository: GitRepository,
 ) : BaseViewModel<CloneRepoUiState, Nothing>(
     initialState = CloneRepoUiState(),
 ), CloneRepoInteractionListener {
 
     override fun onUrlChanged(url: String) {
-        updateState { copy(url = url) }
+        updateState { copy(url = url, error = null) }
     }
 
     override fun onBranchChanged(branch: String) {
         updateState { copy(branch = branch) }
+    }
+
+    override fun onTokenChanged(token: String) {
+        updateState { copy(token = token) }
     }
 
     override fun onToggleOption(id: String) {
@@ -26,9 +31,11 @@ class CloneRepoViewModel(
     override fun onStartClone() {
         val current = state.value
         if (current.cloning || current.url.isBlank()) return
-        updateState { copy(cloning = true) }
+        val credentials = current.token.takeIf { it.isNotBlank() }
+            ?.let { GitCredentials(username = "", token = it) }
+        updateState { copy(cloning = true, error = null, progressPercent = 0, progressMessage = "Starting…") }
         tryToCollect(
-            block = { projectRepository.cloneRepository(current.url, current.branch.ifBlank { null }) },
+            block = { gitRepository.clone(current.url.trim(), current.branch.ifBlank { null }, credentials) },
             onCollect = { progress ->
                 updateState {
                     copy(
@@ -36,6 +43,11 @@ class CloneRepoViewModel(
                         progressMessage = progress.message,
                         clonedProjectId = progress.clonedProjectId,
                     )
+                }
+            },
+            onError = { throwable ->
+                updateState {
+                    copy(cloning = false, error = throwable.message ?: "Clone failed")
                 }
             },
         )

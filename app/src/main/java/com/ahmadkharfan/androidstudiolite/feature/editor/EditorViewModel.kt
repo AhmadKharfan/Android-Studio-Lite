@@ -44,7 +44,7 @@ private val APP_LOG_TEMPLATE = listOf(
 private const val DEFAULT_OPEN_FILE = "MainActivity.kt"
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 class EditorViewModel(
-    projectId: String,
+    private val projectId: String,
     private val projectRepository: ProjectRepository,
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
@@ -82,6 +82,7 @@ class EditorViewModel(
             onSuccess = { (projectName, tree) ->
                 updateState {
                     copy(
+                        projectId = projectId,
                         projectName = projectName,
                         fileTree = tree,
                         expandedFolderIds = setOf("app", "app/src", "app/src/main", "app/src/main/java"),
