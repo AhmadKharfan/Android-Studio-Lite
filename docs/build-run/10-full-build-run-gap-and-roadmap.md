@@ -41,7 +41,7 @@ own package path.
 1. **Rebuild the packages** using Termux's `termux-packages` build system with ASL's `applicationId`
    substituted for `com.termux` (full plan in [07-termux-bootstrap-rebuild.md](07-termux-bootstrap-rebuild.md)).
    - ✅ **Finalize ASL's real `applicationId` first** — it is baked into every binary path; changing it
-     later means rebuilding everything. `com.example.androidstudiolite` is a placeholder.
+     later means rebuilding everything. `com.ahmadkharfan.androidstudiolite` is a placeholder.
    - Host the output as `.tar.xz` archives + a manifest; ASL's existing installer already downloads,
      checksum-verifies, and extracts them. **No app code changes needed** for this part.
 

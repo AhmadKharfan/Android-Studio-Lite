@@ -68,7 +68,7 @@ android-code-studio's architecture, requires:
    - eventually the rest of the toolchain this same pipeline needs: Android SDK `build-tools`
      (`aapt2`, `d8`, `zipalign`, `apksigner`), `platform-tools`, and Gradle itself (Gradle is
      pure-Java/JVM, so it does **not** need this treatment — only native/compiled pieces do)
-3. **Settle ASL's real `applicationId` first.** It is currently `com.example.androidstudiolite`
+3. **Settle ASL's real `applicationId` first.** It is currently `com.ahmadkharfan.androidstudiolite`
    (`app/build.gradle.kts`) — a placeholder. Every rebuilt binary bakes this string in as an absolute
    path; changing it later means rebuilding the entire toolchain from scratch. Decide the production
    package id before investing in this build.

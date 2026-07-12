@@ -4,16 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidstudiolite"
+    namespace = "com.ahmadkharfan.androidstudiolite"
     compileSdk {
         version = release(37)
     }
     ndkVersion = "27.1.12297006"
 
     defaultConfig {
-        applicationId = "com.example.androidstudiolite"
+        applicationId = "com.ahmadkharfan.androidstudiolite"
         minSdk = 24
-        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -37,6 +36,22 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
+        }
+    }
+
+    // Two distributions with mutually exclusive constraints (docs/build-run/06 §4):
+    //  - play: Play-Store-compliant, high targetSdk, in-process build engine (no downloaded executables).
+    //  - full: self-distributed, targetSdk 28 so downloaded toolchain binaries (JDK/Gradle) may be exec()'d;
+    //    ships the tooling-server fat jar in its assets.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+            targetSdk = 35
+        }
+        create("full") {
+            dimension = "distribution"
+            targetSdk = 28
         }
     }
 
@@ -64,6 +79,18 @@ android {
             useLegacyPackaging = true
         }
     }
+}
+
+// The full flavor embeds the Gradle tooling server as an asset; rebuild and copy the fat jar
+// whenever a full-flavor variant merges assets so the app never ships a stale server.
+val copyToolingServerJar = tasks.register<Copy>("copyToolingServerJar") {
+    from(project(":tooling:server").tasks.named("fatJar"))
+    into(layout.projectDirectory.dir("src/full/assets"))
+    rename { "tooling-server.jar" }
+}
+
+tasks.matching { it.name.matches(Regex("merge(Full\\w+)Assets")) }.configureEach {
+    dependsOn(copyToolingServerJar)
 }
 
 dependencies {
