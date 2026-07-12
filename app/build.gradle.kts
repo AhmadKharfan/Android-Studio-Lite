@@ -8,6 +8,7 @@ android {
     compileSdk {
         version = release(37)
     }
+    ndkVersion = "27.1.12297006"
 
     defaultConfig {
         applicationId = "com.example.androidstudiolite"
@@ -17,6 +18,26 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Hosts the JSON manifest describing which JDK/Android-SDK/Gradle archives to fetch, per ABI,
+        // for the on-device full-Gradle build (docs/build-run/06-full-build-production-study.md §5.4 /
+        // §7 Phase A-B). Point this at real hosted release assets before shipping — until then the
+        // environment install surfaces a clear "not configured" failure instead of crashing.
+        buildConfigField("String", "IDE_ENVIRONMENT_MANIFEST_URL", "\"\"")
+
+        externalNativeBuild {
+            cmake {
+                // Plain C executable; no STL needed.
+                arguments += "-DANDROID_STL=none"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -32,6 +53,16 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    packaging {
+        jniLibs {
+            // Physically extract native binaries to nativeLibraryDir at install so the on-device
+            // toolchain probe (and later the real toolchain binaries) can be exec()'d — libraries
+            // left compressed inside the APK cannot be executed.
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -50,6 +81,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.okhttp)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
