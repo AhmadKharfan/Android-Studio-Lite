@@ -19,9 +19,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
-import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -57,6 +54,7 @@ class AndroidIdeEnvironmentRepository(
     private val _state = MutableStateFlow(IdeEnvironmentState(abi = IdeEnvironmentPaths.deviceAbi()))
     private var cachedManifest: EnvironmentManifest? = null
     private var currentInstallJob: Job? = null
+    private val extractor = TarXzExtractor { target, link -> Os.symlink(target, link.absolutePath) }
 
     override fun observeState(): Flow<IdeEnvironmentState> = _state
 
@@ -211,7 +209,8 @@ class AndroidIdeEnvironmentRepository(
             currentCoroutineContext().ensureActive()
             updateComponent(spec.id) { it.copy(status = IdeEnvironmentComponentStatus.Extracting) }
             val targetDir = File(IdeEnvironmentPaths.root(context), spec.targetPath)
-            extractTarXz(staging, targetDir)
+            extractor.extract(staging, targetDir)
+            linkJavaLauncher(spec)
             writeMarker(spec.id, spec.version, spec.sha256)
             staging.delete()
 
@@ -222,6 +221,28 @@ class AndroidIdeEnvironmentRepository(
             updateComponent(spec.id) {
                 it.copy(status = IdeEnvironmentComponentStatus.Failed, errorMessage = e.message ?: "Network error while installing ${spec.displayName}.")
             }
+        } catch (e: SecurityException) {
+            staging.delete()
+            updateComponent(spec.id) {
+                it.copy(status = IdeEnvironmentComponentStatus.Failed, errorMessage = "Rejected unsafe archive for ${spec.displayName}: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * After the JDK component lands, expose `$PREFIX/bin/java` the way Termux does — as a symlink
+     * to the JDK's launcher — mirroring the `asl-env-probe` link above. Hosted archives cannot
+     * carry this link themselves because it must point at an absolute on-device path.
+     */
+    private fun linkJavaLauncher(spec: EnvironmentComponentSpec) {
+        if (!spec.targetPath.startsWith("usr/lib/jvm/")) return
+        val javaBinary = File(IdeEnvironmentPaths.root(context), "${spec.targetPath}/bin/java")
+        if (!javaBinary.exists()) return
+        runCatching {
+            val bin = File(IdeEnvironmentPaths.prefix(context), "bin").apply { mkdirs() }
+            val link = File(bin, "java")
+            if (link.exists() || isSymlink(link)) link.delete()
+            Os.symlink(javaBinary.absolutePath, link.absolutePath)
         }
     }
 
@@ -266,34 +287,6 @@ class AndroidIdeEnvironmentRepository(
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
-    }
-
-    /** Extracts a `.tar.xz` archive so its contents land directly under [targetDir]. */
-    private fun extractTarXz(archive: File, targetDir: File) {
-        if (targetDir.exists()) targetDir.deleteRecursively()
-        targetDir.mkdirs()
-        val targetRoot = targetDir.canonicalFile
-        XZCompressorInputStream(BufferedInputStream(archive.inputStream())).use { xz ->
-            TarArchiveInputStream(xz).use { tar ->
-                var entry = tar.nextEntry
-                while (entry != null) {
-                    val outFile = File(targetRoot, entry.name).canonicalFile
-                    // Zip-slip guard: an archive entry must never resolve outside targetDir.
-                    if (outFile != targetRoot && !outFile.path.startsWith(targetRoot.path + File.separator)) {
-                        throw SecurityException("Blocked path traversal in archive entry: ${entry.name}")
-                    }
-                    if (entry.isDirectory) {
-                        outFile.mkdirs()
-                    } else {
-                        outFile.parentFile?.mkdirs()
-                        FileOutputStream(outFile).use { out -> tar.copyTo(out) }
-                        // Preserve the executable bit: this archive holds real JDK/toolchain binaries.
-                        if (entry.mode and OWNER_EXECUTE_BIT != 0) outFile.setExecutable(true)
-                    }
-                    entry = tar.nextEntry
-                }
-            }
-        }
     }
 
     private fun remoteComponentFromDisk(spec: EnvironmentComponentSpec): IdeEnvironmentComponentState {
@@ -363,8 +356,4 @@ class AndroidIdeEnvironmentRepository(
         errorMessage = "This device's CPU architecture (${android.os.Build.SUPPORTED_ABIS.firstOrNull()}) is not supported.",
     )
 
-    private companion object {
-        /** Unix `st_mode` owner-execute bit (octal 0100). */
-        const val OWNER_EXECUTE_BIT = 0b001_000_000
-    }
 }
