@@ -38,6 +38,13 @@ object IdeEnvironmentPaths {
 
     fun gradleUserHome(context: Context): File = File(home(context), ".gradle")
 
+    /**
+     * Where user projects live on device: `<home>/AndroidStudioLiteProjects`. Created, edited, imported
+     * and built projects all root here, so a project's id can simply be its directory name.
+     */
+    fun projectsDir(context: Context): File =
+        File(home(context), "AndroidStudioLiteProjects").ensureExists()
+
     /** Scratch space for in-flight downloads/extraction; safe to delete entirely between installs. */
     fun stagingDir(context: Context): File = File(root(context), "environment-staging").ensureExists()
 

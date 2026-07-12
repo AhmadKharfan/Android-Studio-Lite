@@ -2,6 +2,8 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLevel
+import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
+import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
@@ -41,8 +43,8 @@ private val APP_LOG_TEMPLATE = listOf(
     Triple(AslLogLevel.INFO, "ViewRootImpl", "relayoutWindow returned early"),
     Triple(AslLogLevel.WARN, "ResourcesCompat", "Failed to find id 0x7f0a001a; resource IDs starting with 0x00 are reserved for system use."),
 )
-private const val DEFAULT_OPEN_FILE = "MainActivity.kt"
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
+private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
     projectId: String,
     private val projectRepository: ProjectRepository,
@@ -55,6 +57,9 @@ class EditorViewModel(
     private val sessions = mutableMapOf<String, EditorSession>()
     private var autoSaveEnabled = true
     private var autoSaveJob: Job? = null
+
+    /** Absolute path of the open project's root, used to show file-tree paths relative to it. */
+    private var projectRootPath: String? = null
     init {
         tryToCollect(
             block = { preferencesRepository.observePreferences() },
@@ -75,22 +80,75 @@ class EditorViewModel(
         tryToExecute(
             block = {
                 val project = projectRepository.openProject(projectId)
-                val tree = fileTreeRepository.getFileTree(projectId).map { it.toUiModel() }
-                delay(300)
-                project.name to tree
+                val nodes = fileTreeRepository.getFileTree(projectId)
+                Triple(project.name, project.path, nodes)
             },
-            onSuccess = { (projectName, tree) ->
+            onSuccess = { (projectName, projectPath, nodes) ->
+                projectRootPath = projectPath
                 updateState {
                     copy(
                         projectName = projectName,
-                        fileTree = tree,
-                        expandedFolderIds = setOf("app", "app/src", "app/src/main", "app/src/main/java"),
+                        fileTree = nodes.map { it.toUiModel() },
+                        expandedFolderIds = defaultExpandedIds(nodes),
                         isLoadingFileTree = false,
                     )
                 }
-                openFile(DEFAULT_OPEN_FILE, DEFAULT_OPEN_FILE)
+                firstOpenableFile(nodes)?.let { openFile(it.id, it.name) }
             },
         )
+        // Detect edits to open files made outside the editor (e.g. by another repository operation).
+        tryToCollect(
+            block = { fileContentRepository.observeChanges() },
+            onCollect = { event -> onExternalFileEvent(event) },
+        )
+    }
+
+    /**
+     * Directories to expand initially: every top-level directory, plus every directory on the path to
+     * the file we open by default, so the user lands on real source without hand-expanding the tree.
+     */
+    private fun defaultExpandedIds(nodes: List<FileNode>): Set<String> {
+        val topLevelDirs = nodes.filter { it.children != null }.map { it.id }
+        val trailDirs = pathToFile(nodes) { isCodeFile(it.name) }?.dropLast(1)?.map { it.id }.orEmpty()
+        return (topLevelDirs + trailDirs).toSet()
+    }
+
+    /** The first source file (preferred), else the first file of any kind, or null for an empty project. */
+    private fun firstOpenableFile(nodes: List<FileNode>): FileNode? =
+        (pathToFile(nodes) { isCodeFile(it.name) } ?: pathToFile(nodes) { true })?.lastOrNull()
+
+    /** Depth-first search returning the chain of nodes (ancestor dirs … file) to the first matching file. */
+    private fun pathToFile(
+        nodes: List<FileNode>,
+        trail: List<FileNode> = emptyList(),
+        predicate: (FileNode) -> Boolean,
+    ): List<FileNode>? {
+        for (node in nodes) {
+            val nextTrail = trail + node
+            if (node.children == null) {
+                if (predicate(node)) return nextTrail
+            } else {
+                pathToFile(node.children, nextTrail, predicate)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun isCodeFile(name: String): Boolean =
+        name.substringAfterLast('.', "").lowercase() in CODE_FILE_EXTENSIONS
+
+    private suspend fun onExternalFileEvent(event: FileChangeEvent) {
+        if (event.type != FileChangeType.MODIFIED) return
+        val tab = state.value.tabs.firstOrNull { it.id == event.path } ?: return
+        val session = sessions[event.path] ?: return
+        val onDisk = try {
+            fileContentRepository.readText(event.path)
+        } catch (_: Throwable) {
+            return
+        }
+        // Equal means it was our own save (or a no-op write) — nothing to warn about.
+        if (onDisk == session.text) return
+        updateState { copy(snackbarMessage = "‘${tab.name}’ changed on disk outside the editor") }
     }
     fun sessionFor(id: String?): EditorSession? = id?.let { sessions[it] }
 
@@ -332,7 +390,9 @@ class EditorViewModel(
         }
     }
     private fun breadcrumbFor(id: String, name: String): List<String> {
-        val parts = id.split('/').filter { it.isNotEmpty() }
+        val root = projectRootPath
+        val relative = if (root != null && id.startsWith(root)) id.removePrefix(root).trimStart('/') else id
+        val parts = relative.split('/').filter { it.isNotEmpty() }
         return if (parts.size > 1) parts else listOf(name)
     }
     private fun runProject(simulateFailure: Boolean = false) {

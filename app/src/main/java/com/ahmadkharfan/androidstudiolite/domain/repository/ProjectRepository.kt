@@ -11,4 +11,15 @@ interface ProjectRepository {
     suspend fun openProject(id: String): Project
     suspend fun deleteProject(id: String)
     suspend fun renameProject(id: String, newName: String)
+
+    /**
+     * Copies the Gradle project rooted at [sourcePath] (typically picked from external storage) into the
+     * on-device projects directory, registers it in the recent list, and returns it. Fails if the source
+     * is not a recognizable project (no `settings.gradle[.kts]`).
+     */
+    suspend fun importProject(sourcePath: String): Project =
+        throw UnsupportedOperationException()
+
+    /** Marks the project no longer active; a no-op for stores that only track recency. */
+    suspend fun closeProject(id: String) {}
 }
