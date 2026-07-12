@@ -13,9 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,18 +26,17 @@ import com.example.androidstudiolite.designsystem.component.buttons.AslButtonVar
 import com.example.androidstudiolite.designsystem.component.content.AslListItem
 import com.example.androidstudiolite.designsystem.component.feedback.AslBanner
 import com.example.androidstudiolite.designsystem.component.feedback.AslBannerTone
+import com.example.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.example.androidstudiolite.designsystem.component.feedback.AslStatus
 import com.example.androidstudiolite.designsystem.component.feedback.AslStatusChip
 import com.example.androidstudiolite.designsystem.component.inputs.AslChip
 import com.example.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.example.androidstudiolite.designsystem.component.inputs.AslChipStatus
-import com.example.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.example.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.example.androidstudiolite.designsystem.theme.AslColorScheme
 import com.example.androidstudiolite.designsystem.theme.AslMotion
 import com.example.androidstudiolite.designsystem.theme.AslShape
 import com.example.androidstudiolite.designsystem.theme.AslTheme
-import com.example.androidstudiolite.domain.model.IdeComponentStatus
 import com.example.androidstudiolite.feature.settings.ideconfig.IdeConfigInteractionListener
 import com.example.androidstudiolite.feature.settings.ideconfig.IdeComponentUiModel
 import com.example.androidstudiolite.feature.settings.ideconfig.IdeConfigUiState
@@ -72,14 +70,10 @@ private fun IdeConfigScreen(
 @Composable
 private fun IdeConfigNetworkChip(uiState: IdeConfigUiState) {
     AslChip(
-        label = if (!uiState.networkAvailable || uiState.offlineMode) "Offline" else "Online",
+        label = if (!uiState.networkAvailable) "Offline" else "Online",
         kind = AslChipKind.Status,
-        status = when {
-            !uiState.networkAvailable -> AslChipStatus.Error
-            uiState.offlineMode -> AslChipStatus.Neutral
-            else -> AslChipStatus.Success
-        },
-        icon = if (!uiState.networkAvailable || uiState.offlineMode) "wifi-off" else "wifi",
+        status = if (!uiState.networkAvailable) AslChipStatus.Error else AslChipStatus.Success,
+        icon = if (!uiState.networkAvailable) "wifi-off" else "wifi",
     )
 }
 
@@ -97,14 +91,29 @@ private fun IdeConfigContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IdeConfigOfflineBanner(uiState = uiState, interactionListener = interactionListener)
-        uiState.components.forEach { component ->
-            ComponentCard(
-                component = component,
-                installDisabled = !uiState.networkAvailable,
-                onInstall = { interactionListener.onInstallComponent(component.id) },
+        if (uiState.unsupportedDevice) {
+            AslBanner(
+                tone = AslBannerTone.Warning,
+                message = "This device's CPU architecture isn't supported yet — only arm64-v8a and armeabi-v7a devices can run the on-device build.",
             )
+            return@Column
         }
-        IdeConfigOfflineModeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, AslShape.lg)
+                .border(1.dp, colors.borderDefault, AslShape.lg)
+                .padding(4.dp),
+        ) {
+            uiState.components.forEachIndexed { index, component ->
+                ComponentCard(
+                    component = component,
+                    installDisabled = !uiState.networkAvailable,
+                    divider = index != uiState.components.lastIndex,
+                    onInstall = { interactionListener.onInstallComponent(component.id) },
+                )
+            }
+        }
     }
 }
 
@@ -128,52 +137,30 @@ private fun IdeConfigOfflineBanner(
 }
 
 @Composable
-private fun IdeConfigOfflineModeSection(
-    uiState: IdeConfigUiState,
-    interactionListener: IdeConfigInteractionListener,
-    colors: AslColorScheme,
+private fun ComponentCard(
+    component: IdeComponentUiModel,
+    installDisabled: Boolean,
+    divider: Boolean,
+    onInstall: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
-            .padding(horizontal = 4.dp),
-    ) {
-        AslSwitch(
-            checked = uiState.offlineMode,
-            onCheckedChange = { interactionListener.onToggleOfflineMode(it) },
-            label = "Offline mode",
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-        )
-    }
-    Text(
-        text = "Offline mode builds from cached dependencies only.",
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.textTertiary,
-        modifier = Modifier.padding(horizontal = 4.dp),
-    )
-}
-
-@Composable
-private fun ComponentCard(component: IdeComponentUiModel, installDisabled: Boolean, onInstall: () -> Unit) {
-    val colors = AslTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg),
-    ) {
+    Column {
         AslListItem(
             title = component.title,
-            subtitle = if (installDisabled && component.status == IdeComponentStatus.NotInstalled) "${component.subtitle} · needs network" else component.subtitle,
+            subtitle = if (installDisabled && component.status == IdeConfigComponentStatus.NotInstalled) {
+                "${component.subtitle} · needs network"
+            } else {
+                component.subtitle
+            },
             icon = component.icon,
             divider = false,
             trailing = {
                 when (component.status) {
-                    IdeComponentStatus.Ready -> AslStatusChip(status = AslStatus.Success, label = "Ready")
-                    IdeComponentStatus.Installing -> AslStatusChip(status = AslStatus.Syncing, label = "Installing")
-                    IdeComponentStatus.NotInstalled -> AslButton(
+                    IdeConfigComponentStatus.Installed -> AslStatusChip(status = AslStatus.Success, label = "Ready")
+                    IdeConfigComponentStatus.Downloading -> AslStatusChip(status = AslStatus.Building, label = "Downloading")
+                    IdeConfigComponentStatus.Verifying -> AslStatusChip(status = AslStatus.Syncing, label = "Verifying")
+                    IdeConfigComponentStatus.Extracting -> AslStatusChip(status = AslStatus.Building, label = "Extracting")
+                    IdeConfigComponentStatus.Failed -> AslStatusChip(status = AslStatus.Failed, label = "Failed")
+                    IdeConfigComponentStatus.NotInstalled -> AslButton(
                         label = "Install",
                         onClick = onInstall,
                         variant = AslButtonVariant.Secondary,
@@ -182,5 +169,22 @@ private fun ComponentCard(component: IdeComponentUiModel, installDisabled: Boole
                 }
             },
         )
+        if (component.status == IdeConfigComponentStatus.Downloading || component.status == IdeConfigComponentStatus.Extracting) {
+            AslLinearProgress(
+                value = if (component.status == IdeConfigComponentStatus.Downloading) component.progressPercent.toFloat() else null,
+                label = if (component.status == IdeConfigComponentStatus.Downloading) "Downloading ${component.title}" else "Extracting ${component.title}",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        if (component.status == IdeConfigComponentStatus.Failed && component.errorMessage != null) {
+            AslBanner(
+                tone = AslBannerTone.Error,
+                message = component.errorMessage,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+        if (divider) {
+            HorizontalDivider(color = AslTheme.colors.borderSubtle, thickness = 1.dp)
+        }
     }
 }

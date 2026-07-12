@@ -1,30 +1,12 @@
 package com.example.androidstudiolite.feature.settings.developer
 
 import com.example.androidstudiolite.core.BaseViewModel
-import com.example.androidstudiolite.domain.repository.IdeConfigRepository
-import kotlinx.coroutines.launch
-import androidx.lifecycle.viewModelScope
 
-class DeveloperOptionsViewModel(
-    private val ideConfigRepository: IdeConfigRepository,
-) : BaseViewModel<DeveloperOptionsUiState, DeveloperOptionsEffect>(
-    initialState = DeveloperOptionsUiState(),
-), DeveloperOptionsInteractionListener {
-
-    init {
-        tryToCollect(
-            block = { ideConfigRepository.observeState() },
-            onCollect = { ideState ->
-                updateState { copy(simulateOfflineNetwork = !ideState.networkAvailable) }
-            },
-        )
-    }
-
-    override fun onToggleSimulateOffline(enabled: Boolean) {
-        viewModelScope.launch {
-            ideConfigRepository.setNetworkAvailable(!enabled)
-        }
-    }
+class DeveloperOptionsViewModel :
+    BaseViewModel<DeveloperOptionsUiState, DeveloperOptionsEffect>(
+        initialState = DeveloperOptionsUiState(),
+    ),
+    DeveloperOptionsInteractionListener {
 
     override fun onBack() {
         emitEffect(DeveloperOptionsEffect.NavigateBack)
