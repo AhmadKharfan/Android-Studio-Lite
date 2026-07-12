@@ -8,7 +8,6 @@ import com.ahmadkharfan.androidstudiolite.data.fake.FakeGitRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakePreferencesRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeProjectRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeTemplateRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeTerminalRepository
 import com.ahmadkharfan.androidstudiolite.data.environment.AndroidIdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
@@ -22,7 +21,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
@@ -60,7 +58,7 @@ val dataModule = module {
     single<PreferencesRepository> { FakePreferencesRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<FileSystemRepository> { FakeFileSystemRepository() }
-    single<TerminalRepository> { FakeTerminalRepository() }
+    // TerminalRepository is bound in terminalModule (real ProcessBuilder shell, T7).
     single<GitRepository> { FakeGitRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }

@@ -3,18 +3,14 @@ import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalLine
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalLineKind
+import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalLineKind
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalOutputLine
 import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
 import kotlinx.coroutines.launch
 
 private val INITIAL_LINES = listOf(
-    AslTerminalLine("cd ~/projects/MyApplication", AslTerminalLineKind.Cmd),
-    AslTerminalLine("./gradlew tasks --group build", AslTerminalLineKind.Cmd),
-    AslTerminalLine("assemble - Assembles the outputs of this project."),
-    AslTerminalLine("build - Assembles and tests this project."),
-    AslTerminalLine("clean - Deletes the build directory."),
-    AslTerminalLine("BUILD SUCCESSFUL in 2s", AslTerminalLineKind.Success),
+    AslTerminalLine("AndroidStudioLite shell — line-oriented (no PTY yet).", AslTerminalLineKind.Stdout),
 )
 
 private val INSERTABLE_KEYS = setOf("/", "|")
@@ -24,6 +20,34 @@ class TerminalViewModel(
 ) : BaseViewModel<TerminalUiState, Nothing>(
     initialState = TerminalUiState(lines = INITIAL_LINES),
 ), TerminalInteractionListener {
+
+    init {
+        // Subscribe before the session starts — the repository's stream has no replay buffer.
+        observeSession()
+        viewModelScope.launch { terminalRepository.start() }
+    }
+
+    private fun observeSession() {
+        viewModelScope.launch {
+            terminalRepository.events.collect { event ->
+                when (event) {
+                    is TerminalEvent.Output ->
+                        updateState { copy(lines = lines + event.line.toUiLine()) }
+
+                    is TerminalEvent.CommandFinished ->
+                        updateState { copy(running = false) }
+
+                    TerminalEvent.SessionEnded ->
+                        updateState {
+                            copy(
+                                running = false,
+                                lines = lines + AslTerminalLine("[process exited]", AslTerminalLineKind.Stderr),
+                            )
+                        }
+                }
+            }
+        }
+    }
 
     override fun onInputChanged(value: String) {
         updateState { copy(input = value) }
@@ -36,7 +60,13 @@ class TerminalViewModel(
     }
 
     override fun onNewSession() {
-        updateState { copy(sessionNumber = sessionNumber + 1, lines = emptyList(), input = "") }
+        viewModelScope.launch {
+            terminalRepository.stop()
+            updateState {
+                copy(sessionNumber = sessionNumber + 1, lines = emptyList(), input = "", running = false)
+            }
+            terminalRepository.start()
+        }
     }
 
     override fun onSubmitCommand() {
@@ -53,10 +83,7 @@ class TerminalViewModel(
         updateState {
             copy(lines = lines + AslTerminalLine(command, AslTerminalLineKind.Cmd), input = "", running = true)
         }
-        viewModelScope.launch {
-            val output = terminalRepository.execute(command)
-            updateState { copy(lines = lines + output.map { line -> line.toUiLine() }, running = false) }
-        }
+        viewModelScope.launch { terminalRepository.send(command) }
     }
 
     private fun TerminalOutputLine.toUiLine() = AslTerminalLine(
