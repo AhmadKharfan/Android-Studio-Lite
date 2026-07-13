@@ -120,6 +120,9 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    // Play-only: the in-process build engine (aapt2/ECJ/kotlinc/D8/apksig pipeline). The full flavor
+    // uses the out-of-process Gradle tooling server instead, so this stays a per-flavor dependency.
+    "playImplementation"(project(":build:engine"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

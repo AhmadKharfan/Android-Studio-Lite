@@ -23,5 +23,19 @@ android {
 
 dependencies {
     api(project(":build:common"))
+
+    // In-process, permissively-licensed toolchain (see THIRD-PARTY-NOTICES.md):
+    //  - ECJ (EPL-2.0)               → in-process Java compilation
+    //  - D8/R8 (AOSP, Apache-2.0)    → class → dex, with a per-jar content-hash cache
+    //  - apksig (AOSP, Apache-2.0)   → APK signing (v1/v2/v3)
+    // The embedded Kotlin compiler and aapt2 are NOT compile-time deps: kotlinc is loaded in-process
+    // from a downloaded data jar (KotlinCompilerTool), and aapt2 ships as a native binary in the play
+    // APK's jniLibs and is exec()'d from nativeLibraryDir.
+    implementation(libs.ecj)
+    implementation(libs.r8)
+    implementation(libs.apksig)
+    implementation(libs.bouncycastle.pkix)
+    implementation(libs.bouncycastle.prov)
+
     testImplementation(libs.junit)
 }
