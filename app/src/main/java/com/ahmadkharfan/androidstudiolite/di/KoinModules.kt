@@ -5,7 +5,6 @@ import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileContentRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileSystemRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileTreeRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeGitRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakePreferencesRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeProjectRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeTemplateRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeTerminalRepository
@@ -19,7 +18,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
@@ -57,7 +55,6 @@ val dataModule = module {
     single<TemplateRepository> { FakeTemplateRepository() }
     single<FileTreeRepository> { FakeFileTreeRepository() }
     single<FileContentRepository> { FakeFileContentRepository() }
-    single<PreferencesRepository> { FakePreferencesRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<FileSystemRepository> { FakeFileSystemRepository() }
     single<TerminalRepository> { FakeTerminalRepository() }
