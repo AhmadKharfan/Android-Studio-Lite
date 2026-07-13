@@ -95,4 +95,4 @@ val viewModelModule = module {
         )
     }
 }
-val appModules = listOf(dataModule, viewModelModule)
+val appModules = listOf(dataModule, viewModelModule, gradleModule)
