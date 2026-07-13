@@ -5,6 +5,7 @@ import com.ahmadkharfan.androidstudiolite.di.appModules
 import com.ahmadkharfan.androidstudiolite.di.flavorModule
 import com.ahmadkharfan.androidstudiolite.di.localDataModule
 import com.ahmadkharfan.androidstudiolite.di.preferencesModule
+import com.ahmadkharfan.androidstudiolite.di.terminalModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -18,7 +19,7 @@ class AslApplication : Application() {
             androidContext(this@AslApplication)
             // flavorModule comes from src/play or src/full and selects the flavor-specific
             // bindings (e.g. which BuildSystem implementation backs the build UI).
-            modules(appModules + localDataModule + preferencesModule + flavorModule)
+            modules(appModules + localDataModule + preferencesModule + terminalModule + flavorModule)
         }
     }
 }
