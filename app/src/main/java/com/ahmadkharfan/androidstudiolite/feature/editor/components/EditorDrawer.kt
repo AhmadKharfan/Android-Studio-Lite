@@ -79,6 +79,7 @@ private fun String.toRailTool(): EditorRailTool? = when (this) {
 @Composable
 fun EditorDrawer(
     openTool: EditorRailTool?,
+    projectId: String,
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
@@ -138,6 +139,7 @@ fun EditorDrawer(
                 )
                 EditorToolPanelContent(
                     openTool = tool,
+                    projectId = projectId,
                     fileTree = fileTree,
                     expandedFolderIds = expandedFolderIds,
                     selectedFileId = selectedFileId,
@@ -158,6 +160,7 @@ fun EditorDrawer(
 @Composable
 fun EditorDockedPanel(
     openTool: EditorRailTool?,
+    projectId: String,
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
@@ -181,6 +184,7 @@ fun EditorDockedPanel(
         if (openTool != null) {
             EditorToolPanelContent(
                 openTool = openTool,
+                projectId = projectId,
                 fileTree = fileTree,
                 expandedFolderIds = expandedFolderIds,
                 selectedFileId = selectedFileId,
@@ -217,6 +221,7 @@ private fun EditorToolRail(
 @Composable
 private fun EditorToolPanelContent(
     openTool: EditorRailTool,
+    projectId: String,
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
@@ -256,7 +261,7 @@ private fun EditorToolPanelContent(
                     }
                 }
             }
-            EditorRailTool.Git -> GitPanelRoute(onClose = onDismiss)
+            EditorRailTool.Git -> GitPanelRoute(projectId = projectId, onClose = onDismiss)
             EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
             EditorRailTool.Variants -> VariantsRoute(onClose = onDismiss)
             EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)

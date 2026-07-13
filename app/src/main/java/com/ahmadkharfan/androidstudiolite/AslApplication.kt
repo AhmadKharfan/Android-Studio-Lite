@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite
 import android.app.Application
 import com.ahmadkharfan.androidstudiolite.di.appModules
 import com.ahmadkharfan.androidstudiolite.di.flavorModule
+import com.ahmadkharfan.androidstudiolite.di.gitModule
 import com.ahmadkharfan.androidstudiolite.di.localDataModule
 import com.ahmadkharfan.androidstudiolite.di.preferencesModule
 import com.ahmadkharfan.androidstudiolite.di.terminalModule
@@ -19,7 +20,7 @@ class AslApplication : Application() {
             androidContext(this@AslApplication)
             // flavorModule comes from src/play or src/full and selects the flavor-specific
             // bindings (e.g. which BuildSystem implementation backs the build UI).
-            modules(appModules + localDataModule + preferencesModule + terminalModule + flavorModule)
+            modules(appModules + localDataModule + preferencesModule + terminalModule + gitModule + flavorModule)
         }
     }
 }

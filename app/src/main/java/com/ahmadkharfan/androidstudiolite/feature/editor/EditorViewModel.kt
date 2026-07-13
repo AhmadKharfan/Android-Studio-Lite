@@ -46,7 +46,7 @@ private val APP_LOG_TEMPLATE = listOf(
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
-    projectId: String,
+    private val projectId: String,
     private val projectRepository: ProjectRepository,
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
@@ -87,6 +87,7 @@ class EditorViewModel(
                 projectRootPath = projectPath
                 updateState {
                     copy(
+                        projectId = projectId,
                         projectName = projectName,
                         fileTree = nodes.map { it.toUiModel() },
                         expandedFolderIds = defaultExpandedIds(nodes),

@@ -1,29 +1,17 @@
 package com.ahmadkharfan.androidstudiolite.di
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiAgentRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiChatRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileContentRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileSystemRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeFileTreeRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeGitRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeProjectRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeTemplateRepository
 import com.ahmadkharfan.androidstudiolite.data.environment.AndroidIdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.FileSystemRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
-import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerViewModel
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubViewModel
@@ -45,18 +33,17 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+
+// Repositories still backed by fakes live here. Real ones are bound in their own modules and
+// registered from AslApplication: File/Project (localDataModule, T3), Preferences (preferencesModule,
+// T6), Terminal (terminalModule, T7), Git (gitModule, T5). Those interfaces are intentionally NOT
+// bound here so there are no duplicate Koin definitions.
 val dataModule = module {
     single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
     single<IdeEnvironmentRepository> { AndroidIdeEnvironmentRepository(androidContext()) }
     single { NetworkMonitor(androidContext()) }
-    single<ProjectRepository> { FakeProjectRepository() }
     single<TemplateRepository> { FakeTemplateRepository() }
-    single<FileTreeRepository> { FakeFileTreeRepository() }
-    single<FileContentRepository> { FakeFileContentRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
-    single<FileSystemRepository> { FakeFileSystemRepository() }
-    // TerminalRepository is bound in terminalModule (real ProcessBuilder shell, T7).
-    single<GitRepository> { FakeGitRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }
 val viewModelModule = module {
@@ -65,9 +52,8 @@ val viewModelModule = module {
     viewModelOf(::CompleteViewModel)
     viewModelOf(::HubViewModel)
     viewModelOf(::OpenProjectViewModel)
-    viewModelOf(::CloneRepoViewModel)
     viewModelOf(::CreateProjectViewModel)
-    viewModelOf(::GitPanelViewModel)
+    // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
     viewModelOf(::AiChatViewModel)
     viewModelOf(::VariantsViewModel)
     viewModelOf(::TerminalViewModel)

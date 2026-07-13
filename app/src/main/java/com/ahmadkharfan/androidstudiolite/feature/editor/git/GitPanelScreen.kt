@@ -11,13 +11,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslSlideContent
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
@@ -38,7 +41,11 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelUiState
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 
 @Composable
-fun GitPanelRoute(onClose: () -> Unit, viewModel: GitPanelViewModel = koinViewModel()) {
+fun GitPanelRoute(
+    projectId: String,
+    onClose: () -> Unit,
+    viewModel: GitPanelViewModel = koinViewModel { parametersOf(projectId) },
+) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     GitPanelScreen(uiState = uiState, interactionListener = viewModel, onClose = onClose)
 }
@@ -55,6 +62,15 @@ private fun GitPanelScreen(
         onClose = onClose,
         scrollable = false,
     ) {
+        if (!uiState.isRepository) {
+            AslEmptyState(
+                icon = "git-branch",
+                title = "Not a git repository",
+                subtitle = "Clone a repository or initialise git for this project to see changes here.",
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@AslToolWindowPanel
+        }
         // Slide between the changes list (master) and a file's diff (detail); each pane keeps its own
         // state through the animation so going back doesn't flash an empty, already-cleared diff.
         AslSlideContent(
@@ -76,9 +92,43 @@ private fun GitPanelScreen(
 private fun ChangesView(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
+        GitSyncBar(uiState = uiState, interactionListener = interactionListener)
+        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
         GitChangedFileList(uiState = uiState, interactionListener = interactionListener, modifier = Modifier.weight(1f).fillMaxSize())
         HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
         GitCommitBox(uiState = uiState, interactionListener = interactionListener)
+    }
+}
+
+@Composable
+private fun GitSyncBar(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
+    val colors = AslTheme.colors
+    LaunchedEffect(uiState.statusMessage) {
+        if (uiState.statusMessage != null) {
+            delay(4000)
+            interactionListener.onStatusMessageShown()
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        val syncLabel = buildString {
+            uiState.behind?.takeIf { it > 0 }?.let { append("↓$it ") }
+            uiState.ahead?.takeIf { it > 0 }?.let { append("↑$it") }
+        }.trim()
+        Text(
+            text = uiState.statusMessage ?: syncLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(start = 6.dp),
+        )
+        AslIconButton(icon = "refresh-cw", contentDescription = "Refresh", onClick = { interactionListener.onRefresh() }, size = 32.dp, iconSize = 16.dp)
+        AslIconButton(icon = "download", contentDescription = "Pull", onClick = { interactionListener.onPull() }, size = 32.dp, iconSize = 16.dp)
+        AslIconButton(icon = "upload", contentDescription = "Push", onClick = { interactionListener.onPush() }, size = 32.dp, iconSize = 16.dp)
     }
 }
 
@@ -88,7 +138,6 @@ private fun GitChangedFileList(
     interactionListener: GitPanelInteractionListener,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AslTheme.colors
     // Ease between the empty state and the populated change list (e.g. after a commit clears it).
     AslStateCrossfade(
         targetState = uiState.changes.isEmpty(),
@@ -104,22 +153,66 @@ private fun GitChangedFileList(
             )
         } else {
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                Text(
-                    text = "CHANGES (${uiState.changes.size})",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.textTertiary,
-                    modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
+                GitChangeSection(
+                    title = "STAGED",
+                    changes = uiState.stagedChanges,
+                    staged = true,
+                    interactionListener = interactionListener,
                 )
-                uiState.changes.forEach { change ->
-                    AslListItem(
-                        title = change.path,
-                        icon = "file-code",
-                        trailing = { GitStatusBadge(change.status) },
-                        onClick = { interactionListener.onSelectChange(change.path) },
-                    )
-                }
+                GitChangeSection(
+                    title = "CHANGES",
+                    changes = uiState.unstagedChanges,
+                    staged = false,
+                    interactionListener = interactionListener,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun GitChangeSection(
+    title: String,
+    changes: List<GitChangeUiModel>,
+    staged: Boolean,
+    interactionListener: GitPanelInteractionListener,
+) {
+    if (changes.isEmpty()) return
+    val colors = AslTheme.colors
+    Text(
+        text = "$title (${changes.size})",
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.textTertiary,
+        modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
+    )
+    changes.forEach { change ->
+        AslListItem(
+            title = change.path,
+            icon = "file-code",
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    GitStatusBadge(change.status)
+                    if (staged) {
+                        AslIconButton(
+                            icon = "minus",
+                            contentDescription = "Unstage ${change.path}",
+                            onClick = { interactionListener.onUnstage(change.path) },
+                            size = 28.dp,
+                            iconSize = 14.dp,
+                        )
+                    } else {
+                        AslIconButton(
+                            icon = "plus",
+                            contentDescription = "Stage ${change.path}",
+                            onClick = { interactionListener.onStage(change.path) },
+                            size = 28.dp,
+                            iconSize = 14.dp,
+                        )
+                    }
+                }
+            },
+            onClick = { interactionListener.onSelectChange(change.path) },
+        )
     }
 }
 
@@ -145,7 +238,7 @@ private fun GitCommitBox(
             icon = "git-commit",
             fullWidth = true,
             loading = uiState.committing,
-            disabled = uiState.commitMessage.isBlank() || uiState.changes.isEmpty(),
+            disabled = !uiState.canCommit,
         )
     }
 }

@@ -246,6 +246,7 @@ private fun EditorEditingRow(
         if (isTablet) {
             EditorDockedPanel(
                 openTool = uiState.openRailTool,
+                projectId = uiState.projectId,
                 fileTree = uiState.fileTree,
                 expandedFolderIds = uiState.expandedFolderIds,
                 selectedFileId = uiState.activeTabId,
@@ -470,6 +471,7 @@ private fun EditorDrawerOverlay(
 ) {
     EditorDrawer(
         openTool = uiState.openRailTool,
+        projectId = uiState.projectId,
         fileTree = uiState.fileTree,
         expandedFolderIds = uiState.expandedFolderIds,
         selectedFileId = uiState.activeTabId,

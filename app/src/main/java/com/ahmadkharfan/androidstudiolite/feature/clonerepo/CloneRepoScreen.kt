@@ -22,6 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSta
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChip
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoInteractionListener
@@ -99,6 +100,16 @@ private fun CloneRepoForm(
         label = "Branch",
         placeholder = "main",
         helper = "Optional — defaults to the remote's default branch",
+    )
+    AslTextField(
+        value = uiState.token,
+        onValueChange = { interactionListener.onTokenChanged(it) },
+        label = "Access token",
+        placeholder = "ghp_…",
+        helper = "Optional — required for private HTTPS repos; stored securely and reused for push/pull",
+        type = AslTextFieldType.Password,
+        leadingIcon = "key-round",
+        error = uiState.error,
     )
     CloneRepoOptions(uiState = uiState, interactionListener = interactionListener)
     AslButton(
