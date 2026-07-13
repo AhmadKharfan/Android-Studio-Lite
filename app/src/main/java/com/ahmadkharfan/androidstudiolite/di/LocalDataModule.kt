@@ -50,6 +50,7 @@ val localDataModule = module {
             projectsRoot = IdeEnvironmentPaths.projectsDir(androidContext()),
             dataStore = androidContext().recentProjectsDataStore,
             changeBus = get(),
+            templateEngine = get(),
         )
     }
 }

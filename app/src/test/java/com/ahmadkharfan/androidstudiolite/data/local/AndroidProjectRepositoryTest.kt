@@ -45,7 +45,7 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `createProject scaffolds a detectable project and registers it`() = runBlocking {
-        val project = repo.createProject("My App", "com.example.myapp", "empty")
+        val project = repo.createProject("My App", "com.example.myapp", "empty-views")
 
         assertEquals("my-app", project.id)
         val dir = File(project.path)
@@ -57,8 +57,8 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `duplicate names get unique directories`() = runBlocking {
-        val first = repo.createProject("App", "com.example.a", "empty")
-        val second = repo.createProject("App", "com.example.b", "empty")
+        val first = repo.createProject("App", "com.example.a", "empty-views")
+        val second = repo.createProject("App", "com.example.b", "empty-views")
 
         assertEquals("app", first.id)
         assertEquals("app-2", second.id)
@@ -67,8 +67,8 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `recent list is most-recent-first and openProject floats a project up`() = runBlocking {
-        val a = repo.createProject("Alpha", "com.example.alpha", "empty")
-        repo.createProject("Beta", "com.example.beta", "empty")
+        val a = repo.createProject("Alpha", "com.example.alpha", "empty-views")
+        repo.createProject("Beta", "com.example.beta", "empty-views")
 
         assertEquals(listOf("beta", "alpha"), recents().map { it.id })
 
@@ -80,7 +80,7 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `deleteProject removes the directory and the recent entry`() = runBlocking {
-        val project = repo.createProject("Gone", "com.example.gone", "empty")
+        val project = repo.createProject("Gone", "com.example.gone", "empty-views")
 
         repo.deleteProject(project.id)
 
@@ -90,7 +90,7 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `renameProject changes only the display name`() = runBlocking {
-        val project = repo.createProject("Old Name", "com.example.old", "empty")
+        val project = repo.createProject("Old Name", "com.example.old", "empty-views")
 
         repo.renameProject(project.id, "New Name")
 
@@ -132,7 +132,7 @@ class AndroidProjectRepositoryTest {
     fun `recent entries round-trip fields with delimiter characters`() = runBlocking {
         // Tabs/newlines in the display name must survive the serialized store unescaped.
         val gnarly = "Tab\tAnd\nNewline"
-        repo.createProject(gnarly, "com.example.weird", "empty")
+        repo.createProject(gnarly, "com.example.weird", "empty-views")
 
         assertEquals(gnarly, recents().single().name)
     }

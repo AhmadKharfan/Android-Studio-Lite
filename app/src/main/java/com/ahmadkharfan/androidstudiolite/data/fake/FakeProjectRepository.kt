@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.fake
 
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
+import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import kotlinx.coroutines.delay
@@ -34,11 +35,11 @@ class FakeProjectRepository : ProjectRepository {
 
     override fun observeRecentProjects(): StateFlow<List<Project>> = projects
 
-    override suspend fun createProject(name: String, packageName: String, templateId: String): Project {
+    override suspend fun createProject(spec: NewProjectSpec): Project {
         val project = Project(
             id = UUID.randomUUID().toString(),
-            name = name,
-            path = "~/projects/$name",
+            name = spec.name,
+            path = "~/projects/${spec.name}",
             language = "Kotlin",
             lastOpenedMillis = System.currentTimeMillis(),
         )

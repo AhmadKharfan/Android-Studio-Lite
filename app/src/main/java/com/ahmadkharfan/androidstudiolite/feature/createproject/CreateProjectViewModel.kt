@@ -1,7 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.feature.createproject
 
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
+import com.ahmadkharfan.androidstudiolite.domain.model.ProjectBuildDsl
 import com.ahmadkharfan.androidstudiolite.domain.model.ProjectNameValidation
+import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 import com.ahmadkharfan.androidstudiolite.domain.model.validateProjectName
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
@@ -54,6 +57,22 @@ class CreateProjectViewModel(
         updateState { copy(minSdk = minSdk) }
     }
 
+    override fun onTargetSdkChanged(targetSdk: String) {
+        updateState { copy(targetSdk = targetSdk) }
+    }
+
+    override fun onLanguageChanged(language: String) {
+        updateState { copy(language = language) }
+    }
+
+    override fun onBuildDslChanged(dsl: String) {
+        updateState { copy(buildDsl = dsl) }
+    }
+
+    override fun onToggleCpp(enabled: Boolean) {
+        updateState { copy(useCpp = enabled) }
+    }
+
     override fun onCreateProject() {
         startCreate()
     }
@@ -76,9 +95,21 @@ class CreateProjectViewModel(
         updateState { copy(creating = true) }
         tryToExecute(
             block = {
-                val templateId = state.value.selectedTemplateId
+                val s = state.value
+                val templateId = s.selectedTemplateId
                     ?: throw IllegalStateException("No template selected")
-                projectRepository.createProject(state.value.projectName, state.value.packageName, templateId)
+                projectRepository.createProject(
+                    NewProjectSpec(
+                        name = s.projectName,
+                        packageName = s.packageName,
+                        templateId = templateId,
+                        language = if (s.language == LANG_JAVA) TemplateLanguage.JAVA else TemplateLanguage.KOTLIN,
+                        buildDsl = if (s.buildDsl == DSL_GROOVY) ProjectBuildDsl.GROOVY else ProjectBuildDsl.KTS,
+                        minSdk = s.minSdk.toIntOrNull() ?: 24,
+                        targetSdk = s.targetSdk.toIntOrNull() ?: 34,
+                        useCpp = s.useCpp,
+                    ),
+                )
             },
             onSuccess = { project ->
                 updateState { copy(createdProjectId = project.id) }

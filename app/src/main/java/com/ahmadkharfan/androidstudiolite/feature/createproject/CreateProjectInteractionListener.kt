@@ -8,5 +8,9 @@ interface CreateProjectInteractionListener {
     fun onPackageChanged(packageName: String)
     fun onLocationChanged(location: String)
     fun onMinSdkChanged(minSdk: String)
+    fun onTargetSdkChanged(targetSdk: String)
+    fun onLanguageChanged(language: String)
+    fun onBuildDslChanged(dsl: String)
+    fun onToggleCpp(enabled: Boolean)
     fun onCreateProject()
 }

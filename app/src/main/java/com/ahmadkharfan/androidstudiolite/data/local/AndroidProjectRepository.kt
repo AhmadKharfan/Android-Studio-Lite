@@ -4,9 +4,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.ahmadkharfan.androidstudiolite.data.templates.ProjectTemplateEngine
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
+import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
+import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -29,21 +32,22 @@ class AndroidProjectRepository(
     private val projectsRoot: File,
     private val dataStore: DataStore<Preferences>,
     private val changeBus: FileChangeBus,
+    private val templateEngine: ProjectTemplateEngine = ProjectTemplateEngine(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ProjectRepository {
 
     override fun observeRecentProjects(): Flow<List<Project>> =
         dataStore.data.map { decode(it[KEY].orEmpty()) }
 
-    override suspend fun createProject(name: String, packageName: String, templateId: String): Project =
+    override suspend fun createProject(spec: NewProjectSpec): Project =
         withContext(Dispatchers.IO) {
-            val dir = uniqueProjectDir(name)
-            ProjectScaffold.create(dir, name, packageName.ifBlank { "com.example.app" })
+            val dir = uniqueProjectDir(spec.name, spec.saveLocation)
+            val result = templateEngine.generate(spec, dir)
             val project = Project(
                 id = dir.name,
-                name = name,
+                name = spec.name,
                 path = dir.absolutePath,
-                language = "Kotlin",
+                language = if (result.language == TemplateLanguage.JAVA) "Java" else "Kotlin",
                 lastOpenedMillis = clock(),
             )
             upsert(project)
@@ -114,13 +118,22 @@ class AndroidProjectRepository(
 
     // --- filesystem helpers --------------------------------------------------------------------
 
-    private fun uniqueProjectDir(name: String): File {
+    /**
+     * Directory to create the project in. When [saveLocation] is a usable absolute path it is used as
+     * the parent directory; otherwise the on-device [projectsRoot] is used. A numeric suffix is added
+     * to avoid clobbering an existing directory.
+     */
+    private fun uniqueProjectDir(name: String, saveLocation: String? = null): File {
+        val root = saveLocation?.takeIf { it.isNotBlank() }
+            ?.let { File(it) }
+            ?.takeIf { it.isAbsolute }
+            ?: projectsRoot
         val slug = name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }
             .joinToString("").trim('-').ifBlank { "project" }
-        var candidate = File(projectsRoot, slug)
+        var candidate = File(root, slug)
         var suffix = 2
         while (candidate.exists()) {
-            candidate = File(projectsRoot, "$slug-$suffix")
+            candidate = File(root, "$slug-$suffix")
             suffix++
         }
         return candidate

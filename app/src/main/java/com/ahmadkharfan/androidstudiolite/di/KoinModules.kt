@@ -1,14 +1,12 @@
 package com.ahmadkharfan.androidstudiolite.di
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiAgentRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiChatRepository
-import com.ahmadkharfan.androidstudiolite.data.fake.FakeTemplateRepository
 import com.ahmadkharfan.androidstudiolite.data.environment.AndroidIdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
@@ -36,13 +34,12 @@ import org.koin.dsl.module
 
 // Repositories still backed by fakes live here. Real ones are bound in their own modules and
 // registered from AslApplication: File/Project (localDataModule, T3), Preferences (preferencesModule,
-// T6), Terminal (terminalModule, T7), Git (gitModule, T5). Those interfaces are intentionally NOT
-// bound here so there are no duplicate Koin definitions.
+// T6), Terminal (terminalModule, T7), Git (gitModule, T5), Templates (templatesModule, T4). Those
+// interfaces are intentionally NOT bound here so there are no duplicate Koin definitions.
 val dataModule = module {
     single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
     single<IdeEnvironmentRepository> { AndroidIdeEnvironmentRepository(androidContext()) }
     single { NetworkMonitor(androidContext()) }
-    single<TemplateRepository> { FakeTemplateRepository() }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }
