@@ -19,6 +19,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // The Gradle Tooling API (org.gradle:gradle-tooling-api) is published only to Gradle's own
+        // repository, not Maven Central. Scope it to that group so nothing else resolves from here.
+        maven("https://repo.gradle.org/gradle/libs-releases") {
+            content { includeGroup("org.gradle") }
+        }
     }
 }
 
