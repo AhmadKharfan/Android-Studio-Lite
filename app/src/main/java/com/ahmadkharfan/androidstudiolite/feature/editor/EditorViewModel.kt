@@ -1,7 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLevel
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
@@ -9,10 +12,18 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepositor
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.reduce
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
+import java.io.File
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
@@ -20,30 +31,8 @@ private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
     BottomPanelTabUiModel("diag", "Diagnostics", "stethoscope"),
 )
-private val SUCCESS_TASKS = listOf(
-    BuildOutputLineUiModel("> Task :app:preBuild", status = "success", duration = "0.1s"),
-    BuildOutputLineUiModel("> Task :app:mergeDebugResources", status = "success", duration = "1.8s"),
-    BuildOutputLineUiModel("> Task :app:compileDebugKotlin", status = "success", duration = "4.1s"),
-    BuildOutputLineUiModel("w: unused variable 'x'", depth = 1, status = "skipped"),
-    BuildOutputLineUiModel("> Task :app:dexBuilderDebug", status = "success", duration = "0.9s"),
-    BuildOutputLineUiModel("> Task :app:packageDebug", status = "success", duration = "0.6s"),
-    BuildOutputLineUiModel("> Task :app:installDebug", status = "success", duration = "1.1s"),
-)
-private val FAILING_TASKS = listOf(
-    BuildOutputLineUiModel("> Task :app:preBuild", status = "success", duration = "0.1s"),
-    BuildOutputLineUiModel("> Task :app:compileDebugKotlin", status = "failed", duration = "3.9s"),
-    BuildOutputLineUiModel("e: MainActivity.kt:39:11 unresolved reference: fooBar", depth = 1, status = "failed", jumpToTabId = "MainActivity.kt"),
-    BuildOutputLineUiModel("> Task :app:packageDebug", status = "skipped"),
-    BuildOutputLineUiModel("BUILD FAILED in 6s · 2 errors", status = "failed"),
-)
-private val APP_LOG_TEMPLATE = listOf(
-    Triple(AslLogLevel.DEBUG, "ActivityTaskManager", "Displayed com.example.myapplication/.MainActivity in 312ms"),
-    Triple(AslLogLevel.INFO, "Choreographer", "Skipped 2 frames! The application may be doing too much work on its main thread."),
-    Triple(AslLogLevel.DEBUG, "MainActivity", "onCreate() called"),
-    Triple(AslLogLevel.INFO, "ViewRootImpl", "relayoutWindow returned early"),
-    Triple(AslLogLevel.WARN, "ResourcesCompat", "Failed to find id 0x7f0a001a; resource IDs starting with 0x00 are reserved for system use."),
-)
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
+private const val APP_MODULE_PATH = ":app"
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
     private val projectId: String,
@@ -51,12 +40,15 @@ class EditorViewModel(
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val buildRunCoordinator: BuildRunCoordinator,
 ) : BaseViewModel<EditorUiState, EditorEffect>(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
     private val sessions = mutableMapOf<String, EditorSession>()
     private var autoSaveEnabled = true
     private var autoSaveJob: Job? = null
+    private var buildJob: Job? = null
+    private var launchAfterInstall = true
 
     /** Absolute path of the open project's root, used to show file-tree paths relative to it. */
     private var projectRootPath: String? = null
@@ -65,6 +57,7 @@ class EditorViewModel(
             block = { preferencesRepository.observePreferences() },
             onCollect = { prefs ->
                 autoSaveEnabled = prefs.editorAutoSave
+                launchAfterInstall = prefs.launchAfterInstall
                 updateState {
                     copy(
                         editorFontSize = prefs.editorFontSize,
@@ -170,8 +163,15 @@ class EditorViewModel(
         updateState { copy(expandedFolderIds = if (id in expandedFolderIds) expandedFolderIds - id else expandedFolderIds + id) }
     }
     override fun onOpenFile(id: String, name: String) = openFile(id, name)
-    override fun onRunProject() = runProject()
-    override fun onSimulateBuildFailure() = runProject(simulateFailure = true)
+    override fun onRunProject() = startBuild(variant = "debug", kind = BuildKind.ASSEMBLE, install = true)
+    override fun onCancelBuild() = cancelBuild()
+    override fun onBuildReleaseApk() = startBuild(variant = "release", kind = BuildKind.ASSEMBLE, install = false)
+    override fun onBuildReleaseBundle() = startBuild(variant = "release", kind = BuildKind.BUNDLE, install = false)
+    override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
+    override fun onSimulateBuildFailure() {
+        buildRunCoordinator.simulateNextFailure()
+        startBuild(variant = "debug", kind = BuildKind.ASSEMBLE, install = true)
+    }
     override fun onSelectBottomTab(id: String) {
         updateState { copy(activeBottomTabId = id, bottomPanelExpanded = true) }
     }
@@ -396,55 +396,143 @@ class EditorViewModel(
         val parts = relative.split('/').filter { it.isNotEmpty() }
         return if (parts.size > 1) parts else listOf(name)
     }
-    private fun runProject(simulateFailure: Boolean = false) {
-        if (state.value.running) return
+    /**
+     * Drives a real build through the [BuildRunCoordinator] (backed by the flavor's [BuildSystem], or
+     * the temporary FakeBuildSystem). Runs the reliability preflight, folds the [BuildEvent] stream
+     * into [EditorUiState.buildConsole], and — for a run — installs and launches the produced APK.
+     */
+    private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
+        if (state.value.buildConsole.isRunning) return
+        val root = projectRootPath?.let { File(it) }
+        if (root == null) {
+            updateState { copy(snackbarMessage = "Open a project before building") }
+            return
+        }
         updateState {
             copy(
                 running = true,
+                buildFailed = false,
                 bottomPanelExpanded = true,
                 activeBottomTabId = "build",
-                buildLines = emptyList(),
-                buildProgressPercent = 0,
-                buildFailed = false,
+                buildConsole = BuildConsoleState(status = BuildStatus.Running, progressMessage = "Preparing…"),
             )
         }
-        viewModelScope.launch {
-            val tasks = if (simulateFailure) FAILING_TASKS else SUCCESS_TASKS
-            for ((index, task) in tasks.withIndex()) {
-                if (task.duration != null) {
-                    updateState { copy(buildLines = buildLines + task.copy(status = "running", duration = null)) }
-                    delay(300)
-                    updateState { copy(buildLines = buildLines.dropLast(1) + task) }
-                } else {
-                    delay(300)
-                    updateState { copy(buildLines = buildLines + task) }
+        buildJob = viewModelScope.launch {
+            val preflight = buildRunCoordinator.preflight(root)
+            if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
+            if (!preflight.canProceed) {
+                val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+                updateState {
+                    copy(
+                        running = false,
+                        buildFailed = true,
+                        buildConsole = buildConsole.copy(status = BuildStatus.Failed),
+                        snackbarMessage = blocker.title,
+                        bottomPanelTabs = markBuildTab(error = true, count = 1),
+                    )
                 }
-                updateState { copy(buildProgressPercent = ((index + 1) * 100) / tasks.size) }
+                return@launch
             }
+            buildRunCoordinator.ensureDebugKeystore()
+
+            val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
+            buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
+
+            val console = state.value.buildConsole
+            val success = console.status == BuildStatus.Succeeded
+            buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
             updateState {
                 copy(
                     running = false,
-                    buildFailed = simulateFailure,
-                    snackbarMessage = if (simulateFailure) null else "APK installed on device",
-                    bottomPanelTabs = bottomPanelTabs.map {
-                        if (it.id == "build") it.copy(count = if (simulateFailure) 2 else null, error = simulateFailure) else it
-                    },
+                    buildFailed = !success,
+                    bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
                 )
             }
-            if (!simulateFailure) {
-                emitAppLogs()
+            if (success && install) installArtifact(console)
+        }
+    }
+
+    private fun onBuildEvent(event: BuildEvent) {
+        updateState { copy(buildConsole = buildConsole.reduce(event)) }
+    }
+
+    /** Surfaces preflight warnings as a leading, non-blocking note in the build console log. */
+    private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
+        val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
+            text = "Preflight: " + warnings.joinToString("; ") { "${it.title} — ${it.detail}" },
+            isError = warnings.any { it.severity == PreflightSeverity.BLOCKER },
+        )
+        updateState { copy(buildConsole = buildConsole.copy(logs = listOf(prefix) + buildConsole.logs)) }
+    }
+
+    private suspend fun installArtifact(console: BuildConsoleState) {
+        val artifact = console.artifact
+        if (artifact == null || artifact.kind != BuildEvent.ArtifactKind.APK) {
+            updateState { copy(snackbarMessage = "Build succeeded") }
+            return
+        }
+        val apk = File(artifact.path)
+        if (!apk.isFile) {
+            // The temporary FakeBuildSystem produces a placeholder path with no bytes on disk.
+            updateState { copy(snackbarMessage = "Build succeeded — install skipped (no APK on disk)") }
+            return
+        }
+        buildRunCoordinator.install(apk, autoLaunch = launchAfterInstall).collect { event ->
+            val message = when (event) {
+                is InstallEvent.Preparing -> "Installing ${apk.name}…"
+                is InstallEvent.AwaitingConfirmation -> "Confirm the install prompt"
+                is InstallEvent.Installed ->
+                    if (event.launched) "Installed and launched" else "Installed ${event.packageName ?: apk.name}"
+                is InstallEvent.Failed -> "Install failed: ${event.reason}"
+            }
+            updateState { copy(snackbarMessage = message) }
+        }
+    }
+
+    private fun cancelBuild() {
+        if (!state.value.buildConsole.isRunning) return
+        buildRunCoordinator.cancel()
+        buildJob?.cancel()
+        updateState {
+            copy(
+                running = false,
+                buildConsole = buildConsole.copy(status = BuildStatus.Cancelled, progressMessage = null),
+                snackbarMessage = "Build cancelled",
+                bottomPanelTabs = markBuildTab(error = false, count = null),
+            )
+        }
+    }
+
+    /** Opens the problem's file (if any) and moves the caret to its line, like a Problems-list jump. */
+    private fun jumpToBuildProblem(problem: BuildProblem) {
+        val path = problem.filePath ?: return
+        val name = problem.fileName ?: path.substringAfterLast('/')
+        openFile(path, name)
+        val line = problem.line ?: return
+        viewModelScope.launch {
+            // Give openFile a moment to create the session, then position the caret.
+            repeat(20) {
+                val session = sessions[path] ?: run { delay(20); return@repeat }
+                val offset = session.document.positionToOffset(line - 1, (problem.column ?: 1) - 1)
+                session.setCaret(offset.coerceIn(0, session.document.length))
+                val caret = session.caretPosition
+                updateState {
+                    copy(
+                        caretLine = caret.line,
+                        caretColumn = caret.column,
+                        diagnosticRevealOffset = offset,
+                        diagnosticRevealNonce = diagnosticRevealNonce + 1,
+                    )
+                }
+                return@launch
             }
         }
     }
-    private suspend fun emitAppLogs() {
-        updateState { copy(appLogLines = emptyList()) }
-        val timeFormat = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault())
-        for ((level, tag, message) in APP_LOG_TEMPLATE) {
-            delay(220)
-            val line = AppLogLineUiModel(time = timeFormat.format(java.util.Date()), level = level, tag = tag, message = message)
-            updateState { copy(appLogLines = appLogLines + line) }
+
+    private fun markBuildTab(error: Boolean, count: Int?): List<BottomPanelTabUiModel> =
+        state.value.bottomPanelTabs.map {
+            if (it.id == "build") it.copy(count = count, error = error) else it
         }
-    }
     private fun FileNode.toUiModel(): EditorFileNodeUiModel = EditorFileNodeUiModel(
         id = id,
         name = name,

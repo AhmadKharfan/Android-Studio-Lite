@@ -83,6 +83,7 @@ class DataStorePreferencesRepository(
             configurationCacheEnabled = this[CONFIGURATION_CACHE_ENABLED] ?: defaults.configurationCacheEnabled,
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
             installViaShizuku = this[INSTALL_VIA_SHIZUKU] ?: defaults.installViaShizuku,
+            buildOutputAab = this[BUILD_OUTPUT_AAB] ?: defaults.buildOutputAab,
         )
     }
 
@@ -107,6 +108,7 @@ class DataStorePreferencesRepository(
         this[CONFIGURATION_CACHE_ENABLED] = value.configurationCacheEnabled
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
         this[INSTALL_VIA_SHIZUKU] = value.installViaShizuku
+        this[BUILD_OUTPUT_AAB] = value.buildOutputAab
     }
 
     private companion object {
@@ -129,5 +131,6 @@ class DataStorePreferencesRepository(
         val CONFIGURATION_CACHE_ENABLED = booleanPreferencesKey("configuration_cache_enabled")
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
         val INSTALL_VIA_SHIZUKU = booleanPreferencesKey("install_via_shizuku")
+        val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")
     }
 }

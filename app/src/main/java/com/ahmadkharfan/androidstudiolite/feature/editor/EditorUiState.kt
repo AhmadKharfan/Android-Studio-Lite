@@ -3,6 +3,7 @@ import androidx.compose.runtime.Immutable
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLevel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 @Immutable
@@ -74,6 +75,8 @@ data class EditorUiState(
     val buildProgressPercent: Int? = null,
     val buildLines: List<BuildOutputLineUiModel> = emptyList(),
     val buildFailed: Boolean = false,
+    /** Folded output of the current/last real build, driven through the [BuildConsoleState] reducer. */
+    val buildConsole: BuildConsoleState = BuildConsoleState(),
     val snackbarMessage: String? = null,
     val memoryPressureActive: Boolean = false,
     val memoryChartExpanded: Boolean = false,

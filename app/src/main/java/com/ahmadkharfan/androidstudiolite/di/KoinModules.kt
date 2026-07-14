@@ -73,6 +73,7 @@ val viewModelModule = module {
             fileTreeRepository = get(),
             fileContentRepository = get(),
             preferencesRepository = get(),
+            buildRunCoordinator = get(),
         )
     }
 }

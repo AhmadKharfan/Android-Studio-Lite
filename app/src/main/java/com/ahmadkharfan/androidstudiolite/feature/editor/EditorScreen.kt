@@ -168,6 +168,9 @@ private fun EditorTopBar(
                 AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
                 AslOverflowMenuEntry.Item("Sync Gradle", icon = "refresh-cw"),
                 AslOverflowMenuEntry.Divider,
+                AslOverflowMenuEntry.Item("Build APK (release)", icon = "package"),
+                AslOverflowMenuEntry.Item("Build AAB (release)", icon = "package"),
+                AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Simulate build failure", icon = "octagon-alert"),
                 AslOverflowMenuEntry.Item("Simulate memory pressure", icon = "memory-stick"),
                 AslOverflowMenuEntry.Item("Simulate LSP reindex", icon = "loader"),
@@ -178,6 +181,8 @@ private fun EditorTopBar(
                 when (item.label) {
                     "Find in file" -> interactionListener.onToggleFindBar()
                     "Close project" -> interactionListener.onCloseProject()
+                    "Build APK (release)" -> interactionListener.onBuildReleaseApk()
+                    "Build AAB (release)" -> interactionListener.onBuildReleaseBundle()
                     "Simulate build failure" -> interactionListener.onSimulateBuildFailure()
                     "Simulate memory pressure" -> interactionListener.onToggleMemoryPressure()
                     "Simulate LSP reindex" -> interactionListener.onSimulateLspReindex()
@@ -409,13 +414,12 @@ private fun EditorBottomToolSection(
         AslStateCrossfade(targetState = uiState.activeBottomTabId, label = "bottomPanelContent") { tabId ->
             EditorBottomPanelContent(
                 activeTabId = tabId,
-                running = uiState.running,
-                buildProgressPercent = uiState.buildProgressPercent,
-                buildLines = uiState.buildLines,
+                buildConsole = uiState.buildConsole,
                 appLogLines = uiState.appLogLines,
                 diagnostics = uiState.activeDiagnostics,
                 activeFileName = uiState.activeTab?.name,
-                onJumpToTab = { interactionListener.onSelectTab(it) },
+                onCancelBuild = { interactionListener.onCancelBuild() },
+                onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
                 onJumpToDiagnostic = { interactionListener.onJumpToDiagnostic(it) },
             )
         }
