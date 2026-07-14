@@ -51,6 +51,7 @@ class EditorViewModel(
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val gradleProjectReader: com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader,
 ) : BaseViewModel<EditorUiState, EditorEffect>(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
@@ -95,6 +96,7 @@ class EditorViewModel(
                     )
                 }
                 firstOpenableFile(nodes)?.let { openFile(it.id, it.name) }
+                syncProjectSymbols(projectPath)
             },
         )
         // Detect edits to open files made outside the editor (e.g. by another repository operation).
@@ -137,6 +139,27 @@ class EditorViewModel(
 
     private fun isCodeFile(name: String): Boolean =
         name.substringAfterLast('.', "").lowercase() in CODE_FILE_EXTENSIONS
+
+    /**
+     * Static "sync": read the Gradle project off disk and index the open module's declarations plus its
+     * resolved dependency classes, so completion and diagnostics resolve project symbols instead of only
+     * the built-in stdlib catalog. Best-effort — a non-Gradle or unreadable project just leaves the index
+     * empty, preserving the previous behaviour.
+     */
+    private fun syncProjectSymbols(projectPath: String) {
+        tryToExecute(
+            block = {
+                val root = java.io.File(projectPath)
+                if (!gradleProjectReader.isGradleProject(root)) {
+                    com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY
+                } else {
+                    val model = gradleProjectReader.read(root).model
+                    com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model)
+                }
+            },
+            onSuccess = { index -> updateState { copy(projectIndex = index) } },
+        )
+    }
 
     private suspend fun onExternalFileEvent(event: FileChangeEvent) {
         if (event.type != FileChangeType.MODIFIED) return

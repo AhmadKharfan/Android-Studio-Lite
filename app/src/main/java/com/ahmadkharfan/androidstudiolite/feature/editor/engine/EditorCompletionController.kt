@@ -3,14 +3,30 @@ class EditorCompletionController(
     private val lspEnabled: (EditorLanguage) -> Boolean = { false },
 ) {
     private val builtInCache = HashMap<EditorLanguage, BuiltInCompletionProvider>()
+
+    /**
+     * Symbols the last project sync made resolvable. Set by the editor when a project opens/re-syncs;
+     * empty otherwise, in which case completion falls back to the built-in catalog exactly as before.
+     */
+    var projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
+        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY
+
+    private val projectProvider =
+        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolCompletionProvider { projectIndex }
+
     private fun providersFor(language: EditorLanguage): List<CompletionProvider> {
         val builtIn = builtInCache.getOrPut(language) {
             BuiltInCompletionProvider(language)
         }
-        if (!lspEnabled(language)) return listOf(builtIn)
+        // Project symbols only make sense for the JVM languages the index understands.
+        val withProject: (List<CompletionProvider>) -> List<CompletionProvider> = { base ->
+            if (language == EditorLanguage.Kotlin || language == EditorLanguage.Java) listOf(projectProvider) + base
+            else base
+        }
+        if (!lspEnabled(language)) return withProject(listOf(builtIn))
         return when (language) {
-            EditorLanguage.Kotlin -> listOf(builtIn)
-            EditorLanguage.Java -> listOf(JavaLanguageServicePlaceholder, builtIn)
+            EditorLanguage.Kotlin -> withProject(listOf(builtIn))
+            EditorLanguage.Java -> withProject(listOf(JavaLanguageServicePlaceholder, builtIn))
             else -> listOf(builtIn)
         }
     }

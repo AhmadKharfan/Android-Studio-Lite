@@ -1,7 +1,13 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine
 object LanguageDiagnostics {
-    fun analyze(text: String, language: EditorLanguage, semantic: Boolean = true, filePath: String = ""): List<Diagnostic> = when (language) {
-        EditorLanguage.Kotlin, EditorLanguage.Java -> analyzeCode(text, language, semantic)
+    fun analyze(
+        text: String,
+        language: EditorLanguage,
+        semantic: Boolean = true,
+        filePath: String = "",
+        knownSymbols: Set<String> = emptySet(),
+    ): List<Diagnostic> = when (language) {
+        EditorLanguage.Kotlin, EditorLanguage.Java -> analyzeCode(text, language, semantic, knownSymbols)
         EditorLanguage.Xml -> com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend.analyze(text, filePath)
         EditorLanguage.Plain -> emptyList()
     }
@@ -10,7 +16,12 @@ object LanguageDiagnostics {
     fun kotlinHeuristic(text: String, semantic: Boolean = true): List<Diagnostic> =
         analyzeCode(text, EditorLanguage.Kotlin, semantic)
 
-    private fun analyzeCode(text: String, language: EditorLanguage, semantic: Boolean = true): List<Diagnostic> {
+    private fun analyzeCode(
+        text: String,
+        language: EditorLanguage,
+        semantic: Boolean = true,
+        knownSymbols: Set<String> = emptySet(),
+    ): List<Diagnostic> {
         val out = ArrayList<Diagnostic>()
         val stack = ArrayDeque<Pair<Char, Int>>()
         var i = 0
@@ -61,7 +72,7 @@ object LanguageDiagnostics {
             out.addAll(composeChecks(text))
         }
         if (semantic && language == EditorLanguage.Kotlin) {
-            out.addAll(semanticDiagnostics(text))
+            out.addAll(semanticDiagnostics(text, knownSymbols))
         }
         return out.sortedBy { it.start }
     }
@@ -399,14 +410,15 @@ object LanguageDiagnostics {
 
     private class Ref(val name: String, val start: Int, val end: Int, val prev: Char, val next: Char)
 
-    private fun semanticDiagnostics(text: String): List<Diagnostic> {
+    private fun semanticDiagnostics(text: String, knownSymbols: Set<String> = emptySet()): List<Diagnostic> {
         val inCode = codeMask(text)
         val refs = identifiers(text, inCode)
         val imports = importSimpleNames(text)
         if (imports.wildcard) {
             return emptyList()
         }
-        val declared = declaredNames(text, refs) + imports.names + BUILTINS + KOTLIN_KEYWORDS + KOTLIN_SOFT_KEYWORDS
+        val declared = declaredNames(text, refs) + imports.names + knownSymbols +
+            BUILTINS + KOTLIN_KEYWORDS + KOTLIN_SOFT_KEYWORDS
         val out = ArrayList<Diagnostic>()
         for ((index, r) in refs.withIndex()) {
             if (r.name.length < 2) continue

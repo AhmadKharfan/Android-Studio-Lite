@@ -99,6 +99,9 @@ data class EditorUiState(
     val activeDiagnostics: List<DiagnosticUiModel> = emptyList(),
     val diagnosticRevealNonce: Int = 0,
     val diagnosticRevealOffset: Int = 0,
+    /** Project + dependency symbols from the last static sync; drives project-aware completion/diagnostics. */
+    val projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
+        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }

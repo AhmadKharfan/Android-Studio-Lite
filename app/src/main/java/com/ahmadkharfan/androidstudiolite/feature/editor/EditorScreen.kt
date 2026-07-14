@@ -308,6 +308,7 @@ private fun EditorCodeSurface(
                     onDiagnostics = { onDiagnostics(activeTab.id, it) },
                     revealNonce = uiState.diagnosticRevealNonce,
                     revealOffset = uiState.diagnosticRevealOffset,
+                    projectIndex = uiState.projectIndex,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
             } else {

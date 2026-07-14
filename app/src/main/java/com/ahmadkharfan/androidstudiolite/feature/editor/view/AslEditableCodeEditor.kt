@@ -58,6 +58,8 @@ fun AslEditableCodeEditor(
     onDiagnostics: (List<Diagnostic>) -> Unit = {},
     revealNonce: Int = 0,
     revealOffset: Int = 0,
+    projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
+        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
 ) {
     val colors = AslTheme.colors
     val density = LocalDensity.current
@@ -124,8 +126,9 @@ fun AslEditableCodeEditor(
                         com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage.Xml -> lspXml
                         com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage.Plain -> false
                     }
-                    LanguageDiagnostics.analyze(s.text, s.language, semantic, s.filePath)
+                    LanguageDiagnostics.analyze(s.text, s.language, semantic, s.filePath, projectIndex.simpleNames)
                 }
+                view.setProjectIndex(projectIndex)
                 view.onDiagnostics = onDiagnostics
                 view.bind(session, onEdited, onCaretMoved)
                 view.updateOptions(

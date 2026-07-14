@@ -103,6 +103,13 @@ class CodeEditorView(context: Context) : View(context) {
             }
         },
     )
+    /** Feed the latest synced project/dependency symbols into completion (diagnostics read them via the analyzer). */
+    fun setProjectIndex(index: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex) {
+        if (completionController.projectIndex !== index) {
+            completionController.projectIndex = index
+            if (session != null) scheduleAnalysis()
+        }
+    }
     private var completionActive = false
     private var completionItems: List<CompletionItem> = emptyList()
     private var completionSelected = 0

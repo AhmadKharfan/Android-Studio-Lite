@@ -70,6 +70,7 @@ val viewModelModule = module {
             fileTreeRepository = get(),
             fileContentRepository = get(),
             preferencesRepository = get(),
+            gradleProjectReader = get(),
         )
     }
 }
