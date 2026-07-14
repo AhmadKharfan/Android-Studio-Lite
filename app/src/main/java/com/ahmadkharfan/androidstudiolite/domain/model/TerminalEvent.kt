@@ -14,6 +14,13 @@ sealed interface TerminalEvent {
     /** One line of merged stdout/stderr produced by the shell. */
     data class Output(val line: TerminalOutputLine) : TerminalEvent
 
+    /**
+     * A raw, still-encoded chunk of terminal output from a PTY session — control sequences intact,
+     * not split on line boundaries. Consumers feed it to a terminal emulator. Only PTY-backed
+     * repositories emit this; the line-oriented session emits [Output] instead.
+     */
+    data class Bytes(val text: String) : TerminalEvent
+
     /** Emitted once the command most recently sent has completed, carrying its shell exit code. */
     data class CommandFinished(val exitCode: Int) : TerminalEvent
 

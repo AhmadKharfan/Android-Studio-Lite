@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,9 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,22 +21,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalBlock
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalUiState
-import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalViewModel
 
-private val EXTRA_KEYS = listOf("Esc", "Ctrl", "Alt", "Tab", "/", "|", "←", "↑", "↓", "→")
+// On-screen helper keys for things a soft keyboard makes awkward (Esc, arrows, Ctrl-C, pipes).
+private val EXTRA_KEYS = listOf("Esc", "Tab", "Ctrl+C", "←", "↑", "↓", "→", "/", "|", "~", "-")
 
 @Composable
 fun TerminalRoute(onBack: () -> Unit, viewModel: TerminalViewModel = koinViewModel()) {
@@ -56,7 +49,16 @@ private fun TerminalScreen(
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             TerminalTopBar(uiState = uiState, interactionListener = interactionListener, onBack = onBack, colors = colors)
-            TerminalOutputAndInput(uiState = uiState, interactionListener = interactionListener, modifier = Modifier.weight(1f), colors = colors)
+            TerminalEmulatorView(
+                screen = uiState.screen,
+                background = colors.terminalBg,
+                foreground = colors.terminalStdout,
+                cursorColor = colors.terminalPrompt,
+                onKey = { interactionListener.onKeyInput(it) },
+                onSpecialKey = { interactionListener.onSpecialKey(it) },
+                onResize = { rows, cols -> interactionListener.onResize(rows, cols) },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
             TerminalExtraKeysRow(interactionListener = interactionListener, colors = colors)
         }
     }
@@ -85,7 +87,7 @@ private fun TerminalTopBar(
             ) {
                 Text(text = "Terminal", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                 Text(
-                    text = "· session ${uiState.sessionNumber}",
+                    text = "· session ${uiState.sessionNumber}${if (!uiState.running) " · exited" else ""}",
                     style = AslCode.codeTiny,
                     color = colors.textTertiary,
                 )
@@ -94,44 +96,6 @@ private fun TerminalTopBar(
             AslIconButton(icon = "settings-2", contentDescription = "Terminal settings", onClick = {})
         }
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
-    }
-}
-
-@Composable
-private fun TerminalOutputAndInput(
-    uiState: TerminalUiState,
-    interactionListener: TerminalInteractionListener,
-    modifier: Modifier = Modifier,
-    colors: AslColorScheme,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(colors.terminalBg),
-    ) {
-        AslTerminalBlock(
-            lines = uiState.lines,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            shape = AslShape.none,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 18.dp)
-                .padding(horizontal = 14.dp, vertical = 2.dp),
-        ) {
-            Text(text = "$ ", style = AslCode.codeSmall, color = colors.terminalPrompt)
-            BasicTextField(
-                value = uiState.input,
-                onValueChange = { interactionListener.onInputChanged(it) },
-                textStyle = AslCode.codeSmall.copy(color = colors.terminalStdout),
-                cursorBrush = SolidColor(colors.terminalPrompt),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { interactionListener.onSubmitCommand() }),
-                modifier = Modifier.weight(1f),
-            )
-        }
     }
 }
 
@@ -165,6 +129,7 @@ private fun ExtraKeyChip(label: String, onClick: () -> Unit) {
             .defaultMinSize(minWidth = 44.dp)
             .background(colors.surfaceContainerHigh, AslShape.sm)
             .border(1.dp, colors.borderDefault, AslShape.sm)
+            .clickable(onClick = onClick)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {

@@ -1,97 +1,91 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
+
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalLine
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalLineKind
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
-import com.ahmadkharfan.androidstudiolite.domain.model.TerminalLineKind
-import com.ahmadkharfan.androidstudiolite.domain.model.TerminalOutputLine
 import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
+import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulator
+import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalScreen
 import kotlinx.coroutines.launch
 
-private val INITIAL_LINES = listOf(
-    AslTerminalLine("AndroidStudioLite shell — line-oriented (no PTY yet).", AslTerminalLineKind.Stdout),
-)
-
-private val INSERTABLE_KEYS = setOf("/", "|")
+private const val DEFAULT_ROWS = 24
+private const val DEFAULT_COLS = 80
 
 class TerminalViewModel(
     private val terminalRepository: TerminalRepository,
 ) : BaseViewModel<TerminalUiState, Nothing>(
-    initialState = TerminalUiState(lines = INITIAL_LINES),
+    initialState = TerminalUiState(screen = TerminalScreen.blank(DEFAULT_ROWS, DEFAULT_COLS)),
 ), TerminalInteractionListener {
+
+    /** The emulator is the single source of truth for the screen; all access goes through [emulatorLock]. */
+    private var emulator = TerminalEmulator(DEFAULT_ROWS, DEFAULT_COLS)
+    private val emulatorLock = Any()
 
     init {
         // Subscribe before the session starts — the repository's stream has no replay buffer.
         observeSession()
-        viewModelScope.launch { terminalRepository.start() }
+        viewModelScope.launch { terminalRepository.start(rows = DEFAULT_ROWS, cols = DEFAULT_COLS) }
     }
 
     private fun observeSession() {
         viewModelScope.launch {
             terminalRepository.events.collect { event ->
                 when (event) {
-                    is TerminalEvent.Output ->
-                        updateState { copy(lines = lines + event.line.toUiLine()) }
-
-                    is TerminalEvent.CommandFinished ->
-                        updateState { copy(running = false) }
-
-                    TerminalEvent.SessionEnded ->
-                        updateState {
-                            copy(
-                                running = false,
-                                lines = lines + AslTerminalLine("[process exited]", AslTerminalLineKind.Stderr),
-                            )
-                        }
+                    is TerminalEvent.Bytes -> pushScreen { feed(event.text) }
+                    // Line-oriented events shouldn't occur on a PTY, but stay tolerant if a fallback repo is wired.
+                    is TerminalEvent.Output -> pushScreen { feed(event.line.text + "\r\n") }
+                    is TerminalEvent.CommandFinished -> Unit
+                    TerminalEvent.SessionEnded -> updateState { copy(running = false) }
                 }
             }
         }
     }
 
-    override fun onInputChanged(value: String) {
-        updateState { copy(input = value) }
+    private inline fun pushScreen(block: TerminalEmulator.() -> Unit) {
+        val snapshot = synchronized(emulatorLock) {
+            emulator.block()
+            emulator.snapshot()
+        }
+        updateState { copy(screen = snapshot) }
+    }
+
+    override fun onKeyInput(text: String) {
+        if (text.isEmpty()) return
+        viewModelScope.launch { terminalRepository.writeInput(text) }
+    }
+
+    override fun onSpecialKey(key: TerminalKey) {
+        viewModelScope.launch { terminalRepository.writeInput(TerminalKeys.bytes(key)) }
+    }
+
+    override fun onResize(rows: Int, cols: Int) {
+        val r = rows.coerceAtLeast(1)
+        val c = cols.coerceAtLeast(1)
+        val snapshot = synchronized(emulatorLock) {
+            if (emulator.rows == r && emulator.cols == c) return
+            emulator.resize(r, c)
+            emulator.snapshot()
+        }
+        updateState { copy(screen = snapshot) }
+        viewModelScope.launch { terminalRepository.resize(r, c) }
     }
 
     override fun onExtraKeyPressed(key: String) {
-        if (key in INSERTABLE_KEYS) {
-            updateState { copy(input = input + key) }
-        }
+        TerminalKeys.specialForExtraKey(key)?.let { onSpecialKey(it); return }
+        TerminalKeys.textForExtraKey(key)?.let { onKeyInput(it) }
     }
 
     override fun onNewSession() {
         viewModelScope.launch {
             terminalRepository.stop()
-            updateState {
-                copy(sessionNumber = sessionNumber + 1, lines = emptyList(), input = "", running = false)
+            val (rows, cols) = synchronized(emulatorLock) {
+                emulator = TerminalEmulator(emulator.rows, emulator.cols)
+                emulator.rows to emulator.cols
             }
-            terminalRepository.start()
+            updateState {
+                copy(sessionNumber = sessionNumber + 1, screen = TerminalScreen.blank(rows, cols), running = true)
+            }
+            terminalRepository.start(rows = rows, cols = cols)
         }
     }
-
-    override fun onSubmitCommand() {
-        submitCommand()
-    }
-
-    private fun submitCommand() {
-        val command = state.value.input.trim()
-        if (command.isEmpty()) return
-        if (command == "clear") {
-            updateState { copy(lines = emptyList(), input = "") }
-            return
-        }
-        updateState {
-            copy(lines = lines + AslTerminalLine(command, AslTerminalLineKind.Cmd), input = "", running = true)
-        }
-        viewModelScope.launch { terminalRepository.send(command) }
-    }
-
-    private fun TerminalOutputLine.toUiLine() = AslTerminalLine(
-        text = text,
-        kind = when (kind) {
-            TerminalLineKind.Stdout -> AslTerminalLineKind.Stdout
-            TerminalLineKind.Stderr -> AslTerminalLineKind.Stderr
-            TerminalLineKind.Success -> AslTerminalLineKind.Success
-        },
-    )
 }

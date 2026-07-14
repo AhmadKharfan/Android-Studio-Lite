@@ -33,7 +33,7 @@ class ProjectSymbolIndexTest {
         val kotlinRoot = File(moduleDir, "src/main/kotlin").apply { mkdirs() }
         for ((relPath, content) in sources) {
             val file = File(kotlinRoot, relPath)
-            file.parentFile.mkdirs()
+            file.parentFile?.mkdirs()
             file.writeText(content)
         }
         val module = ModuleModel(
@@ -44,7 +44,7 @@ class ProjectSymbolIndexTest {
             sourceSets = listOf(SourceSetModel(name = "main", kotlinDirs = listOf(kotlinRoot))),
             dependencies = jars.map { DependencyModel("dep:${it.name}", DependencyScope.IMPLEMENTATION, it) },
         )
-        return ProjectModel(name = "fixture", rootDir = moduleDir.parentFile, modules = listOf(module))
+        return ProjectModel(name = "fixture", rootDir = tmp.root, modules = listOf(module))
     }
 
     /** Write a jar containing empty entries for the given class binary names (slash-separated). */

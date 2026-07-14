@@ -16,12 +16,25 @@ interface TerminalRepository {
 
     /**
      * Launches the shell rooted at [workingDirectory] (defaults to the IDE home). Idempotent: a no-op
-     * while a session is already running.
+     * while a session is already running. [rows]/[cols] size a PTY session's initial window; the
+     * line-oriented implementation ignores them.
      */
-    suspend fun start(workingDirectory: String? = null)
+    suspend fun start(workingDirectory: String? = null, rows: Int = 24, cols: Int = 80)
 
     /** Writes a single command line to the shell's stdin, starting a session first if needed. */
     suspend fun send(command: String)
+
+    /**
+     * Writes raw bytes (keystrokes, escape sequences, Ctrl-C, …) to the terminal with no added newline.
+     * Only meaningful for a PTY session; the line-oriented default treats it as a no-op.
+     */
+    suspend fun writeInput(text: String) {}
+
+    /**
+     * Notifies the terminal it was resized to [rows]×[cols] so the child reflows (SIGWINCH). No-op for
+     * the line-oriented session, which has no window.
+     */
+    suspend fun resize(rows: Int, cols: Int) {}
 
     /** Terminates the shell and releases its streams. */
     suspend fun stop()

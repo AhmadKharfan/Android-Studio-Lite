@@ -1,12 +1,12 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
-import androidx.compose.runtime.Immutable
 
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTerminalLine
+import androidx.compose.runtime.Immutable
+import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalScreen
 
 @Immutable
 data class TerminalUiState(
     val sessionNumber: Int = 1,
-    val lines: List<AslTerminalLine> = emptyList(),
-    val input: String = "",
-    val running: Boolean = false,
+    /** The emulated screen grid rendered by the terminal view; updated as PTY output arrives. */
+    val screen: TerminalScreen = TerminalScreen.blank(24, 80),
+    val running: Boolean = true,
 )

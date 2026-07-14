@@ -53,7 +53,7 @@ class ShellTerminalRepository(
     private var writer: BufferedWriter? = null
     private var scope: CoroutineScope? = null
 
-    override suspend fun start(workingDirectory: String?): Unit = lifecycle.withLock {
+    override suspend fun start(workingDirectory: String?, rows: Int, cols: Int): Unit = lifecycle.withLock {
         if (process != null) return@withLock
         val dir = workingDirectory?.let(::File) ?: defaultWorkingDirectory()
         val sessionScope = CoroutineScope(ioDispatcher + SupervisorJob())

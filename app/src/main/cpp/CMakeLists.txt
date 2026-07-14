@@ -15,3 +15,7 @@ set_target_properties(asl_env_probe PROPERTIES
 
 # Position-independent executable (required on Android) and keep it tiny.
 target_link_options(asl_env_probe PRIVATE "-pie")
+
+# JNI pseudo-terminal shim (T12): a real shared library the app loads with System.loadLibrary("asl_pty").
+# forkpty/openpty live in bionic's libc on Android, so no extra link libraries are needed.
+add_library(asl_pty SHARED asl_pty.c)
