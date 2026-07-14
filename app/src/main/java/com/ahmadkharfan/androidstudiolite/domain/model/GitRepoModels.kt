@@ -32,3 +32,13 @@ data class GitSyncResult(
     val success: Boolean,
     val detail: String,
 )
+
+/**
+ * The remote a project can be built from server-side: the current branch's tracked remote URL and the
+ * ref (branch name) to check out. Resolved from a working tree so a cloned project can build by Git
+ * clone instead of zip-upload. Null when the directory isn't a git repo or has no configured remote.
+ */
+data class GitRemoteInfo(
+    val url: String,
+    val ref: String,
+)

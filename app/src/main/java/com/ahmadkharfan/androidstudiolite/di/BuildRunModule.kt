@@ -4,10 +4,13 @@ import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteBuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildNotifier
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import java.io.File
+import kotlinx.coroutines.flow.first
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -21,12 +24,18 @@ import org.koin.dsl.module
  */
 val buildRunModule = module {
     single<BuildSystem> {
+        val preferences = get<PreferencesRepository>()
+        val gitRepository = get<GitRepository>()
+        val keystoreManager = get<KeystoreManager>()
         RemoteBuildSystem(
             client = get(),
             packager = get(),
             artifactDownloader = get(),
             gradleReader = get(),
             sourceDir = File(androidContext().cacheDir, "build-sources"),
+            preferGitSource = { preferences.observePreferences().first().preferGitSource },
+            gitSourceResolver = { root -> gitRepository.remoteInfo(root) },
+            releaseSigningResolver = { keystoreManager.releaseSigningConfig() },
         )
     }
     single<KeystoreManager> { AndroidKeystoreManager(androidContext()) }

@@ -9,24 +9,51 @@ import kotlinx.serialization.Serializable
  * the shared [RemoteJson] instance so the schema can grow additively.
  */
 
-/** `POST /v1/devices` request. Attestation is optional (Phase 4). */
+/**
+ * `POST /v1/devices` request. [integrityToken] is an optional Play Integrity token (Phase 4); the
+ * server ignores it while `PLAY_INTEGRITY_REQUIRED=false`, so registration works without it.
+ */
 @Serializable
-data class RegisterDeviceRequest(val attestation: String? = null)
+data class RegisterDeviceRequest(val integrityToken: String? = null)
 
 /** `POST /v1/devices` response — mints an anonymous device token. */
 @Serializable
 data class RegisterDeviceResponse(val deviceToken: String, val createdAt: Long? = null)
 
-/** `POST /v1/builds` request. Mirrors `BuildRequest`; the source is uploaded/cloned, not sent here. */
+/**
+ * `POST /v1/builds` request. Mirrors `BuildRequest`; the source is uploaded (`zip`) or cloned (`git`),
+ * not sent here. Field names match the control plane's `CreateBuildRequest` (`variant`, `tasks`); the
+ * worker runs `./gradlew <tasks>` and the server names the artifact from `variant`. [signing] carries
+ * the user's release keystore material for `assembleRelease`/`bundleRelease` and is transmitted over
+ * TLS; it is absent (null) for debug builds. The server ignores it until server-side release signing
+ * ships (see the server repo's `docs/secrets.md`), so this is a forward-compatible additive field.
+ */
 @Serializable
 data class CreateBuildRequest(
     val sourceType: String = "zip",
     val gitUrl: String? = null,
     val ref: String? = null,
     val modulePath: String,
-    val variantName: String,
+    val variant: String,
     val kind: String,
     val tasks: List<String>? = null,
+    val signing: SigningMaterial? = null,
+)
+
+/**
+ * Release-signing material uploaded with a release build. The keystore bytes are base64-encoded and
+ * the passwords travel in the request body — sent only over TLS. The server encrypts it at rest,
+ * injects it into the per-build sandbox, and wipes it when the build finishes (server `docs/secrets.md`).
+ */
+@Serializable
+data class SigningMaterial(
+    /** Base64 (no-wrap) of the keystore file bytes. */
+    val keystoreBase64: String,
+    val storePassword: String,
+    val keyAlias: String,
+    val keyPassword: String,
+    /** Original keystore file name, for logs/audit only. */
+    val keystoreName: String,
 )
 
 /** `POST /v1/builds` response — a build id plus (for zip source) a presigned upload URL. */

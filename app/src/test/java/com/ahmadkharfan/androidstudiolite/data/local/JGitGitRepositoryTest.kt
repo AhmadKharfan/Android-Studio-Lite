@@ -10,6 +10,7 @@ import org.eclipse.jgit.api.Git
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -177,6 +178,42 @@ class JGitGitRepositoryTest {
         val plain = temp.newFolder("not-a-repo")
         assertFalse(repo.isRepository(plain))
         assertFalse(repo.observeState(plain).value.isRepository)
+    }
+
+    @Test
+    fun `remoteInfo returns the origin url and current branch for a clone`() = runTest {
+        val projectsHome = temp.newFolder("projects")
+        val repo = repository(projectsHome)
+        val source = seedRepo(temp.newFolder("origin"))
+
+        repo.clone(source.toURI().toString(), branch = null, credentials = null).toList()
+        val cloned = File(projectsHome, "origin")
+
+        val info = repo.remoteInfo(cloned)
+        assertNotNull(info)
+        // JGit stores the origin URL it cloned from; it points at the seeded source repo.
+        assertTrue(info!!.url, info.url.contains("origin"))
+        // The default branch checked out by the clone (master/main depending on JGit defaults).
+        assertTrue(info.ref.isNotBlank())
+    }
+
+    @Test
+    fun `remoteInfo is null for a local-only repo with no remote`() = runTest {
+        val repo = repository()
+        val dir = temp.newFolder("local-only")
+        repo.init(dir)
+        writeFile(dir, "a.txt", "x\n")
+        repo.stage(dir, "a.txt")
+        repo.setCommitMessage(dir, "c")
+        repo.commit(dir)
+
+        assertNull(repo.remoteInfo(dir))
+    }
+
+    @Test
+    fun `remoteInfo is null for a non-repository directory`() = runTest {
+        val repo = repository()
+        assertNull(repo.remoteInfo(temp.newFolder("plain")))
     }
 
     /** Create a non-bare repo with one committed file, usable as a clone source. */

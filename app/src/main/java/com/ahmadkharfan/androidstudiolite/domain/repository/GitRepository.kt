@@ -5,6 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
+import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +64,13 @@ interface GitRepository {
     suspend fun pull(repoDir: File): GitSyncResult
 
     suspend fun isRepository(repoDir: File): Boolean
+
+    /**
+     * The remote URL + current branch to build [repoDir] from server-side (via Git clone), or null
+     * when [repoDir] isn't a repo, has no HEAD branch (detached/unborn), or the branch's remote has no
+     * URL. Prefers the current branch's tracking remote, falling back to `origin`.
+     */
+    suspend fun remoteInfo(repoDir: File): GitRemoteInfo?
 
     /** Initialise a new empty repository at [repoDir]. */
     suspend fun init(repoDir: File)

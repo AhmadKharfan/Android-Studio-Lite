@@ -1,9 +1,13 @@
 package com.ahmadkharfan.androidstudiolite.di
 
+import com.ahmadkharfan.androidstudiolite.BuildConfig
 import com.ahmadkharfan.androidstudiolite.data.remote.ArtifactDownloader
 import com.ahmadkharfan.androidstudiolite.data.remote.ProjectPackager
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteClient
 import com.ahmadkharfan.androidstudiolite.data.remote.ServerSettingsRepository
+import com.ahmadkharfan.androidstudiolite.data.remote.attestation.IntegrityTokenProvider
+import com.ahmadkharfan.androidstudiolite.data.remote.attestation.NoopIntegrityTokenProvider
+import com.ahmadkharfan.androidstudiolite.data.remote.attestation.PlayIntegrityTokenProvider
 import com.ahmadkharfan.androidstudiolite.feature.settings.server.ServerSettingsViewModel
 import java.io.File
 import org.koin.android.ext.koin.androidContext
@@ -18,7 +22,17 @@ import org.koin.dsl.module
  */
 val remoteModule = module {
     single { ServerSettingsRepository(androidContext()) }
-    single { RemoteClient(settings = get()) }
+    // Play Integrity attestation (A3). Gated by BuildConfig so dev builds (no Play Services, unlinked
+    // cloud project) register without it; the real provider fails soft to null anyway.
+    single<IntegrityTokenProvider> {
+        val projectNumber = BuildConfig.PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER
+        if (BuildConfig.PLAY_INTEGRITY_ENABLED && projectNumber > 0L) {
+            PlayIntegrityTokenProvider(androidContext(), projectNumber)
+        } else {
+            NoopIntegrityTokenProvider
+        }
+    }
+    single { RemoteClient(settings = get(), integrityProvider = get()) }
     single { ProjectPackager() }
     single { ArtifactDownloader(client = get(), downloadDir = File(androidContext().cacheDir, "build-artifacts")) }
     viewModel { ServerSettingsViewModel(settings = get(), client = get()) }

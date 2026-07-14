@@ -29,6 +29,7 @@ class BuildRunViewModel(
                         launchAfterInstall = prefs.launchAfterInstall,
                         installViaShizuku = prefs.installViaShizuku,
                         buildOutputAab = prefs.buildOutputAab,
+                        preferGitSource = prefs.preferGitSource,
                     )
                 }
             },
@@ -75,6 +76,10 @@ class BuildRunViewModel(
 
     override fun onToggleAabOutput(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.update { it.copy(buildOutputAab = enabled) } }
+    }
+
+    override fun onTogglePreferGitSource(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.update { it.copy(preferGitSource = enabled) } }
     }
 
     override fun onOpenKeystoreDialog(mode: KeystoreDialogMode) {

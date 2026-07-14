@@ -10,8 +10,11 @@ import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RegisterDeviceReq
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RegisterDeviceResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RemoteJson
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.WireProjectModel
+import com.ahmadkharfan.androidstudiolite.data.remote.attestation.IntegrityTokenProvider
+import com.ahmadkharfan.androidstudiolite.data.remote.attestation.NoopIntegrityTokenProvider
 import java.io.File
 import java.io.IOException
+import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -41,9 +44,11 @@ import okhttp3.WebSocketListener
 class RemoteClient(
     private val settings: ServerSettingsRepository,
     private val httpClient: OkHttpClient = defaultClient(),
+    private val integrityProvider: IntegrityTokenProvider = NoopIntegrityTokenProvider,
 ) {
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+    private val nonceRandom = SecureRandom()
 
     private suspend fun baseUrl(): String = settings.current().baseUrl.trimEnd('/')
 
@@ -53,9 +58,14 @@ class RemoteClient(
     suspend fun ensureDeviceToken(): String =
         settings.current().deviceToken?.takeIf { it.isNotBlank() } ?: registerDevice()
 
-    /** Registers this device (`POST /v1/devices`), persists and returns the minted token. */
-    suspend fun registerDevice(attestation: String? = null): String {
-        val body = RemoteJson.encodeToString(RegisterDeviceRequest(attestation)).toRequestBody(jsonMediaType)
+    /**
+     * Registers this device (`POST /v1/devices`), persists and returns the minted token. Attaches a
+     * best-effort Play Integrity token (null when attestation is disabled/unavailable — see
+     * [IntegrityTokenProvider]); the request never fails just because attestation couldn't be produced.
+     */
+    suspend fun registerDevice(): String {
+        val integrityToken = integrityProvider.requestToken(newNonce())
+        val body = RemoteJson.encodeToString(RegisterDeviceRequest(integrityToken)).toRequestBody(jsonMediaType)
         val request = Request.Builder()
             .url("${baseUrl()}/v1/devices")
             .post(body)
@@ -190,6 +200,12 @@ class RemoteClient(
             delay(BASE_BACKOFF_MS shl attempt)
             attempt++
         }
+    }
+
+    /** A fresh random request-hash/nonce for Play Integrity, lowercase hex (URL/JSON-safe). */
+    private fun newNonce(): String {
+        val bytes = ByteArray(16).also(nonceRandom::nextBytes)
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     private inline fun <reified T> decode(snapshot: ResponseSnapshot): T =

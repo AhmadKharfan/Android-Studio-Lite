@@ -156,6 +156,25 @@ private fun BuildRunOutputSection(
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
     )
+
+    Spacer(Modifier.height(20.dp))
+    HubSectionHeader("Build source")
+    SectionCard(colors) {
+        AslSwitch(
+            label = "Build from Git remote when available",
+            checked = uiState.preferGitSource,
+            onCheckedChange = { interactionListener.onTogglePreferGitSource(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    Text(
+        text = "Cloned projects build by sending their Git URL + current branch to the server — no " +
+            "upload. Uncommitted changes are NOT included; commit and push first. Off (default): the " +
+            "local project is zipped and uploaded. Local-only projects always upload.",
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textTertiary,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+    )
 }
 
 @Composable

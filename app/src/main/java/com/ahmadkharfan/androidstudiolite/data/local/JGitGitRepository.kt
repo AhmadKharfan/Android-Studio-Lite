@@ -8,6 +8,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
@@ -241,6 +242,21 @@ class JGitGitRepository(
     }
 
     override suspend fun isRepository(repoDir: File): Boolean = withContext(io) { isRepo(repoDir) }
+
+    override suspend fun remoteInfo(repoDir: File): GitRemoteInfo? = withContext(io) {
+        if (!isRepo(repoDir)) return@withContext null
+        runCatching {
+            Git.open(repoDir).use { git ->
+                val repo = git.repository
+                // Detached HEAD / unborn branch → no ref to build from.
+                val branch = repo.branch?.takeIf { it.isNotBlank() && it != repo.resolve(Constants.HEAD)?.name }
+                    ?: return@runCatching null
+                val remote = BranchConfig(repo.config, branch).remote ?: Constants.DEFAULT_REMOTE_NAME
+                val url = remoteUrl(repo, remote)?.takeIf { it.isNotBlank() } ?: return@runCatching null
+                GitRemoteInfo(url = url, ref = branch)
+            }
+        }.getOrNull()
+    }
 
     override suspend fun init(repoDir: File): Unit = withContext(io) {
         repoDir.mkdirs()

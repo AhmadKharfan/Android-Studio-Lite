@@ -19,6 +19,7 @@ commonsCompress = "1.27.1"
 xz = "1.10"
 jgit = "6.10.0.202406032230-r"
 securityCrypto = "1.1.0-alpha06"
+playIntegrity = "1.4.0"
 desugarJdkLibs = "2.1.2"
 gradleToolingApi = "8.13"
 slf4j = "1.7.36"
@@ -60,6 +61,7 @@ commons-compress = { group = "org.apache.commons", name = "commons-compress", ve
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 jgit = { group = "org.eclipse.jgit", name = "org.eclipse.jgit", version.ref = "jgit" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 gradle-tooling-api = { group = "org.gradle", name = "gradle-tooling-api", version.ref = "gradleToolingApi" }

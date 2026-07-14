@@ -11,6 +11,11 @@ data class BuildRunUiState(
     val installViaShizuku: Boolean = false,
     /** Release builds emit an .aab bundle instead of an .apk. */
     val buildOutputAab: Boolean = false,
+    /**
+     * When on, projects with a Git remote build by sending the remote URL + branch to the server
+     * (no zip upload). Off = always zip-upload the local working tree (captures uncommitted changes).
+     */
+    val preferGitSource: Boolean = false,
     /** Path of the auto-managed debug keystore, shown read-only. */
     val debugKeystorePath: String = "",
     /** Summary of the configured release keystore ("path · alias"), or null when none is set. */

@@ -8,6 +8,7 @@ interface BuildRunInteractionListener {
     fun onToggleLaunchAfterInstall(enabled: Boolean)
     fun onToggleInstallViaShizuku(enabled: Boolean)
     fun onToggleAabOutput(enabled: Boolean)
+    fun onTogglePreferGitSource(enabled: Boolean)
 
     // Release keystore management.
     fun onOpenKeystoreDialog(mode: KeystoreDialogMode)

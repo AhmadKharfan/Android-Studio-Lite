@@ -9,6 +9,8 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
+import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
+import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,12 +26,14 @@ import okhttp3.WebSocketListener
 
 /**
  * The production [BuildSystem]: runs builds on the server-side backend and streams the results into
- * the existing build console. A `build()` packages the project, uploads it, starts the build, and
- * relays the control-plane WebSocket's [BuildEvent] stream — downloading the produced artifact so the
- * unchanged install/run flow finds a real APK on disk. `cancel()` posts to the cancel endpoint;
- * `sync()` calls the server sync (falling back to the on-device static parser until it ships).
+ * the existing build console. A `build()` selects the source — a Git remote (A3, no upload) when the
+ * user opted in and the project has one, else zip-upload (A2's default) — starts the build, and relays
+ * the control-plane WebSocket's [BuildEvent] stream, downloading the produced artifact so the unchanged
+ * install/run flow finds a real APK on disk. Release builds attach the user's keystore material
+ * (over TLS) via [resolveSigning]. `cancel()` posts to the cancel endpoint; `sync()` calls the server
+ * sync (falling back to the on-device static parser until it ships).
  *
- * Bound in place of the temporary `FakeBuildSystem` in the Koin graph (A2).
+ * Bound as the single `BuildSystem` in the Koin graph.
  */
 class RemoteBuildSystem(
     private val client: RemoteClient,
@@ -38,6 +42,14 @@ class RemoteBuildSystem(
     private val gradleReader: GradleProjectReader,
     /** Scratch dir for source zips (e.g. `context.cacheDir/build-sources`). */
     private val sourceDir: File,
+    /** Whether the user opted to build from the project's Git remote when one exists (A3). */
+    private val preferGitSource: suspend () -> Boolean = { false },
+    /** Resolves the project's Git remote URL + current ref, or null for local-only projects. */
+    private val gitSourceResolver: suspend (File) -> GitRemoteInfo? = { null },
+    /** The user's remembered release keystore, or null when none is configured. */
+    private val releaseSigningResolver: suspend () -> SigningConfig? = { null },
+    /** Base64 encoder for the release keystore bytes (Android's by default; overridden in tests). */
+    private val encodeBase64: (ByteArray) -> String = { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) },
 ) : BuildSystem {
 
     /** Fire-and-forget scope for the cancel POST, whose lifetime is independent of the build flow. */
@@ -53,7 +65,7 @@ class RemoteBuildSystem(
                 CreateBuildRequest(
                     sourceType = "zip",
                     modulePath = ":app",
-                    variantName = "debug",
+                    variant = "debug",
                     kind = BuildKind.ASSEMBLE.name,
                 ),
             )
@@ -69,24 +81,27 @@ class RemoteBuildSystem(
         var zip: File? = null
         var socket: WebSocket? = null
         try {
-            // 1. Package the project (excludes build/.gradle/.idea/.git).
-            zip = File(sourceDir.apply { mkdirs() }, "src-${System.currentTimeMillis()}.zip")
-            packager.packageProject(projectRoot, zip)
+            // 1. Resolve the source: Git remote (no upload) when the user opted in and the project has
+            //    one, else zip-upload (A2's default, and always for local-only projects).
+            val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
+                gitSourceResolver(projectRoot)
+            } else {
+                null
+            }
+            val signing = resolveSigning(request)
 
-            // 2. Create the build; upload the source zip to the presigned URL.
+            // 2. Create the build. For zip source, package the project and upload to the presigned URL.
             val created = client.createBuild(
-                CreateBuildRequest(
-                    sourceType = "zip",
-                    modulePath = request.modulePath,
-                    variantName = request.variantName,
-                    kind = request.kind.name,
-                    tasks = defaultTasks(request),
-                ),
+                RemoteBuildRequestFactory.create(request, gitSource, signing),
             )
             currentBuildId = created.buildId
-            val uploadUrl = created.uploadUrl
-                ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
-            client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
+            if (gitSource == null) {
+                zip = File(sourceDir.apply { mkdirs() }, "src-${System.currentTimeMillis()}.zip")
+                packager.packageProject(projectRoot, zip)
+                val uploadUrl = created.uploadUrl
+                    ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
+                client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
+            }
 
             // 3. Start the build.
             client.startBuild(created.buildId)
@@ -140,14 +155,21 @@ class RemoteBuildSystem(
         cancelScope.launch { runCatching { client.cancelBuild(id) } }
     }
 
-    private fun defaultTasks(request: BuildRequest): List<String> {
-        val variant = request.variantName.replaceFirstChar { it.uppercase() }
-        return when (request.kind) {
-            BuildKind.ASSEMBLE -> listOf("assemble$variant")
-            BuildKind.BUNDLE -> listOf("bundle$variant")
-            BuildKind.CLEAN -> listOf("clean")
+    /**
+     * The release-signing payload for a release build, or null for debug builds / when no release
+     * keystore is set up. The keystore file + passwords are collected here and transmitted (over TLS)
+     * in the build request; the local copy stays in [com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager]'s
+     * EncryptedSharedPreferences.
+     */
+    private suspend fun resolveSigning(request: BuildRequest) =
+        if (RemoteBuildRequestFactory.isReleaseVariant(request.variantName)) {
+            RemoteBuildRequestFactory.releaseSigningMaterial(
+                config = releaseSigningResolver(),
+                encodeBase64 = encodeBase64,
+            )
+        } else {
+            null
         }
-    }
 
     /** Frames forwarded off the OkHttp WebSocket thread into the sequential build-flow consumer. */
     private sealed interface Frame {

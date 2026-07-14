@@ -25,6 +25,14 @@ android {
         // local docker-compose control plane by default until a real server is deployed.
         buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"http://10.0.2.2:8080\"")
 
+        // Gates Play Integrity attestation on device registration (POST /v1/devices). Off by default
+        // so dev builds without Play Services (emulators, sideloaded) still register; the server also
+        // ignores the token while PLAY_INTEGRITY_REQUIRED=false. Flip to true for a Play-signed release.
+        buildConfigField("boolean", "PLAY_INTEGRITY_ENABLED", "false")
+        // Cloud project number linked to the app in Play Console (App integrity → Play Integrity API).
+        // Placeholder until the app is linked; only read when PLAY_INTEGRITY_ENABLED is true.
+        buildConfigField("Long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "0L")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
@@ -84,6 +92,7 @@ dependencies {
     implementation(libs.xz)
     implementation(libs.jgit)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.play.integrity)
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
