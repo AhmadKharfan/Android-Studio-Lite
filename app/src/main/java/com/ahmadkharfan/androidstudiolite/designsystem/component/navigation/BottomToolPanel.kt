@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -172,11 +171,13 @@ fun AslBottomToolPanel(
         ) {
             Column {
                 HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+                // Fixed height only — NO verticalScroll here. The content fills this bounded height and
+                // does its own scrolling (the Build/Diagnostics tabs are LazyColumns); wrapping a
+                // same-orientation LazyColumn in a verticalScroll gives it infinite height and crashes.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(height)
-                        .verticalScroll(rememberScrollState()),
+                        .height(height),
                 ) {
                     content()
                 }
