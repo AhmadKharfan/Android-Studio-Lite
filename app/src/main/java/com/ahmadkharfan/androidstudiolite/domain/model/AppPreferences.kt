@@ -22,4 +22,6 @@ data class AppPreferences(
     val configurationCacheEnabled: Boolean = false,
     val launchAfterInstall: Boolean = true,
     val installViaShizuku: Boolean = false,
+    /** When true, release builds produce an Android App Bundle (.aab) instead of an APK. */
+    val buildOutputAab: Boolean = false,
 )

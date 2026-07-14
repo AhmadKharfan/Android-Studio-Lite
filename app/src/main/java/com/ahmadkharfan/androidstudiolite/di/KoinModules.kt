@@ -71,6 +71,7 @@ val viewModelModule = module {
             fileContentRepository = get(),
             preferencesRepository = get(),
             gradleProjectReader = get(),
+            buildRunCoordinator = get(),
         )
     }
 }
