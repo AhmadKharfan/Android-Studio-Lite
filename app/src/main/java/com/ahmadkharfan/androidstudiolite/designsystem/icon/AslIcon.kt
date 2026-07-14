@@ -193,6 +193,7 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "cpu" to Icons.Outlined.Memory,
     "database" to Icons.Outlined.Storage,
     "hard-drive" to Icons.Outlined.Storage,
+    "server" to Icons.Outlined.Storage,
     "package" to Icons.Outlined.Inventory2,
     "coffee" to Icons.Outlined.Coffee,
     "chart-no-axes-column" to Icons.Outlined.BarChart,

@@ -6,6 +6,7 @@ import com.ahmadkharfan.androidstudiolite.di.buildRunModule
 import com.ahmadkharfan.androidstudiolite.di.gitModule
 import com.ahmadkharfan.androidstudiolite.di.localDataModule
 import com.ahmadkharfan.androidstudiolite.di.preferencesModule
+import com.ahmadkharfan.androidstudiolite.di.remoteModule
 import com.ahmadkharfan.androidstudiolite.di.templatesModule
 import com.ahmadkharfan.androidstudiolite.di.terminalModule
 import org.koin.android.ext.koin.androidContext
@@ -19,9 +20,9 @@ class AslApplication : Application() {
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@AslApplication)
-            // Single flavor now (builds run server-side). buildRunModule binds BuildSystem to the
-            // temporary FakeBuildSystem until A2 wires RemoteBuildSystem.
-            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + buildRunModule)
+            // Single flavor (builds run server-side). buildRunModule binds BuildSystem to
+            // RemoteBuildSystem; remoteModule provides its transport, packager, downloader, settings.
+            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule)
         }
     }
 }

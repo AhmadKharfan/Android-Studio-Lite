@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -18,6 +19,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        // Default base URL of the server-side build backend (control plane). Overridable at runtime
+        // from Settings → Build server; this is only the initial value shown there. Points at the
+        // local docker-compose control plane by default until a real server is deployed.
+        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"http://10.0.2.2:8080\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -73,6 +79,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.commons.compress)
     implementation(libs.xz)
     implementation(libs.jgit)
@@ -83,6 +90,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -129,56 +129,59 @@ Upgrade with `Authorization: Bearer <token>` (or `?token=` query param where hea
 The server pushes one JSON **`BuildEvent`** object per message, in order, until a `Finished` event, then
 closes. Clients reconnecting mid-build receive a replay from the log archive followed by live events.
 
-Every message is a tagged union discriminated by `type`, matching the `BuildEvent` sealed interface:
+Every message is a tagged union discriminated by `type`, matching the `BuildEvent` sealed interface.
+The `type` values are **lowerCamelCase** — the server control plane / worker are the source of truth
+(see `asl-build-server/control-plane/PROTOCOL.md`); the app parser
+(`data/remote/protocol/BuildEventParser`) decodes exactly these tags.
 
-### `Started`
+### `started`
 ```json
-{ "type": "Started", "request": {
-    "modulePath": ":app", "variantName": "debug", "kind": "ASSEMBLE" } }
+{ "type": "started", "request": {
+    "buildId": "bld_1a2b3c", "modulePath": ":app", "variantName": "debug", "kind": "ASSEMBLE" } }
 ```
 
-### `Progress`
+### `progress`
 ```json
-{ "type": "Progress", "message": "Configuring project ':app'" }
+{ "type": "progress", "message": "Configuring project ':app'" }
 ```
 
-### `TaskStarted`
+### `taskStarted`
 ```json
-{ "type": "TaskStarted", "taskPath": ":app:compileDebugKotlin" }
+{ "type": "taskStarted", "taskPath": ":app:compileDebugKotlin" }
 ```
 
-### `TaskFinished`
+### `taskFinished`
 `result` is a `TaskResult`: `SUCCESS | UP_TO_DATE | SKIPPED | FAILED`.
 ```json
-{ "type": "TaskFinished", "taskPath": ":app:compileDebugKotlin", "result": "SUCCESS" }
+{ "type": "taskFinished", "taskPath": ":app:compileDebugKotlin", "result": "SUCCESS" }
 ```
 
-### `Output`
+### `output`
 A raw log line. `stream` is an `OutputStream`: `STDOUT | STDERR`.
 ```json
-{ "type": "Output", "line": "> Task :app:preBuild", "stream": "STDOUT" }
+{ "type": "output", "line": "> Task :app:preBuild", "stream": "STDOUT" }
 ```
 
-### `Problem`
+### `problem`
 A structured, navigable problem. `severity` is a `ProblemSeverity`: `ERROR | WARNING | INFO`.
 `file` is a project-relative path (or null); `line`/`column` are 1-based (or null).
 ```json
-{ "type": "Problem", "severity": "WARNING",
+{ "type": "problem", "severity": "WARNING",
   "message": "variable 'unused' is never used",
   "file": "app/src/main/java/MainActivity.kt", "line": 24, "column": 13 }
 ```
 
-### `ArtifactProduced`
-`kind` is an `ArtifactKind`: `APK | AAB | OTHER`. `file` is the object-storage key; the client fetches
-the actual bytes via `GET /v1/builds/{id}/artifact`.
+### `artifactProduced`
+`kind` is an `ArtifactKind`: `APK | AAB | OTHER`. `name` is the artifact's object name; the client
+fetches the actual bytes via `GET /v1/builds/{id}/artifact` and re-attaches a local `File`.
 ```json
-{ "type": "ArtifactProduced", "file": "artifacts/bld_1a2b3c/app-debug.apk", "kind": "APK" }
+{ "type": "artifactProduced", "name": "app-debug.apk", "kind": "APK" }
 ```
 
-### `Finished`
+### `finished`
 Terminal event; the server closes the socket after sending it.
 ```json
-{ "type": "Finished", "success": true, "durationMillis": 58000 }
+{ "type": "finished", "success": true, "durationMillis": 58000 }
 ```
 
 **Log archive:** the same NDJSON stream is persisted to `logs/{buildId}.ndjson` in object storage (one
@@ -256,7 +259,7 @@ POST /v1/devices                         → deviceToken (once, cached in DataSt
 POST /v1/builds {sourceType:"zip", …}    → buildId + presigned uploadUrl
 PUT  <uploadUrl>  (project zip)          → 200
 POST /v1/builds/{id}/start               → QUEUED
-WS   /v1/builds/{id}/stream              → Started → Progress/Task*/Output/Problem* → ArtifactProduced → Finished
+WS   /v1/builds/{id}/stream              → started → progress/task*/output/problem* → artifactProduced → finished
 GET  /v1/builds/{id}/artifact            → presigned downloadUrl
 GET  <downloadUrl>  (APK bytes)          → install + launch via PackageInstaller
 ```
