@@ -33,15 +33,11 @@ class GradleProjectReaderSelfParseTest {
         requireNotNull(root)
 
         val result = reader.read(root)
-        // The :app module is an Android application with our namespace and the play/full flavors.
+        // The :app module is a single-flavor Android application with our namespace.
         val app = result.model.modules.firstOrNull { it.path == ":app" }
         assertTrue("Expected an :app module, got ${result.model.modules.map { it.path }}", app != null)
         requireNotNull(app)
         assertTrue(app.type == ModuleType.ANDROID_APP)
-
-        val flavorNames = app.variants.flatMap { it.flavors }.toSet()
-        assertTrue("Expected play/full flavors, got ${app.variants.map { it.name }}",
-            flavorNames.containsAll(listOf("play", "full")))
 
         // Catalog references resolve to real coordinates.
         val coords = app.dependencies.mapNotNull { it.coordinate }

@@ -23,12 +23,11 @@ import kotlinx.coroutines.isActive
 /**
  * TEMPORARY, dev-only [BuildSystem]. Emits a scripted, realistic [BuildEvent] stream so the whole
  * build → install → run UI (task tree, streaming logs, structured problems, cancellation, artifacts)
- * is runnable and demonstrable **before** the real flavor backends land:
- *  - play → InProcessBuildSystem (T9)
- *  - full → GradleToolingBuildSystem (T10)
+ * is runnable and demonstrable **before** the real backend lands.
  *
- * Once either binds the real implementation per-flavor, this and its Koin binding are removed. It
- * performs no real compilation and produces a placeholder artifact path.
+ * Builds now run server-side; A2 binds `RemoteBuildSystem` (streaming the same [BuildEvent]s over a
+ * WebSocket) in place of this. Until then this stands in so the build console still opens. It performs
+ * no real compilation and produces a placeholder artifact path.
  */
 class FakeBuildSystem(
     private val stepDelayMillis: Long = DEFAULT_STEP_DELAY_MS,

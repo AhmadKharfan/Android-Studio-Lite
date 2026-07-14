@@ -13,16 +13,13 @@ android {
     defaultConfig {
         applicationId = "com.ahmadkharfan.androidstudiolite"
         minSdk = 24
+        // Builds run server-side, so nothing forces the legacy targetSdk 28 constraint any more:
+        // target a normal high SDK for a Play-compatible single-flavor app.
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Hosts the JSON manifest describing which JDK/Android-SDK/Gradle archives to fetch, per ABI,
-        // for the on-device full-Gradle build (docs/build-run/06-full-build-production-study.md §5.4 /
-        // §7 Phase A-B). Point this at real hosted release assets before shipping — until then the
-        // environment install surfaces a clear "not configured" failure instead of crashing.
-        buildConfigField("String", "IDE_ENVIRONMENT_MANIFEST_URL", "\"\"")
 
         externalNativeBuild {
             cmake {
@@ -36,22 +33,6 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
-        }
-    }
-
-    // Two distributions with mutually exclusive constraints (docs/build-run/06 §4):
-    //  - play: Play-Store-compliant, high targetSdk, in-process build engine (no downloaded executables).
-    //  - full: self-distributed, targetSdk 28 so downloaded toolchain binaries (JDK/Gradle) may be exec()'d;
-    //    ships the tooling-server fat jar in its assets.
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("play") {
-            dimension = "distribution"
-            targetSdk = 35
-        }
-        create("full") {
-            dimension = "distribution"
-            targetSdk = 28
         }
     }
 
@@ -73,27 +54,6 @@ android {
         compose = true
         buildConfig = true
     }
-
-    packaging {
-        jniLibs {
-            // Physically extract native binaries to nativeLibraryDir at install so the on-device
-            // toolchain probe (and later the real toolchain binaries) can be exec()'d — libraries
-            // left compressed inside the APK cannot be executed.
-            useLegacyPackaging = true
-        }
-    }
-}
-
-// The full flavor embeds the Gradle tooling server as an asset; rebuild and copy the fat jar
-// whenever a full-flavor variant merges assets so the app never ships a stale server.
-val copyToolingServerJar = tasks.register<Copy>("copyToolingServerJar") {
-    from(project(":tooling:server").tasks.named("fatJar"))
-    into(layout.projectDirectory.dir("src/full/assets"))
-    rename { "tooling-server.jar" }
-}
-
-tasks.matching { it.name.matches(Regex("merge(Full\\w+)Assets")) }.configureEach {
-    dependsOn(copyToolingServerJar)
 }
 
 dependencies {
@@ -120,12 +80,6 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
-    // Full flavor only: the JSON-RPC protocol types shared with the on-device tooling server. The
-    // server fat jar itself ships as an asset (copyToolingServerJar); this is just the wire model.
-    "fullImplementation"(project(":tooling:proto"))
-    // Play-only: the in-process build engine (aapt2/ECJ/kotlinc/D8/apksig pipeline). The full flavor
-    // uses the out-of-process Gradle tooling server instead, so this stays a per-flavor dependency.
-    "playImplementation"(project(":build:engine"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

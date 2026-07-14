@@ -82,7 +82,7 @@ private fun SetupHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
         Text(text = "IDE environment", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
         Text(
-            text = "Sets up and verifies the on-device runtime. Language toolchains download on first build.",
+            text = "Builds run in the cloud, so there's no toolchain to download — your environment is ready to go.",
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
@@ -123,7 +123,7 @@ private fun SetupInstallSection(
         if (failure != null) {
             AslBanner(tone = AslBannerTone.Error, message = failure.errorMessage ?: "Setup failed. Tap retry to try again.")
         } else {
-            AslBanner(tone = AslBannerTone.Info, message = "Setup prepares the runtime and runs a real on-device check — you can watch progress or leave this screen.")
+            AslBanner(tone = AslBannerTone.Info, message = "Nothing to install — builds run on the cloud build service. You can continue.")
         }
     }
 }
@@ -179,6 +179,5 @@ private fun SetupActions(
             disabled = uiState.unsupportedDevice,
         )
         AslButton(label = "I'll do this later", onClick = onSkip, variant = AslButtonVariant.Tertiary, fullWidth = true)
-        AslBanner(tone = AslBannerTone.Warning, message = "Projects can't build until setup completes.")
     }
 }

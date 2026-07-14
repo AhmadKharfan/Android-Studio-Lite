@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite
 import android.app.Application
 import com.ahmadkharfan.androidstudiolite.di.appModules
 import com.ahmadkharfan.androidstudiolite.di.buildRunModule
-import com.ahmadkharfan.androidstudiolite.di.flavorModule
 import com.ahmadkharfan.androidstudiolite.di.gitModule
 import com.ahmadkharfan.androidstudiolite.di.localDataModule
 import com.ahmadkharfan.androidstudiolite.di.preferencesModule
@@ -20,9 +19,9 @@ class AslApplication : Application() {
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@AslApplication)
-            // flavorModule comes from src/play or src/full and selects the flavor-specific
-            // bindings (e.g. which BuildSystem implementation backs the build UI).
-            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + buildRunModule + flavorModule)
+            // Single flavor now (builds run server-side). buildRunModule binds BuildSystem to the
+            // temporary FakeBuildSystem until A2 wires RemoteBuildSystem.
+            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + buildRunModule)
         }
     }
 }
