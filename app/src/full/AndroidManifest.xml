@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!-- Hosts the Gradle tooling server subprocess (a JVM + Gradle daemon) in its own process so
+             its memory pressure can't take the UI process down, and keeps a long build alive as a
+             foreground service while the user navigates away. Full flavor only — the play flavor builds
+             in-process on ART and never spawns this. -->
+        <service
+            android:name="com.ahmadkharfan.androidstudiolite.core.tooling.ToolingServerService"
+            android:exported="false"
+            android:process=":tooling"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="on-device Android build (Gradle) requiring a long-lived toolchain process" />
+        </service>
+
+    </application>
+
+</manifest>
