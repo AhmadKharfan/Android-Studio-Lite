@@ -120,6 +120,9 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    // Full flavor only: the JSON-RPC protocol types shared with the on-device tooling server. The
+    // server fat jar itself ships as an asset (copyToolingServerJar); this is just the wire model.
+    "fullImplementation"(project(":tooling:proto"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
