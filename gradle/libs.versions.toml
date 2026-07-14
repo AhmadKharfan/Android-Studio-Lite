@@ -21,6 +21,11 @@ securityCrypto = "1.1.0-alpha06"
 desugarJdkLibs = "2.1.2"
 gradleToolingApi = "8.13"
 slf4j = "1.7.36"
+# Play-flavor in-process build engine (T9): permissively-licensed compiler/dexer/signer components.
+ecj = "3.42.0"        # Eclipse Compiler for Java — EPL-2.0
+r8 = "8.13.19"        # D8/R8 dexer — AOSP, Apache-2.0
+apksig = "8.13.2"     # APK Signature Scheme signer — AOSP, Apache-2.0
+bouncycastle = "1.80" # X.509 self-signed debug certificate generation — MIT-style Bouncy Castle licence
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +61,11 @@ desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", ver
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 gradle-tooling-api = { group = "org.gradle", name = "gradle-tooling-api", version.ref = "gradleToolingApi" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
+ecj = { group = "org.eclipse.jdt", name = "ecj", version.ref = "ecj" }
+r8 = { group = "com.android.tools", name = "r8", version.ref = "r8" }
+apksig = { group = "com.android.tools.build", name = "apksig", version.ref = "apksig" }
+bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

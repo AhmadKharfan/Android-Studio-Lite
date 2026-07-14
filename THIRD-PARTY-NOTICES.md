@@ -22,6 +22,7 @@ licenses. This file must be kept current as each component is actually added.
 | Kotlin compiler (embeddable) | Apache-2.0 | In-process Kotlin compilation (play flavor) |
 | D8 / R8 (AOSP) | Apache-2.0 | Dexing / shrinking (play flavor) |
 | apksig (AOSP) | Apache-2.0 | APK signing (play flavor) |
+| Bouncy Castle (bcpkix/bcprov) | Bouncy Castle Licence (MIT-style) | X.509 self-signed debug-certificate generation (play flavor) |
 | aapt2 (AOSP) | Apache-2.0 | Resource compilation/linking (binary shipped in jniLibs) |
 | bundletool | Apache-2.0 | AAB generation and validation |
 | JGit | EDL (BSD-3-Clause) | Git operations |

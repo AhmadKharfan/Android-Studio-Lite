@@ -123,6 +123,9 @@ dependencies {
     // Full flavor only: the JSON-RPC protocol types shared with the on-device tooling server. The
     // server fat jar itself ships as an asset (copyToolingServerJar); this is just the wire model.
     "fullImplementation"(project(":tooling:proto"))
+    // Play-only: the in-process build engine (aapt2/ECJ/kotlinc/D8/apksig pipeline). The full flavor
+    // uses the out-of-process Gradle tooling server instead, so this stays a per-flavor dependency.
+    "playImplementation"(project(":build:engine"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

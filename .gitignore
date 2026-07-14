@@ -3,7 +3,12 @@
 /local.properties
 local.properties
 .DS_Store
-build/
+# Gradle/AGP build output — anchored to module roots so the rule never swallows a `build`
+# *package* directory in source (the :build:* modules live under com/.../androidstudiolite/build/).
+/build/
+/app/build/
+/buildsystem/*/build/
+/tooling/*/build/
 /captures
 .externalNativeBuild
 .cxx
