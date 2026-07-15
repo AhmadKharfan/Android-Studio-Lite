@@ -110,3 +110,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+// Forwards -Dasl.templateCheck.out to the test JVM, which Gradle doesn't do by default. It's what
+// tools/template_build_check.sh uses to have TemplateBuildCheckGenerator emit every template for a
+// real build on the server; unset, the generator skips itself.
+tasks.withType<Test>().configureEach {
+    System.getProperty("asl.templateCheck.out")?.let { systemProperty("asl.templateCheck.out", it) }
+}

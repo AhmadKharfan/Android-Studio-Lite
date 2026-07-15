@@ -17,14 +17,12 @@ class TemplateRegistryTest {
     fun `templates are listed in the same order, under the same names`() {
         val expected = listOf(
             "no-activity" to "No Activity",
-            "empty-views" to "Empty project",
-            "native-cpp" to "C++ project",
-            "basic-views" to "Basic Project",
-            "nav-drawer" to "Navigation drawer project",
-            "bottom-nav" to "Bottom Navigation Activity",
-            "tabbed" to "Tabbed Activity",
-            "no-androidx" to "No AndroidX",
-            "empty-compose" to "Jetpack Compose",
+            "basic-views" to "Basic Activity",
+            "empty-views" to "Empty Activity",
+            "empty-compose" to "Compose Activity",
+            "bottom-nav" to "Bottom Navigation",
+            "nav-drawer" to "Navigation drawer",
+            "responsive" to "Responsive activity",
         )
 
         val actual = TemplateRegistry.DEFAULT.map { it.metadata.id to it.metadata.name }

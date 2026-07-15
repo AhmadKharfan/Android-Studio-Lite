@@ -80,7 +80,7 @@ object BottomNavigationTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "bottom-nav",
-        name = "Bottom Navigation Activity",
+        name = "Bottom Navigation",
         description = "Three destinations behind a bottom navigation bar.",
         thumbnail = "template_bottom_nav",
         tags = listOf("Kotlin", "Views", "Navigation"),
@@ -191,154 +191,12 @@ object BottomNavigationTemplate : Template {
     }
 }
 
-/** Swipeable tabs backed by ViewPager2 + TabLayout. */
-object TabbedTemplate : Template {
-
-    override val metadata = TemplateMetadata(
-        id = "tabbed",
-        name = "Tabbed Activity",
-        description = "Swipeable tabs using ViewPager2 and a TabLayout.",
-        thumbnail = "template_tabbed",
-        tags = listOf("Kotlin", "Views"),
-    )
-
-    override val supportsJava = false
-
-    override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe) {
-        NavSupport.applyBase(recipe)
-        recipe.implementation(Catalog.viewpager2)
-        val pkg = spec.packageName
-        recipe.file("app/src/main/AndroidManifest.xml", TemplateContent.manifest(spec, "MainActivity"))
-        ViewsSupport.commonResources(spec, recipe)
-
-        recipe.sourceFile(
-            "MainActivity.kt",
-            """
-            package $pkg
-
-            import android.os.Bundle
-            import androidx.appcompat.app.AppCompatActivity
-            import androidx.fragment.app.Fragment
-            import androidx.fragment.app.FragmentActivity
-            import androidx.viewpager2.adapter.FragmentStateAdapter
-            import androidx.viewpager2.widget.ViewPager2
-            import com.google.android.material.tabs.TabLayout
-            import com.google.android.material.tabs.TabLayoutMediator
-            import $pkg.ui.PlaceholderFragment
-
-            class MainActivity : AppCompatActivity() {
-                override fun onCreate(savedInstanceState: Bundle?) {
-                    super.onCreate(savedInstanceState)
-                    setContentView(R.layout.activity_main)
-                    val pager = findViewById<ViewPager2>(R.id.view_pager)
-                    val tabs = findViewById<TabLayout>(R.id.tabs)
-                    pager.adapter = TabAdapter(this)
-                    TabLayoutMediator(tabs, pager) { tab, position ->
-                        tab.text = "Tab ${'$'}{position + 1}"
-                    }.attach()
-                }
-            }
-
-            private class TabAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-                override fun getItemCount(): Int = 3
-                override fun createFragment(position: Int): Fragment =
-                    PlaceholderFragment.newInstance(position + 1)
-            }
-            """.trimIndent(),
-        )
-
-        recipe.sourceFileIn(
-            "ui", "PlaceholderFragment.kt",
-            """
-            package $pkg.ui
-
-            import android.os.Bundle
-            import android.view.LayoutInflater
-            import android.view.View
-            import android.view.ViewGroup
-            import android.widget.TextView
-            import androidx.fragment.app.Fragment
-            import $pkg.R
-
-            class PlaceholderFragment : Fragment() {
-                override fun onCreateView(
-                    inflater: LayoutInflater,
-                    container: ViewGroup?,
-                    savedInstanceState: Bundle?,
-                ): View {
-                    val root = inflater.inflate(R.layout.fragment_tab, container, false)
-                    val index = arguments?.getInt(ARG_SECTION_NUMBER) ?: 1
-                    root.findViewById<TextView>(R.id.section_label).text = "Tab ${'$'}index"
-                    return root
-                }
-
-                companion object {
-                    private const val ARG_SECTION_NUMBER = "section_number"
-
-                    fun newInstance(sectionNumber: Int): PlaceholderFragment =
-                        PlaceholderFragment().apply {
-                            arguments = Bundle().apply { putInt(ARG_SECTION_NUMBER, sectionNumber) }
-                        }
-                }
-            }
-            """.trimIndent(),
-        )
-
-        recipe.file(
-            "app/src/main/res/layout/fragment_tab.xml",
-            """
-            <?xml version="1.0" encoding="utf-8"?>
-            <androidx.constraintlayout.widget.ConstraintLayout
-                xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:app="http://schemas.android.com/apk/res-auto"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <TextView
-                    android:id="@+id/section_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-            """.trimIndent(),
-        )
-
-        recipe.file(
-            "app/src/main/res/layout/activity_main.xml",
-            """
-            <?xml version="1.0" encoding="utf-8"?>
-            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/tabs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-                <androidx.viewpager2.widget.ViewPager2
-                    android:id="@+id/view_pager"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-            </LinearLayout>
-            """.trimIndent(),
-        )
-    }
-}
-
 /** A navigation drawer with three destinations via DrawerLayout + NavigationView. */
 object NavDrawerTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "nav-drawer",
-        name = "Navigation drawer project",
+        name = "Navigation drawer",
         description = "A side drawer with three destinations via the Navigation component.",
         thumbnail = "template_nav_drawer",
         tags = listOf("Kotlin", "Views", "Navigation"),
@@ -486,6 +344,278 @@ object NavDrawerTemplate : Template {
             ),
         )
     }
+}
+
+/**
+ * One app whose navigation follows the window size: a bottom bar on a phone, a navigation rail on a
+ * medium window (w600dp, e.g. a tablet or unfolded foldable), and a permanent drawer on an expanded
+ * one (w1240dp, e.g. a desktop-sized window).
+ *
+ * All three layouts host the same nav graph and the same three destinations; only the navigation
+ * widget differs, and `MainActivity` wires whichever one the inflated layout happens to contain.
+ */
+object ResponsiveTemplate : Template {
+
+    override val metadata = TemplateMetadata(
+        id = "responsive",
+        name = "Responsive activity",
+        description = "Navigation that adapts to the window size: bottom bar, rail, or drawer.",
+        thumbnail = "template_responsive",
+        tags = listOf("Kotlin", "Views", "Adaptive"),
+    )
+
+    override val supportsJava = false
+
+    override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe) {
+        NavSupport.applyBase(recipe)
+        val pkg = spec.packageName
+        recipe.file("app/src/main/AndroidManifest.xml", TemplateContent.manifest(spec, "MainActivity"))
+        ViewsSupport.commonResources(spec, recipe)
+
+        recipe.sourceFile(
+            "MainActivity.kt",
+            """
+            package $pkg
+
+            import android.os.Bundle
+            import androidx.appcompat.app.AppCompatActivity
+            import androidx.appcompat.widget.Toolbar
+            import androidx.navigation.NavController
+            import androidx.navigation.fragment.NavHostFragment
+            import androidx.navigation.ui.AppBarConfiguration
+            import androidx.navigation.ui.navigateUp
+            import androidx.navigation.ui.setupActionBarWithNavController
+            import androidx.navigation.ui.setupWithNavController
+            import com.google.android.material.bottomnavigation.BottomNavigationView
+            import com.google.android.material.navigation.NavigationView
+            import com.google.android.material.navigationrail.NavigationRailView
+
+            class MainActivity : AppCompatActivity() {
+                private lateinit var appBarConfiguration: AppBarConfiguration
+                private lateinit var navController: NavController
+
+                override fun onCreate(savedInstanceState: Bundle?) {
+                    super.onCreate(savedInstanceState)
+                    setContentView(R.layout.activity_main)
+                    setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
+
+                    val navHostFragment = supportFragmentManager
+                        .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+                    navController = navHostFragment.navController
+                    appBarConfiguration = AppBarConfiguration(
+                        setOf(R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications),
+                    )
+                    setupActionBarWithNavController(navController, appBarConfiguration)
+
+                    // Which of these exists depends on the layout the window size selected, so each is
+                    // optional: findViewById returns null for the ones this layout doesn't declare.
+                    findViewById<BottomNavigationView?>(R.id.bottom_nav)?.setupWithNavController(navController)
+                    findViewById<NavigationRailView?>(R.id.nav_rail)?.setupWithNavController(navController)
+                    findViewById<NavigationView?>(R.id.nav_view)?.setupWithNavController(navController)
+                }
+
+                override fun onSupportNavigateUp(): Boolean =
+                    navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+            }
+            """.trimIndent(),
+        )
+
+        NavSupport.placeholderFragment(spec, recipe, "HomeFragment", "fragment_home", "Home")
+        NavSupport.placeholderFragment(spec, recipe, "DashboardFragment", "fragment_dashboard", "Dashboard")
+        NavSupport.placeholderFragment(spec, recipe, "NotificationsFragment", "fragment_notifications", "Notifications")
+
+        // Compact: bottom bar under the content.
+        recipe.file(
+            "app/src/main/res/layout/activity_main.xml",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:background="?attr/colorPrimary"
+                    app:titleTextColor="?attr/colorOnPrimary" />
+
+                <androidx.fragment.app.FragmentContainerView
+                    android:id="@+id/nav_host_fragment"
+                    android:name="androidx.navigation.fragment.NavHostFragment"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    app:defaultNavHost="true"
+                    app:navGraph="@navigation/mobile_navigation" />
+
+                <com.google.android.material.bottomnavigation.BottomNavigationView
+                    android:id="@+id/bottom_nav"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:menu="@menu/navigation_menu" />
+
+            </LinearLayout>
+            """.trimIndent(),
+        )
+
+        // Medium: rail down the side.
+        recipe.file(
+            "app/src/main/res/layout-w600dp/activity_main.xml",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <com.google.android.material.navigationrail.NavigationRailView
+                    android:id="@+id/nav_rail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    app:menu="@menu/navigation_menu" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.Toolbar
+                        android:id="@+id/toolbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="?attr/actionBarSize"
+                        android:background="?attr/colorPrimary"
+                        app:titleTextColor="?attr/colorOnPrimary" />
+
+                    <androidx.fragment.app.FragmentContainerView
+                        android:id="@+id/nav_host_fragment"
+                        android:name="androidx.navigation.fragment.NavHostFragment"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:defaultNavHost="true"
+                        app:navGraph="@navigation/mobile_navigation" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+            """.trimIndent(),
+        )
+
+        // Expanded: the drawer is permanent, so there's no hamburger to open it.
+        recipe.file(
+            "app/src/main/res/layout-w1240dp/activity_main.xml",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <com.google.android.material.navigation.NavigationView
+                    android:id="@+id/nav_view"
+                    android:layout_width="280dp"
+                    android:layout_height="match_parent"
+                    app:menu="@menu/navigation_menu" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.Toolbar
+                        android:id="@+id/toolbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="?attr/actionBarSize"
+                        android:background="?attr/colorPrimary"
+                        app:titleTextColor="?attr/colorOnPrimary" />
+
+                    <androidx.fragment.app.FragmentContainerView
+                        android:id="@+id/nav_host_fragment"
+                        android:name="androidx.navigation.fragment.NavHostFragment"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:defaultNavHost="true"
+                        app:navGraph="@navigation/mobile_navigation" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+            """.trimIndent(),
+        )
+
+        // One menu for all three widgets: the item ids match the destination ids, which is what lets
+        // NavigationUI select the right destination whichever widget is showing.
+        recipe.file(
+            "app/src/main/res/menu/navigation_menu.xml",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <menu xmlns:android="http://schemas.android.com/apk/res/android">
+                <item
+                    android:id="@+id/navigation_home"
+                    android:icon="@drawable/ic_navigation_home"
+                    android:title="Home" />
+                <item
+                    android:id="@+id/navigation_dashboard"
+                    android:icon="@drawable/ic_navigation_dashboard"
+                    android:title="Dashboard" />
+                <item
+                    android:id="@+id/navigation_notifications"
+                    android:icon="@drawable/ic_navigation_notifications"
+                    android:title="Notifications" />
+            </menu>
+            """.trimIndent(),
+        )
+        for ((name, path) in NAV_ICONS) {
+            recipe.file("app/src/main/res/drawable/$name.xml", navIcon(path))
+        }
+
+        recipe.file(
+            "app/src/main/res/navigation/mobile_navigation.xml",
+            navGraph(
+                pkg,
+                startDest = "navigation_home",
+                destinations = listOf(
+                    Triple("navigation_home", "HomeFragment", "Home"),
+                    Triple("navigation_dashboard", "DashboardFragment", "Dashboard"),
+                    Triple("navigation_notifications", "NotificationsFragment", "Notifications"),
+                ),
+                fragmentLayouts = mapOf(
+                    "HomeFragment" to "fragment_home",
+                    "DashboardFragment" to "fragment_dashboard",
+                    "NotificationsFragment" to "fragment_notifications",
+                ),
+            ),
+        )
+    }
+
+    /** A rail draws icons above labels, so unlike the bottom-bar template these items need icons. */
+    private val NAV_ICONS = listOf(
+        "ic_navigation_home" to "M12,3L4,9v12h5v-7h6v7h5V9L12,3z",
+        "ic_navigation_dashboard" to "M3,3h8v8H3V3zM13,3h8v5h-8V3zM13,10h8v11h-8V10zM3,13h8v8H3V13z",
+        "ic_navigation_notifications" to
+            "M12,22a2,2 0 0,0 2,-2h-4A2,2 0 0,0 12,22zM18,16v-5a6,6 0 0,0 -5,-5.9V4a1,1 0 0,0 -2,0v1.1A6,6 0 0,0 6,11v5l-2,2v1h16v-1L18,16z",
+    )
+
+    // No android:tint here: the bar, rail and drawer all tint their menu icons themselves, and a
+    // theme attribute inside a drawable is a needless way for this to go wrong.
+    private fun navIcon(pathData: String): String =
+        """
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:fillColor="#000000"
+                android:pathData="$pathData" />
+        </vector>
+        """.trimIndent()
 }
 
 /** Builds a Navigation-component graph XML with the given destinations. [destinations] = (id, fragment, label). */

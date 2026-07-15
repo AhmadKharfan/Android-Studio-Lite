@@ -13,7 +13,8 @@ licenses. This file must be kept current as each component is actually added.
   copied either. Where ASL deliberately matches their UX — e.g. the create-project template
   picker uses android-code-studio's template names and ordering so users can move between the
   two IDEs — the *arrangement* is matched, while the artwork (`res/drawable/template_*.xml`) is
-  drawn fresh for ASL.
+  drawn fresh for ASL, and each template's generated code is written fresh against the public
+  AndroidX/Material APIs.
 - GPL-licensed toolchain *binaries* (e.g. OpenJDK, GPLv2 + Classpath Exception) are downloaded
   at runtime and executed as separate processes — mere aggregation; they are never linked into
   the app.

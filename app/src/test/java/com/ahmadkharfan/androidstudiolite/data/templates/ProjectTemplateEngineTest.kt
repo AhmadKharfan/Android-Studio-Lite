@@ -185,22 +185,6 @@ class ProjectTemplateEngineTest {
     }
 
     @Test
-    fun `native cpp template emits cmake and jni sources`() {
-        val dir = generate(NewProjectSpec("Nate", "com.example.nate", "native-cpp"))
-
-        assertTrue(File(dir, "app/src/main/cpp/CMakeLists.txt").isFile)
-        assertTrue(File(dir, "app/src/main/cpp/native-lib.cpp").isFile)
-        val appBuild = File(dir, "app/build.gradle.kts").readText()
-        assertTrue("externalNativeBuild wired", appBuild.contains("externalNativeBuild"))
-        assertTrue("cmake path", appBuild.contains("src/main/cpp/CMakeLists.txt"))
-        // JNI symbol must match the package.
-        assertTrue(
-            File(dir, "app/src/main/cpp/native-lib.cpp").readText()
-                .contains("Java_com_example_nate_MainActivity_stringFromJNI"),
-        )
-    }
-
-    @Test
     fun `no activity template omits the launcher activity`() {
         val dir = generate(NewProjectSpec("Empty", "com.example.empty", "no-activity"))
 
@@ -208,14 +192,6 @@ class ProjectTemplateEngineTest {
         assertTrue("no <activity>", !manifest.contains("<activity"))
         // Still a valid, parseable android app.
         assertEquals(ModuleType.ANDROID_APP, appModule(dir).type)
-    }
-
-    @Test
-    fun `no androidx template disables androidx`() {
-        val dir = generate(NewProjectSpec("Legacy", "com.example.legacy", "no-androidx"))
-
-        assertTrue(File(dir, "gradle.properties").readText().contains("android.useAndroidX=false"))
-        assertTrue(appModule(dir).dependencies.none { it.coordinate.startsWith("androidx") })
     }
 
     @Test
