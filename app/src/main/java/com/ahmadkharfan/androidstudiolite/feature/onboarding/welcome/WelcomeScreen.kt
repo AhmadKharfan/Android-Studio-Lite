@@ -89,7 +89,7 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
                     color = colors.textPrimary,
                 )
                 Text(
-                    text = "Build real Android apps, entirely on your device.",
+                    text = "Build real Android apps from your device.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -103,7 +103,7 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
 @Composable
 private fun WelcomeBulletList(modifier: Modifier = Modifier) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = modifier) {
-        WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Assemble, install and run debug APKs on-device.")
+        WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Builds run on the cloud service; APKs install straight to your device.")
         WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion, navigation and diagnostics for Kotlin & Java.")
         WelcomeBullet(icon = "git-branch", title = "Git & AI built-in", text = "Clone, commit, and generate code with the AI agent.")
     }

@@ -152,6 +152,38 @@ class ProjectTemplateEngineTest {
         assertTrue(File(dir, "app/src/main/java/com/example/composer/ui/theme/Color.kt").isFile)
     }
 
+    /**
+     * These templates host navigation in a `FragmentContainerView`. `Activity.findNavController()`
+     * resolves through a tag on the fragment's view, which doesn't exist yet in `onCreate`, so it
+     * throws "does not have a NavController set" — the project builds and then crashes on launch.
+     * The NavController has to come from the fragment via the FragmentManager.
+     */
+    @Test
+    fun `nav templates get their NavController from the host fragment, not the activity`() {
+        for (templateId in listOf("bottom-nav", "nav-drawer")) {
+            val dir = generate(NewProjectSpec("Navvy", "com.example.navvy", templateId))
+            val main = File(dir, "app/src/main/java/com/example/navvy/MainActivity.kt").readText()
+
+            assertTrue("$templateId: uses NavHostFragment", main.contains("as NavHostFragment"))
+            assertTrue(
+                "$templateId: must not call Activity.findNavController",
+                !main.contains("findNavController(R.id."),
+            )
+        }
+    }
+
+    /** The drawer only gets its hamburger if the action bar is wired to a real Toolbar. */
+    @Test
+    fun `nav drawer wires a toolbar to the nav controller`() {
+        val dir = generate(NewProjectSpec("Drawy", "com.example.drawy", "nav-drawer"))
+
+        val layout = File(dir, "app/src/main/res/layout/activity_main.xml").readText()
+        assertTrue("toolbar in layout", layout.contains("androidx.appcompat.widget.Toolbar"))
+        val main = File(dir, "app/src/main/java/com/example/drawy/MainActivity.kt").readText()
+        assertTrue("action bar set", main.contains("setSupportActionBar"))
+        assertTrue("action bar wired to nav", main.contains("setupActionBarWithNavController"))
+    }
+
     @Test
     fun `native cpp template emits cmake and jni sources`() {
         val dir = generate(NewProjectSpec("Nate", "com.example.nate", "native-cpp"))

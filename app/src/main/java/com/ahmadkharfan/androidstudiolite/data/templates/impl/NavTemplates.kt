@@ -101,7 +101,7 @@ object BottomNavigationTemplate : Template {
 
             import android.os.Bundle
             import androidx.appcompat.app.AppCompatActivity
-            import androidx.navigation.findNavController
+            import androidx.navigation.fragment.NavHostFragment
             import androidx.navigation.ui.setupWithNavController
             import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -110,8 +110,13 @@ object BottomNavigationTemplate : Template {
                     super.onCreate(savedInstanceState)
                     setContentView(R.layout.activity_main)
                     val navView = findViewById<BottomNavigationView>(R.id.nav_view)
-                    val navController = findNavController(R.id.nav_host_fragment)
-                    navView.setupWithNavController(navController)
+                    // The host is a FragmentContainerView, so its NavController must come from the
+                    // fragment itself: Activity.findNavController() reads a tag set on the fragment's
+                    // view, which doesn't exist yet in onCreate, and throws "does not have a
+                    // NavController set".
+                    val navHostFragment = supportFragmentManager
+                        .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+                    navView.setupWithNavController(navHostFragment.navController)
                 }
             }
             """.trimIndent(),
@@ -354,27 +359,47 @@ object NavDrawerTemplate : Template {
 
             import android.os.Bundle
             import androidx.appcompat.app.AppCompatActivity
+            import androidx.appcompat.widget.Toolbar
             import androidx.drawerlayout.widget.DrawerLayout
-            import androidx.navigation.findNavController
+            import androidx.navigation.NavController
+            import androidx.navigation.fragment.NavHostFragment
             import androidx.navigation.ui.AppBarConfiguration
+            import androidx.navigation.ui.navigateUp
+            import androidx.navigation.ui.setupActionBarWithNavController
             import androidx.navigation.ui.setupWithNavController
             import com.google.android.material.navigation.NavigationView
 
             class MainActivity : AppCompatActivity() {
                 private lateinit var appBarConfiguration: AppBarConfiguration
+                private lateinit var navController: NavController
 
                 override fun onCreate(savedInstanceState: Bundle?) {
                     super.onCreate(savedInstanceState)
                     setContentView(R.layout.activity_main)
+                    setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
+
                     val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
                     val navView = findViewById<NavigationView>(R.id.nav_view)
-                    val navController = findNavController(R.id.nav_host_fragment)
+                    // The host is a FragmentContainerView, so its NavController must come from the
+                    // fragment itself: Activity.findNavController() reads a tag set on the fragment's
+                    // view, which doesn't exist yet in onCreate, and throws "does not have a
+                    // NavController set".
+                    val navHostFragment = supportFragmentManager
+                        .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+                    navController = navHostFragment.navController
+
+                    // Passing the drawer here is what turns the action bar's Up arrow into the
+                    // hamburger that opens it.
                     appBarConfiguration = AppBarConfiguration(
                         setOf(R.id.nav_home, R.id.nav_dashboard, R.id.nav_notifications),
                         drawerLayout,
                     )
+                    setupActionBarWithNavController(navController, appBarConfiguration)
                     navView.setupWithNavController(navController)
                 }
+
+                override fun onSupportNavigateUp(): Boolean =
+                    navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
             }
             """.trimIndent(),
         )
@@ -395,13 +420,28 @@ object NavDrawerTemplate : Template {
                 android:layout_height="match_parent"
                 android:fitsSystemWindows="true">
 
-                <androidx.fragment.app.FragmentContainerView
-                    android:id="@+id/nav_host_fragment"
-                    android:name="androidx.navigation.fragment.NavHostFragment"
+                <!-- DrawerLayout's first child is the content; the drawer itself follows it. -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    app:defaultNavHost="true"
-                    app:navGraph="@navigation/mobile_navigation" />
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.Toolbar
+                        android:id="@+id/toolbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="?attr/actionBarSize"
+                        android:background="?attr/colorPrimary"
+                        app:titleTextColor="?attr/colorOnPrimary" />
+
+                    <androidx.fragment.app.FragmentContainerView
+                        android:id="@+id/nav_host_fragment"
+                        android:name="androidx.navigation.fragment.NavHostFragment"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:defaultNavHost="true"
+                        app:navGraph="@navigation/mobile_navigation" />
+
+                </LinearLayout>
 
                 <com.google.android.material.navigation.NavigationView
                     android:id="@+id/nav_view"
