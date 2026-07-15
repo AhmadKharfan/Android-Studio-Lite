@@ -12,9 +12,9 @@ object EmptyComposeTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "empty-compose",
-        name = "Empty Activity",
+        name = "Jetpack Compose",
         description = "A single Compose screen with a Material 3 theme.",
-        icon = "smartphone",
+        thumbnail = "template_compose",
         tags = listOf("Kotlin", "Compose"),
     )
 

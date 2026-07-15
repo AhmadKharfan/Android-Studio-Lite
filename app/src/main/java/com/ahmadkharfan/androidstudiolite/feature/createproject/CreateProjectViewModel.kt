@@ -46,7 +46,7 @@ class CreateProjectViewModel(
         tryToExecute(
             block = {
                 templateRepository.getTemplates().map {
-                    CreateProjectTemplateUiModel(it.id, it.name, it.description, it.icon, it.tags)
+                    CreateProjectTemplateUiModel(it.id, it.name, it.thumbnail)
                 }
             },
             onSuccess = { templates ->

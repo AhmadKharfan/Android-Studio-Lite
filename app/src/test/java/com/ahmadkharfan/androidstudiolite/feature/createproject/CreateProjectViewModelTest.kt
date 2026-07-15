@@ -155,9 +155,9 @@ class CreateProjectViewModelTest {
     private class FakeTemplateRepository : TemplateRepository {
         // Deliberately ordered so "first template" != the expected default.
         val templates = listOf(
-            ProjectTemplate("no-activity", "No Activity", "", "file", emptyList()),
-            ProjectTemplate(DEFAULT_TEMPLATE_ID, "Empty Activity", "", "smartphone", emptyList()),
-            ProjectTemplate("empty-views", "Empty Views Activity", "", "layout", emptyList()),
+            ProjectTemplate("no-activity", "No Activity", "", "template_no_activity", emptyList()),
+            ProjectTemplate(DEFAULT_TEMPLATE_ID, "Jetpack Compose", "", "template_compose", emptyList()),
+            ProjectTemplate("empty-views", "Empty project", "", "template_empty_activity", emptyList()),
         )
 
         override suspend fun getTemplates(): List<ProjectTemplate> = templates

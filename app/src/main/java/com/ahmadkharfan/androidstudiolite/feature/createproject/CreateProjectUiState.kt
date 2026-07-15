@@ -5,9 +5,8 @@ import androidx.compose.runtime.Immutable
 data class CreateProjectTemplateUiModel(
     val id: String,
     val name: String,
-    val description: String,
-    val icon: String,
-    val tags: List<String>,
+    /** Artwork key; the picker resolves it via `templateThumbnailRes`. */
+    val thumbnail: String,
 )
 
 @Immutable

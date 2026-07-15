@@ -23,16 +23,20 @@ class TemplateRegistry(
     fun find(id: String): Template? = byId[id]
 
     companion object {
+        /**
+         * Picker order. Deliberately the same order (and the same template names) android-code-studio
+         * uses, so anyone moving between the two IDEs finds each template in the position they expect.
+         */
         val DEFAULT: List<Template> = listOf(
             NoActivityTemplate,
             EmptyViewsTemplate,
+            NativeCppTemplate,
             BasicViewsTemplate,
+            NavDrawerTemplate,
             BottomNavigationTemplate,
             TabbedTemplate,
-            NavDrawerTemplate,
-            EmptyComposeTemplate,
             NoAndroidXTemplate,
-            NativeCppTemplate,
+            EmptyComposeTemplate,
         )
     }
 }

@@ -45,7 +45,8 @@ data class TemplateMetadata(
     val id: String,
     val name: String,
     val description: String,
-    val icon: String,
+    /** Key for the picker's thumbnail artwork; see the domain [ProjectTemplate.thumbnail]. */
+    val thumbnail: String,
     val tags: List<String>,
 )
 

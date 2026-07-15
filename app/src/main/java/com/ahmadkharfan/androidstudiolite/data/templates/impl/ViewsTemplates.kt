@@ -75,9 +75,9 @@ object EmptyViewsTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "empty-views",
-        name = "Empty Views Activity",
+        name = "Empty project",
         description = "A single Activity using the classic Android View system.",
-        icon = "layout",
+        thumbnail = "template_empty_activity",
         tags = listOf("Views"),
     )
 
@@ -117,9 +117,9 @@ object BasicViewsTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "basic-views",
-        name = "Basic Views Activity",
+        name = "Basic Project",
         description = "A Views activity with an app bar and a floating action button.",
-        icon = "layout-dashboard",
+        thumbnail = "template_basic_activity",
         tags = listOf("Views", "Material"),
     )
 

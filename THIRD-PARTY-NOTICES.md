@@ -9,6 +9,11 @@ licenses. This file must be kept current as each component is actually added.
 - **No GPL code is incorporated.** GPL-licensed projects (android-code-studio, Termux,
   CodeAssist) are architectural references only; all implementation in this repository is
   written fresh against permissively-licensed components.
+- **This covers assets, not just code.** Artwork, icons and layouts from those projects are not
+  copied either. Where ASL deliberately matches their UX — e.g. the create-project template
+  picker uses android-code-studio's template names and ordering so users can move between the
+  two IDEs — the *arrangement* is matched, while the artwork (`res/drawable/template_*.xml`) is
+  drawn fresh for ASL.
 - GPL-licensed toolchain *binaries* (e.g. OpenJDK, GPLv2 + Classpath Exception) are downloaded
   at runtime and executed as separate processes — mere aggregation; they are never linked into
   the app.

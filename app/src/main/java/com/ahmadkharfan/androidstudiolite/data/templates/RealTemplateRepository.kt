@@ -20,6 +20,6 @@ private fun TemplateMetadata.toProjectTemplate() = ProjectTemplate(
     id = id,
     name = name,
     description = description,
-    icon = icon,
+    thumbnail = thumbnail,
     tags = tags,
 )

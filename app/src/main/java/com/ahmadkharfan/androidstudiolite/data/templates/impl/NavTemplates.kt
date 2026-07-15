@@ -80,9 +80,9 @@ object BottomNavigationTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "bottom-nav",
-        name = "Bottom Navigation",
+        name = "Bottom Navigation Activity",
         description = "Three destinations behind a bottom navigation bar.",
-        icon = "layout-grid",
+        thumbnail = "template_bottom_nav",
         tags = listOf("Kotlin", "Views", "Navigation"),
     )
 
@@ -198,7 +198,7 @@ object TabbedTemplate : Template {
         id = "tabbed",
         name = "Tabbed Activity",
         description = "Swipeable tabs using ViewPager2 and a TabLayout.",
-        icon = "table-columns",
+        thumbnail = "template_tabbed",
         tags = listOf("Kotlin", "Views"),
     )
 
@@ -338,9 +338,9 @@ object NavDrawerTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "nav-drawer",
-        name = "Navigation Drawer",
+        name = "Navigation drawer project",
         description = "A side drawer with three destinations via the Navigation component.",
-        icon = "panel-left",
+        thumbnail = "template_nav_drawer",
         tags = listOf("Kotlin", "Views", "Navigation"),
     )
 

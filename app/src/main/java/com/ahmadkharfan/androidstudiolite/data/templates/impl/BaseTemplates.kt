@@ -15,7 +15,7 @@ object NoActivityTemplate : Template {
         id = "no-activity",
         name = "No Activity",
         description = "An empty app module — add your own entry point.",
-        icon = "folder",
+        thumbnail = "template_no_activity",
         tags = listOf("Views"),
     )
 
@@ -48,7 +48,7 @@ object NoAndroidXTemplate : Template {
         id = "no-androidx",
         name = "No AndroidX",
         description = "A minimal app with no AndroidX libraries — framework APIs only.",
-        icon = "package-minus",
+        thumbnail = "template_no_androidx",
         tags = listOf("Legacy"),
     )
 
@@ -113,9 +113,9 @@ object NativeCppTemplate : Template {
 
     override val metadata = TemplateMetadata(
         id = "native-cpp",
-        name = "Native C++",
+        name = "C++ project",
         description = "A Views activity backed by a C++ library built with CMake and the NDK.",
-        icon = "cpu",
+        thumbnail = "template_cpp",
         tags = listOf("Views", "C++"),
     )
 

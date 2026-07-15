@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,7 +16,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,24 +30,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChip
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** TemplateCard.jsx — new-project wizard template tile; accent border + check badge when selected. */
+/**
+ * New-project wizard template tile: a portrait thumbnail of the layout the template produces, with
+ * its name centered underneath — the shape android-code-studio and Android Studio both use, where the
+ * picture does the identifying and the name confirms it.
+ *
+ * Accent border + check badge mark the selection (ASL's own affordance).
+ *
+ * @param thumbnail drawable resource for the artwork; null falls back to the [icon] glyph.
+ */
 @Composable
 fun AslTemplateCard(
     name: String,
     modifier: Modifier = Modifier,
-    description: String? = null,
+    thumbnail: Int? = null,
     icon: String = "smartphone",
-    chips: List<String> = emptyList(),
     selected: Boolean = false,
     onClick: () -> Unit = {},
 ) {
@@ -74,30 +83,42 @@ fun AslTemplateCard(
                 role = Role.RadioButton,
                 onClick = onClick,
             )
-            .padding(16.dp),
+            .padding(12.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
+                    .height(150.dp)
                     .background(colors.bgSunken, AslShape.md)
-                    .border(1.dp, colors.borderSubtle, AslShape.md),
+                    .border(1.dp, colors.borderSubtle, AslShape.md)
+                    .clip(AslShape.md),
                 contentAlignment = Alignment.Center,
             ) {
-                AslIcon(name = icon, size = 30.dp, tint = colors.textTertiary)
-            }
-            Text(text = name, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
-            if (description != null) {
-                Text(text = description, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-            }
-            if (chips.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    chips.forEach { chip ->
-                        AslChip(label = chip, kind = AslChipKind.Status)
-                    }
+                if (thumbnail != null) {
+                    // The artwork is portrait, so bound it by height and let width follow — otherwise
+                    // it shrinks to a stamp adrift in the tile.
+                    Image(
+                        painter = painterResource(thumbnail),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxHeight().padding(vertical = 10.dp),
+                    )
+                } else {
+                    AslIcon(name = icon, size = 30.dp, tint = colors.textTertiary)
                 }
             }
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         AnimatedVisibility(
             visible = selected,
@@ -107,7 +128,7 @@ fun AslTemplateCard(
         ) {
             Box(
                 modifier = Modifier
-                    .padding(10.dp)
+                    .padding(6.dp)
                     .size(20.dp)
                     .background(colors.accentPrimary, CircleShape),
                 contentAlignment = Alignment.Center,
