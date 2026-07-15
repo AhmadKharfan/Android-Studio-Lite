@@ -34,17 +34,28 @@ class BuildPreflightTest {
         assertEquals(PreflightSeverity.INFO, warnings.single().severity)
     }
 
+    /**
+     * The build runs on the server, so a nearly-full device is worth flagging but must never stop a
+     * build that only needs room for a source zip.
+     */
     @Test
-    fun `critical storage blocks the build`() {
+    fun `an almost full device warns but never blocks`() {
         val result = BuildPreflight.run(ToolchainVersions(agp = "8.1", jdkMajor = 17, gradle = "8.2"), 10L * 1024 * 1024)
-        assertTrue(result.hasBlocker)
-        assertFalse(result.canProceed)
+        assertFalse(result.hasBlocker)
+        assertTrue(result.canProceed)
+        assertEquals(PreflightSeverity.WARNING, result.warnings.single { it.title == "Low storage" }.severity)
     }
 
     @Test
-    fun `low storage warns but proceeds`() {
-        val warning = StorageChecker.check(1L * 1024 * 1024 * 1024)
+    fun `storage too small for the source zip warns`() {
+        val warning = StorageChecker.check(100L * 1024 * 1024)
         assertEquals(PreflightSeverity.WARNING, warning?.severity)
+    }
+
+    /** 1 GB was "low" when the toolchain and caches lived on-device; now it's plenty. */
+    @Test
+    fun `a gigabyte free is no longer worth warning about`() {
+        assertNull(StorageChecker.check(1L * 1024 * 1024 * 1024))
     }
 
     @Test

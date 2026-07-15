@@ -16,10 +16,6 @@ data class AppPreferences(
     val kotlinLspEnabled: Boolean = true,
     val javaLspEnabled: Boolean = true,
     val xmlLspEnabled: Boolean = false,
-    val gradleJvmPath: String = "/data/jdk-17.0.11",
-    val parallelTaskExecution: Boolean = true,
-    val buildCacheEnabled: Boolean = true,
-    val configurationCacheEnabled: Boolean = false,
     val launchAfterInstall: Boolean = true,
     val installViaShizuku: Boolean = false,
     /** When true, release builds produce an Android App Bundle (.aab) instead of an APK. */

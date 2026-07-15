@@ -91,24 +91,24 @@ object CompatibilityChecker {
 }
 
 /**
- * Guards against running out of space mid-build — the `.gradle` cache and outputs can be gigabytes
- * (doc 10 §3.6). Below [LOW_SPACE_BYTES] warns; below [CRITICAL_SPACE_BYTES] blocks.
+ * Warns when the device is too full to stage a build.
+ *
+ * These thresholds used to assume the multi-gigabyte on-device `.gradle` cache and build outputs, and
+ * blocked the build below 250 MB. The build now runs on the remote worker: the device only needs room
+ * for the source zip going up and the APK coming back, tens of megabytes. So this never blocks — a
+ * full device gets a warning it can build through, and a genuinely fatal write failure surfaces from
+ * the packager with a real error instead of a guess made up-front.
  */
 object StorageChecker {
 
-    const val LOW_SPACE_BYTES: Long = 2L * 1024 * 1024 * 1024 // 2 GB
-    const val CRITICAL_SPACE_BYTES: Long = 250L * 1024 * 1024 // 250 MB
+    const val LOW_SPACE_BYTES: Long = 250L * 1024 * 1024 // 250 MB
 
     fun check(availableBytes: Long): PreflightWarning? = when {
-        availableBytes < CRITICAL_SPACE_BYTES -> PreflightWarning(
-            PreflightSeverity.BLOCKER,
-            "Not enough storage",
-            "Only ${availableBytes.toMb()} MB free. Free up space before building.",
-        )
         availableBytes < LOW_SPACE_BYTES -> PreflightWarning(
             PreflightSeverity.WARNING,
             "Low storage",
-            "${availableBytes.toMb()} MB free. A large build may run out of space.",
+            "${availableBytes.toMb()} MB free. The build runs on the server, but the uploaded source " +
+                "and the returned APK still need room on this device.",
         )
         else -> null
     }

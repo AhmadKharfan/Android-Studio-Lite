@@ -22,10 +22,6 @@ class BuildRunViewModel(
             onCollect = { prefs ->
                 updateState {
                     copy(
-                        gradleJvmPath = prefs.gradleJvmPath,
-                        parallelTaskExecution = prefs.parallelTaskExecution,
-                        buildCacheEnabled = prefs.buildCacheEnabled,
-                        configurationCacheEnabled = prefs.configurationCacheEnabled,
                         launchAfterInstall = prefs.launchAfterInstall,
                         installViaShizuku = prefs.installViaShizuku,
                         buildOutputAab = prefs.buildOutputAab,
@@ -48,22 +44,6 @@ class BuildRunViewModel(
             val config = keystoreManager.releaseSigningConfig()
             updateState { copy(releaseKeystoreSummary = config?.summary()) }
         }
-    }
-
-    override fun onGradleJvmPathChanged(path: String) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(gradleJvmPath = path) } }
-    }
-
-    override fun onToggleParallelTaskExecution(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(parallelTaskExecution = enabled) } }
-    }
-
-    override fun onToggleBuildCache(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(buildCacheEnabled = enabled) } }
-    }
-
-    override fun onToggleConfigurationCache(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(configurationCacheEnabled = enabled) } }
     }
 
     override fun onToggleLaunchAfterInstall(enabled: Boolean) {

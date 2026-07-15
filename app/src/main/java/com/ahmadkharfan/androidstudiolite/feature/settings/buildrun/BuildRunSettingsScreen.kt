@@ -74,14 +74,9 @@ private fun BuildRunSettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                AslTextField(
-                    value = uiState.gradleJvmPath,
-                    onValueChange = { interactionListener.onGradleJvmPathChanged(it) },
-                    label = "Gradle JVM",
-                    trailingIcon = "folder-open",
-                    helper = "OpenJDK 17 · managed by IDE setup",
-                )
-                BuildRunOptimizationSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                // No Gradle JVM field or parallel/build-cache/config-cache toggles: builds run on the
+                // remote worker, which uses its own JVM and Gradle flags. They were never sent in the
+                // build request, so they only ever looked like settings.
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -102,35 +97,6 @@ private fun BuildRunSettingsScreen(
                     KeystoreDialogMode.Import -> interactionListener.onImportReleaseKeystore(form)
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun BuildRunOptimizationSection(
-    uiState: BuildRunUiState,
-    interactionListener: BuildRunInteractionListener,
-    colors: AslColorScheme,
-) {
-    HubSectionHeader("Optimization")
-    SectionCard(colors) {
-        AslSwitch(
-            label = "Parallel task execution",
-            checked = uiState.parallelTaskExecution,
-            onCheckedChange = { interactionListener.onToggleParallelTaskExecution(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        AslSwitch(
-            label = "Build cache",
-            checked = uiState.buildCacheEnabled,
-            onCheckedChange = { interactionListener.onToggleBuildCache(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        AslSwitch(
-            label = "Configuration cache",
-            checked = uiState.configurationCacheEnabled,
-            onCheckedChange = { interactionListener.onToggleConfigurationCache(it) },
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.navigation
 object Routes {
     const val ONBOARDING_WELCOME = "onboarding/welcome"
     const val ONBOARDING_PERMISSIONS = "onboarding/permissions"
-    const val ONBOARDING_SETUP = "onboarding/setup"
     const val ONBOARDING_COMPLETE = "onboarding/complete"
 
     const val HUB = "hub"

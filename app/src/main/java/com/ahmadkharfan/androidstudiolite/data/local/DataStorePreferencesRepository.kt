@@ -77,10 +77,6 @@ class DataStorePreferencesRepository(
             kotlinLspEnabled = this[KOTLIN_LSP_ENABLED] ?: defaults.kotlinLspEnabled,
             javaLspEnabled = this[JAVA_LSP_ENABLED] ?: defaults.javaLspEnabled,
             xmlLspEnabled = this[XML_LSP_ENABLED] ?: defaults.xmlLspEnabled,
-            gradleJvmPath = this[GRADLE_JVM_PATH] ?: defaults.gradleJvmPath,
-            parallelTaskExecution = this[PARALLEL_TASK_EXECUTION] ?: defaults.parallelTaskExecution,
-            buildCacheEnabled = this[BUILD_CACHE_ENABLED] ?: defaults.buildCacheEnabled,
-            configurationCacheEnabled = this[CONFIGURATION_CACHE_ENABLED] ?: defaults.configurationCacheEnabled,
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
             installViaShizuku = this[INSTALL_VIA_SHIZUKU] ?: defaults.installViaShizuku,
             buildOutputAab = this[BUILD_OUTPUT_AAB] ?: defaults.buildOutputAab,
@@ -103,10 +99,6 @@ class DataStorePreferencesRepository(
         this[KOTLIN_LSP_ENABLED] = value.kotlinLspEnabled
         this[JAVA_LSP_ENABLED] = value.javaLspEnabled
         this[XML_LSP_ENABLED] = value.xmlLspEnabled
-        this[GRADLE_JVM_PATH] = value.gradleJvmPath
-        this[PARALLEL_TASK_EXECUTION] = value.parallelTaskExecution
-        this[BUILD_CACHE_ENABLED] = value.buildCacheEnabled
-        this[CONFIGURATION_CACHE_ENABLED] = value.configurationCacheEnabled
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
         this[INSTALL_VIA_SHIZUKU] = value.installViaShizuku
         this[BUILD_OUTPUT_AAB] = value.buildOutputAab
@@ -127,10 +119,6 @@ class DataStorePreferencesRepository(
         val KOTLIN_LSP_ENABLED = booleanPreferencesKey("kotlin_lsp_enabled")
         val JAVA_LSP_ENABLED = booleanPreferencesKey("java_lsp_enabled")
         val XML_LSP_ENABLED = booleanPreferencesKey("xml_lsp_enabled")
-        val GRADLE_JVM_PATH = stringPreferencesKey("gradle_jvm_path")
-        val PARALLEL_TASK_EXECUTION = booleanPreferencesKey("parallel_task_execution")
-        val BUILD_CACHE_ENABLED = booleanPreferencesKey("build_cache_enabled")
-        val CONFIGURATION_CACHE_ENABLED = booleanPreferencesKey("configuration_cache_enabled")
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
         val INSTALL_VIA_SHIZUKU = booleanPreferencesKey("install_via_shizuku")
         val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")

@@ -98,10 +98,6 @@ class DataStorePreferencesRepositoryTest {
             kotlinLspEnabled = false,
             javaLspEnabled = false,
             xmlLspEnabled = true,
-            gradleJvmPath = "/data/jdk-21",
-            parallelTaskExecution = false,
-            buildCacheEnabled = false,
-            configurationCacheEnabled = true,
             launchAfterInstall = false,
             installViaShizuku = true,
         )

@@ -18,7 +18,6 @@ import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerRoute
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsRoute
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.setup.SetupRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.welcome.WelcomeRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.about.AboutRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentSettingsRoute
@@ -48,14 +47,10 @@ fun AslNavHost(
         composable(Routes.ONBOARDING_WELCOME) {
             WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
         }
+        // Permissions is the last onboarding gate: the Setup step used to install the on-device
+        // toolchain, which no longer exists now that builds run on the server.
         composable(Routes.ONBOARDING_PERMISSIONS) {
-            PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_SETUP) })
-        }
-        composable(Routes.ONBOARDING_SETUP) {
-            SetupRoute(
-                onContinue = { navController.navigate(Routes.ONBOARDING_COMPLETE) },
-                onSkip = { navController.navigate(Routes.ONBOARDING_COMPLETE) },
-            )
+            PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_COMPLETE) })
         }
         composable(Routes.ONBOARDING_COMPLETE) {
             CompleteRoute(
@@ -167,7 +162,10 @@ fun AslNavHost(
             AboutRoute(onBack = { navController.popBackStack() })
         }
         composable(Routes.SETTINGS_IDE_CONFIG) {
-            IdeConfigRoute(onBack = { navController.popBackStack() })
+            IdeConfigRoute(
+                onBack = { navController.popBackStack() },
+                onOpenServerSettings = { navController.navigate(Routes.SETTINGS_SERVER) },
+            )
         }
         composable(Routes.SETTINGS_DEVELOPER) {
             DeveloperOptionsRoute(
