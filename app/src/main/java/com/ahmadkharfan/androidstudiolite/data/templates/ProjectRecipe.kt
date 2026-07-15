@@ -35,6 +35,22 @@ class ProjectRecipe(val spec: NewProjectSpec) {
 
     fun plugin(spec: PluginSpec) { appPlugins += spec }
 
+    /**
+     * The plugins the app module actually applies: what templates declared, plus the Kotlin 2.x
+     * Compose compiler plugin whenever this is a Kotlin Compose module.
+     *
+     * Compose needs its compiler plugin applied, and under Kotlin 2.x that is a real Gradle plugin
+     * rather than the `composeOptions { kotlinCompilerExtensionVersion }` block Kotlin 1.9 used
+     * (which 2.x rejects outright). Adding it here rather than in each template keeps
+     * `enableCompose = true` the single thing a Compose template has to say, and keeps the plugin
+     * impossible to forget. It flows into the version catalog and the root build script for free,
+     * since both are derived from this set.
+     */
+    private fun effectiveAppPlugins(): List<PluginSpec> = buildList {
+        addAll(appPlugins)
+        if (enableCompose && kotlin) add(Catalog.composeCompiler)
+    }
+
     fun dependency(configuration: String, library: LibrarySpec, isPlatform: Boolean = false) {
         appDependencies += DependencyRef(configuration, library, isPlatform)
     }
@@ -213,6 +229,10 @@ class ProjectRecipe(val spec: NewProjectSpec) {
     private fun renderGradleProperties(): String = buildString {
         appendLine("org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8")
         appendLine("org.gradle.caching=true")
+        appendLine("org.gradle.parallel=true")
+        // Note: org.gradle.configuration-cache is deliberately absent. The build worker runs Gradle
+        // with --no-configuration-cache (its BuildEvent init script uses task listeners the
+        // configuration cache forbids), so setting it here would mislead rather than speed anything.
         appendLine("android.useAndroidX=${useAndroidX}")
         appendLine("android.nonTransitiveRClass=true")
         if (kotlin) appendLine("kotlin.code.style=official")
@@ -235,7 +255,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
 
     private fun renderAppBuildKts(): String = buildString {
         appendLine("plugins {")
-        for (p in appPlugins) appendLine("    alias(${p.accessor})")
+        for (p in effectiveAppPlugins()) appendLine("    alias(${p.accessor})")
         appendLine("}")
         appendLine()
         appendLine("android {")
@@ -283,11 +303,9 @@ class ProjectRecipe(val spec: NewProjectSpec) {
             if (enableViewBinding) appendLine("        viewBinding = true")
             appendLine("    }")
         }
-        if (enableCompose) {
-            appendLine("    composeOptions {")
-            appendLine("        kotlinCompilerExtensionVersion = \"${Catalog.COMPOSE_COMPILER_VERSION}\"")
-            appendLine("    }")
-        }
+        // No composeOptions block: under Kotlin 2.x the Compose compiler comes from the
+        // org.jetbrains.kotlin.plugin.compose plugin (see effectiveAppPlugins), and
+        // kotlinCompilerExtensionVersion is rejected at configuration time.
         cmakeListsRelPath?.let {
             appendLine("    externalNativeBuild {")
             appendLine("        cmake {")
@@ -308,7 +326,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
 
     private fun renderAppBuildGroovy(): String = buildString {
         appendLine("plugins {")
-        for (p in appPlugins) appendLine("    alias ${p.accessor}")
+        for (p in effectiveAppPlugins()) appendLine("    alias ${p.accessor}")
         appendLine("}")
         appendLine()
         appendLine("android {")
@@ -353,11 +371,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
             if (enableViewBinding) appendLine("        viewBinding true")
             appendLine("    }")
         }
-        if (enableCompose) {
-            appendLine("    composeOptions {")
-            appendLine("        kotlinCompilerExtensionVersion '${Catalog.COMPOSE_COMPILER_VERSION}'")
-            appendLine("    }")
-        }
+        // No composeOptions block — see the KTS renderer above (Kotlin 2.x compose plugin).
         cmakeListsRelPath?.let {
             appendLine("    externalNativeBuild {")
             appendLine("        cmake {")
@@ -407,7 +421,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
     }
 
     /** Plugins declared at the root (with `apply false`) = the distinct set the app module applies. */
-    private fun rootPlugins(): List<PluginSpec> = appPlugins.toList()
+    private fun rootPlugins(): List<PluginSpec> = effectiveAppPlugins()
 
     private fun renderRootGitignore(): String =
         """

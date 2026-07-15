@@ -41,7 +41,10 @@ class RemoteBuildSystem(
     private val packager: ProjectPackager,
     private val artifactDownloader: ArtifactDownloader,
     private val gradleReader: GradleProjectReader,
-    /** Scratch dir for source zips (e.g. `context.cacheDir/build-sources`). */
+    /**
+     * Cache dir for source zips (e.g. `context.cacheDir/build-sources`). Holds one archive, reused
+     * across builds of an unchanged project; safe to purge (it is rebuilt on the next Run).
+     */
     private val sourceDir: File,
     /** Whether the user opted to build from the project's Git remote when one exists (A3). */
     private val preferGitSource: suspend () -> Boolean = { false },
@@ -80,7 +83,6 @@ class RemoteBuildSystem(
         val projectRoot = request.projectRoot
         val parser = BuildEventParser()
         val startedAt = System.currentTimeMillis()
-        var zip: File? = null
         var socket: WebSocket? = null
         try {
             // 1. Resolve the source: Git remote (no upload) when the user opted in and the project has
@@ -98,8 +100,11 @@ class RemoteBuildSystem(
             )
             currentBuildId = created.buildId
             if (gitSource == null) {
-                zip = File(sourceDir.apply { mkdirs() }, "src-${System.currentTimeMillis()}.zip")
-                packager.packageProject(projectRoot, zip)
+                // Reuses the previous archive when nothing in the project changed, which is the
+                // common Run-again case. Each build still needs its own presigned upload — only the
+                // zipping is skipped, not the transfer. The zip is owned by the packager's cache, so
+                // it deliberately outlives this build and is not deleted in `finally`.
+                val zip = packager.packageProjectCached(projectRoot, sourceDir)
                 val uploadUrl = created.uploadUrl
                     ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
                 client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
@@ -146,7 +151,6 @@ class RemoteBuildSystem(
             send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
         } finally {
             socket?.cancel()
-            zip?.delete()
             currentBuildId = null
         }
     }

@@ -10,6 +10,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.ProjectBuildDsl
 import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,7 +42,10 @@ class ProjectTemplateEngineTest {
             "unexpected parse errors: ${result.diagnostics.filter { it.severity == DiagnosticSeverity.ERROR }}",
             result.diagnostics.none { it.severity == DiagnosticSeverity.ERROR },
         )
-        assertEquals("8.7", result.gradleVersion)
+        // Reads the wrapper the recipe emitted back off disk, so this asserts the generated project
+        // really pins the matrix's Gradle — which must be the worker's, or the build server
+        // downloads a second distribution instead of reusing its warm one.
+        assertEquals(Catalog.GRADLE_VERSION, result.gradleVersion)
         assertNotNull("version catalog should parse", result.catalog)
         return result.model.modules.first { it.path == ":app" }
     }
@@ -139,13 +143,25 @@ class ProjectTemplateEngineTest {
 
         val app = appModule(dir)
         assertTrue(app.dependencies.any { it.coordinate == "androidx.core:core-ktx:1.13.1" })
-        assertTrue(app.dependencies.any { it.coordinate == "androidx.compose:compose-bom:2024.06.00" })
+        assertTrue(app.dependencies.any { it.coordinate == "androidx.compose:compose-bom:${Catalog.composeBom.version}" })
         // BOM-governed artifacts are versionless (no double-pinned version).
         assertTrue(app.dependencies.any { it.coordinate == "androidx.compose.material3:material3" })
 
         val appBuild = File(dir, "app/build.gradle.kts").readText()
         assertTrue("compose enabled", appBuild.contains("compose = true"))
-        assertTrue("compose compiler pinned", appBuild.contains("kotlinCompilerExtensionVersion = \"1.5.14\""))
+        // Under Kotlin 2.x the Compose compiler is a plugin, and the old composeOptions
+        // kotlinCompilerExtensionVersion block is a configuration-time failure rather than a no-op.
+        assertTrue("compose compiler plugin applied", appBuild.contains("alias(libs.plugins.compose.compiler)"))
+        assertFalse("Kotlin 1.9 composeOptions must be gone", appBuild.contains("composeOptions"))
+
+        val catalog = File(dir, "gradle/libs.versions.toml").readText()
+        assertTrue(
+            "compose plugin in catalog",
+            catalog.contains("compose-compiler = { id = \"org.jetbrains.kotlin.plugin.compose\""),
+        )
+        // The compose compiler plugin ships with the Kotlin compiler: sharing the version ref is
+        // what keeps them from drifting apart into an unbuildable pair.
+        assertTrue("compose plugin tracks kotlin version", catalog.contains("kotlin = \"${Catalog.KOTLIN_VERSION}\""))
 
         assertTrue(File(dir, "app/src/main/java/com/example/composer/MainActivity.kt").isFile)
         assertTrue(File(dir, "app/src/main/java/com/example/composer/ui/theme/Theme.kt").isFile)

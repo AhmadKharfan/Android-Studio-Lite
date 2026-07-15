@@ -28,6 +28,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -80,6 +81,10 @@ def generate(templates: list[str]) -> list[str]:
 
 
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELLED", "TIMED_OUT"}
+
+
+def fmt_duration(seconds: float) -> str:
+    return f"{int(seconds) // 60}m {int(seconds) % 60:02d}s"
 
 
 def rest_status(token: str, build_id: str) -> str:
@@ -143,7 +148,7 @@ def failure_reason(lines: list[str], problems: list[str]) -> str:
     return "(no error line in log)"
 
 
-async def check(template: str, token: str, keep_logs: bool) -> tuple[str, str]:
+async def check(template: str, token: str, keep_logs: bool) -> tuple[str, str, float]:
     src = OUT / template
     zip_path = OUT / f"{template}.zip"
     if zip_path.exists():
@@ -156,20 +161,25 @@ async def check(template: str, token: str, keep_logs: bool) -> tuple[str, str]:
     })
     build_id = created["buildId"]
     upload(created["uploadUrl"], zip_path)
+    # Wall time is measured from `start` to the terminal event: it spans queue wait, pod
+    # scheduling and the Gradle run — i.e. what the user waits through after hitting Run.
+    started_at = time.monotonic()
     http("POST", f"/v1/builds/{build_id}/start", token)
     print(f"==> {template}: building ({build_id})", flush=True)
 
     status, lines, problems = await follow(token, build_id)
+    elapsed = time.monotonic() - started_at
 
     if keep_logs or status != "SUCCEEDED":
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         (LOG_DIR / f"{template}.log").write_text("\n".join(lines))
 
     if status == "SUCCEEDED":
-        return status, ""
+        print(f"    {template}: SUCCEEDED in {fmt_duration(elapsed)}", flush=True)
+        return status, "", elapsed
     reason = failure_reason(lines, problems)
-    print(f"    {template}: {status} — {reason}", flush=True)
-    return status, reason
+    print(f"    {template}: {status} in {fmt_duration(elapsed)} — {reason}", flush=True)
+    return status, reason, elapsed
 
 
 async def main() -> int:
@@ -188,21 +198,25 @@ async def main() -> int:
     templates = generate(args.templates)
     token = http("POST", "/v1/devices", body={"deviceId": "template-build-check", "model": "ci"})["deviceToken"]
 
-    results: list[tuple[str, str, str]] = []
+    results: list[tuple[str, str, str, float]] = []
     for template in templates:
         try:
-            status, reason = await check(template, token, args.keep_logs)
+            status, reason, elapsed = await check(template, token, args.keep_logs)
         except (urllib.error.HTTPError, urllib.error.URLError, subprocess.CalledProcessError) as exc:
-            status, reason = "HARNESS-ERROR", str(exc)[:200]
-        results.append((template, status, reason))
+            status, reason, elapsed = "HARNESS-ERROR", str(exc)[:200], 0.0
+        results.append((template, status, reason, elapsed))
 
-    width = max(len(t) for t, _, _ in results)
+    width = max(len(t) for t, _, _, _ in results)
     print()
-    print(f"{'TEMPLATE'.ljust(width)}  {'STATUS'.ljust(12)}  DETAIL")
-    print(f"{'-' * width}  {'-' * 12}  ------")
-    for template, status, reason in results:
-        print(f"{template.ljust(width)}  {status.ljust(12)}  {reason}")
-    failed = [t for t, s, _ in results if s != "SUCCEEDED"]
+    print(f"{'TEMPLATE'.ljust(width)}  {'STATUS'.ljust(12)}  {'TIME'.ljust(8)}  DETAIL")
+    print(f"{'-' * width}  {'-' * 12}  {'-' * 8}  ------")
+    for template, status, reason, elapsed in results:
+        print(f"{template.ljust(width)}  {status.ljust(12)}  {fmt_duration(elapsed).ljust(8)}  {reason}")
+    ok = [e for _, s, _, e in results if s == "SUCCEEDED"]
+    if ok:
+        print(f"\nsucceeded: {len(ok)}  total {fmt_duration(sum(ok))}  "
+              f"median {fmt_duration(sorted(ok)[len(ok) // 2])}")
+    failed = [t for t, s, _, _ in results if s != "SUCCEEDED"]
     if failed:
         print(f"\n{len(failed)} failed: {', '.join(failed)} (logs in {LOG_DIR})")
     return 1 if failed else 0
