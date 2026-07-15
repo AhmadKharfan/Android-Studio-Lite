@@ -12,6 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -78,6 +79,7 @@ class RemoteBuildSystem(
     override fun build(request: BuildRequest): Flow<BuildEvent> = channelFlow {
         val projectRoot = request.projectRoot
         val parser = BuildEventParser()
+        val startedAt = System.currentTimeMillis()
         var zip: File? = null
         var socket: WebSocket? = null
         try {
@@ -127,6 +129,21 @@ class RemoteBuildSystem(
                     is Frame.Failure -> throw frame.error
                 }
             }
+        } catch (e: CancellationException) {
+            // cancel() / collector scope death — not a failure, and must stay cooperative.
+            throw e
+        } catch (t: Throwable) {
+            // Anything else (network down, 4xx/5xx, a wire-shape change) is a FAILED BUILD, not a
+            // dead IDE. Previously this escaped the flow and crashed the app: a MissingFieldException
+            // from decoding /start's `{"status":"queued"}` took the whole process down. Surface it in
+            // the build console the same way a compile error arrives.
+            send(
+                BuildEvent.Problem(
+                    severity = BuildEvent.ProblemSeverity.ERROR,
+                    message = t.message ?: t::class.simpleName ?: "Build failed",
+                ),
+            )
+            send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
         } finally {
             socket?.cancel()
             zip?.delete()

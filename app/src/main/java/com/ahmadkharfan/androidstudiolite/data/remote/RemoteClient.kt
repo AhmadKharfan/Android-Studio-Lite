@@ -83,11 +83,18 @@ class RemoteClient(
         return authedPost("/v1/builds", body)
     }
 
-    suspend fun startBuild(buildId: String): BuildStateResponse =
-        authedPost("/v1/builds/$buildId/start", EMPTY_BODY)
+    /**
+     * Enqueue an already-uploaded build. The response body is deliberately NOT parsed: the control
+     * plane answers `202 {"status":"queued"}` with no `buildId` (the caller already has it), so
+     * decoding it as [BuildStateResponse] threw MissingFieldException('buildId') and killed the
+     * build. Success is the 2xx itself — [authedPostUnit] still raises RemoteException on 4xx/5xx.
+     */
+    suspend fun startBuild(buildId: String) =
+        authedPostUnit("/v1/builds/$buildId/start", EMPTY_BODY)
 
-    suspend fun cancelBuild(buildId: String): BuildStateResponse =
-        authedPost("/v1/builds/$buildId/cancel", EMPTY_BODY)
+    /** Same contract as [startBuild]: the control plane returns a bare status object. */
+    suspend fun cancelBuild(buildId: String) =
+        authedPostUnit("/v1/builds/$buildId/cancel", EMPTY_BODY)
 
     suspend fun buildStatus(buildId: String): BuildStatusResponse =
         authedGet("/v1/builds/$buildId")
@@ -156,11 +163,25 @@ class RemoteClient(
     private suspend inline fun <reified T> authedPost(path: String, body: RequestBody): T =
         executeAuthed(path, "POST", body)
 
+    /**
+     * POST where only the status code matters. Use for endpoints whose body is an unmodelled
+     * acknowledgement (e.g. `{"status":"queued"}`) — decoding those into a DTO with required
+     * fields throws MissingFieldException even though the call succeeded.
+     */
+    private suspend fun authedPostUnit(path: String, body: RequestBody) {
+        executeAuthedRaw(path, "POST", body)
+    }
+
     /** Executes an authed call, retrying once with a fresh token on 401. */
-    private suspend inline fun <reified T> executeAuthed(path: String, method: String, body: RequestBody?): T {
+    private suspend inline fun <reified T> executeAuthed(path: String, method: String, body: RequestBody?): T =
+        decode(executeAuthedRaw(path, method, body))
+
+    /** [executeAuthed] without the decode step — for callers that ignore the body. */
+    @PublishedApi
+    internal suspend fun executeAuthedRaw(path: String, method: String, body: RequestBody?): ResponseSnapshot {
         val base = baseUrl()
         val token = ensureDeviceToken()
-        val snapshot = try {
+        return try {
             executeWithRetry(request(base, path, method, body, token), allowUnauthorizedThrow = true)
         } catch (e: RemoteException) {
             if (!e.isUnauthorized) throw e
@@ -168,7 +189,6 @@ class RemoteClient(
             val fresh = registerDevice()
             executeWithRetry(request(base, path, method, body, fresh), allowUnauthorizedThrow = false)
         }
-        return decode(snapshot)
     }
 
     private fun request(base: String, path: String, method: String, body: RequestBody?, token: String): Request =
@@ -214,7 +234,8 @@ class RemoteClient(
     private fun Response.toSnapshot(): ResponseSnapshot =
         ResponseSnapshot(code = code, isSuccessful = isSuccessful, body = body?.string().orEmpty())
 
-    private data class ResponseSnapshot(val code: Int, val isSuccessful: Boolean, val body: String) {
+    @PublishedApi
+    internal data class ResponseSnapshot(val code: Int, val isSuccessful: Boolean, val body: String) {
         fun toException(): RemoteException {
             val err = runCatching { RemoteJson.decodeFromString<ErrorEnvelope>(body).error }.getOrNull()
             return RemoteException(code, err?.code, err?.message ?: "HTTP $code")

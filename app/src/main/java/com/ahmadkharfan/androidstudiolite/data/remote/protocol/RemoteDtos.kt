@@ -69,14 +69,19 @@ data class CreateBuildResponse(
 @Serializable
 data class BuildStateResponse(val buildId: String, val status: String)
 
-/** Artifact descriptor from `GET /v1/builds/{id}` and `GET /v1/builds/{id}/artifact`. */
+/**
+ * Response of `GET /v1/builds/{id}/artifact`.
+ *
+ * Matches what the control plane actually sends: `{"url": "...", "expiresInSeconds": 1800}` — a bare
+ * presigned GET. It carries no name/kind/size (the name is already known from the `artifactProduced`
+ * event, and the URL is single-use). The previous shape here (required `name`, `downloadUrl`) was
+ * written against an early draft of PROTOCOL.md and would throw MissingFieldException('name') on
+ * every real response.
+ */
 @Serializable
 data class ArtifactResponse(
-    val kind: String = "OTHER",
-    val name: String,
-    val sizeBytes: Long? = null,
-    val downloadUrl: String? = null,
-    val expiresAt: Long? = null,
+    val url: String,
+    val expiresInSeconds: Long? = null,
 )
 
 /** `GET /v1/builds/{id}` status poll. */

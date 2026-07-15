@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only manifest overlay: attaches the host-scoped cleartext exception
+  (res/xml/network_security_config.xml) so debug builds can reach the plain-HTTP build
+  control plane. The release manifest has no networkSecurityConfig, so release keeps the
+  platform default of cleartext-denied.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:replace="android:networkSecurityConfig" />
+</manifest>

@@ -20,17 +20,28 @@ class ArtifactDownloader(
 
     /**
      * Resolves and downloads the artifact for [buildId]. Returns the local file plus its kind, or
-     * null if the server reports no downloadable artifact.
+     * null if the server reports no downloadable artifact (HTTP 404 → `not_found`).
+     *
+     * The control plane's artifact response is just `{url, expiresInSeconds}`, so the filename comes
+     * from [fallbackName] — the caller passes the name carried by the `artifactProduced` event.
      */
     suspend fun download(buildId: String, fallbackName: String? = null): DownloadedArtifact? {
-        val artifact = client.artifact(buildId)
-        val url = artifact.downloadUrl ?: return null
-        val name = artifact.name.ifBlank { fallbackName ?: "$buildId.apk" }
-        val dest = File(File(downloadDir, buildId).apply { mkdirs() }, name.substringAfterLast('/'))
-        client.download(url, dest)
-        return DownloadedArtifact(file = dest, kind = artifactKind(artifact.kind))
+        val artifact = try {
+            client.artifact(buildId)
+        } catch (e: RemoteException) {
+            // A successful build with no artifact (e.g. a CLEAN task) is not an error.
+            if (e.httpStatus == 404) return null else throw e
+        }
+        val name = (fallbackName ?: "$buildId.apk").substringAfterLast('/').ifBlank { "$buildId.apk" }
+        val dest = File(File(downloadDir, buildId).apply { mkdirs() }, name)
+        client.download(artifact.url, dest)
+        return DownloadedArtifact(file = dest, kind = kindFromName(name))
     }
 
-    private fun artifactKind(raw: String): BuildEvent.ArtifactKind =
-        enumValues<BuildEvent.ArtifactKind>().firstOrNull { it.name == raw } ?: BuildEvent.ArtifactKind.OTHER
+    /** The wire response carries no kind; infer it from the artifact's extension. */
+    private fun kindFromName(name: String): BuildEvent.ArtifactKind = when {
+        name.endsWith(".apk", ignoreCase = true) -> BuildEvent.ArtifactKind.APK
+        name.endsWith(".aab", ignoreCase = true) -> BuildEvent.ArtifactKind.AAB
+        else -> BuildEvent.ArtifactKind.OTHER
+    }
 }
