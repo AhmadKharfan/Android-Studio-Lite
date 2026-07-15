@@ -62,13 +62,17 @@ object TemplateContent {
         append("</resources>")
     }
 
-    /** A themes.xml for Views templates (Material 3 DayNight, no action bar). */
+    /**
+     * A themes.xml for Views templates (Material 3 DayNight, no action bar).
+     *
+     * No `android:statusBarColor`: `?attr/colorPrimaryVariant` is an M2/AppCompat attribute that the
+     * `Theme.Material3.*` parent doesn't define, so aapt2 failed every Views project on it. M3
+     * DayNight handles the system bars, and the attribute is deprecated as of API 35 anyway.
+     */
     fun viewsThemesXml(spec: NewProjectSpec): String =
         """
         <resources xmlns:tools="http://schemas.android.com/tools">
-            <style name="${themeName(spec)}" parent="Theme.Material3.DayNight.NoActionBar">
-                <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-            </style>
+            <style name="${themeName(spec)}" parent="Theme.Material3.DayNight.NoActionBar" />
         </resources>
         """.trimIndent()
 

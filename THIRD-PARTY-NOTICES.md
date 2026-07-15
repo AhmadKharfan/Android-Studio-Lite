@@ -26,6 +26,7 @@ licenses. This file must be kept current as each component is actually added.
 | aapt2 (AOSP) | Apache-2.0 | Resource compilation/linking (binary shipped in jniLibs) |
 | bundletool | Apache-2.0 | AAB generation and validation |
 | JGit | EDL (BSD-3-Clause) | Git operations |
+| Gradle wrapper (`gradlew`, `gradlew.bat`, `gradle-wrapper.jar` from Gradle 9.4.1) | Apache-2.0 | Shipped in `app/src/main/assets/wrapper/` and copied verbatim into every generated project, which pins its own Gradle distribution (8.7) via `gradle-wrapper.properties`. The jar is only a bootstrapper (~45 KB, Java 8 bytecode) — it downloads and runs the pinned distribution on the build server. |
 
 Runtime-downloaded toolchain (full flavor, separate processes, never linked):
 

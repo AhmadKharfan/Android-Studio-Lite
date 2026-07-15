@@ -6,14 +6,14 @@ import java.io.File
 
 /**
  * Turns a [NewProjectSpec] into a real Gradle project on disk by resolving the chosen [Template] from
- * the [TemplateRegistry], letting it populate a [ProjectRecipe], applying cross-cutting option toggles
- * (e.g. C++), and flushing the assembled project (KTS + version catalog by default, pinned to the
- * compat matrix) to [projectDir].
+ * the [TemplateRegistry], letting it populate a [ProjectRecipe], and flushing the assembled project
+ * (KTS + version catalog, pinned to the compat matrix, wrapper binaries included) to [projectDir].
  *
  * Replaces the placeholder `ProjectScaffold`. Written fresh for ASL.
  */
 class ProjectTemplateEngine(
     private val registry: TemplateRegistry = TemplateRegistry(),
+    private val wrapperSource: GradleWrapperSource? = null,
 ) {
 
     /** Generates [spec]'s project into [projectDir], returning the resolved template's language. */
@@ -31,13 +31,8 @@ class ProjectTemplateEngine(
         val recipe = ProjectRecipe(effective)
         template.assemble(effective, recipe)
 
-        // Global C++ toggle: layer a native source set onto any template that didn't already add one.
-        if (effective.useCpp && recipe.cmakeListsRelPath == null) {
-            NativeCppScaffold.addTo(effective, recipe)
-        }
-
         projectDir.mkdirs()
-        recipe.writeTo(projectDir)
+        recipe.writeTo(projectDir, wrapperSource)
         return GenerationResult(templateId = template.metadata.id, language = effective.language)
     }
 }
@@ -46,28 +41,3 @@ data class GenerationResult(
     val templateId: String,
     val language: TemplateLanguage,
 )
-
-/** Adds a minimal C++/CMake native library to an existing recipe (for the global C++ toggle). */
-private object NativeCppScaffold {
-    fun addTo(spec: NewProjectSpec, recipe: ProjectRecipe) {
-        recipe.cmakeListsRelPath = "src/main/cpp/CMakeLists.txt"
-        recipe.file(
-            "app/src/main/cpp/CMakeLists.txt",
-            """
-            cmake_minimum_required(VERSION 3.22.1)
-            project("native-lib")
-            add_library(native-lib SHARED native-lib.cpp)
-            find_library(log-lib log)
-            target_link_libraries(native-lib ${'$'}{log-lib})
-            """.trimIndent(),
-        )
-        recipe.file(
-            "app/src/main/cpp/native-lib.cpp",
-            """
-            #include <jni.h>
-            #include <string>
-            // Load with System.loadLibrary("native-lib") and declare a matching external function.
-            """.trimIndent(),
-        )
-    }
-}

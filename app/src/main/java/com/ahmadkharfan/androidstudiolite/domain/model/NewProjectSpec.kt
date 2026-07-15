@@ -23,10 +23,6 @@ data class NewProjectSpec(
     val minSdk: Int = 24,
     val targetSdk: Int = 34,
     val compileSdk: Int = 34,
-    /** Force Compose on. Templates that are inherently Compose or Views ignore/override this. */
-    val useCompose: Boolean = false,
-    /** Add a C++/CMake native source set. Independent of the template's own C++ default. */
-    val useCpp: Boolean = false,
     /**
      * Absolute directory to create the project in. When null (or not absolute) the repository uses
      * its default on-device projects root.

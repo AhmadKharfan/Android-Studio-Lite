@@ -128,12 +128,29 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         )
     }
 
-    fun writeTo(projectRoot: File) {
+    /**
+     * Flushes the rendered project to [projectRoot] and, when a [wrapperSource] is given, copies the
+     * Gradle wrapper binaries in beside the `gradle-wrapper.properties` this recipe renders — so the
+     * project the packager zips up is one the remote worker can actually invoke (`./gradlew`).
+     */
+    fun writeTo(projectRoot: File, wrapperSource: GradleWrapperSource? = null) {
         for ((relPath, content) in render()) {
             val target = File(projectRoot, relPath)
             target.parentFile?.mkdirs()
             target.writeText(content)
         }
+        wrapperSource?.let { writeWrapper(projectRoot, it) }
+    }
+
+    private fun writeWrapper(projectRoot: File, source: GradleWrapperSource) {
+        for (relPath in GradleWrapperSource.PATHS) {
+            val target = File(projectRoot, relPath)
+            target.parentFile?.mkdirs()
+            source.open(relPath).use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        File(projectRoot, GradleWrapperSource.GRADLEW).setExecutable(true, false)
     }
 
     // --- gradle files ---------------------------------------------------------------------------

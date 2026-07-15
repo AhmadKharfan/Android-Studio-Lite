@@ -22,7 +22,10 @@ class ProjectTemplateEngineTest {
     @get:Rule
     val tmp = TemporaryFolder()
 
-    private val engine = ProjectTemplateEngine()
+    // Stands in for the binaries the app ships in assets/wrapper/; content is irrelevant here, only
+    // that every generated project gets the three files (and an executable gradlew).
+    private val wrapperSource = GradleWrapperSource { path -> "fake:$path".byteInputStream() }
+    private val engine = ProjectTemplateEngine(wrapperSource = wrapperSource)
     private val reader = GradleProjectReader()
 
     private fun generate(spec: NewProjectSpec): File {
@@ -63,6 +66,30 @@ class ProjectTemplateEngineTest {
             assertTrue("${template.metadata.id}: wrapper", File(dir, "gradle/wrapper/gradle-wrapper.properties").isFile)
             assertTrue("${template.metadata.id}: manifest", File(dir, "app/src/main/AndroidManifest.xml").isFile)
 
+            // Without these the project isn't self-contained and the remote worker has no ./gradlew
+            // to invoke.
+            val gradlew = File(dir, "gradlew")
+            assertTrue("${template.metadata.id}: gradlew", gradlew.isFile)
+            assertTrue("${template.metadata.id}: gradlew executable", gradlew.canExecute())
+            assertTrue("${template.metadata.id}: gradlew.bat", File(dir, "gradlew.bat").isFile)
+            assertTrue(
+                "${template.metadata.id}: wrapper jar",
+                File(dir, "gradle/wrapper/gradle-wrapper.jar").isFile,
+            )
+
+            // Every manifest declares android:icon="@mipmap/ic_launcher"; without these aapt2 fails
+            // the project at :app:processDebugResources.
+            for (icon in listOf(
+                "app/src/main/res/mipmap/ic_launcher.xml",
+                "app/src/main/res/mipmap/ic_launcher_round.xml",
+                "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+                "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+                "app/src/main/res/drawable/ic_launcher_foreground.xml",
+                "app/src/main/res/values/ic_launcher_background.xml",
+            )) {
+                assertTrue("${template.metadata.id}: $icon", File(dir, icon).isFile)
+            }
+
             // The static reader maps it into a coherent app module.
             val app = appModule(dir)
             assertEquals("${template.metadata.id}: type", ModuleType.ANDROID_APP, app.type)
@@ -77,6 +104,33 @@ class ProjectTemplateEngineTest {
             assertEquals("${template.metadata.id}: targetSdk", "34", android.targetSdk)
             assertEquals("${template.metadata.id}: compileSdk", "34", android.compileSdk)
         }
+    }
+
+    /**
+     * Guards the binaries the wizard depends on being in the APK: the engine copies whatever
+     * [AssetGradleWrapperSource] hands it, so a missing asset only surfaces as a broken build on the
+     * worker.
+     */
+    @Test
+    fun `the gradle wrapper binaries ship as app assets`() {
+        for (path in GradleWrapperSource.PATHS) {
+            val asset = File("src/main/assets/wrapper", path)
+            assertTrue("missing asset: ${asset.path}", asset.isFile)
+            assertTrue("empty asset: ${asset.path}", asset.length() > 0)
+        }
+    }
+
+    /**
+     * `?attr/colorPrimaryVariant` is an M2 attribute the Material3 parent doesn't define — aapt2 fails
+     * the project on it.
+     */
+    @Test
+    fun `views themes do not reference material2 attributes`() {
+        val dir = generate(NewProjectSpec("Viewsy", "com.example.viewsy", "empty-views"))
+
+        val themes = File(dir, "app/src/main/res/values/themes.xml").readText()
+        assertTrue("M3 parent", themes.contains("Theme.Material3.DayNight.NoActionBar"))
+        assertTrue("no colorPrimaryVariant", !themes.contains("colorPrimaryVariant"))
     }
 
     @Test
@@ -160,14 +214,5 @@ class ProjectTemplateEngineTest {
         assertEquals(ModuleType.ANDROID_APP, app.type)
         val android = BuildGradleParser.parse(File(dir, "app/build.gradle").readText(), GradleDsl.GROOVY).android
         assertEquals("com.example.groovyish", android!!.namespace)
-    }
-
-    @Test
-    fun `cpp toggle augments a non-native template`() {
-        val dir = generate(
-            NewProjectSpec("Toggled", "com.example.toggled", "empty-views", useCpp = true),
-        )
-        assertTrue(File(dir, "app/src/main/cpp/CMakeLists.txt").isFile)
-        assertTrue(File(dir, "app/build.gradle.kts").readText().contains("externalNativeBuild"))
     }
 }

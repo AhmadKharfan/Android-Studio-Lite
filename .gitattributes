@@ -1,0 +1,6 @@
+# The wrapper binaries under app/src/main/assets/wrapper/ are copied verbatim into every generated
+# project and executed on the build server. Pin their line endings so a checkout on any platform
+# can't rewrite them: a gradlew with CRLF fails to exec, and gradlew.bat needs CRLF to stay valid.
+app/src/main/assets/wrapper/gradlew text eol=lf
+app/src/main/assets/wrapper/gradlew.bat text eol=crlf
+app/src/main/assets/wrapper/gradle/wrapper/gradle-wrapper.jar binary

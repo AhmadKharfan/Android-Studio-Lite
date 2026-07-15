@@ -7,6 +7,12 @@ package com.ahmadkharfan.androidstudiolite.data.templates
  *
  * Versions here target Kotlin 1.9.24, which pairs with AGP 8.5.2 and uses the Compose *compiler
  * extension* (`composeOptions`) rather than the Kotlin 2.0 Compose Gradle plugin — see [ProjectRecipe].
+ *
+ * GUARD: [KOTLIN_VERSION] and [COMPOSE_COMPILER_VERSION] move together, and only within Kotlin 1.9.x.
+ * Bumping Kotlin to 2.x breaks every Compose template at configuration time — 2.x moved the compiler
+ * into the `org.jetbrains.kotlin.plugin.compose` Gradle plugin and rejects `composeOptions`
+ * `kotlinCompilerExtensionVersion`. Going to 2.x means emitting that plugin (catalog + root build +
+ * app build) and dropping the `composeOptions` block, not just editing these constants.
  */
 object Catalog {
 
