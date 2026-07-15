@@ -1,11 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.di
+import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiAgentRepository
 import com.ahmadkharfan.androidstudiolite.data.fake.FakeAiChatRepository
-import com.ahmadkharfan.androidstudiolite.data.environment.AndroidIdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.IdeEnvironmentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
@@ -15,14 +14,12 @@ import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerViewM
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubViewModel
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteViewModel
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.setup.SetupViewModel
 import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.buildrun.BuildRunViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.developer.DeveloperOptionsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.ideconfig.IdeConfigViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootViewModel
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalViewModel
 import com.ahmadkharfan.androidstudiolite.feature.uidesigner.DesignerViewModel
@@ -38,18 +35,24 @@ import org.koin.dsl.module
 // interfaces are intentionally NOT bound here so there are no duplicate Koin definitions.
 val dataModule = module {
     single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
-    single<IdeEnvironmentRepository> { AndroidIdeEnvironmentRepository(androidContext()) }
     single { NetworkMonitor(androidContext()) }
     single<AiAgentRepository> { FakeAiAgentRepository() }
     single<AiChatRepository> { FakeAiChatRepository() }
 }
 val viewModelModule = module {
     viewModelOf(::PermissionsViewModel)
-    viewModelOf(::SetupViewModel)
     viewModelOf(::CompleteViewModel)
     viewModelOf(::HubViewModel)
     viewModelOf(::OpenProjectViewModel)
-    viewModelOf(::CreateProjectViewModel)
+    // Explicit (not viewModelOf) because the default save location is a plain String the graph can't
+    // resolve by type.
+    viewModel {
+        CreateProjectViewModel(
+            templateRepository = get(),
+            projectRepository = get(),
+            defaultLocation = IdeEnvironmentPaths.projectsDir(androidContext()).absolutePath,
+        )
+    }
     // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
     viewModelOf(::AiChatViewModel)
     viewModelOf(::VariantsViewModel)
@@ -61,7 +64,6 @@ val viewModelModule = module {
     viewModelOf(::EditorSettingsViewModel)
     viewModelOf(::AiAgentViewModel)
     viewModelOf(::BuildRunViewModel)
-    viewModelOf(::IdeConfigViewModel)
     viewModelOf(::DeveloperOptionsViewModel)
     viewModel { params ->
         EditorViewModel(

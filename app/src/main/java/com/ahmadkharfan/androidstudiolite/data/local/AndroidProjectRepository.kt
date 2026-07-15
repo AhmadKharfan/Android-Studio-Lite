@@ -49,6 +49,7 @@ class AndroidProjectRepository(
                 path = dir.absolutePath,
                 language = if (result.language == TemplateLanguage.JAVA) "Java" else "Kotlin",
                 lastOpenedMillis = clock(),
+                packageName = spec.packageName,
             )
             upsert(project)
             changeBus.emit(FileChangeType.CREATED, dir.absolutePath)
@@ -169,10 +170,14 @@ class AndroidProjectRepository(
         // the escape char itself are escaped so arbitrary names/paths round-trip safely.
         fun encode(projects: List<Project>): String =
             projects.joinToString("\n") { p ->
-                listOf(p.id, p.name, p.path, p.language, (p.lastOpenedMillis ?: 0L).toString())
-                    .joinToString("\t") { escape(it) }
+                listOf(
+                    p.id, p.name, p.path, p.language, (p.lastOpenedMillis ?: 0L).toString(),
+                    p.packageName.orEmpty(),
+                ).joinToString("\t") { escape(it) }
             }
 
+        // packageName is read positionally but optionally, so records written before it existed (5
+        // fields) still decode instead of dropping the user's project list on upgrade.
         fun decode(raw: String): List<Project> =
             if (raw.isEmpty()) emptyList()
             else raw.split("\n").mapNotNull { line ->
@@ -184,6 +189,7 @@ class AndroidProjectRepository(
                     path = unescape(parts[2]),
                     language = unescape(parts[3]),
                     lastOpenedMillis = unescape(parts[4]).toLongOrNull()?.takeIf { it > 0L },
+                    packageName = parts.getOrNull(5)?.let(::unescape)?.takeIf { it.isNotBlank() },
                 )
             }
 

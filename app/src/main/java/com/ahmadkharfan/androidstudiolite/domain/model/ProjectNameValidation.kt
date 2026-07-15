@@ -12,3 +12,44 @@ fun validateProjectName(name: String): ProjectNameValidation = when {
     name.any { it.isWhitespace() } -> ProjectNameValidation.Invalid("Name can't contain spaces")
     else -> ProjectNameValidation.Valid
 }
+
+/**
+ * Validates an Android applicationId/namespace the way AGP does, so an invalid package fails in the
+ * wizard rather than at `:app:processDebugManifest` on the build server, minutes later.
+ *
+ * Rules: at least two dot-separated segments (AGP requires a qualified id), each segment lowercase,
+ * starting with a letter, made of letters/digits/underscore, and not a Java keyword (segments become
+ * package/directory names in generated sources).
+ */
+fun validatePackageName(packageName: String): ProjectNameValidation {
+    val segments = packageName.split('.')
+    return when {
+        packageName.isBlank() -> ProjectNameValidation.Invalid("Package name can't be empty")
+        packageName.any { it.isWhitespace() } ->
+            ProjectNameValidation.Invalid("Package name can't contain spaces")
+        packageName != packageName.lowercase() ->
+            ProjectNameValidation.Invalid("Package name must be lowercase")
+        segments.size < 2 ->
+            ProjectNameValidation.Invalid("Package name needs at least two parts, e.g. com.example")
+        segments.any { it.isEmpty() } ->
+            ProjectNameValidation.Invalid("Package name can't have an empty part")
+        segments.any { !it.matches(PACKAGE_SEGMENT) } ->
+            ProjectNameValidation.Invalid("Each part must start with a letter and use only letters, digits or _")
+        segments.firstOrNull { it in JAVA_KEYWORDS } != null ->
+            ProjectNameValidation.Invalid(
+                "\"${segments.first { it in JAVA_KEYWORDS }}\" is a reserved keyword",
+            )
+        else -> ProjectNameValidation.Valid
+    }
+}
+
+private val PACKAGE_SEGMENT = Regex("[a-z][a-z0-9_]*")
+
+private val JAVA_KEYWORDS = setOf(
+    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const",
+    "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float",
+    "for", "goto", "if", "implements", "import", "instanceof", "int", "interface", "long", "native",
+    "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp",
+    "super", "switch", "synchronized", "this", "throw", "throws", "transient", "try", "void",
+    "volatile", "while", "true", "false", "null", "_",
+)

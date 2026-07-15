@@ -4,9 +4,16 @@ import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 interface ProjectRepository {
     fun observeRecentProjects(): Flow<List<Project>>
+
+    /**
+     * One-shot snapshot of the registered projects, used by the create-project wizard to reject a
+     * name or package that's already taken rather than silently suffixing the directory.
+     */
+    suspend fun existing(): List<Project> = observeRecentProjects().first()
 
     /**
      * Generates a project from [spec] (template + all wizard options) on disk and registers it.

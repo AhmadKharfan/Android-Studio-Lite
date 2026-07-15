@@ -16,14 +16,10 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropd
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedOption
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
-import com.ahmadkharfan.androidstudiolite.feature.createproject.DSL_GROOVY
-import com.ahmadkharfan.androidstudiolite.feature.createproject.DSL_KTS
 import com.ahmadkharfan.androidstudiolite.feature.createproject.LANG_JAVA
 import com.ahmadkharfan.androidstudiolite.feature.createproject.LANG_KOTLIN
 import com.ahmadkharfan.androidstudiolite.feature.createproject.MIN_SDK_OPTIONS
-import com.ahmadkharfan.androidstudiolite.feature.createproject.TARGET_SDK_OPTIONS
 
 @Composable
 fun ConfigureStep(
@@ -31,19 +27,14 @@ fun ConfigureStep(
     packageName: String,
     location: String,
     minSdk: String,
-    targetSdk: String,
     language: String,
-    buildDsl: String,
-    useCpp: Boolean,
     nameError: String?,
+    packageError: String?,
     onNameChanged: (String) -> Unit,
     onPackageChanged: (String) -> Unit,
     onLocationChanged: (String) -> Unit,
     onMinSdkChanged: (String) -> Unit,
-    onTargetSdkChanged: (String) -> Unit,
     onLanguageChanged: (String) -> Unit,
-    onBuildDslChanged: (String) -> Unit,
-    onToggleCpp: (Boolean) -> Unit,
     onBrowseLocation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -62,11 +53,14 @@ fun ConfigureStep(
             value = packageName,
             onValueChange = onPackageChanged,
             label = "Package name",
+            error = packageError,
+            helper = if (packageError == null) "Also the applicationId, e.g. com.example.myapp" else null,
         )
         AslTextField(
             value = location,
             onValueChange = onLocationChanged,
             label = "Save location",
+            helper = "The project folder is created here",
             trailingIcon = "folder-open",
             onTrailingClick = onBrowseLocation,
         )
@@ -79,31 +73,11 @@ fun ConfigureStep(
                 AslSegmentedOption("Java", LANG_JAVA),
             ),
         )
-        LabeledSegmented(
-            label = "Build script",
-            value = buildDsl,
-            onValueChange = onBuildDslChanged,
-            options = listOf(
-                AslSegmentedOption("Kotlin (KTS)", DSL_KTS),
-                AslSegmentedOption("Groovy", DSL_GROOVY),
-            ),
-        )
         AslDropdown(
             label = "Minimum SDK",
             value = minSdk,
             onValueChange = onMinSdkChanged,
             options = MIN_SDK_OPTIONS.map { AslDropdownOption(it.label, it.value) },
-        )
-        AslDropdown(
-            label = "Target SDK",
-            value = targetSdk,
-            onValueChange = onTargetSdkChanged,
-            options = TARGET_SDK_OPTIONS.map { AslDropdownOption(it.label, it.value) },
-        )
-        AslSwitch(
-            checked = useCpp,
-            onCheckedChange = onToggleCpp,
-            label = "Include C++ support (CMake / NDK)",
         )
     }
 }

@@ -43,12 +43,12 @@ fun SummaryStep(uiState: CreateProjectUiState, modifier: Modifier = Modifier) {
             )
             AslListItem(
                 title = "Language",
-                subtitle = "${uiState.languageLabel} · ${uiState.buildDslLabel}${if (uiState.useCpp) " · C++" else ""}",
+                subtitle = uiState.languageLabel,
                 icon = "code",
             )
             AslListItem(
                 title = "SDK",
-                subtitle = "min ${uiState.minSdkLabel} · target ${uiState.targetSdkLabel}",
+                subtitle = "min ${uiState.minSdkLabel}",
                 icon = "cpu",
                 divider = false,
             )

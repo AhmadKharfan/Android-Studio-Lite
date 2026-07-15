@@ -19,17 +19,11 @@ val MIN_SDK_OPTIONS = listOf(
     SdkOption("30", "API 30 — Android 11"),
 )
 
-// Capped at the compat-matrix compileSdk (34); higher targets aren't supported by the pinned AGP.
-val TARGET_SDK_OPTIONS = listOf(
-    SdkOption("30", "API 30 — Android 11"),
-    SdkOption("33", "API 33 — Android 13"),
-    SdkOption("34", "API 34 — Android 14"),
-)
-
 const val LANG_KOTLIN = "kotlin"
 const val LANG_JAVA = "java"
-const val DSL_KTS = "kts"
-const val DSL_GROOVY = "groovy"
+
+/** Android Studio's default template; the wizard selects it instead of whatever loads first. */
+const val DEFAULT_TEMPLATE_ID = "empty-compose"
 
 @Immutable
 data class CreateProjectUiState(
@@ -38,13 +32,12 @@ data class CreateProjectUiState(
     val selectedTemplateId: String? = null,
     val projectName: String = "MyApplication",
     val packageName: String = "com.example.myapplication",
-    val location: String = "~/projects/MyApplication",
+    /** Absolute parent directory the project is created in; defaults to the on-device projects root. */
+    val location: String = "",
     val minSdk: String = "26",
-    val targetSdk: String = "34",
     val language: String = LANG_KOTLIN,
-    val buildDsl: String = DSL_KTS,
-    val useCpp: Boolean = false,
     val nameError: String? = null,
+    val packageError: String? = null,
     val creating: Boolean = false,
     val createdProjectId: String? = null,
 ) {
@@ -54,19 +47,18 @@ data class CreateProjectUiState(
     val minSdkLabel: String
         get() = MIN_SDK_OPTIONS.firstOrNull { it.value == minSdk }?.label ?: minSdk
 
-    val targetSdkLabel: String
-        get() = TARGET_SDK_OPTIONS.firstOrNull { it.value == targetSdk }?.label ?: targetSdk
-
     val languageLabel: String
         get() = if (language == LANG_JAVA) "Java" else "Kotlin"
 
-    val buildDslLabel: String
-        get() = if (buildDsl == DSL_GROOVY) "Groovy" else "Kotlin (KTS)"
+    /**
+     * Whether the project may be generated. Step-independent on purpose: the Create button lives on
+     * the last step, but the ViewModel guards on this too, so a duplicate or malformed package can't
+     * slip through by any path.
+     */
+    val canCreate: Boolean
+        get() = selectedTemplateId != null && nameError == null && packageError == null &&
+            projectName.isNotBlank() && packageName.isNotBlank()
 
     val canGoNext: Boolean
-        get() = when (step) {
-            0 -> selectedTemplateId != null
-            1 -> nameError == null && projectName.isNotBlank()
-            else -> true
-        }
+        get() = if (step == 0) selectedTemplateId != null else canCreate
 }
