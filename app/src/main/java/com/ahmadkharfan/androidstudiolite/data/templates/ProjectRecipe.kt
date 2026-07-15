@@ -85,9 +85,47 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         out["app/$buildExt"] = renderAppBuild()
         out["app/proguard-rules.pro"] = PROGUARD
         out["app/.gitignore"] = "/build\n"
+        out += launcherIconFiles()
 
         for ((path, f) in files) out[path] = f.content
         return out
+    }
+
+    /**
+     * Baseline launcher icon. Every template's manifest declares
+     * `android:icon="@mipmap/ic_launcher"`, so without these files aapt2 fails EVERY generated
+     * project at :app:processDebugResources with
+     * "resource mipmap/ic_launcher ... not found" — i.e. nothing the wizard produced could build.
+     * Emitted here (like proguard-rules/.gitignore) so all templates get it, rather than in each one.
+     *
+     * Vector-only, because templates are text: `mipmap/` holds a plain VectorDrawable that resolves on
+     * every API level, and `mipmap-anydpi-v26/` overrides it with a proper adaptive icon on 26+.
+     */
+    private fun launcherIconFiles(): Map<String, String> {
+        val adaptive = { round: Boolean ->
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/ic_launcher_background" />
+                <foreground android:drawable="@drawable/ic_launcher_foreground" />
+                ${if (round) "<monochrome android:drawable=\"@drawable/ic_launcher_foreground\" />" else ""}
+            </adaptive-icon>
+            """.trimIndent().replace("\n\n", "\n") + "\n"
+        }
+        return mapOf(
+            "app/src/main/res/values/ic_launcher_background.xml" to """
+                <?xml version="1.0" encoding="utf-8"?>
+                <resources>
+                    <color name="ic_launcher_background">#3DDC84</color>
+                </resources>
+            """.trimIndent() + "\n",
+            "app/src/main/res/drawable/ic_launcher_foreground.xml" to LAUNCHER_FOREGROUND,
+            // Fallback for API < 26 (adaptive-icon is v26+): a vector is a legal mipmap resource.
+            "app/src/main/res/mipmap/ic_launcher.xml" to LAUNCHER_FALLBACK,
+            "app/src/main/res/mipmap/ic_launcher_round.xml" to LAUNCHER_FALLBACK,
+            "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" to adaptive(false),
+            "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" to adaptive(true),
+        )
     }
 
     fun writeTo(projectRoot: File) {
@@ -368,6 +406,43 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         """.trimIndent() + "\n"
 
     private companion object {
+        /** Adaptive-icon foreground (API 26+) and, reused, the pre-26 fallback artwork. */
+        val LAUNCHER_FOREGROUND =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <vector xmlns:android="http://schemas.android.com/apk/res/android"
+                android:width="108dp"
+                android:height="108dp"
+                android:viewportWidth="108"
+                android:viewportHeight="108">
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M54,30L70,66L62,66L54,48L46,66L38,66Z" />
+            </vector>
+            """.trimIndent() + "\n"
+
+        /**
+         * Pre-26 launcher icon: a self-contained vector (background + mark) living directly in
+         * `mipmap/`, so `@mipmap/ic_launcher` resolves on every API level the templates support
+         * (minSdk can go to 24, below adaptive-icon's v26).
+         */
+        val LAUNCHER_FALLBACK =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <vector xmlns:android="http://schemas.android.com/apk/res/android"
+                android:width="48dp"
+                android:height="48dp"
+                android:viewportWidth="108"
+                android:viewportHeight="108">
+                <path
+                    android:fillColor="#3DDC84"
+                    android:pathData="M0,0h108v108h-108z" />
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M54,30L70,66L62,66L54,48L46,66L38,66Z" />
+            </vector>
+            """.trimIndent() + "\n"
+
         val PROGUARD =
             """
             # Add project specific ProGuard rules here.
