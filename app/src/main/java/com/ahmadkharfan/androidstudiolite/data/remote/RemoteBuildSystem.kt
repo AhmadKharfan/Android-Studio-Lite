@@ -131,6 +131,7 @@ class RemoteBuildSystem(
             val frames = Channel<Frame>(Channel.UNLIMITED)
             socket = client.openStream(created.buildId, FrameListener(frames))
 
+            var finishedSeen = false
             for (frame in frames) {
                 when (frame) {
                     is Frame.Text -> {
@@ -140,11 +141,28 @@ class RemoteBuildSystem(
                         } else {
                             send(event)
                         }
-                        if (event is BuildEvent.Finished) break
+                        if (event is BuildEvent.Finished) {
+                            finishedSeen = true
+                            break
+                        }
                     }
                     is Frame.Closed -> break
                     is Frame.Failure -> throw frame.error
                 }
+            }
+
+            // The stream can end (server closed the socket, or the frame channel drained) WITHOUT ever
+            // delivering a Finished — e.g. the assigned worker died before emitting its terminal event.
+            // Never let the flow complete silently: the console would sit at "Preparing…"/Running forever
+            // and the UI's run-guard would stay jammed. Synthesize a failure so the run always terminates.
+            if (!finishedSeen) {
+                send(
+                    BuildEvent.Problem(
+                        severity = BuildEvent.ProblemSeverity.ERROR,
+                        message = "Build stream ended before the build reported a result",
+                    ),
+                )
+                send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
             }
         } catch (e: CancellationException) {
             // cancel() / collector scope death — not a failure, and must stay cooperative.

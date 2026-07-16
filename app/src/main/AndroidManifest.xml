@@ -35,6 +35,17 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
+    <!-- Android 11+ package visibility: to auto-launch an app we just built + installed we must be
+         able to resolve its MAIN/LAUNCHER activity. Without this, getLaunchIntentForPackage() is
+         filtered to null and auto-launch silently no-ops. This narrow <queries> (launchable apps only)
+         is the least-privilege grant — it avoids QUERY_ALL_PACKAGES and its Play-policy scrutiny. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".AslApplication"
         android:allowBackup="true"

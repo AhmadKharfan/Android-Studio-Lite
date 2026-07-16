@@ -10,8 +10,10 @@ import android.os.Build
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 
 /**
  * Own implementation of on-device APK installation on public Android APIs (no reference to
@@ -46,9 +48,14 @@ class ApkInstaller(private val context: Context) {
             onNeedsUserAction = { trySend(InstallEvent.AwaitingConfirmation) },
             onNoPrompt = { trySend(InstallEvent.Failed("System did not provide a confirmation prompt")); close() },
             onSuccess = { pkg ->
-                val launched = if (autoLaunch) launchApp(pkg ?: applicationId) else false
-                trySend(InstallEvent.Installed(pkg ?: applicationId, launched))
-                close()
+                // Launch off the broadcast thread with a short retry: right after commit the package's
+                // MAIN/LAUNCHER activity is often not yet queryable, so getLaunchIntentForPackage would
+                // return null on the first try and auto-launch would silently no-op.
+                launch {
+                    val launched = if (autoLaunch) launchAppWithRetry(pkg ?: applicationId) else false
+                    trySend(InstallEvent.Installed(pkg ?: applicationId, launched))
+                    close()
+                }
             },
             onConflict = { pkg, message ->
                 trySend(InstallEvent.Conflict(pkg ?: applicationId, message))
@@ -164,12 +171,24 @@ class ApkInstaller(private val context: Context) {
         return PendingIntent.getBroadcast(context, REQUEST_CODE, intent, flags)
     }
 
-    private fun launchApp(packageName: String?): Boolean {
+    /**
+     * Launches [packageName]'s MAIN/LAUNCHER activity, retrying briefly because the launcher entry is
+     * frequently not resolvable for a few hundred ms after the install commits. Returns true once the
+     * app is started, false if it never became launchable within the window.
+     */
+    private suspend fun launchAppWithRetry(packageName: String?): Boolean {
         if (packageName == null) return false
-        val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
-        return runCatching {
-            context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }.isSuccess
+        repeat(LAUNCH_RETRIES) { attempt ->
+            val launch = context.packageManager.getLaunchIntentForPackage(packageName)
+            if (launch != null) {
+                val started = runCatching {
+                    context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }.isSuccess
+                if (started) return true
+            }
+            if (attempt < LAUNCH_RETRIES - 1) delay(LAUNCH_RETRY_DELAY_MS)
+        }
+        return false
     }
 
     private fun registerInstallReceiver(receiver: BroadcastReceiver, action: String) {
@@ -185,6 +204,10 @@ class ApkInstaller(private val context: Context) {
     private companion object {
         const val REQUEST_CODE = 0xA5
         val SESSION_COUNTER = AtomicInteger(0)
+
+        /** ~2s total (10 × 200ms) to cover the post-commit window before the launcher entry resolves. */
+        const val LAUNCH_RETRIES = 10
+        const val LAUNCH_RETRY_DELAY_MS = 200L
     }
 }
 

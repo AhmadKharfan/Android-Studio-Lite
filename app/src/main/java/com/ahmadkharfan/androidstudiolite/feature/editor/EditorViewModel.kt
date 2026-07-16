@@ -35,6 +35,13 @@ private val BOTTOM_PANEL_TABS = listOf(
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val APP_MODULE_PATH = ":app"
 
+/**
+ * How long a run may go with NO [BuildEvent] before it's declared failed. Rolling: each event resets
+ * it, so it only trips on genuine silence (dead worker, dropped stream). Generous enough to never
+ * trip on a normal build's quiet configuration phase, but bounded so a stuck build can't spin forever.
+ */
+private const val BUILD_INACTIVITY_TIMEOUT_MS = 120_000L
+
 /** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
@@ -54,6 +61,20 @@ class EditorViewModel(
     private var autoSaveJob: Job? = null
     private var buildJob: Job? = null
     private var launchAfterInstall = true
+
+    /**
+     * True for the whole duration of a run — build → download → install — not just the build phase.
+     * The console's `isRunning` only covers the build (it flips to Succeeded before install), so it is
+     * not a sufficient guard: a second Run pressed while the previous one is still installing would
+     * collide on the shared build backend. This flag is the real re-entrancy guard.
+     */
+    private var runInFlight = false
+
+    /** Rolling inactivity watchdog for the current run — see [launchInactivityWatchdog]. */
+    private var buildWatchdogJob: Job? = null
+
+    /** Wall-clock of the current run's most recent [BuildEvent] (or its start); drives the watchdog. */
+    @Volatile private var lastBuildEventAt = 0L
 
     /** The install to retry once the user approves clearing a signature conflict. */
     private var pendingInstall: PendingInstall? = null
@@ -432,12 +453,15 @@ class EditorViewModel(
      * into [EditorUiState.buildConsole], and — for a run — installs and launches the produced APK.
      */
     private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
-        if (state.value.buildConsole.isRunning) return
+        // Guard the WHOLE run (build+install), not just the build phase — see [runInFlight].
+        if (runInFlight) return
         val root = projectRootPath?.let { File(it) }
         if (root == null) {
             updateState { copy(snackbarMessage = "Open a project before building") }
             return
         }
+        runInFlight = true
+        lastBuildEventAt = System.currentTimeMillis()
         updateState {
             copy(
                 running = true,
@@ -448,41 +472,95 @@ class EditorViewModel(
             )
         }
         buildJob = viewModelScope.launch {
-            val preflight = buildRunCoordinator.preflight(root)
-            if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
-            if (!preflight.canProceed) {
-                val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+            try {
+                val preflight = buildRunCoordinator.preflight(root)
+                if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
+                if (!preflight.canProceed) {
+                    val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+                    updateState {
+                        copy(
+                            running = false,
+                            buildFailed = true,
+                            buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                            snackbarMessage = blocker.title,
+                            bottomPanelTabs = markBuildTab(error = true, count = 1),
+                        )
+                    }
+                    return@launch
+                }
+                buildRunCoordinator.ensureDebugKeystore()
+
+                // Backstop for a build that goes silent (worker dies before, or during, streaming):
+                // without this the console could sit at "Preparing…"/"Starting build…" forever.
+                launchInactivityWatchdog()
+
+                val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
+                buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
+                buildWatchdogJob?.cancel()
+
+                // The flow should have reduced a terminal Finished; if it somehow completed while still
+                // Running, don't leave the console spinning — normalise it to a failure.
+                if (state.value.buildConsole.isRunning) {
+                    updateState {
+                        copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
+                    }
+                }
+
+                val console = state.value.buildConsole
+                val success = console.status == BuildStatus.Succeeded
+                buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
+                updateState {
+                    copy(
+                        running = false,
+                        buildFailed = !success,
+                        bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
+                    )
+                }
+                if (success && install) installArtifact(console)
+            } finally {
+                buildWatchdogJob?.cancel()
+                runInFlight = false
+            }
+        }
+    }
+
+    /**
+     * Fails a run that has gone silent. Rolling inactivity timer: every [BuildEvent] pushes the
+     * deadline out, so a build that keeps streaming is never touched, but one that stops producing
+     * events for [BUILD_INACTIVITY_TIMEOUT_MS] — whether it never started ("Preparing…" forever) or
+     * started and then had its worker die mid-flight — is failed and the UI unblocked. This is the
+     * app-side guarantee that a run can never hang, independent of the server's own watchdog.
+     */
+    private fun launchInactivityWatchdog() {
+        buildWatchdogJob = viewModelScope.launch {
+            while (true) {
+                val sinceLastEvent = System.currentTimeMillis() - lastBuildEventAt
+                val remaining = BUILD_INACTIVITY_TIMEOUT_MS - sinceLastEvent
+                if (remaining > 0) {
+                    delay(remaining)
+                    continue
+                }
+                // Silent past the deadline. Only act while the build is still running (during the
+                // post-build install phase the console is already terminal — leave it alone).
+                if (!state.value.buildConsole.isRunning) return@launch
                 updateState {
                     copy(
                         running = false,
                         buildFailed = true,
-                        buildConsole = buildConsole.copy(status = BuildStatus.Failed),
-                        snackbarMessage = blocker.title,
-                        bottomPanelTabs = markBuildTab(error = true, count = 1),
+                        buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                        snackbarMessage = "Build stopped responding — tap Run to try again",
+                        bottomPanelTabs = markBuildTab(error = true, count = null),
                     )
                 }
+                buildRunCoordinator.cancel()
+                buildJob?.cancel()
                 return@launch
             }
-            buildRunCoordinator.ensureDebugKeystore()
-
-            val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
-            buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
-
-            val console = state.value.buildConsole
-            val success = console.status == BuildStatus.Succeeded
-            buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
-            updateState {
-                copy(
-                    running = false,
-                    buildFailed = !success,
-                    bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
-                )
-            }
-            if (success && install) installArtifact(console)
         }
     }
 
     private fun onBuildEvent(event: BuildEvent) {
+        lastBuildEventAt = System.currentTimeMillis()
         updateState { copy(buildConsole = buildConsole.reduce(event)) }
     }
 
