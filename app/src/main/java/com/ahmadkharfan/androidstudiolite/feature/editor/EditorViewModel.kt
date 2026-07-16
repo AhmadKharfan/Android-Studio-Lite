@@ -36,11 +36,11 @@ private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val APP_MODULE_PATH = ":app"
 
 /**
- * How long a run may sit in "Preparing…" with no [BuildEvent] before it's declared failed. Generous
- * enough to never trip on a normal warm build (whose first event arrives within seconds) or a
- * one-off cold worker start, but bounded so a dead/stuck build can't spin forever.
+ * How long a run may go with NO [BuildEvent] before it's declared failed. Rolling: each event resets
+ * it, so it only trips on genuine silence (dead worker, dropped stream). Generous enough to never
+ * trip on a normal build's quiet configuration phase, but bounded so a stuck build can't spin forever.
  */
-private const val PREPARE_TIMEOUT_MS = 120_000L
+private const val BUILD_INACTIVITY_TIMEOUT_MS = 120_000L
 
 /** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)
@@ -70,11 +70,11 @@ class EditorViewModel(
      */
     private var runInFlight = false
 
-    /** Fires if a started run produces no [BuildEvent] within [PREPARE_TIMEOUT_MS] — see startBuild. */
+    /** Rolling inactivity watchdog for the current run — see [launchInactivityWatchdog]. */
     private var buildWatchdogJob: Job? = null
 
-    /** Set once the current run receives its first [BuildEvent]; gates the prepare watchdog. */
-    private var sawBuildEvent = false
+    /** Wall-clock of the current run's most recent [BuildEvent] (or its start); drives the watchdog. */
+    @Volatile private var lastBuildEventAt = 0L
 
     /** The install to retry once the user approves clearing a signature conflict. */
     private var pendingInstall: PendingInstall? = null
@@ -461,7 +461,7 @@ class EditorViewModel(
             return
         }
         runInFlight = true
-        sawBuildEvent = false
+        lastBuildEventAt = System.currentTimeMillis()
         updateState {
             copy(
                 running = true,
@@ -490,10 +490,9 @@ class EditorViewModel(
                 }
                 buildRunCoordinator.ensureDebugKeystore()
 
-                // Backstop for a build that starts but never streams anything (e.g. its worker died
-                // between assignment and the first event): without this the console would sit at
-                // "Preparing…" forever. Only trips while still preparing (no event yet).
-                launchPrepareWatchdog()
+                // Backstop for a build that goes silent (worker dies before, or during, streaming):
+                // without this the console could sit at "Preparing…"/"Starting build…" forever.
+                launchInactivityWatchdog()
 
                 val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
                 buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
@@ -526,31 +525,42 @@ class EditorViewModel(
     }
 
     /**
-     * Fails a run that never leaves "Preparing…". If no [BuildEvent] has arrived after
-     * [PREPARE_TIMEOUT_MS], the build didn't actually start streaming (a dead worker, a silently
-     * dropped WebSocket) — cancel it and unblock the UI so the user can retry, rather than spin forever.
+     * Fails a run that has gone silent. Rolling inactivity timer: every [BuildEvent] pushes the
+     * deadline out, so a build that keeps streaming is never touched, but one that stops producing
+     * events for [BUILD_INACTIVITY_TIMEOUT_MS] — whether it never started ("Preparing…" forever) or
+     * started and then had its worker die mid-flight — is failed and the UI unblocked. This is the
+     * app-side guarantee that a run can never hang, independent of the server's own watchdog.
      */
-    private fun launchPrepareWatchdog() {
+    private fun launchInactivityWatchdog() {
         buildWatchdogJob = viewModelScope.launch {
-            delay(PREPARE_TIMEOUT_MS)
-            if (sawBuildEvent || !state.value.buildConsole.isRunning) return@launch
-            // Surface the failure first, then tear down the (stuck) collection.
-            updateState {
-                copy(
-                    running = false,
-                    buildFailed = true,
-                    buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
-                    snackbarMessage = "Build didn’t start — tap Run to try again",
-                    bottomPanelTabs = markBuildTab(error = true, count = null),
-                )
+            while (true) {
+                val sinceLastEvent = System.currentTimeMillis() - lastBuildEventAt
+                val remaining = BUILD_INACTIVITY_TIMEOUT_MS - sinceLastEvent
+                if (remaining > 0) {
+                    delay(remaining)
+                    continue
+                }
+                // Silent past the deadline. Only act while the build is still running (during the
+                // post-build install phase the console is already terminal — leave it alone).
+                if (!state.value.buildConsole.isRunning) return@launch
+                updateState {
+                    copy(
+                        running = false,
+                        buildFailed = true,
+                        buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                        snackbarMessage = "Build stopped responding — tap Run to try again",
+                        bottomPanelTabs = markBuildTab(error = true, count = null),
+                    )
+                }
+                buildRunCoordinator.cancel()
+                buildJob?.cancel()
+                return@launch
             }
-            buildRunCoordinator.cancel()
-            buildJob?.cancel()
         }
     }
 
     private fun onBuildEvent(event: BuildEvent) {
-        sawBuildEvent = true
+        lastBuildEventAt = System.currentTimeMillis()
         updateState { copy(buildConsole = buildConsole.reduce(event)) }
     }
 
