@@ -1,5 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.buttons
-
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,7 +44,14 @@ fun AslOverflowMenu(
             active = open,
             onClick = { open = !open },
         )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = colors.surface,
+            shadowElevation = 8.dp,
+            tonalElevation = 0.dp,
+            border = BorderStroke(1.dp, colors.borderStrong),
+        ) {
             items.forEachIndexed { index, entry ->
                 when (entry) {
                     is AslOverflowMenuEntry.Divider -> HorizontalDivider()

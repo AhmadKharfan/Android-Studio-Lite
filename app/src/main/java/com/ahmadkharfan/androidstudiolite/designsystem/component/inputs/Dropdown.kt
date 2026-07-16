@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.inputs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -76,7 +77,14 @@ fun AslDropdown(
                 )
                 AslIcon(name = if (open) "chevron-up" else "chevron-down", size = 16.dp, tint = colors.textTertiary)
             }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenu(
+                expanded = open,
+                onDismissRequest = { open = false },
+                containerColor = colors.surface,
+                shadowElevation = 8.dp,
+                tonalElevation = 0.dp,
+                border = BorderStroke(1.dp, colors.borderStrong),
+            ) {
                 options.forEach { option ->
                     val selected = option.value == value
                     DropdownMenuItem(

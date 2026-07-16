@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.buttons
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,7 +74,14 @@ fun AslSplitButton(
                 AslIcon(name = if (open) "chevron-up" else "chevron-down", size = 16.dp, tint = contentColor)
             }
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = colors.surface,
+            shadowElevation = 8.dp,
+            tonalElevation = 0.dp,
+            border = BorderStroke(1.dp, colors.borderStrong),
+        ) {
             items.forEachIndexed { index, item ->
                 DropdownMenuItem(
                     text = { Text(item.label) },
