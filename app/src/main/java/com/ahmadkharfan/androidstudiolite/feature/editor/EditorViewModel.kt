@@ -35,6 +35,13 @@ private val BOTTOM_PANEL_TABS = listOf(
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val APP_MODULE_PATH = ":app"
 
+/**
+ * How long a run may sit in "Preparing…" with no [BuildEvent] before it's declared failed. Generous
+ * enough to never trip on a normal warm build (whose first event arrives within seconds) or a
+ * one-off cold worker start, but bounded so a dead/stuck build can't spin forever.
+ */
+private const val PREPARE_TIMEOUT_MS = 120_000L
+
 /** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
@@ -54,6 +61,20 @@ class EditorViewModel(
     private var autoSaveJob: Job? = null
     private var buildJob: Job? = null
     private var launchAfterInstall = true
+
+    /**
+     * True for the whole duration of a run — build → download → install — not just the build phase.
+     * The console's `isRunning` only covers the build (it flips to Succeeded before install), so it is
+     * not a sufficient guard: a second Run pressed while the previous one is still installing would
+     * collide on the shared build backend. This flag is the real re-entrancy guard.
+     */
+    private var runInFlight = false
+
+    /** Fires if a started run produces no [BuildEvent] within [PREPARE_TIMEOUT_MS] — see startBuild. */
+    private var buildWatchdogJob: Job? = null
+
+    /** Set once the current run receives its first [BuildEvent]; gates the prepare watchdog. */
+    private var sawBuildEvent = false
 
     /** The install to retry once the user approves clearing a signature conflict. */
     private var pendingInstall: PendingInstall? = null
@@ -432,12 +453,15 @@ class EditorViewModel(
      * into [EditorUiState.buildConsole], and — for a run — installs and launches the produced APK.
      */
     private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
-        if (state.value.buildConsole.isRunning) return
+        // Guard the WHOLE run (build+install), not just the build phase — see [runInFlight].
+        if (runInFlight) return
         val root = projectRootPath?.let { File(it) }
         if (root == null) {
             updateState { copy(snackbarMessage = "Open a project before building") }
             return
         }
+        runInFlight = true
+        sawBuildEvent = false
         updateState {
             copy(
                 running = true,
@@ -448,41 +472,85 @@ class EditorViewModel(
             )
         }
         buildJob = viewModelScope.launch {
-            val preflight = buildRunCoordinator.preflight(root)
-            if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
-            if (!preflight.canProceed) {
-                val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+            try {
+                val preflight = buildRunCoordinator.preflight(root)
+                if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
+                if (!preflight.canProceed) {
+                    val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+                    updateState {
+                        copy(
+                            running = false,
+                            buildFailed = true,
+                            buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                            snackbarMessage = blocker.title,
+                            bottomPanelTabs = markBuildTab(error = true, count = 1),
+                        )
+                    }
+                    return@launch
+                }
+                buildRunCoordinator.ensureDebugKeystore()
+
+                // Backstop for a build that starts but never streams anything (e.g. its worker died
+                // between assignment and the first event): without this the console would sit at
+                // "Preparing…" forever. Only trips while still preparing (no event yet).
+                launchPrepareWatchdog()
+
+                val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
+                buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
+                buildWatchdogJob?.cancel()
+
+                // The flow should have reduced a terminal Finished; if it somehow completed while still
+                // Running, don't leave the console spinning — normalise it to a failure.
+                if (state.value.buildConsole.isRunning) {
+                    updateState {
+                        copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
+                    }
+                }
+
+                val console = state.value.buildConsole
+                val success = console.status == BuildStatus.Succeeded
+                buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
                 updateState {
                     copy(
                         running = false,
-                        buildFailed = true,
-                        buildConsole = buildConsole.copy(status = BuildStatus.Failed),
-                        snackbarMessage = blocker.title,
-                        bottomPanelTabs = markBuildTab(error = true, count = 1),
+                        buildFailed = !success,
+                        bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
                     )
                 }
-                return@launch
+                if (success && install) installArtifact(console)
+            } finally {
+                buildWatchdogJob?.cancel()
+                runInFlight = false
             }
-            buildRunCoordinator.ensureDebugKeystore()
+        }
+    }
 
-            val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
-            buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
-
-            val console = state.value.buildConsole
-            val success = console.status == BuildStatus.Succeeded
-            buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
+    /**
+     * Fails a run that never leaves "Preparing…". If no [BuildEvent] has arrived after
+     * [PREPARE_TIMEOUT_MS], the build didn't actually start streaming (a dead worker, a silently
+     * dropped WebSocket) — cancel it and unblock the UI so the user can retry, rather than spin forever.
+     */
+    private fun launchPrepareWatchdog() {
+        buildWatchdogJob = viewModelScope.launch {
+            delay(PREPARE_TIMEOUT_MS)
+            if (sawBuildEvent || !state.value.buildConsole.isRunning) return@launch
+            // Surface the failure first, then tear down the (stuck) collection.
             updateState {
                 copy(
                     running = false,
-                    buildFailed = !success,
-                    bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
+                    buildFailed = true,
+                    buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                    snackbarMessage = "Build didn’t start — tap Run to try again",
+                    bottomPanelTabs = markBuildTab(error = true, count = null),
                 )
             }
-            if (success && install) installArtifact(console)
+            buildRunCoordinator.cancel()
+            buildJob?.cancel()
         }
     }
 
     private fun onBuildEvent(event: BuildEvent) {
+        sawBuildEvent = true
         updateState { copy(buildConsole = buildConsole.reduce(event)) }
     }
 
