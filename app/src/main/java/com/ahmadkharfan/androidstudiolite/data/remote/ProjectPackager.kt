@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.data.remote
 
 import java.io.BufferedOutputStream
 import java.io.File
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,47 @@ class ProjectPackager(
         runCatching { stamp.writeText(current) }
         zip
     }
+
+    /**
+     * SHA-256 (hex) of [zip]'s bytes, for the server's source dedup.
+     *
+     * This is a real content hash, not the [fingerprint] below: it is what the server keys the
+     * stored object on, so a collision with a DIFFERENT tree would build the wrong source. It is
+     * also cheap next to what it saves — reading a few MB off local disk to avoid uploading those
+     * same MB over mobile data.
+     *
+     * Hashing the cached zip FILE (rather than re-deriving it from the tree) is what makes it
+     * stable: [packageProjectCached] returns the very same file bytes for an unchanged project, so
+     * an unchanged project hashes identically, while any re-zip produces a new hash.
+     */
+    suspend fun hashZip(zip: File): String = withContext(Dispatchers.IO) {
+        val digest = MessageDigest.getInstance("SHA-256")
+        zip.inputStream().buffered(BUFFER_SIZE).use { input ->
+            val buffer = ByteArray(BUFFER_SIZE)
+            while (true) {
+                coroutineContext.ensureActive()
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * A stable id for [projectRoot] that survives edits — the opposite requirement to [hashZip].
+     *
+     * It names the project's configuration-cache slot on the server, so it must NOT change when the
+     * code does (an edit is exactly when reusing cached configuration pays off; Gradle invalidates
+     * the entry itself when the build logic changes). The absolute path is that stable identity, and
+     * it is hashed rather than sent so the wire never carries the user's on-device paths. The server
+     * additionally namespaces it per device.
+     */
+    fun projectKey(projectRoot: File): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(projectRoot.absolutePath.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+            .take(32)
 
     /**
      * A cheap identity for the source tree: every included file's relative path, size and mtime.

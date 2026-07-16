@@ -38,6 +38,18 @@ data class CreateBuildRequest(
     val kind: String,
     val tasks: List<String>? = null,
     val signing: SigningMaterial? = null,
+    /**
+     * SHA-256 (hex) of the source zip about to be uploaded. The server content-addresses the source
+     * by it, so a rebuild of an unchanged tree resolves to an object it already has and answers
+     * [CreateBuildResponse.sourceUploadRequired]=false — the app then skips the whole upload.
+     */
+    val sourceHash: String? = null,
+    /**
+     * A stable id for the project, unchanged across edits (so NOT the source hash). Names the
+     * project's Gradle configuration-cache slot server-side, which is what lets a repeat build skip
+     * the configuration phase. The server namespaces it per device before a worker sees it.
+     */
+    val projectKey: String? = null,
 )
 
 /**
@@ -63,6 +75,12 @@ data class CreateBuildResponse(
     val uploadUrl: String? = null,
     val uploadMethod: String? = "PUT",
     val uploadExpiresAt: Long? = null,
+    /**
+     * False when the server already has the source for [CreateBuildRequest.sourceHash] and the app
+     * must skip the upload. Defaults to TRUE so a missing field (an older server, which never sends
+     * it) means "upload", never a silently skipped upload against a server that has nothing.
+     */
+    val sourceUploadRequired: Boolean = true,
 )
 
 /** `POST /v1/builds/{id}/start` and `POST /v1/builds/{id}/cancel` response. */

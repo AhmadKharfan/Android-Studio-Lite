@@ -23,6 +23,10 @@ internal object RemoteBuildRequestFactory {
         request: BuildRequest,
         gitSource: GitRemoteInfo?,
         signing: SigningMaterial?,
+        /** sha256 of the source zip, for server-side upload dedup; null for a git build. */
+        sourceHash: String? = null,
+        /** Stable project id naming the server's configuration-cache slot for this project. */
+        projectKey: String? = null,
     ): CreateBuildRequest = CreateBuildRequest(
         sourceType = if (gitSource != null) "git" else "zip",
         gitUrl = gitSource?.url,
@@ -32,6 +36,8 @@ internal object RemoteBuildRequestFactory {
         kind = request.kind.name,
         tasks = defaultTasks(request),
         signing = signing,
+        sourceHash = sourceHash,
+        projectKey = projectKey,
     )
 
     /** Gradle tasks for a request: `assemble<Variant>` / `bundle<Variant>` / `clean`. */

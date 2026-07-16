@@ -94,26 +94,38 @@ class RemoteBuildSystem(
             }
             val signing = resolveSigning(request)
 
-            // 2. Create the build. For zip source, package the project and upload to the presigned URL.
+            // 2. Package first, so the create can carry the source's hash. Reuses the previous
+            //    archive when nothing in the project changed, which is the common Run-again case.
+            //    The zip is owned by the packager's cache, so it deliberately outlives this build
+            //    and is not deleted in `finally`.
+            val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
+
+            // 3. Create the build. The hash lets the server say "already have that exact tree";
+            //    the project key names its configuration-cache slot server-side.
             val created = client.createBuild(
-                RemoteBuildRequestFactory.create(request, gitSource, signing),
+                RemoteBuildRequestFactory.create(
+                    request = request,
+                    gitSource = gitSource,
+                    signing = signing,
+                    sourceHash = zip?.let { packager.hashZip(it) },
+                    projectKey = packager.projectKey(projectRoot),
+                ),
             )
             currentBuildId = created.buildId
-            if (gitSource == null) {
-                // Reuses the previous archive when nothing in the project changed, which is the
-                // common Run-again case. Each build still needs its own presigned upload — only the
-                // zipping is skipped, not the transfer. The zip is owned by the packager's cache, so
-                // it deliberately outlives this build and is not deleted in `finally`.
-                val zip = packager.packageProjectCached(projectRoot, sourceDir)
+
+            // 4. Upload — unless the server already has this exact source. Zipping was already
+            //    skipped for an unchanged project; this skips the transfer too, which is the part
+            //    the user actually waits on over mobile data.
+            if (zip != null && created.sourceUploadRequired) {
                 val uploadUrl = created.uploadUrl
                     ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
                 client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
             }
 
-            // 3. Start the build.
+            // 5. Start the build.
             client.startBuild(created.buildId)
 
-            // 4. Stream BuildEvents over the WebSocket. Frames are drained off the OkHttp callback
+            // 6. Stream BuildEvents over the WebSocket. Frames are drained off the OkHttp callback
             //    thread into this channel so they're processed sequentially — an artifact download
             //    (and its ArtifactProduced) then completes before Finished terminates the flow.
             val frames = Channel<Frame>(Channel.UNLIMITED)

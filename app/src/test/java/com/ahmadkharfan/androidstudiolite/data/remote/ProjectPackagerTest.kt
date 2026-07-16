@@ -169,4 +169,76 @@ class ProjectPackagerTest {
         val second = ProjectPackager().packageProjectCached(project, cache)
         assertEquals("excluded dirs must not invalidate the archive", 0L, second.lastModified())
     }
+
+    // --- Source dedup: hashZip / projectKey ------------------------------------------------
+
+    @Test
+    fun `an unchanged project hashes identically so the upload can be skipped`() = runBlocking {
+        val project = tmp.newFolder("proj")
+        val cache = tmp.newFolder("cache")
+        writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj\"")
+        writeFile(project, "app/src/main/java/A.kt", "class A")
+        val packager = ProjectPackager()
+
+        val first = packager.hashZip(packager.packageProjectCached(project, cache))
+        val second = packager.hashZip(packager.packageProjectCached(project, cache))
+
+        // This is the dedup contract: hit Run twice on an untouched project and the server must
+        // recognise the same source. Note zip entries carry timestamps, so this only holds because
+        // packageProjectCached hands back the same cached file rather than re-zipping.
+        assertEquals(first, second)
+    }
+
+    @Test
+    fun `editing a file changes the hash so the new source is uploaded`() = runBlocking {
+        val project = tmp.newFolder("proj")
+        val cache = tmp.newFolder("cache")
+        writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj\"")
+        writeFile(project, "app/src/main/java/A.kt", "class A")
+        val packager = ProjectPackager()
+        val before = packager.hashZip(packager.packageProjectCached(project, cache))
+
+        writeFile(project, "app/src/main/java/A.kt", "class A { fun b() {} }")
+        val after = packager.hashZip(packager.packageProjectCached(project, cache))
+
+        // The dangerous direction: a stale hash here would build the user's OLD code.
+        assertFalse(before == after)
+    }
+
+    @Test
+    fun `hashZip is a 64-char lowercase sha256, the shape the server accepts`() = runBlocking {
+        val project = tmp.newFolder("proj")
+        val cache = tmp.newFolder("cache")
+        writeFile(project, "settings.gradle.kts", "x")
+        val packager = ProjectPackager()
+
+        val hash = packager.hashZip(packager.packageProjectCached(project, cache))
+
+        // The server ignores anything that doesn't match ^[0-9a-f]{64}$ and silently stops
+        // deduping, so a shape drift here would be invisible except as lost speed.
+        assertTrue(hash.matches(Regex("^[0-9a-f]{64}$")))
+    }
+
+    @Test
+    fun `projectKey survives edits but distinguishes projects`() {
+        val one = tmp.newFolder("one")
+        val two = tmp.newFolder("two")
+        val packager = ProjectPackager()
+
+        val before = packager.projectKey(one)
+        writeFile(one, "app/src/main/java/A.kt", "class A")
+        val after = packager.projectKey(one)
+
+        // Stable across edits: an edit is exactly when reusing cached configuration pays off.
+        assertEquals(before, after)
+        // But not shared between projects, or they would fight over one config-cache slot.
+        assertFalse(before == packager.projectKey(two))
+    }
+
+    @Test
+    fun `projectKey does not leak the on-device path`() {
+        val project = tmp.newFolder("MySecretProject")
+        val key = ProjectPackager().projectKey(project)
+        assertFalse(key.contains("MySecretProject"))
+    }
 }
