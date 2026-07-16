@@ -68,6 +68,42 @@ data class InstallConflictUiModel(
     val applicationId: String,
 )
 
+enum class EditorFileCreateKind { File, Folder }
+
+enum class EditorFileTreeAction {
+    NewFile,
+    NewFolder,
+    Rename,
+    Copy,
+    Paste,
+    Delete,
+}
+
+@Immutable
+data class CopiedFileTreeEntryUiModel(
+    val path: String,
+    val name: String,
+)
+
+@Immutable
+sealed interface EditorFileOperationDialogUiState {
+    data object None : EditorFileOperationDialogUiState
+    data class Create(
+        val parentPath: String,
+        val parentName: String,
+        val kind: EditorFileCreateKind,
+    ) : EditorFileOperationDialogUiState
+    data class Rename(
+        val path: String,
+        val currentName: String,
+    ) : EditorFileOperationDialogUiState
+    data class Delete(
+        val path: String,
+        val name: String,
+        val isDirectory: Boolean,
+    ) : EditorFileOperationDialogUiState
+}
+
 @Immutable
 data class EditorUiState(
     val projectId: String = "",
@@ -78,6 +114,7 @@ data class EditorUiState(
     val openRailTool: EditorRailTool? = null,
     val fileTree: List<EditorFileNodeUiModel> = emptyList(),
     val expandedFolderIds: Set<String> = emptySet(),
+    val selectedFileTreeId: String? = null,
     val bottomPanelExpanded: Boolean = false,
     val bottomPanelTabs: List<BottomPanelTabUiModel> = emptyList(),
     val activeBottomTabId: String = "build",
@@ -89,6 +126,8 @@ data class EditorUiState(
     val snackbarMessage: String? = null,
     /** Non-null while asking the user to approve the uninstall that clears a signature conflict. */
     val installConflict: InstallConflictUiModel? = null,
+    val fileOperationDialog: EditorFileOperationDialogUiState = EditorFileOperationDialogUiState.None,
+    val copiedFileTreeEntry: CopiedFileTreeEntryUiModel? = null,
     val memoryPressureActive: Boolean = false,
     val memoryChartExpanded: Boolean = false,
     val heapUsedMb: Int = 489,

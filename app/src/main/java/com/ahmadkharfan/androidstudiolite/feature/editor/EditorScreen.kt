@@ -21,11 +21,17 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
@@ -50,6 +56,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBan
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslMemoryChartMini
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslMemoryChartTone
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.Diagnostic
@@ -80,6 +87,17 @@ fun EditorRoute(
                 EditorEffect.OpenAiAgentSettings -> onOpenAiAgentSettings()
             }
         }
+    }
+
+    // Persist unsaved edits whenever the editor stops (app backgrounded, screen off, navigation away).
+    // ON_STOP fires before the process can be killed, so a debounce still in flight isn't lost.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.flushPendingSaves()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     EditorScreen(
@@ -154,7 +172,71 @@ private fun EditorScreen(
                     onDismiss = interactionListener::onDismissInstallConflict,
                 )
             }
+            EditorFileOperationDialog(uiState.fileOperationDialog, interactionListener)
         }
+    }
+}
+
+@Composable
+private fun EditorFileOperationDialog(
+    dialog: EditorFileOperationDialogUiState,
+    interactionListener: EditorInteractionListener,
+) {
+    when (dialog) {
+        EditorFileOperationDialogUiState.None -> Unit
+        is EditorFileOperationDialogUiState.Create -> {
+            var name by remember(dialog) { mutableStateOf("") }
+            val isFile = dialog.kind == EditorFileCreateKind.File
+            AslDialog(
+                title = if (isFile) "New file" else "New folder",
+                body = "Create in ${dialog.parentName}",
+                variant = AslDialogVariant.Input,
+                confirmLabel = "Create",
+                cancelLabel = "Cancel",
+                onConfirm = { interactionListener.onConfirmCreateFileTreeEntry(name) },
+                onDismiss = interactionListener::onDismissFileOperationDialog,
+                inputContent = {
+                    AslTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = if (isFile) "File name" else "Folder name",
+                        placeholder = if (isFile) "Example.kt" else "feature",
+                        leadingIcon = if (isFile) "file-code" else "folder",
+                        helper = "Use one name, without / or \\",
+                    )
+                },
+            )
+        }
+        is EditorFileOperationDialogUiState.Rename -> {
+            var name by remember(dialog) { mutableStateOf(dialog.currentName) }
+            AslDialog(
+                title = "Rename",
+                body = dialog.currentName,
+                variant = AslDialogVariant.Input,
+                confirmLabel = "Rename",
+                cancelLabel = "Cancel",
+                onConfirm = { interactionListener.onConfirmRenameFileTreeEntry(name) },
+                onDismiss = interactionListener::onDismissFileOperationDialog,
+                inputContent = {
+                    AslTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = "New name",
+                        leadingIcon = "pencil",
+                    )
+                },
+            )
+        }
+        is EditorFileOperationDialogUiState.Delete -> AslDialog(
+            title = if (dialog.isDirectory) "Delete folder?" else "Delete file?",
+            body = "Delete ${dialog.name}${if (dialog.isDirectory) " and everything inside it" else ""}. This cannot be undone.",
+            variant = AslDialogVariant.Confirm,
+            confirmLabel = "Delete",
+            cancelLabel = "Cancel",
+            destructive = true,
+            onConfirm = interactionListener::onConfirmDeleteFileTreeEntry,
+            onDismiss = interactionListener::onDismissFileOperationDialog,
+        )
     }
 }
 
@@ -176,7 +258,6 @@ private fun EditorTopBar(
             actions = {
                 AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = { interactionListener.onUndo() })
                 AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = { interactionListener.onRedo() })
-                AslIconButton(icon = "save", contentDescription = "Save", onClick = { interactionListener.onSave() })
             },
             overflowItems = listOf(
                 AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
@@ -269,10 +350,14 @@ private fun EditorEditingRow(
                 projectId = uiState.projectId,
                 fileTree = uiState.fileTree,
                 expandedFolderIds = uiState.expandedFolderIds,
-                selectedFileId = uiState.activeTabId,
+                selectedFileId = uiState.selectedFileTreeId,
+                canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
                 onSelectTool = { interactionListener.onSelectRailTool(it) },
+                onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
                 onToggleFolder = { interactionListener.onToggleFolder(it) },
                 onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
+                onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
+                onFileTreeAction = { action, id, name, isDirectory -> interactionListener.onFileTreeAction(action, id, name, isDirectory) },
                 onDismiss = { interactionListener.onCloseDrawer() },
                 onOpenSettings = { interactionListener.onOpenSettings() },
                 onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },
@@ -494,10 +579,14 @@ private fun EditorDrawerOverlay(
         projectId = uiState.projectId,
         fileTree = uiState.fileTree,
         expandedFolderIds = uiState.expandedFolderIds,
-        selectedFileId = uiState.activeTabId,
+        selectedFileId = uiState.selectedFileTreeId,
+        canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
         onSelectTool = { interactionListener.onSelectRailTool(it) },
+        onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
         onToggleFolder = { interactionListener.onToggleFolder(it) },
         onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
+        onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
+        onFileTreeAction = { action, id, name, isDirectory -> interactionListener.onFileTreeAction(action, id, name, isDirectory) },
         onDismiss = { interactionListener.onCloseDrawer() },
         onOpenSettings = { interactionListener.onOpenSettings() },
         onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },

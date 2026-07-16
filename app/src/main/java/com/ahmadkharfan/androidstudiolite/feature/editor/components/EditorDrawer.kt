@@ -8,11 +8,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTreeAction
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTreeNode
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslGitStatus
@@ -32,11 +40,14 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolRailEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileCreateKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreeAction
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRailTool
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsRoute
 
@@ -83,9 +94,13 @@ fun EditorDrawer(
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
+    canPasteFileTreeEntry: Boolean,
     onSelectTool: (EditorRailTool) -> Unit,
+    onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
@@ -143,8 +158,12 @@ fun EditorDrawer(
                     fileTree = fileTree,
                     expandedFolderIds = expandedFolderIds,
                     selectedFileId = selectedFileId,
+                    canPasteFileTreeEntry = canPasteFileTreeEntry,
+                    onFocusFileTreeNode = onFocusFileTreeNode,
                     onToggleFolder = onToggleFolder,
                     onSelectFile = onSelectFile,
+                    onCreateFileTreeEntry = onCreateFileTreeEntry,
+                    onFileTreeAction = onFileTreeAction,
                     onDismiss = onDismiss,
                     onOpenAiAgentSettings = onOpenAiAgentSettings,
                     isLoadingFileTree = isLoadingFileTree,
@@ -164,9 +183,13 @@ fun EditorDockedPanel(
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
+    canPasteFileTreeEntry: Boolean,
     onSelectTool: (EditorRailTool) -> Unit,
+    onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
@@ -188,8 +211,12 @@ fun EditorDockedPanel(
                 fileTree = fileTree,
                 expandedFolderIds = expandedFolderIds,
                 selectedFileId = selectedFileId,
+                canPasteFileTreeEntry = canPasteFileTreeEntry,
+                onFocusFileTreeNode = onFocusFileTreeNode,
                 onToggleFolder = onToggleFolder,
                 onSelectFile = onSelectFile,
+                onCreateFileTreeEntry = onCreateFileTreeEntry,
+                onFileTreeAction = onFileTreeAction,
                 onDismiss = onDismiss,
                 onOpenAiAgentSettings = onOpenAiAgentSettings,
                 isLoadingFileTree = isLoadingFileTree,
@@ -225,8 +252,12 @@ private fun EditorToolPanelContent(
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
+    canPasteFileTreeEntry: Boolean,
+    onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
     isLoadingFileTree: Boolean = false,
@@ -241,10 +272,15 @@ private fun EditorToolPanelContent(
         when (tool) {
             EditorRailTool.Files -> AslToolWindowPanel(
                 title = "Project",
-                width = 252.dp,
+                // Wider than the original 252dp, but still leaves enough editor visible to avoid
+                // feeling like a full-screen takeover on phones.
+                width = minOf(
+                    androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * 0.72f,
+                    320f,
+                ).dp,
                 onClose = onDismiss,
                 actions = {
-                    AslIconButton(icon = "file-plus-2", contentDescription = "New file", onClick = {}, size = 32.dp, iconSize = 16.dp)
+                    FileTreeCreateMenu(onCreate = { kind -> onCreateFileTreeEntry(kind, null) })
                 },
             ) {
                 AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
@@ -255,8 +291,14 @@ private fun EditorToolPanelContent(
                             items = fileTree.map { it.toAslNode() },
                             expandedIds = expandedFolderIds,
                             selectedId = selectedFileId,
+                            actionsEnabled = true,
+                            canPaste = canPasteFileTreeEntry,
+                            onFocus = { onFocusFileTreeNode(it.id) },
                             onToggle = onToggleFolder,
                             onSelect = { onSelectFile(it.id, it.name) },
+                            onAction = { node, action ->
+                                onFileTreeAction(action.toEditorAction(), node.id, node.name, node.children != null)
+                            },
                         )
                     }
                 }
@@ -267,6 +309,62 @@ private fun EditorToolPanelContent(
             EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)
         }
     }
+}
+
+@Composable
+private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
+    val colors = com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme.colors
+    var open by remember { mutableStateOf(false) }
+    Box {
+        AslIconButton(
+            icon = "file-plus-2",
+            contentDescription = "New file or folder",
+            onClick = { open = !open },
+            active = open,
+            size = 32.dp,
+            iconSize = 16.dp,
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.widthIn(min = 196.dp),
+            containerColor = colors.surface,
+            shadowElevation = 8.dp,
+            tonalElevation = 0.dp,
+            border = BorderStroke(1.dp, colors.borderStrong),
+            shape = AslShape.lg,
+        ) {
+            DropdownMenuItem(
+                text = { Text("New file", style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary) },
+                leadingIcon = {
+                    com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon("file-plus-2", size = 16.dp, tint = colors.textSecondary)
+                },
+                onClick = {
+                    open = false
+                    onCreate(EditorFileCreateKind.File)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("New folder", style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary) },
+                leadingIcon = {
+                    com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon("folder", size = 16.dp, tint = colors.textSecondary)
+                },
+                onClick = {
+                    open = false
+                    onCreate(EditorFileCreateKind.Folder)
+                },
+            )
+        }
+    }
+}
+
+private fun AslFileTreeAction.toEditorAction(): EditorFileTreeAction = when (this) {
+    AslFileTreeAction.NewFile -> EditorFileTreeAction.NewFile
+    AslFileTreeAction.NewFolder -> EditorFileTreeAction.NewFolder
+    AslFileTreeAction.Rename -> EditorFileTreeAction.Rename
+    AslFileTreeAction.Copy -> EditorFileTreeAction.Copy
+    AslFileTreeAction.Paste -> EditorFileTreeAction.Paste
+    AslFileTreeAction.Delete -> EditorFileTreeAction.Delete
 }
 
 private fun EditorFileNodeUiModel.toAslNode(): AslFileTreeNode = AslFileTreeNode(

@@ -22,7 +22,10 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSe
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -60,6 +63,13 @@ class EditorViewModel(
     private var autoSaveEnabled = true
     private var autoSaveJob: Job? = null
     private var buildJob: Job? = null
+
+    /**
+     * A Main-dispatched scope that outlives [viewModelScope] so a flush triggered by teardown
+     * (onCleared) still runs — viewModelScope is already cancelled by then. Reads happen on Main
+     * (where edits happen, so [sessions] access is safe); the repository does the actual write off it.
+     */
+    private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var launchAfterInstall = true
 
     /**
@@ -133,13 +143,21 @@ class EditorViewModel(
      */
     private fun defaultExpandedIds(nodes: List<FileNode>): Set<String> {
         val topLevelDirs = nodes.filter { it.children != null }.map { it.id }
-        val trailDirs = pathToFile(nodes) { isCodeFile(it.name) }?.dropLast(1)?.map { it.id }.orEmpty()
+        val trailDirs = pathToDefaultFile(nodes)?.dropLast(1)?.map { it.id }.orEmpty()
         return (topLevelDirs + trailDirs).toSet()
     }
 
-    /** The first source file (preferred), else the first file of any kind, or null for an empty project. */
-    private fun firstOpenableFile(nodes: List<FileNode>): FileNode? =
-        (pathToFile(nodes) { isCodeFile(it.name) } ?: pathToFile(nodes) { true })?.lastOrNull()
+    /** The file to open when a project first loads, or null for an empty project. */
+    private fun firstOpenableFile(nodes: List<FileNode>): FileNode? = pathToDefaultFile(nodes)?.lastOrNull()
+
+    /**
+     * Chain of nodes to the file we open by default. Prefer the app's entry point `MainActivity`
+     * (what a developer wants to see first on a fresh project), then any source file, then any file.
+     */
+    private fun pathToDefaultFile(nodes: List<FileNode>): List<FileNode>? =
+        pathToFile(nodes) { it.name.equals("MainActivity.kt", true) || it.name.equals("MainActivity.java", true) }
+            ?: pathToFile(nodes) { isCodeFile(it.name) }
+            ?: pathToFile(nodes) { true }
 
     /** Depth-first search returning the chain of nodes (ancestor dirs … file) to the first matching file. */
     private fun pathToFile(
@@ -198,9 +216,20 @@ class EditorViewModel(
     fun sessionFor(id: String?): EditorSession? = id?.let { sessions[it] }
 
     override fun onSelectTab(id: String) {
-        updateState { copy(activeTabId = id, activeDiagnostics = emptyList()) }
+        val previousId = state.value.activeTabId
+        viewModelScope.launch {
+            // Checkpoint the outgoing tab's edits before switching focus.
+            autoSaveJob?.cancel()
+            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
+                updateState { copy(snackbarMessage = "Couldn't save file before switching tabs") }
+                return@launch
+            }
+            updateState { copy(activeTabId = id, activeDiagnostics = emptyList()) }
+        }
     }
-    override fun onCloseTab(id: String) = closeTab(id)
+    override fun onCloseTab(id: String) {
+        closeTab(id)
+    }
     override fun onToggleMenu() {
         updateState { copy(openRailTool = if (openRailTool != null) null else EditorRailTool.Files) }
     }
@@ -210,10 +239,123 @@ class EditorViewModel(
     override fun onCloseDrawer() {
         updateState { copy(openRailTool = null) }
     }
-    override fun onToggleFolder(id: String) {
-        updateState { copy(expandedFolderIds = if (id in expandedFolderIds) expandedFolderIds - id else expandedFolderIds + id) }
+    override fun onFocusFileTreeNode(id: String) {
+        updateState { copy(selectedFileTreeId = id) }
     }
-    override fun onOpenFile(id: String, name: String) = openFile(id, name)
+    override fun onToggleFolder(id: String) {
+        updateState {
+            copy(
+                selectedFileTreeId = id,
+                expandedFolderIds = if (id in expandedFolderIds) expandedFolderIds - id else expandedFolderIds + id,
+            )
+        }
+    }
+    override fun onOpenFile(id: String, name: String) {
+        updateState { copy(selectedFileTreeId = id) }
+        openFile(id, name)
+    }
+    override fun onCreateFileTreeEntry(kind: EditorFileCreateKind, parentPath: String?) {
+        val parent = parentPath ?: defaultCreateParentPath() ?: return
+        updateState {
+            copy(
+                fileOperationDialog = EditorFileOperationDialogUiState.Create(
+                    parentPath = parent,
+                    parentName = File(parent).name.ifBlank { projectName },
+                    kind = kind,
+                ),
+            )
+        }
+    }
+    override fun onFileTreeAction(action: EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) {
+        updateState { copy(selectedFileTreeId = id) }
+        when (action) {
+            EditorFileTreeAction.NewFile -> if (isDirectory) onCreateFileTreeEntry(EditorFileCreateKind.File, id)
+            EditorFileTreeAction.NewFolder -> if (isDirectory) onCreateFileTreeEntry(EditorFileCreateKind.Folder, id)
+            EditorFileTreeAction.Rename -> updateState {
+                copy(fileOperationDialog = EditorFileOperationDialogUiState.Rename(path = id, currentName = name))
+            }
+            EditorFileTreeAction.Copy -> copyFileTreeEntry(id, name)
+            EditorFileTreeAction.Paste -> if (isDirectory) pasteFileTreeEntry(id)
+            EditorFileTreeAction.Delete -> updateState {
+                copy(fileOperationDialog = EditorFileOperationDialogUiState.Delete(path = id, name = name, isDirectory = isDirectory))
+            }
+        }
+    }
+    override fun onConfirmCreateFileTreeEntry(name: String) {
+        val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Create ?: return
+        val trimmed = name.trim()
+        if (!isValidFileTreeName(trimmed)) {
+            updateState { copy(snackbarMessage = "Use a single non-empty name") }
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                when (dialog.kind) {
+                    EditorFileCreateKind.File -> fileTreeRepository.createFile(dialog.parentPath, trimmed)
+                    EditorFileCreateKind.Folder -> fileTreeRepository.createDirectory(dialog.parentPath, trimmed)
+                }
+            }.onSuccess { createdPath ->
+                updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
+                refreshFileTree(expandIds = setOf(dialog.parentPath, createdPath))
+                updateState {
+                    copy(
+                        selectedFileTreeId = createdPath,
+                        snackbarMessage = "${if (dialog.kind == EditorFileCreateKind.File) "Created file" else "Created folder"} ${File(createdPath).name}",
+                    )
+                }
+                if (dialog.kind == EditorFileCreateKind.File) openFile(createdPath, File(createdPath).name)
+            }.onFailure { error ->
+                updateState { copy(snackbarMessage = error.message ?: "Create failed") }
+            }
+        }
+    }
+    override fun onConfirmRenameFileTreeEntry(name: String) {
+        val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Rename ?: return
+        val trimmed = name.trim()
+        if (!isValidFileTreeName(trimmed)) {
+            updateState { copy(snackbarMessage = "Use a single non-empty name") }
+            return
+        }
+        viewModelScope.launch {
+            autoSaveJob?.cancel()
+            if (!flushDirtyFiles()) {
+                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before rename") }
+                return@launch
+            }
+            runCatching { fileTreeRepository.rename(dialog.path, trimmed) }
+                .onSuccess { newPath ->
+                    remapOpenTabs(dialog.path, newPath)
+                    updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
+                    refreshFileTree(expandIds = setOf(File(newPath).parentFile?.absolutePath.orEmpty()))
+                    projectRootPath?.let { syncProjectSymbols(it) }
+                    updateState { copy(selectedFileTreeId = newPath, snackbarMessage = "Renamed to ${File(newPath).name}") }
+                }
+                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Rename failed") } }
+        }
+    }
+    override fun onConfirmDeleteFileTreeEntry() {
+        val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Delete ?: return
+        viewModelScope.launch {
+            autoSaveJob?.cancel()
+            if (!flushDirtyFiles()) {
+                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before delete") }
+                return@launch
+            }
+            runCatching { fileTreeRepository.delete(dialog.path) }
+                .onSuccess {
+                    closeTabsUnder(dialog.path)
+                    updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
+                    val parent = File(dialog.path).parentFile?.absolutePath
+                    refreshFileTree(expandIds = setOf(parent.orEmpty()))
+                    projectRootPath?.let { syncProjectSymbols(it) }
+                    updateState { copy(selectedFileTreeId = parent, snackbarMessage = "Deleted ${dialog.name}") }
+                }
+                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Delete failed") } }
+        }
+    }
+    override fun onDismissFileOperationDialog() {
+        updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
+    }
     override fun onRunProject() = startBuild(variant = "debug", kind = BuildKind.ASSEMBLE, install = true)
     override fun onCancelBuild() = cancelBuild()
     override fun onBuildReleaseApk() = startBuild(variant = "release", kind = BuildKind.ASSEMBLE, install = false)
@@ -233,7 +375,15 @@ class EditorViewModel(
     override fun onUndo() = undoRedoActive { it.undo() }
     override fun onRedo() = undoRedoActive { it.redo() }
     override fun onCloseProject() {
-        emitEffect(EditorEffect.CloseProject)
+        viewModelScope.launch {
+            // Persist edits before leaving the editor.
+            autoSaveJob?.cancel()
+            if (flushDirtyFiles()) {
+                emitEffect(EditorEffect.CloseProject)
+            } else {
+                updateState { copy(snackbarMessage = "Couldn't save pending editor changes") }
+            }
+        }
     }
     override fun onOpenSettings() {
         emitEffect(EditorEffect.OpenSettings)
@@ -269,23 +419,192 @@ class EditorViewModel(
     }
     override fun onJumpToDiagnostic(diagnostic: DiagnosticUiModel) = jumpToDiagnostic(diagnostic)
 
+    private fun defaultCreateParentPath(): String? {
+        state.value.selectedFileTreeId?.let { selectedId ->
+            findFileTreeNode(state.value.fileTree, selectedId)?.let { node ->
+                return if (node.children != null) node.id else File(node.id).parentFile?.absolutePath
+            }
+        }
+        val activeId = state.value.activeTabId
+        if (activeId != null) return File(activeId).parentFile?.absolutePath
+        return projectRootPath
+    }
+
+    private fun findFileTreeNode(nodes: List<EditorFileNodeUiModel>, id: String): EditorFileNodeUiModel? {
+        for (node in nodes) {
+            if (node.id == id) return node
+            node.children?.let { children ->
+                findFileTreeNode(children, id)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun isValidFileTreeName(name: String): Boolean =
+        name.isNotBlank() && !name.contains('/') && !name.contains('\\') && name != "." && name != ".."
+
+    private fun copyFileTreeEntry(id: String, name: String) {
+        updateState {
+            copy(
+                copiedFileTreeEntry = CopiedFileTreeEntryUiModel(path = id, name = name),
+                snackbarMessage = "Copied $name",
+            )
+        }
+    }
+
+    private fun pasteFileTreeEntry(parentPath: String) {
+        val copied = state.value.copiedFileTreeEntry ?: return
+        viewModelScope.launch {
+            autoSaveJob?.cancel()
+            if (!flushDirtyFiles()) {
+                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before paste") }
+                return@launch
+            }
+            runCatching { fileTreeRepository.copy(copied.path, parentPath) }
+                .onSuccess { newPath ->
+                    refreshFileTree(expandIds = setOf(parentPath))
+                    updateState {
+                        copy(
+                            selectedFileTreeId = newPath,
+                            snackbarMessage = "Pasted ${copied.name} as ${File(newPath).name}",
+                        )
+                    }
+                }
+                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Paste failed") } }
+        }
+    }
+
+    private suspend fun refreshFileTree(expandIds: Set<String> = emptySet()) {
+        runCatching { fileTreeRepository.getFileTree(projectId) }
+            .onSuccess { nodes ->
+                updateState {
+                    copy(
+                        fileTree = nodes.map { it.toUiModel() },
+                        expandedFolderIds = expandedFolderIds + expandIds.filter { it.isNotBlank() },
+                        isLoadingFileTree = false,
+                    )
+                }
+            }
+            .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Couldn't refresh project tree") } }
+    }
+
+    private fun closeTabsUnder(path: String) {
+        val remainingTabs = state.value.tabs.filterNot { isSameOrChild(path, it.id) }
+        val remainingIds = remainingTabs.map { it.id }.toSet()
+        sessions.keys.retainAll(remainingIds)
+        updateState {
+            copy(
+                tabs = remainingTabs,
+                activeTabId = activeTabId?.takeIf { it in remainingIds } ?: remainingTabs.lastOrNull()?.id,
+            )
+        }
+    }
+
+    private fun remapOpenTabs(oldPath: String, newPath: String) {
+        val replacements = state.value.tabs
+            .filter { isSameOrChild(oldPath, it.id) }
+            .associate { tab -> tab.id to renamedPathFor(tab.id, oldPath, newPath) }
+        if (replacements.isEmpty()) return
+        replacements.forEach { (oldId, newId) ->
+            val oldSession = sessions.remove(oldId)
+            if (oldSession != null) {
+                sessions[newId] = EditorSession(oldSession.text, EditorLanguage.fromFileName(File(newId).name), filePath = newId)
+            }
+        }
+        updateState {
+            copy(
+                tabs = tabs.map { tab ->
+                    val newId = replacements[tab.id]
+                    if (newId == null) tab else tab.copy(
+                        id = newId,
+                        name = File(newId).name,
+                        language = EditorLanguage.fromFileName(File(newId).name),
+                        breadcrumb = breadcrumbFor(newId, File(newId).name),
+                    )
+                },
+                activeTabId = activeTabId?.let { replacements[it] ?: it },
+            )
+        }
+    }
+
+    private fun isSameOrChild(parent: String, path: String): Boolean =
+        path == parent || path.startsWith(parent.trimEnd('/') + "/")
+
+    private fun renamedPathFor(path: String, oldPath: String, newPath: String): String =
+        if (path == oldPath) newPath else newPath.trimEnd('/') + path.removePrefix(oldPath).let {
+            if (it.startsWith("/")) it else "/$it"
+        }
+
     fun onSessionEdited(id: String) {
         val session = sessions[id] ?: return
         val newText = session.text
         updateState {
             copy(tabs = tabs.map { if (it.id == id) it.copy(text = newText, modified = true) else it })
         }
-        scheduleAutoSave(id)
+        scheduleAutoSave()
     }
-    private fun scheduleAutoSave(id: String) {
+
+    /**
+     * Debounced auto-save: each edit pushes the write out by [AUTO_SAVE_DEBOUNCE_MS] so we don't hit
+     * disk on every keystroke, but a short pause persists the changes with no save tap. When it fires
+     * it flushes EVERY dirty tab (not just the last-edited one), so quickly editing file A then file B
+     * can't leave A's earlier debounce cancelled and unsaved.
+     */
+    private fun scheduleAutoSave() {
         if (!autoSaveEnabled) return
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
             delay(AUTO_SAVE_DEBOUNCE_MS)
-            val session = sessions[id] ?: return@launch
-            fileContentRepository.writeText(id, session.text)
-            updateState { copy(tabs = tabs.map { if (it.id == id) it.copy(modified = false) else it }) }
+            flushDirtyFiles()
         }
+    }
+
+    /**
+     * Writes every tab with unsaved edits to disk now. Idempotent and safe to call repeatedly. A tab's
+     * `modified` flag is only cleared if its buffer is unchanged since we snapshotted it, so an edit
+     * that lands mid-flush isn't silently marked saved.
+     */
+    private suspend fun flushDirtyFiles(onlyIds: Set<String>? = null): Boolean {
+        val snapshots = state.value.tabs
+            .filter { it.modified && (onlyIds == null || it.id in onlyIds) }
+            .mapNotNull { tab -> sessions[tab.id]?.let { tab.id to it.text } }
+        if (snapshots.isEmpty()) return true
+        val writtenIds = mutableSetOf<String>()
+        for ((id, text) in snapshots) {
+            runCatching { fileContentRepository.writeText(id, text) }
+                .onSuccess { writtenIds += id }
+        }
+        updateState {
+            copy(
+                tabs = tabs.map { tab ->
+                    val written = snapshots.firstOrNull { it.first == tab.id }?.second
+                    if (tab.modified && tab.id in writtenIds && written != null && sessions[tab.id]?.text == written) {
+                        tab.copy(modified = false)
+                    } else {
+                        tab
+                    }
+                },
+            )
+        }
+        return writtenIds.size == snapshots.size
+    }
+
+    /**
+     * Persists any unsaved edits immediately, cancelling the pending debounce. Called at every point
+     * where losing in-memory edits would matter: app backgrounding (ON_STOP), and editor teardown.
+     * Non-blocking; runs on [flushScope] so it completes even if [viewModelScope] is torn down next.
+     */
+    fun flushPendingSaves() {
+        autoSaveJob?.cancel()
+        flushScope.launch { flushDirtyFiles() }
+    }
+
+    override fun onCleared() {
+        // Last-chance persist: viewModelScope is cancelled during onCleared, so this must run on the
+        // independent flushScope. Left un-cancelled so the in-flight write can complete.
+        autoSaveJob?.cancel()
+        flushScope.launch { flushDirtyFiles() }
+        super.onCleared()
     }
     private fun undoRedoActive(action: (EditorSession) -> Boolean) {
         val id = state.value.activeTabId ?: return
@@ -299,6 +618,7 @@ class EditorViewModel(
                 caretColumn = caret.column,
             )
         }
+        scheduleAutoSave()
     }
     fun onDiagnostics(id: String, diagnostics: List<com.ahmadkharfan.androidstudiolite.feature.editor.engine.Diagnostic>) {
         if (id != state.value.activeTabId) return
@@ -355,15 +675,11 @@ class EditorViewModel(
     }
     private fun saveActiveTab() {
         val id = state.value.activeTabId ?: return
-        val session = sessions[id] ?: return
-        val text = session.text
         viewModelScope.launch {
-            fileContentRepository.writeText(id, text)
+            autoSaveJob?.cancel()
+            val saved = flushDirtyFiles(setOf(id))
             updateState {
-                copy(
-                    tabs = tabs.map { if (it.id == id) it.copy(modified = false) else it },
-                    snackbarMessage = "Saved ${tabs.firstOrNull { it.id == id }?.name ?: id}",
-                )
+                copy(snackbarMessage = if (saved) "Saved ${tabs.firstOrNull { it.id == id }?.name ?: id}" else "Couldn't save file")
             }
         }
     }
@@ -388,15 +704,22 @@ class EditorViewModel(
         return count
     }
     private fun freeUpMemory() {
-        val kept = state.value.tabs.filter { it.id == state.value.activeTabId }
-        val keptIds = kept.map { it.id }.toSet()
-        sessions.keys.retainAll(keptIds)
-        updateState {
-            copy(
-                tabs = kept,
-                memoryPressureActive = false,
-                memoryChartExpanded = false,
-            )
+        viewModelScope.launch {
+            autoSaveJob?.cancel()
+            if (!flushDirtyFiles()) {
+                updateState { copy(snackbarMessage = "Couldn't save pending editor changes") }
+                return@launch
+            }
+            val kept = state.value.tabs.filter { it.id == state.value.activeTabId }
+            val keptIds = kept.map { it.id }.toSet()
+            sessions.keys.retainAll(keptIds)
+            updateState {
+                copy(
+                    tabs = kept,
+                    memoryPressureActive = false,
+                    memoryChartExpanded = false,
+                )
+            }
         }
     }
     private fun simulateLspReindex() {
@@ -408,21 +731,44 @@ class EditorViewModel(
         }
     }
     private fun closeTab(id: String) {
-        sessions.remove(id)
-        val remaining = state.value.tabs.filterNot { it.id == id }
-        updateState {
-            copy(
-                tabs = remaining,
-                activeTabId = if (activeTabId == id) remaining.lastOrNull()?.id else activeTabId,
-            )
+        viewModelScope.launch {
+            autoSaveJob?.cancel()
+            if (!flushDirtyFiles(setOf(id))) {
+                updateState { copy(snackbarMessage = "Couldn't save file before closing") }
+                return@launch
+            }
+            sessions.remove(id)
+            val remaining = state.value.tabs.filterNot { it.id == id }
+            updateState {
+                copy(
+                    tabs = remaining,
+                    activeTabId = if (activeTabId == id) remaining.lastOrNull()?.id else activeTabId,
+                )
+            }
         }
     }
     private fun openFile(id: String, name: String) {
         if (state.value.tabs.any { it.id == id }) {
-            updateState { copy(activeTabId = id, openRailTool = null) }
+            val previousId = state.value.activeTabId
+            viewModelScope.launch {
+                // Checkpoint the current tab's edits before switching to another file.
+                autoSaveJob?.cancel()
+                if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
+                    updateState { copy(snackbarMessage = "Couldn't save file before switching files") }
+                    return@launch
+                }
+                updateState { copy(activeTabId = id, openRailTool = null) }
+            }
             return
         }
         viewModelScope.launch {
+            // Checkpoint the current tab's edits before opening another file.
+            autoSaveJob?.cancel()
+            val previousId = state.value.activeTabId
+            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
+                updateState { copy(snackbarMessage = "Couldn't save file before opening another file") }
+                return@launch
+            }
             val content = fileContentRepository.readText(id)
             val language = EditorLanguage.fromFileName(name)
             sessions[id] = EditorSession(content, language, filePath = id)
@@ -473,6 +819,21 @@ class EditorViewModel(
         }
         buildJob = viewModelScope.launch {
             try {
+                // Persist unsaved edits BEFORE packaging — the build zips the project off disk, so an
+                // un-flushed buffer would build stale code.
+                autoSaveJob?.cancel()
+                if (!flushDirtyFiles()) {
+                    updateState {
+                        copy(
+                            running = false,
+                            buildFailed = true,
+                            buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                            snackbarMessage = "Couldn't save pending editor changes before build",
+                            bottomPanelTabs = markBuildTab(error = true, count = null),
+                        )
+                    }
+                    return@launch
+                }
                 val preflight = buildRunCoordinator.preflight(root)
                 if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
                 if (!preflight.canProceed) {
