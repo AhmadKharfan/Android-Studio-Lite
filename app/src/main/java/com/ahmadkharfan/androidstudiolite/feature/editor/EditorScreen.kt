@@ -33,6 +33,8 @@ import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFindBar
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomToolPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBreadcrumbBar
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslEditorToolbar
@@ -138,6 +140,19 @@ private fun EditorScreen(
             }
             if (!isTablet) {
                 EditorDrawerOverlay(uiState = uiState, interactionListener = interactionListener)
+            }
+            uiState.installConflict?.let { conflict ->
+                AslDialog(
+                    title = "Uninstall the existing app?",
+                    body = "A different-signed version of ${conflict.applicationId} is already installed, " +
+                        "so this build can't replace it. Uninstalling removes that app's data.",
+                    variant = AslDialogVariant.Confirm,
+                    destructive = true,
+                    confirmLabel = "Uninstall & reinstall",
+                    cancelLabel = "Cancel",
+                    onConfirm = interactionListener::onConfirmInstallConflictUninstall,
+                    onDismiss = interactionListener::onDismissInstallConflict,
+                )
             }
         }
     }

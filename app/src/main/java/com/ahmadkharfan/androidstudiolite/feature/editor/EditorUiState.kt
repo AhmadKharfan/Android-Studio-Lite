@@ -59,6 +59,15 @@ data class AppLogLineUiModel(
     val tag: String?,
     val message: String,
 )
+/**
+ * A build's APK couldn't install over the copy already on the device because the two are signed
+ * differently. Prompts for the only fix — uninstalling [applicationId], which drops its data.
+ */
+@Immutable
+data class InstallConflictUiModel(
+    val applicationId: String,
+)
+
 @Immutable
 data class EditorUiState(
     val projectId: String = "",
@@ -78,6 +87,8 @@ data class EditorUiState(
     /** Folded output of the current/last real build, driven through the [BuildConsoleState] reducer. */
     val buildConsole: BuildConsoleState = BuildConsoleState(),
     val snackbarMessage: String? = null,
+    /** Non-null while asking the user to approve the uninstall that clears a signature conflict. */
+    val installConflict: InstallConflictUiModel? = null,
     val memoryPressureActive: Boolean = false,
     val memoryChartExpanded: Boolean = false,
     val heapUsedMb: Int = 489,

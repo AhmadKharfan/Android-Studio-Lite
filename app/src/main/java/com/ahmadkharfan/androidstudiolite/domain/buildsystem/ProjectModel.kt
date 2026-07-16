@@ -18,6 +18,13 @@ data class ModuleModel(
     val variants: List<VariantModel> = emptyList(),
     val sourceSets: List<SourceSetModel> = emptyList(),
     val dependencies: List<DependencyModel> = emptyList(),
+    /**
+     * The package this module installs as — its `applicationId`, or the `namespace` it defaults to
+     * when none is declared (AGP's own fallback). Null for non-app modules and when neither could be
+     * read statically (e.g. it is computed by the build script). The install flow needs it to
+     * uninstall a signature-conflicting previous install.
+     */
+    val applicationId: String? = null,
 )
 
 enum class ModuleType { ANDROID_APP, ANDROID_LIBRARY, JVM, UNKNOWN }

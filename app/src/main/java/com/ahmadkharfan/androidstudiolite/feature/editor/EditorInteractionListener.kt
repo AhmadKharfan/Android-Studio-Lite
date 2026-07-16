@@ -22,6 +22,10 @@ interface EditorInteractionListener {
     fun onUndo()
     fun onRedo()
     fun onSnackbarShown()
+
+    /** Approves uninstalling the conflicting package, then reinstalling. Destroys that app's data. */
+    fun onConfirmInstallConflictUninstall()
+    fun onDismissInstallConflict()
     fun onSimulateBuildFailure()
     fun onToggleMemoryPressure()
     fun onToggleMemoryChartExpanded()

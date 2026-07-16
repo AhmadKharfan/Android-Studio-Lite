@@ -26,8 +26,12 @@ class ApkInstaller(private val context: Context) {
     /**
      * Installs [apk] and emits progress. When [autoLaunch] is true and the install succeeds, the
      * installed app is launched. The flow completes after a terminal [InstallEvent].
+     *
+     * [applicationId] is the package the APK declares, used only to name the conflicting package in
+     * [InstallEvent.Conflict] when the system doesn't report one — the caller needs it to offer an
+     * uninstall-and-retry. Pass null when it isn't known.
      */
-    fun install(apk: File, autoLaunch: Boolean): Flow<InstallEvent> = callbackFlow {
+    fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> = callbackFlow {
         if (!apk.isFile) {
             trySend(InstallEvent.Failed("APK not found: ${apk.name}"))
             close()
@@ -38,36 +42,20 @@ class ApkInstaller(private val context: Context) {
         val installer = context.packageManager.packageInstaller
         var sessionId = -1
 
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
-                val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                val pkg = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME)
-                when (val outcome = InstallStatusMapper.map(status, message, pkg)) {
-                    is InstallStatusMapper.Outcome.NeedsUserAction -> {
-                        trySend(InstallEvent.AwaitingConfirmation)
-                        val confirm = intent.confirmationIntent()
-                        if (confirm != null) {
-                            context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        } else {
-                            trySend(InstallEvent.Failed("System did not provide a confirmation prompt"))
-                            close()
-                        }
-                    }
-
-                    is InstallStatusMapper.Outcome.Success -> {
-                        val launched = if (autoLaunch) launchApp(outcome.packageName) else false
-                        trySend(InstallEvent.Installed(outcome.packageName, launched))
-                        close()
-                    }
-
-                    is InstallStatusMapper.Outcome.Failure -> {
-                        trySend(InstallEvent.Failed(outcome.message))
-                        close()
-                    }
-                }
-            }
-        }
+        val receiver = statusReceiver(
+            onNeedsUserAction = { trySend(InstallEvent.AwaitingConfirmation) },
+            onNoPrompt = { trySend(InstallEvent.Failed("System did not provide a confirmation prompt")); close() },
+            onSuccess = { pkg ->
+                val launched = if (autoLaunch) launchApp(pkg ?: applicationId) else false
+                trySend(InstallEvent.Installed(pkg ?: applicationId, launched))
+                close()
+            },
+            onConflict = { pkg, message ->
+                trySend(InstallEvent.Conflict(pkg ?: applicationId, message))
+                close()
+            },
+            onFailure = { message -> trySend(InstallEvent.Failed(message)); close() },
+        )
         registerInstallReceiver(receiver, action)
 
         try {
@@ -84,6 +72,69 @@ class ApkInstaller(private val context: Context) {
         awaitClose {
             runCatching { context.unregisterReceiver(receiver) }
             if (sessionId >= 0) runCatching { installer.abandonSession(sessionId) }
+        }
+    }
+
+    /**
+     * Uninstalls [packageName], driving the system's confirmation prompt the same way [install] does.
+     * Used to clear a package whose signature conflicts with a new build ([InstallEvent.Conflict]);
+     * it destroys that app's data, so only call it once the user has agreed.
+     */
+    fun uninstall(packageName: String): Flow<UninstallEvent> = callbackFlow {
+        val action = "${context.packageName}.UNINSTALL_STATUS.${SESSION_COUNTER.incrementAndGet()}"
+        val installer = context.packageManager.packageInstaller
+
+        val receiver = statusReceiver(
+            onNeedsUserAction = { trySend(UninstallEvent.AwaitingConfirmation) },
+            onNoPrompt = { trySend(UninstallEvent.Failed("System did not provide a confirmation prompt")); close() },
+            onSuccess = { trySend(UninstallEvent.Uninstalled); close() },
+            // The uninstall path never reports CONFLICT; fold it in with the other failures.
+            onConflict = { _, message -> trySend(UninstallEvent.Failed(message)); close() },
+            onFailure = { message -> trySend(UninstallEvent.Failed(message)); close() },
+        )
+        registerInstallReceiver(receiver, action)
+
+        try {
+            trySend(UninstallEvent.Uninstalling)
+            installer.uninstall(packageName, buildStatusSender(action).intentSender)
+        } catch (e: Exception) {
+            trySend(UninstallEvent.Failed(e.message ?: "Could not start uninstall"))
+            close()
+        }
+
+        awaitClose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+
+    /**
+     * The shared status-broadcast plumbing behind [install] and [uninstall]: maps the broadcast to an
+     * outcome and, for the user-action case, launches the system prompt.
+     */
+    private fun statusReceiver(
+        onNeedsUserAction: () -> Unit,
+        onNoPrompt: () -> Unit,
+        onSuccess: (packageName: String?) -> Unit,
+        onConflict: (packageName: String?, message: String) -> Unit,
+        onFailure: (message: String) -> Unit,
+    ) = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) {
+            val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+            val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+            val pkg = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME)
+            when (val outcome = InstallStatusMapper.map(status, message, pkg)) {
+                is InstallStatusMapper.Outcome.NeedsUserAction -> {
+                    onNeedsUserAction()
+                    val confirm = intent.confirmationIntent()
+                    if (confirm != null) {
+                        context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } else {
+                        onNoPrompt()
+                    }
+                }
+
+                is InstallStatusMapper.Outcome.Success -> onSuccess(outcome.packageName)
+                is InstallStatusMapper.Outcome.Conflict -> onConflict(outcome.packageName, outcome.message)
+                is InstallStatusMapper.Outcome.Failure -> onFailure(outcome.message)
+            }
         }
     }
 

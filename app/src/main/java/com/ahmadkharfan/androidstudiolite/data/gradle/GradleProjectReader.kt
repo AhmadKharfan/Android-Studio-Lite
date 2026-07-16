@@ -138,7 +138,18 @@ class GradleProjectReader {
             variants = variants,
             sourceSets = sourceSets,
             dependencies = deps,
+            applicationId = applicationIdOf(type, script.android),
         )
+    }
+
+    /**
+     * The package an app module installs as. AGP defaults `applicationId` to `namespace` when the
+     * former isn't declared, so fall back the same way. Only app modules install, so libraries return
+     * null even though they carry a namespace.
+     */
+    private fun applicationIdOf(type: ModuleType, android: ParsedAndroidBlock?): String? {
+        if (type != ModuleType.ANDROID_APP || android == null) return null
+        return (android.applicationId ?: android.namespace)?.takeIf { it.isNotBlank() }
     }
 
     private fun moduleType(script: ParsedBuildScript, catalog: VersionCatalog?): ModuleType {

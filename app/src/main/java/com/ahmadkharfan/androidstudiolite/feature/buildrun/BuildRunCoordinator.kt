@@ -4,10 +4,12 @@ import android.content.Context
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.FakeBuildSystem
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflight
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightResult
@@ -63,7 +65,27 @@ class BuildRunCoordinator(
         (buildSystem as? FakeBuildSystem)?.failNextBuild = true
     }
 
-    fun install(apk: File, autoLaunch: Boolean): Flow<InstallEvent> = apkInstaller.install(apk, autoLaunch)
+    /**
+     * The applicationId [modulePath] installs as, read straight off the build script, or null when the
+     * project can't be parsed / declares none. The build backend reports the APK's path but not its
+     * package, so this is what lets the install flow name — and, on a signature conflict, uninstall —
+     * the app being replaced.
+     */
+    suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val modules = gradleReader.read(projectRoot).model.modules
+                val module = modules.firstOrNull { it.path == modulePath }
+                    ?: modules.firstOrNull { it.type == ModuleType.ANDROID_APP }
+                module?.applicationId
+            }.getOrNull()
+        }
+
+    fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> =
+        apkInstaller.install(apk, applicationId, autoLaunch)
+
+    /** Removes [applicationId] (and its data) so a differently-signed rebuild can install. */
+    fun uninstall(applicationId: String): Flow<UninstallEvent> = apkInstaller.uninstall(applicationId)
 
     fun notifyFinished(projectName: String, success: Boolean, durationMillis: Long?) =
         notifier.notifyFinished(projectName, success, durationMillis)

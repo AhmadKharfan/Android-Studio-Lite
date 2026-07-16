@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -33,6 +34,9 @@ private val BOTTOM_PANEL_TABS = listOf(
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val APP_MODULE_PATH = ":app"
+
+/** An install attempt held while the user decides whether to uninstall the conflicting package. */
+private data class PendingInstall(val apk: File, val applicationId: String)
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
     private val projectId: String,
@@ -50,6 +54,9 @@ class EditorViewModel(
     private var autoSaveJob: Job? = null
     private var buildJob: Job? = null
     private var launchAfterInstall = true
+
+    /** The install to retry once the user approves clearing a signature conflict. */
+    private var pendingInstall: PendingInstall? = null
 
     /** Absolute path of the open project's root, used to show file-tree paths relative to it. */
     private var projectRootPath: String? = null
@@ -500,15 +507,75 @@ class EditorViewModel(
             updateState { copy(snackbarMessage = "Build succeeded — install skipped (no APK on disk)") }
             return
         }
-        buildRunCoordinator.install(apk, autoLaunch = launchAfterInstall).collect { event ->
-            val message = when (event) {
-                is InstallEvent.Preparing -> "Installing ${apk.name}…"
-                is InstallEvent.AwaitingConfirmation -> "Confirm the install prompt"
-                is InstallEvent.Installed ->
-                    if (event.launched) "Installed and launched" else "Installed ${event.packageName ?: apk.name}"
-                is InstallEvent.Failed -> "Install failed: ${event.reason}"
+        val applicationId = projectRootPath
+            ?.let { buildRunCoordinator.resolveApplicationId(File(it), APP_MODULE_PATH) }
+        runInstall(apk, applicationId)
+    }
+
+    /** One install attempt; a signature conflict parks the retry behind a confirmation dialog. */
+    private suspend fun runInstall(apk: File, applicationId: String?) {
+        buildRunCoordinator.install(apk, applicationId, autoLaunch = launchAfterInstall).collect { event ->
+            when (event) {
+                is InstallEvent.Conflict -> onInstallConflict(apk, event)
+                is InstallEvent.Preparing -> updateState { copy(snackbarMessage = "Installing ${apk.name}…") }
+                is InstallEvent.AwaitingConfirmation -> updateState { copy(snackbarMessage = "Confirm the install prompt") }
+                is InstallEvent.Installed -> updateState {
+                    copy(
+                        snackbarMessage = if (event.launched) "Installed and launched"
+                        else "Installed ${event.packageName ?: apk.name}",
+                    )
+                }
+                is InstallEvent.Failed -> updateState { copy(snackbarMessage = "Install failed: ${event.reason}") }
             }
-            updateState { copy(snackbarMessage = message) }
+        }
+    }
+
+    /**
+     * The APK is signed differently from the installed copy. Only reachable for an app installed from
+     * a build made before the worker got its fixed debug keystore — every build now shares one
+     * signature, so rebuilds update in place. Recovering means uninstalling, which drops that app's
+     * data, so ask first.
+     */
+    private fun onInstallConflict(apk: File, event: InstallEvent.Conflict) {
+        val applicationId = event.packageName
+        if (applicationId == null) {
+            // Nothing to uninstall by name — surface it rather than offering a fix we can't perform.
+            updateState { copy(snackbarMessage = "Install failed: ${event.reason}") }
+            return
+        }
+        pendingInstall = PendingInstall(apk, applicationId)
+        updateState { copy(installConflict = InstallConflictUiModel(applicationId)) }
+    }
+
+    override fun onConfirmInstallConflictUninstall() {
+        val pending = pendingInstall ?: return
+        pendingInstall = null
+        updateState { copy(installConflict = null) }
+        viewModelScope.launch {
+            var uninstalled = false
+            buildRunCoordinator.uninstall(pending.applicationId).collect { event ->
+                when (event) {
+                    is UninstallEvent.Uninstalling ->
+                        updateState { copy(snackbarMessage = "Uninstalling ${pending.applicationId}…") }
+                    is UninstallEvent.AwaitingConfirmation ->
+                        updateState { copy(snackbarMessage = "Confirm the uninstall prompt") }
+                    is UninstallEvent.Uninstalled -> uninstalled = true
+                    is UninstallEvent.Failed ->
+                        updateState { copy(snackbarMessage = "Uninstall failed: ${event.reason}") }
+                }
+            }
+            // Only retry once the package is actually gone; a second conflict would just re-prompt.
+            if (uninstalled) runInstall(pending.apk, pending.applicationId)
+        }
+    }
+
+    override fun onDismissInstallConflict() {
+        pendingInstall = null
+        updateState {
+            copy(
+                installConflict = null,
+                snackbarMessage = "Install cancelled — the installed app is signed differently",
+            )
         }
     }
 
