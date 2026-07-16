@@ -88,6 +88,20 @@ class LocalFileTreeRepositoryTest {
     }
 
     @Test
+    fun `shows created entries in deeply nested folders`() = runBlocking {
+        val project = setupProject()
+        var parent = project
+        repeat(32) { index ->
+            parent = File(parent, "level$index").apply { mkdirs() }
+        }
+        repo.createDirectory(parent.absolutePath, "created")
+
+        val tree = repo.getFileTree("demo")
+
+        assertTrue(findByName(tree, "created") != null)
+    }
+
+    @Test
     fun `rename keeps the entry in place under a new name`() = runBlocking {
         val project = setupProject()
         val original = File(project, "settings.gradle.kts").absolutePath

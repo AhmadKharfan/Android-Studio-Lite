@@ -61,6 +61,38 @@ class LocalFileTreeRepository(
         changeBus.emit(FileChangeType.DELETED, target.absolutePath)
     }
 
+    override suspend fun duplicate(path: String): String = withContext(Dispatchers.IO) {
+        val source = File(path)
+        require(source.exists()) { "No such file: $path" }
+        source.parentFile ?: throw IOException("Cannot copy project root")
+        val target = LocalFsSupport.uniqueCopyTarget(source)
+        copyEntry(source, target)
+        target.absolutePath
+    }
+
+    override suspend fun copy(path: String, newParentPath: String): String = withContext(Dispatchers.IO) {
+        val source = File(path)
+        require(source.exists()) { "No such file: $path" }
+        val newParent = File(newParentPath)
+        require(newParent.isDirectory) { "Not a directory: $newParentPath" }
+        require(!LocalFsSupport.isSameOrDescendant(source, newParent)) {
+            "Cannot copy a directory into itself: $path"
+        }
+        val target = LocalFsSupport.uniqueCopyTarget(source, newParent)
+        copyEntry(source, target)
+        target.absolutePath
+    }
+
+    private suspend fun copyEntry(source: File, target: File) {
+        if (source.isDirectory) {
+            val copied = source.copyRecursively(target = target, overwrite = false)
+            if (!copied) throw IOException("Could not copy: ${source.absolutePath}")
+        } else {
+            source.copyTo(target = target, overwrite = false)
+        }
+        changeBus.emit(FileChangeType.CREATED, target.absolutePath)
+    }
+
     override suspend fun rename(path: String, newName: String): String = withContext(Dispatchers.IO) {
         val source = File(path)
         require(source.exists()) { "No such file: $path" }

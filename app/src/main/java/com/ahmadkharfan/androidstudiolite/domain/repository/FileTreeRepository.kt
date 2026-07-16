@@ -31,6 +31,12 @@ interface FileTreeRepository {
     /** Deletes the file or directory at [path] (recursively for directories). */
     suspend fun delete(path: String): Unit = throw UnsupportedOperationException()
 
+    /** Copies the file or directory at [path] into the same parent with a unique name; returns the new absolute path. */
+    suspend fun duplicate(path: String): String = throw UnsupportedOperationException()
+
+    /** Copies the file or directory at [path] into [newParentPath] with a unique name; returns the new absolute path. */
+    suspend fun copy(path: String, newParentPath: String): String = throw UnsupportedOperationException()
+
     /** Renames the entry at [path] to [newName] in place; returns the new absolute path. */
     suspend fun rename(path: String, newName: String): String =
         throw UnsupportedOperationException()

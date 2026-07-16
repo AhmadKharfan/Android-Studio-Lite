@@ -12,8 +12,8 @@ internal object LocalFsSupport {
     /** Max bytes the editor will load as text; larger files are refused to avoid OOM. */
     const val MAX_TEXT_FILE_BYTES: Long = 5L * 1024 * 1024
 
-    /** How deep [buildFileNodes] walks before it stops recursing (defensive against pathological trees). */
-    const val MAX_TREE_DEPTH: Int = 16
+    /** How deep the project drawer walks before it stops recursing. */
+    const val MAX_TREE_DEPTH: Int = 64
 
     /**
      * Directories that are build output or tooling caches — huge, machine-generated, and never useful to
@@ -42,6 +42,25 @@ internal object LocalFsSupport {
         require(!name.contains('/') && !name.contains('\\')) { "Name must be a single path segment: $name" }
         require(name != "." && name != "..") { "Invalid name: $name" }
         return File(parent, name)
+    }
+
+    fun uniqueCopyTarget(source: File, parent: File = source.parentFile ?: throw IllegalArgumentException("Cannot copy an entry without a parent")): File {
+        val dotIndex = source.name.lastIndexOf('.')
+        val hasExtension = !source.isDirectory && dotIndex > 0
+        val baseName = if (hasExtension) source.name.substring(0, dotIndex) else source.name
+        val extension = if (hasExtension) source.name.substring(dotIndex + 1) else ""
+        fun candidate(index: Int): File {
+            val suffix = if (index == 1) " copy" else " copy $index"
+            val name = if (extension.isBlank()) "$baseName$suffix" else "$baseName$suffix.$extension"
+            return File(parent, name)
+        }
+        var index = 1
+        var target = candidate(index)
+        while (target.exists()) {
+            index++
+            target = candidate(index)
+        }
+        return target
     }
 
     /** True if [candidate] is [ancestor] itself or nested anywhere beneath it. */
