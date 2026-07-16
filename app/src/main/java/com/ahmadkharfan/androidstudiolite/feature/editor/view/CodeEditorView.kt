@@ -1208,7 +1208,7 @@ class CodeEditorView(context: Context) : View(context) {
         const val SIGNATURE_HELP_VISIBLE_MS = 3500L
         const val ANALYSIS_DEBOUNCE_MS = 300L
         const val SCROLL_ANIM_MS = 140L
-        const val CODE_PADDING_DP = 14f
+        const val CODE_PADDING_DP = 6f
         const val GUTTER_START_DP = 6f
         const val DOT_SIZE_DP = 8f
         const val GIT_BAR_W_DP = 3f
