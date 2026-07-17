@@ -80,6 +80,28 @@ private fun ServerSettingsScreen(
                 HubSectionHeader("Device")
                 DeviceCard(uiState = uiState, interactionListener = interactionListener)
 
+                Spacer(Modifier.height(20.dp))
+                HubSectionHeader("Git author")
+                AslTextField(
+                    value = uiState.gitAuthorName,
+                    onValueChange = interactionListener::onGitAuthorNameChanged,
+                    label = "Name",
+                    placeholder = "Your name",
+                )
+                Spacer(Modifier.height(10.dp))
+                AslTextField(
+                    value = uiState.gitAuthorEmail,
+                    onValueChange = interactionListener::onGitAuthorEmailChanged,
+                    label = "Email",
+                    placeholder = "you@example.com",
+                )
+                Spacer(Modifier.height(10.dp))
+                AslButton(
+                    label = "Save Git author",
+                    onClick = interactionListener::onSaveGitAuthor,
+                    disabled = !uiState.gitAuthorDirty,
+                )
+
                 if (uiState.statusMessage != null) {
                     Spacer(Modifier.height(12.dp))
                     Text(

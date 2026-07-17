@@ -5,6 +5,8 @@ import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteClient
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteException
 import com.ahmadkharfan.androidstudiolite.data.remote.ServerSettingsRepository
+import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import kotlinx.coroutines.launch
 
 /**
@@ -16,12 +18,14 @@ import kotlinx.coroutines.launch
 class ServerSettingsViewModel(
     private val settings: ServerSettingsRepository,
     private val client: RemoteClient,
+    private val gitAuthorStore: GitAuthorStore,
 ) : BaseViewModel<ServerSettingsUiState, Nothing>(
     initialState = ServerSettingsUiState(),
 ), ServerSettingsInteractionListener {
 
     /** Once the user edits the field, stop overwriting the draft from persisted emissions. */
     private var urlTouched = false
+    private var authorTouched = false
 
     init {
         tryToCollect(
@@ -34,6 +38,20 @@ class ServerSettingsViewModel(
                         deviceToken = persisted.deviceToken,
                         isRegistered = persisted.isRegistered,
                     )
+                }
+            },
+        )
+        tryToCollect(
+            block = { gitAuthorStore.observe() },
+            onCollect = { author ->
+                if (!authorTouched) {
+                    updateState {
+                        copy(
+                            gitAuthorName = author?.name.orEmpty(),
+                            gitAuthorEmail = author?.email.orEmpty(),
+                            gitAuthorDirty = false,
+                        )
+                    }
                 }
             },
         )
@@ -76,6 +94,29 @@ class ServerSettingsViewModel(
         viewModelScope.launch {
             settings.clearDeviceToken()
             updateState { copy(statusMessage = "Token cleared", isError = false) }
+        }
+    }
+
+    override fun onGitAuthorNameChanged(name: String) {
+        authorTouched = true
+        updateState { copy(gitAuthorName = name, gitAuthorDirty = true) }
+    }
+
+    override fun onGitAuthorEmailChanged(email: String) {
+        authorTouched = true
+        updateState { copy(gitAuthorEmail = email, gitAuthorDirty = true) }
+    }
+
+    override fun onSaveGitAuthor() {
+        val config = GitAuthorConfig(state.value.gitAuthorName.trim(), state.value.gitAuthorEmail.trim())
+        if (config.name.isBlank() || config.email.isBlank()) {
+            updateState { copy(statusMessage = "Enter a Git author name and email", isError = true) }
+            return
+        }
+        viewModelScope.launch {
+            gitAuthorStore.set(config)
+            authorTouched = false
+            updateState { copy(gitAuthorDirty = false, statusMessage = "Git author saved", isError = false) }
         }
     }
 }
