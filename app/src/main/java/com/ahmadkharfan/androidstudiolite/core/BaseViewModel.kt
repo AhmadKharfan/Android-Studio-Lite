@@ -3,7 +3,9 @@ package com.ahmadkharfan.androidstudiolite.core
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,11 +42,13 @@ abstract class BaseViewModel<T, E>(
         onSuccess: (R) -> Unit = {},
         onError: (Throwable) -> Unit = {},
         dispatcher: CoroutineDispatcher = defaultDispatcher,
-    ) {
+    ): Job {
         onStart()
-        viewModelScope.launch(dispatcher) {
+        return viewModelScope.launch(dispatcher) {
             try {
                 onSuccess(block())
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 onError(e)
             }
@@ -57,11 +61,13 @@ abstract class BaseViewModel<T, E>(
         onCollect: suspend (R) -> Unit,
         onError: (Throwable) -> Unit = {},
         dispatcher: CoroutineDispatcher = defaultDispatcher,
-    ) {
+    ): Job {
         onStart()
-        viewModelScope.launch(dispatcher) {
+        return viewModelScope.launch(dispatcher) {
             try {
                 block().collectLatest { onCollect(it) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 onError(e)
             }
