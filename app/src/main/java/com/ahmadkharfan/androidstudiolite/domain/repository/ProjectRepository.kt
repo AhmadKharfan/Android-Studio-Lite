@@ -1,10 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.domain.repository
 
-import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import java.io.File
 
 interface ProjectRepository {
     fun observeRecentProjects(): Flow<List<Project>>
@@ -25,7 +25,9 @@ interface ProjectRepository {
     /** Convenience overload used by callers that only carry a template id (defaults for everything else). */
     suspend fun createProject(name: String, packageName: String, templateId: String): Project =
         createProject(NewProjectSpec(name = name, packageName = packageName, templateId = templateId))
-    fun cloneRepository(url: String, branch: String?): Flow<CloneProgress>
+    /** Registers an existing directory without copying it. Non-Gradle directories are valid projects. */
+    suspend fun registerExistingProject(path: File): Project
+
     suspend fun openProject(id: String): Project
     suspend fun deleteProject(id: String)
     suspend fun renameProject(id: String, newName: String)

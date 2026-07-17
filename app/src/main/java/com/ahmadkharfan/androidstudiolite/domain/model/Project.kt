@@ -12,10 +12,20 @@ data class Project(
      * cloned projects (their package is only discoverable by reading their build script).
      */
     val packageName: String? = null,
+    /** Whether the directory contains a Gradle settings file and can use build/run actions. */
+    val buildable: Boolean = true,
 )
 
 data class CloneProgress(
     val fraction: Float?,
     val message: String,
     val clonedProjectId: String? = null,
+)
+
+/** Options supported by the real JGit clone operation. */
+data class CloneOptions(
+    val branch: String? = null,
+    val depth: Int? = null,
+    val singleBranch: Boolean = false,
+    val recursiveSubmodules: Boolean = false,
 )

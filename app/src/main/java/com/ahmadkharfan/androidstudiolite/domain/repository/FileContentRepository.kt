@@ -2,6 +2,8 @@ package com.ahmadkharfan.androidstudiolite.domain.repository
 
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 
 /**
@@ -21,4 +23,11 @@ interface FileContentRepository {
 
     /** A hot stream of change events; used by the editor to detect edits made outside it. */
     fun observeChanges(): Flow<FileChangeEvent> = emptyFlow()
+
+    /** Latest root-invalidation generation per canonical working-tree path. */
+    fun rootInvalidationGenerations(): StateFlow<Map<String, Long>> = EMPTY_GENERATIONS
+
+    private companion object {
+        val EMPTY_GENERATIONS = MutableStateFlow<Map<String, Long>>(emptyMap())
+    }
 }

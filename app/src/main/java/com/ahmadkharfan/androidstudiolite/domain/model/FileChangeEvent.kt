@@ -11,7 +11,7 @@ enum class FileChangeType {
     /** A file or directory was deleted. */
     DELETED,
 
-    /** A file or directory was renamed or moved; [FileChangeEvent.oldPath] holds the previous path. */
+    /** A file or directory was renamed or moved; the event's `oldPath` holds the previous path. */
     MOVED,
 }
 
@@ -23,11 +23,32 @@ enum class FileChangeType {
  * [path] is the absolute path of the affected entry; for [FileChangeType.MOVED] the entry now lives at
  * [path] and previously lived at [oldPath].
  */
-data class FileChangeEvent(
-    val type: FileChangeType,
-    val path: String,
-    val oldPath: String? = null,
-)
+sealed class FileChangeEvent {
+    abstract val type: FileChangeType?
+    abstract val path: String
+    abstract val oldPath: String?
+
+    data class PathChanged(
+        override val type: FileChangeType,
+        override val path: String,
+        override val oldPath: String? = null,
+    ) : FileChangeEvent()
+
+    data class RootInvalidated(
+        val root: String,
+        val generation: Long,
+        val reason: RootInvalidationReason,
+    ) : FileChangeEvent() {
+        override val type: FileChangeType? = null
+        override val path: String = root
+        override val oldPath: String? = null
+    }
+}
+
+enum class RootInvalidationReason {
+    GIT_OPERATION,
+    EXTERNAL,
+}
 
 /**
  * Thrown by [com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository.readText] when a
