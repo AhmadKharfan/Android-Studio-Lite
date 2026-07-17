@@ -14,6 +14,13 @@ import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorTyp
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.crashreport.CrashReportRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitHistoryRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict.GitConflictRoute
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerRoute
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteRoute
@@ -122,11 +129,99 @@ fun AslNavHost(
             arguments = listOf(navArgument("projectId") { }),
         ) { backStackEntry ->
             val projectId = backStackEntry.arguments?.getString("projectId").orEmpty()
+            val conflictPath by backStackEntry.savedStateHandle
+                .getStateFlow<String?>("git_conflict_path", null).collectAsState()
             EditorRoute(
                 projectId = projectId,
                 onCloseProject = { navController.popBackStack(Routes.HUB, inclusive = false) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS_ROOT) },
                 onOpenAiAgentSettings = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
+                onOpenGitDiff = { path, target -> navController.navigate(Routes.gitDiff(projectId, path, target)) },
+                onOpenGitHistory = { path -> navController.navigate(Routes.gitHistory(projectId, path)) },
+                onOpenGitBlame = { path -> navController.navigate(Routes.gitBlame(projectId, path)) },
+                onOpenBranches = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.BRANCHES.name)) },
+                onOpenTags = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.TAGS.name)) },
+                onOpenStashes = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.STASHES.name)) },
+                onOpenHistory = { navController.navigate(Routes.gitHistory(projectId)) },
+                onOpenConflicts = { navController.navigate(Routes.gitConflicts(projectId)) },
+                openConflictPath = conflictPath,
+                onConflictPathOpened = { backStackEntry.savedStateHandle["git_conflict_path"] = null },
+            )
+        }
+
+        composable(
+            route = Routes.GIT_DIFF_PATTERN,
+            arguments = listOf(
+                navArgument("projectId") { },
+                navArgument("target") { },
+                navArgument("path") { },
+                navArgument("commitId") { },
+            ),
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId").orEmpty()
+            val path = backStackEntry.arguments?.getString("path").orEmpty()
+            val commitId = backStackEntry.arguments?.getString("commitId")?.takeIf { it.isNotBlank() }
+            val target = runCatching {
+                GitDiffTarget.valueOf(backStackEntry.arguments?.getString("target").orEmpty())
+            }.getOrDefault(GitDiffTarget.INDEX_TO_WORKTREE)
+            GitDiffRoute(projectId, path, target, commitId, onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Routes.GIT_HISTORY_PATTERN,
+            arguments = listOf(navArgument("projectId") { }, navArgument("path") { }),
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId").orEmpty()
+            val path = backStackEntry.arguments?.getString("path")?.takeIf { it.isNotBlank() }
+            GitHistoryRoute(
+                projectId = projectId,
+                path = path,
+                onBack = { navController.popBackStack() },
+                onOpenDiff = { file, commit ->
+                    navController.navigate(
+                        Routes.gitDiff(projectId, file, GitDiffTarget.COMMIT_TO_PARENT, commit),
+                    )
+                },
+            )
+        }
+
+        composable(
+            route = Routes.GIT_BLAME_PATTERN,
+            arguments = listOf(navArgument("projectId") { }, navArgument("path") { }),
+        ) { backStackEntry ->
+            GitBlameRoute(
+                projectId = backStackEntry.arguments?.getString("projectId").orEmpty(),
+                path = backStackEntry.arguments?.getString("path").orEmpty(),
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Routes.GIT_REFS_PATTERN,
+            arguments = listOf(navArgument("projectId") { }, navArgument("mode") { }),
+        ) { backStackEntry ->
+            val mode = runCatching {
+                GitRefsMode.valueOf(backStackEntry.arguments?.getString("mode").orEmpty())
+            }.getOrDefault(GitRefsMode.BRANCHES)
+            GitRefsRoute(
+                projectId = backStackEntry.arguments?.getString("projectId").orEmpty(),
+                mode = mode,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Routes.GIT_CONFLICTS_PATTERN,
+            arguments = listOf(navArgument("projectId") { }),
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId").orEmpty()
+            GitConflictRoute(
+                projectId = projectId,
+                onBack = { navController.popBackStack() },
+                onOpenEditor = { path ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("git_conflict_path", path)
+                    navController.popBackStack()
+                },
             )
         }
 
