@@ -33,6 +33,8 @@ fun AslToolWindowPanel(
     width: Dp = 280.dp,
     actions: @Composable (RowScope.() -> Unit)? = null,
     onClose: (() -> Unit)? = null,
+    closeIcon: String = "x",
+    closeContentDescription: String = "Close panel",
     scrollable: Boolean = true,
     content: @Composable () -> Unit,
 ) {
@@ -62,7 +64,7 @@ fun AslToolWindowPanel(
                     )
                     actions?.invoke(this)
                     if (onClose != null) {
-                        AslIconButton(icon = "x", contentDescription = "Close panel", size = 32.dp, iconSize = 16.dp, onClick = onClose)
+                        AslIconButton(icon = closeIcon, contentDescription = closeContentDescription, size = 32.dp, iconSize = 16.dp, onClick = onClose)
                     }
                 }
                 HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)

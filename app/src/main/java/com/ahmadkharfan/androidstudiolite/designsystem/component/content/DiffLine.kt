@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,11 @@ fun AslDiffLine(
     modifier: Modifier = Modifier,
     oldNo: Int? = null,
     newNo: Int? = null,
+    /**
+     * When true the code text is laid out at its full intrinsic width and never ellipsised, so the
+     * row can live inside a shared horizontal scroll container and pan together with every other row.
+     */
+    noWrap: Boolean = false,
 ) {
     val colors = AslTheme.colors
     val barColor = when (kind) {
@@ -80,8 +86,11 @@ fun AslDiffLine(
             style = AslCode.codeSmall,
             color = colors.textPrimary,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            softWrap = false,
+            overflow = if (noWrap) TextOverflow.Clip else TextOverflow.Ellipsis,
+            // In no-wrap mode the text keeps its full intrinsic width (no weight), so a parent
+            // horizontal scroll can pan the whole block; otherwise it fills and ellipsises.
+            modifier = if (noWrap) Modifier.padding(end = 12.dp) else Modifier.weight(1f),
         )
     }
 }

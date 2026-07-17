@@ -50,9 +50,11 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-enum class AslGitStatus(val letter: String) { Modified("M"), Added("A"), Deleted("D"), Untracked("?") }
+enum class AslGitStatus(val letter: String) { Modified("M"), Added("A"), Deleted("D"), Untracked("?"), Conflicted("!") }
 
-enum class AslFileTreeAction { NewFile, NewFolder, Rename, Copy, Paste, Delete }
+enum class AslFileTreeAction {
+    NewFile, NewFolder, Rename, Copy, Paste, Delete, ShowHistory, Blame, AddToGitignore,
+}
 
 data class AslFileTreeNode(
     val id: String,
@@ -339,4 +341,5 @@ private fun gitTint(status: AslGitStatus, colors: com.ahmadkharfan.androidstudio
     AslGitStatus.Added -> colors.success
     AslGitStatus.Deleted -> colors.error
     AslGitStatus.Untracked -> colors.warning
+    AslGitStatus.Conflicted -> colors.error
 }

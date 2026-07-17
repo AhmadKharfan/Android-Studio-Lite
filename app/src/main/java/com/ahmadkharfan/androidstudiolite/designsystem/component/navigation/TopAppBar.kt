@@ -5,9 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,17 +24,40 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** TopAppBar.jsx — standard 56dp hub bar: back + title (+subtitle) + actions. */
+/**
+ * TopAppBar.jsx — standard 56dp hub bar: back + title (+subtitle) + actions.
+ *
+ * When placed directly in a `Scaffold`'s `topBar` slot on an edge-to-edge screen, set
+ * [applyStatusBarInset] so the bar's background fills the status-bar area and its controls sit below
+ * the system clock/icons instead of overlapping them. Callers that render the bar inside padded
+ * Scaffold content (which already consumes the top inset) leave it `false` to avoid double padding.
+ */
 @Composable
 fun AslTopAppBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    applyStatusBarInset: Boolean = false,
     actions: @Composable (RowScope.() -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
-    Column(modifier = modifier.background(colors.bgBase)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.bgBase)
+            .then(
+                if (applyStatusBarInset) {
+                    // Background is already applied, so the fill extends under the status bar while the
+                    // row content is inset below it — including horizontal cutouts in landscape.
+                    Modifier.windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

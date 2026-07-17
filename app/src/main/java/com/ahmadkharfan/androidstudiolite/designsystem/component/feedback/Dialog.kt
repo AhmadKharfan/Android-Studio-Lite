@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,11 +69,22 @@ fun AslDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(text = title, style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
-                if (body != null) {
-                    Text(text = body, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                }
-                if (variant == AslDialogVariant.Input && inputContent != null) {
-                    inputContent()
+                // Middle content scrolls when it's tall (long file lists, wordy warnings) so the action
+                // buttons below always stay reachable on small screens.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .weight(weight = 1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (body != null) {
+                        Text(text = body, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                    }
+                    if (variant == AslDialogVariant.Input && inputContent != null) {
+                        inputContent()
+                    }
                 }
                 Row(
                     modifier = Modifier
