@@ -3,6 +3,8 @@ package com.ahmadkharfan.androidstudiolite.data.local
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -126,6 +128,63 @@ class AndroidProjectRepositoryTest {
 
         assertTrue(error is IllegalArgumentException)
         assertTrue(recents().isEmpty())
+    }
+
+    @Test
+    fun `registerExistingProject registers a directory under the default root`() = runBlocking {
+        val existing = File(projectsRoot, "existing").apply { mkdirs() }
+        File(existing, "settings.gradle.kts").writeText("rootProject.name = \"existing\"\n")
+
+        val project = repo.registerExistingProject(existing)
+
+        assertEquals("existing", project.id)
+        assertEquals(existing.absolutePath, project.path)
+        assertTrue(project.buildable)
+        assertEquals(project, recents().single())
+    }
+
+    @Test
+    fun `registerExistingProject preserves a custom location`() = runBlocking {
+        val existing = tmp.newFolder("custom-location", "custom-project")
+        File(existing, "settings.gradle").writeText("rootProject.name = 'custom-project'\n")
+
+        val project = repo.registerExistingProject(existing)
+
+        assertEquals(existing.absolutePath, project.path)
+        assertFalse(project.path.startsWith(projectsRoot.absolutePath))
+        assertTrue(project.buildable)
+    }
+
+    @Test
+    fun `registerExistingProject makes duplicate directory names unique`() = runBlocking {
+        val first = tmp.newFolder("location-a", "same-name")
+        val second = tmp.newFolder("location-b", "same-name")
+
+        val firstProject = repo.registerExistingProject(first)
+        val secondProject = repo.registerExistingProject(second)
+
+        assertEquals("same-name", firstProject.id)
+        assertEquals("same-name-2", secondProject.id)
+        assertEquals(second.absolutePath, secondProject.path)
+    }
+
+    @Test
+    fun `registerExistingProject allows non-gradle directories`() = runBlocking {
+        val existing = tmp.newFolder("plain-project")
+        File(existing, "README.md").writeText("plain files are still openable\n")
+
+        val project = repo.registerExistingProject(existing)
+
+        assertFalse(project.buildable)
+        assertEquals(existing.absolutePath, repo.openProject(project.id).path)
+    }
+
+    @Test
+    fun `legacy recent entry defaults to buildable`() = runBlocking {
+        val legacy = listOf("legacy", "Legacy", "/legacy", "Kotlin", "1000", "").joinToString("\t")
+        dataStore.edit { it[stringPreferencesKey("recent_projects")] = legacy }
+
+        assertTrue(recents().single().buildable)
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.createproject
 
-import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.model.ProjectTemplate
@@ -10,7 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -22,6 +20,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateProjectViewModelTest {
@@ -176,7 +175,7 @@ class CreateProjectViewModelTest {
             return Project(spec.name.lowercase(), spec.name, "/p", "Kotlin", null, spec.packageName)
         }
 
-        override fun cloneRepository(url: String, branch: String?): Flow<CloneProgress> = flowOf()
+        override suspend fun registerExistingProject(path: File): Project = error("unused")
         override suspend fun openProject(id: String): Project = error("unused")
         override suspend fun deleteProject(id: String) = Unit
         override suspend fun renameProject(id: String, newName: String) = Unit

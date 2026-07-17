@@ -54,6 +54,16 @@ class RemoteBuildRequestFactoryTest {
     }
 
     @Test
+    fun `private git source falls back to zip selection`() {
+        val private = GitRemoteInfo("https://example.com/private.git", "main", requiresAuth = true)
+
+        assertNull(RemoteBuildRequestFactory.eligibleGitSource(private))
+        val request = RemoteBuildRequestFactory.create(request("debug"), private, null)
+        assertEquals("zip", request.sourceType)
+        assertNull(request.gitUrl)
+    }
+
+    @Test
     fun `tasks map bundle and clean kinds`() {
         assertEquals(listOf("bundleRelease"), RemoteBuildRequestFactory.defaultTasks(request("release", BuildKind.BUNDLE)))
         assertEquals(listOf("clean"), RemoteBuildRequestFactory.defaultTasks(request("debug", BuildKind.CLEAN)))
