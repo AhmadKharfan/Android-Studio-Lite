@@ -6,4 +6,5 @@ interface CloneRepoInteractionListener {
     fun onTokenChanged(token: String)
     fun onToggleOption(id: String)
     fun onStartClone()
+    fun onCancelClone()
 }

@@ -1,14 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.data.fake
 
-import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flow
+import java.io.File
 import java.util.UUID
 
 class FakeProjectRepository : ProjectRepository {
@@ -47,23 +44,16 @@ class FakeProjectRepository : ProjectRepository {
         return project
     }
 
-    override fun cloneRepository(url: String, branch: String?): Flow<CloneProgress> = flow {
-        emit(CloneProgress(fraction = 0f, message = "Resolving $url"))
-        delay(400)
-        emit(CloneProgress(fraction = 0.35f, message = "Receiving objects"))
-        delay(500)
-        emit(CloneProgress(fraction = 0.75f, message = "Resolving deltas"))
-        delay(400)
-        val name = url.substringAfterLast('/').removeSuffix(".git").ifBlank { "repository" }
+    override suspend fun registerExistingProject(path: File): Project {
         val project = Project(
             id = UUID.randomUUID().toString(),
-            name = name,
-            path = "~/projects/$name",
+            name = path.name,
+            path = path.absolutePath,
             language = "Kotlin",
             lastOpenedMillis = System.currentTimeMillis(),
         )
         projects.value = listOf(project) + projects.value
-        emit(CloneProgress(fraction = 1f, message = "Done", clonedProjectId = project.id))
+        return project
     }
 
     override suspend fun openProject(id: String): Project {

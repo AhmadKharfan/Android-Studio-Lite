@@ -63,7 +63,7 @@ private fun CloneRepoScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (uiState.cloning) {
-                CloneRepoProgress(uiState = uiState, onDismiss = onDismiss)
+                CloneRepoProgress(uiState = uiState, onCancel = interactionListener::onCancelClone)
             } else {
                 CloneRepoForm(uiState = uiState, interactionListener = interactionListener)
             }
@@ -72,14 +72,14 @@ private fun CloneRepoScreen(
 }
 
 @Composable
-private fun CloneRepoProgress(uiState: CloneRepoUiState, onDismiss: () -> Unit) {
+private fun CloneRepoProgress(uiState: CloneRepoUiState, onCancel: () -> Unit) {
     AslStatusChip(status = AslStatus.Syncing, label = "Cloning · ${uiState.progressMessage}")
     AslLinearProgress(
         value = uiState.progressPercent.toFloat(),
         label = "Receiving objects",
         detail = "${uiState.progressPercent}%",
     )
-    AslButton(label = "Cancel", onClick = onDismiss, variant = AslButtonVariant.Secondary, fullWidth = true)
+    AslButton(label = "Cancel", onClick = onCancel, variant = AslButtonVariant.Secondary, fullWidth = true)
 }
 
 @Composable

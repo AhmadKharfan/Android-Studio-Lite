@@ -19,6 +19,9 @@ import java.io.File
  */
 internal object RemoteBuildRequestFactory {
 
+    /** Private remotes stay on-device and use zip upload; app credentials never reach the server. */
+    fun eligibleGitSource(source: GitRemoteInfo?): GitRemoteInfo? = source?.takeUnless { it.requiresAuth }
+
     fun create(
         request: BuildRequest,
         gitSource: GitRemoteInfo?,
@@ -27,18 +30,21 @@ internal object RemoteBuildRequestFactory {
         sourceHash: String? = null,
         /** Stable project id naming the server's configuration-cache slot for this project. */
         projectKey: String? = null,
-    ): CreateBuildRequest = CreateBuildRequest(
-        sourceType = if (gitSource != null) "git" else "zip",
-        gitUrl = gitSource?.url,
-        ref = gitSource?.ref,
-        modulePath = request.modulePath,
-        variant = request.variantName,
-        kind = request.kind.name,
-        tasks = defaultTasks(request),
-        signing = signing,
-        sourceHash = sourceHash,
-        projectKey = projectKey,
-    )
+    ): CreateBuildRequest {
+        val eligibleGit = eligibleGitSource(gitSource)
+        return CreateBuildRequest(
+            sourceType = if (eligibleGit != null) "git" else "zip",
+            gitUrl = eligibleGit?.url,
+            ref = eligibleGit?.ref,
+            modulePath = request.modulePath,
+            variant = request.variantName,
+            kind = request.kind.name,
+            tasks = defaultTasks(request),
+            signing = signing,
+            sourceHash = sourceHash,
+            projectKey = projectKey,
+        )
+    }
 
     /** Gradle tasks for a request: `assemble<Variant>` / `bundle<Variant>` / `clean`. */
     fun defaultTasks(request: BuildRequest): List<String> {

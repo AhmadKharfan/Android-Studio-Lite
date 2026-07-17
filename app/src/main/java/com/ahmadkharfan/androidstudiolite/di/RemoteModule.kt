@@ -35,5 +35,5 @@ val remoteModule = module {
     single { RemoteClient(settings = get(), integrityProvider = get()) }
     single { ProjectPackager() }
     single { ArtifactDownloader(client = get(), downloadDir = File(androidContext().cacheDir, "build-artifacts")) }
-    viewModel { ServerSettingsViewModel(settings = get(), client = get()) }
+    viewModel { ServerSettingsViewModel(settings = get(), client = get(), gitAuthorStore = get()) }
 }
