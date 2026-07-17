@@ -68,6 +68,19 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorBottomPanelContent
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDockedPanel
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDrawer
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
+import java.io.File
+
+private data class GitNavigationCallbacks(
+    val openDiff: (String, GitDiffTarget) -> Unit,
+    val openFileHistory: (String) -> Unit,
+    val openBlame: (String) -> Unit,
+    val openBranches: () -> Unit,
+    val openTags: () -> Unit,
+    val openStashes: () -> Unit,
+    val openHistory: () -> Unit,
+    val openConflicts: () -> Unit,
+)
 
 @Composable
 fun EditorRoute(
@@ -75,9 +88,26 @@ fun EditorRoute(
     onCloseProject: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
+    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
+    onOpenGitHistory: (String) -> Unit,
+    onOpenGitBlame: (String) -> Unit,
+    onOpenBranches: () -> Unit,
+    onOpenTags: () -> Unit,
+    onOpenStashes: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenConflicts: () -> Unit,
+    openConflictPath: String? = null,
+    onConflictPathOpened: () -> Unit = {},
     viewModel: EditorViewModel = koinViewModel { parametersOf(projectId) },
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(openConflictPath) {
+        openConflictPath?.let {
+            viewModel.onOpenFile(it, File(it).name)
+            onConflictPathOpened()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
@@ -94,7 +124,11 @@ fun EditorRoute(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.flushPendingSaves()
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onAppForegrounded()
+                Lifecycle.Event.ON_STOP -> viewModel.flushPendingSaves()
+                else -> Unit
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -107,6 +141,16 @@ fun EditorRoute(
         onEdited = viewModel::onSessionEdited,
         onCaretMoved = viewModel::onCaretMoved,
         onDiagnostics = viewModel::onDiagnostics,
+        gitNavigation = GitNavigationCallbacks(
+            openDiff = onOpenGitDiff,
+            openFileHistory = onOpenGitHistory,
+            openBlame = onOpenGitBlame,
+            openBranches = onOpenBranches,
+            openTags = onOpenTags,
+            openStashes = onOpenStashes,
+            openHistory = onOpenHistory,
+            openConflicts = onOpenConflicts,
+        ),
     )
 }
 
@@ -118,6 +162,7 @@ private fun EditorScreen(
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
     onDiagnostics: (String, List<Diagnostic>) -> Unit = { _, _ -> },
+    gitNavigation: GitNavigationCallbacks,
 ) {
     val colors = AslTheme.colors
     val snackbarHostState = remember { SnackbarHostState() }
@@ -150,6 +195,7 @@ private fun EditorScreen(
                     onEdited = onEdited,
                     onCaretMoved = onCaretMoved,
                     onDiagnostics = onDiagnostics,
+                    gitNavigation = gitNavigation,
                     isTablet = isTablet,
                     keyboardOpen = keyboardOpen,
                     colors = colors,
@@ -157,7 +203,11 @@ private fun EditorScreen(
                 )
             }
             if (!isTablet) {
-                EditorDrawerOverlay(uiState = uiState, interactionListener = interactionListener)
+                EditorDrawerOverlay(
+                    uiState = uiState,
+                    interactionListener = interactionListener,
+                    gitNavigation = gitNavigation,
+                )
             }
             uiState.installConflict?.let { conflict ->
                 AslDialog(
@@ -305,6 +355,7 @@ private fun EditorContentArea(
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
     onDiagnostics: (String, List<Diagnostic>) -> Unit,
+    gitNavigation: GitNavigationCallbacks,
     isTablet: Boolean,
     keyboardOpen: Boolean,
     colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
@@ -318,6 +369,7 @@ private fun EditorContentArea(
             onEdited = onEdited,
             onCaretMoved = onCaretMoved,
             onDiagnostics = onDiagnostics,
+            gitNavigation = gitNavigation,
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
@@ -325,7 +377,7 @@ private fun EditorContentArea(
             EditorMemoryPressureBanner(uiState = uiState, interactionListener = interactionListener, colors = colors)
             EditorLspReindexBanner(uiState = uiState, colors = colors)
             EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
-            EditorFullStatusBar(uiState = uiState)
+            EditorFullStatusBar(uiState = uiState, onOpenBranches = gitNavigation.openBranches)
         } else {
             EditorCompactStatusBar(uiState = uiState)
         }
@@ -340,6 +392,7 @@ private fun EditorEditingRow(
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
     onDiagnostics: (String, List<Diagnostic>) -> Unit,
+    gitNavigation: GitNavigationCallbacks,
     isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -348,6 +401,7 @@ private fun EditorEditingRow(
             EditorDockedPanel(
                 openTool = uiState.openRailTool,
                 projectId = uiState.projectId,
+                gitBadge = uiState.gitBadge,
                 fileTree = uiState.fileTree,
                 expandedFolderIds = uiState.expandedFolderIds,
                 selectedFileId = uiState.selectedFileTreeId,
@@ -357,10 +411,22 @@ private fun EditorEditingRow(
                 onToggleFolder = { interactionListener.onToggleFolder(it) },
                 onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
                 onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
-                onFileTreeAction = { action, id, name, isDirectory -> interactionListener.onFileTreeAction(action, id, name, isDirectory) },
+                onFileTreeAction = { action, id, name, isDirectory ->
+                    when (action) {
+                        EditorFileTreeAction.ShowHistory -> gitNavigation.openFileHistory(id)
+                        EditorFileTreeAction.Blame -> gitNavigation.openBlame(id)
+                        else -> interactionListener.onFileTreeAction(action, id, name, isDirectory)
+                    }
+                },
                 onDismiss = { interactionListener.onCloseDrawer() },
                 onOpenSettings = { interactionListener.onOpenSettings() },
                 onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },
+                onOpenGitDiff = gitNavigation.openDiff,
+                onOpenGitHistory = gitNavigation.openHistory,
+                onOpenGitBranches = gitNavigation.openBranches,
+                onOpenGitTags = gitNavigation.openTags,
+                onOpenGitStashes = gitNavigation.openStashes,
+                onOpenGitConflicts = gitNavigation.openConflicts,
                 onCloseProject = { interactionListener.onCloseProject() },
                 isLoadingFileTree = uiState.isLoadingFileTree,
             )
@@ -528,10 +594,10 @@ private fun EditorBottomToolSection(
 }
 
 @Composable
-private fun EditorFullStatusBar(uiState: EditorUiState) {
+private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Unit) {
     AslStatusBar(
         items = buildList {
-            add(AslStatusBarEntry.Item("main ●", icon = "git-branch"))
+            uiState.gitStatusText?.let { add(AslStatusBarEntry.Item(it, icon = "git-branch", onClick = onOpenBranches)) }
             when {
                 uiState.lspUpdating -> add(AslStatusBarEntry.Item("LSP updating", icon = "loader", spin = true))
                 uiState.running -> add(AslStatusBarEntry.Item("Building"))
@@ -573,10 +639,12 @@ private fun EditorCompactStatusBar(uiState: EditorUiState) {
 private fun EditorDrawerOverlay(
     uiState: EditorUiState,
     interactionListener: EditorInteractionListener,
+    gitNavigation: GitNavigationCallbacks,
 ) {
     EditorDrawer(
         openTool = uiState.openRailTool,
         projectId = uiState.projectId,
+        gitBadge = uiState.gitBadge,
         fileTree = uiState.fileTree,
         expandedFolderIds = uiState.expandedFolderIds,
         selectedFileId = uiState.selectedFileTreeId,
@@ -586,10 +654,22 @@ private fun EditorDrawerOverlay(
         onToggleFolder = { interactionListener.onToggleFolder(it) },
         onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
         onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
-        onFileTreeAction = { action, id, name, isDirectory -> interactionListener.onFileTreeAction(action, id, name, isDirectory) },
+        onFileTreeAction = { action, id, name, isDirectory ->
+            when (action) {
+                EditorFileTreeAction.ShowHistory -> gitNavigation.openFileHistory(id)
+                EditorFileTreeAction.Blame -> gitNavigation.openBlame(id)
+                else -> interactionListener.onFileTreeAction(action, id, name, isDirectory)
+            }
+        },
         onDismiss = { interactionListener.onCloseDrawer() },
         onOpenSettings = { interactionListener.onOpenSettings() },
         onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },
+        onOpenGitDiff = gitNavigation.openDiff,
+        onOpenGitHistory = gitNavigation.openHistory,
+        onOpenGitBranches = gitNavigation.openBranches,
+        onOpenGitTags = gitNavigation.openTags,
+        onOpenGitStashes = gitNavigation.openStashes,
+        onOpenGitConflicts = gitNavigation.openConflicts,
         onCloseProject = { interactionListener.onCloseProject() },
         isLoadingFileTree = uiState.isLoadingFileTree,
         modifier = Modifier.fillMaxSize(),

@@ -3,6 +3,12 @@ import androidx.compose.runtime.Immutable
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLevel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitHeadState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
@@ -77,6 +83,9 @@ enum class EditorFileTreeAction {
     Copy,
     Paste,
     Delete,
+    ShowHistory,
+    Blame,
+    AddToGitignore,
 }
 
 @Immutable
@@ -112,6 +121,8 @@ data class EditorUiState(
     val activeTabId: String? = null,
     val running: Boolean = false,
     val openRailTool: EditorRailTool? = null,
+    val gitStatusText: String? = null,
+    val gitPendingChangeCount: Int = 0,
     val fileTree: List<EditorFileNodeUiModel> = emptyList(),
     val expandedFolderIds: Set<String> = emptySet(),
     val selectedFileTreeId: String? = null,
@@ -160,4 +171,43 @@ data class EditorUiState(
         get() = tabs.firstOrNull { it.id == activeTabId }
     val errorCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Error }
     val warningCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Warning }
+    val gitBadge: String? get() = gitPendingChangeCount.takeIf { it > 0 }?.toString()
+}
+
+internal data class EditorGitUiModel(val statusText: String?, val pendingChangeCount: Int)
+
+internal fun GitFileState.toEditorFileStatus(): GitFileStatus? = when {
+    conflictStage != null -> GitFileStatus.CONFLICTED
+    worktreeStatus == GitWorktreeStatus.DELETED || indexStatus == GitIndexStatus.DELETED -> GitFileStatus.DELETED
+    worktreeStatus == GitWorktreeStatus.UNTRACKED -> GitFileStatus.UNTRACKED
+    indexStatus == GitIndexStatus.ADDED -> GitFileStatus.ADDED
+    worktreeStatus == GitWorktreeStatus.MODIFIED ||
+        indexStatus in setOf(GitIndexStatus.MODIFIED, GitIndexStatus.RENAMED) -> GitFileStatus.MODIFIED
+    else -> null
+}
+
+internal fun GitState.toEditorGitUiModel(): EditorGitUiModel {
+    if (!isRepository) return EditorGitUiModel(statusText = null, pendingChangeCount = 0)
+    val head = when (val value = headState) {
+        is GitHeadState.Branch -> value.name
+        is GitHeadState.Detached -> "HEAD (${value.shortSha})"
+        GitHeadState.Unborn -> "HEAD"
+    }
+    val pending = files.count { it.hasPendingChange }
+    val operation = when (repositoryState) {
+        GitRepositoryState.SAFE -> null
+        GitRepositoryState.MERGING -> "Merging"
+        GitRepositoryState.REBASING -> "Rebasing"
+        GitRepositoryState.CHERRY_PICKING -> "Cherry-picking"
+        GitRepositoryState.REVERTING -> "Reverting"
+        GitRepositoryState.BISECTING -> "Bisecting"
+    }
+    return EditorGitUiModel(
+        statusText = buildString {
+            append(head)
+            if (pending > 0) append(" ●")
+            operation?.let { append(" — ").append(it) }
+        },
+        pendingChangeCount = pending,
+    )
 }

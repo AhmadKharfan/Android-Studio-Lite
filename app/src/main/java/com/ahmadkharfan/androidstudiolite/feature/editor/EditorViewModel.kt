@@ -9,10 +9,17 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
+import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteHandler
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
@@ -22,13 +29,18 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSe
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import java.io.File
+import java.io.Closeable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
     BottomPanelTabUiModel("logs", "App Logs", "scroll-text"),
@@ -36,6 +48,7 @@ private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("diag", "Diagnostics", "stethoscope"),
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
+private const val GUTTER_DEBOUNCE_MS = 300L
 private const val APP_MODULE_PATH = ":app"
 
 /**
@@ -56,6 +69,8 @@ class EditorViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val gradleProjectReader: com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader,
     private val buildRunCoordinator: BuildRunCoordinator,
+    private val gitRepository: GitRepository? = null,
+    private val workspaceWriteGate: WorkspaceWriteGate? = null,
 ) : BaseViewModel<EditorUiState, EditorEffect>(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
@@ -91,7 +106,22 @@ class EditorViewModel(
 
     /** Absolute path of the open project's root, used to show file-tree paths relative to it. */
     private var projectRootPath: String? = null
+    private var latestGitFiles: Map<String, GitFileState> = emptyMap()
+    private var workspaceWriteRegistration: Closeable? = null
+    private var latestRootGenerations: Map<String, Long> = emptyMap()
+    private var lastReconciledGeneration = 0L
+    private data class GutterRequest(val tabId: String, val immediate: Boolean)
+    private val gutterRequests = MutableSharedFlow<GutterRequest>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     init {
+        viewModelScope.launch {
+            gutterRequests.collectLatest { request ->
+                if (!request.immediate) delay(GUTTER_DEBOUNCE_MS)
+                recomputeGutter(request.tabId)
+            }
+        }
         tryToCollect(
             block = { preferencesRepository.observePreferences() },
             onCollect = { prefs ->
@@ -117,9 +147,18 @@ class EditorViewModel(
             },
             onSuccess = { (projectName, projectPath, nodes) ->
                 projectRootPath = projectPath
+                workspaceWriteRegistration?.close()
+                workspaceWriteRegistration = workspaceWriteGate?.register(
+                    File(projectPath),
+                    WorkspaceWriteHandler {
+                        check(flushDirtyBuffers()) { "Couldn't save pending editor changes" }
+                    },
+                )
                 updateState {
                     copy(
-                        projectId = projectId,
+                        // Qualify: the copy receiver (EditorUiState) also has a `projectId`, which would
+                        // otherwise shadow the ViewModel's field and leave the UI state's id blank.
+                        projectId = this@EditorViewModel.projectId,
                         projectName = projectName,
                         fileTree = nodes.map { it.toUiModel() },
                         expandedFolderIds = defaultExpandedIds(nodes),
@@ -127,13 +166,24 @@ class EditorViewModel(
                     )
                 }
                 firstOpenableFile(nodes)?.let { openFile(it.id, it.name) }
+                observeGitState(File(projectPath))
                 syncProjectSymbols(projectPath)
+                viewModelScope.launch { reconcileLatestRootGeneration() }
             },
         )
         // Detect edits to open files made outside the editor (e.g. by another repository operation).
         tryToCollect(
             block = { fileContentRepository.observeChanges() },
             onCollect = { event -> onExternalFileEvent(event) },
+            dispatcher = Dispatchers.Main.immediate,
+        )
+        tryToCollect(
+            block = { fileContentRepository.rootInvalidationGenerations() },
+            onCollect = { generations ->
+                latestRootGenerations = generations
+                reconcileLatestRootGeneration()
+            },
+            dispatcher = Dispatchers.Main.immediate,
         )
     }
 
@@ -201,6 +251,13 @@ class EditorViewModel(
     }
 
     private suspend fun onExternalFileEvent(event: FileChangeEvent) {
+        when (event) {
+            is FileChangeEvent.PathChanged -> onExternalPathChanged(event)
+            is FileChangeEvent.RootInvalidated -> reconcileRoot(event.root, event.generation)
+        }
+    }
+
+    private suspend fun onExternalPathChanged(event: FileChangeEvent.PathChanged) {
         if (event.type != FileChangeType.MODIFIED) return
         val tab = state.value.tabs.firstOrNull { it.id == event.path } ?: return
         val session = sessions[event.path] ?: return
@@ -213,6 +270,58 @@ class EditorViewModel(
         if (onDisk == session.text) return
         updateState { copy(snackbarMessage = "‘${tab.name}’ changed on disk outside the editor") }
     }
+
+    private suspend fun reconcileLatestRootGeneration() {
+        val root = projectRootPath?.let(::canonicalPath) ?: return
+        val generation = latestRootGenerations[root] ?: return
+        reconcileRoot(root, generation)
+    }
+
+    private suspend fun reconcileRoot(root: String, generation: Long) {
+        val projectRoot = projectRootPath?.let(::canonicalPath) ?: return
+        if (canonicalPath(root) != projectRoot || generation <= lastReconciledGeneration) return
+        lastReconciledGeneration = generation
+
+        refreshFileTree()
+        val snapshot = state.value.tabs
+        val dirtyNames = snapshot.filter { it.modified }.map { it.name }
+        val cleanTabs = snapshot.filterNot { it.modified }
+        val reloaded = mutableMapOf<String, String>()
+        val removed = mutableSetOf<String>()
+        cleanTabs.forEach { tab ->
+            val file = File(tab.id)
+            if (!file.isFile) {
+                removed += tab.id
+            } else {
+                runCatching { fileContentRepository.readText(tab.id) }
+                    .onSuccess { reloaded[tab.id] = it }
+            }
+        }
+        reloaded.forEach { (id, text) ->
+            val tab = snapshot.first { it.id == id }
+            sessions[id] = EditorSession(text, tab.language, filePath = id)
+        }
+        removed.forEach { sessions.remove(it) }
+        updateState {
+            val reconciledTabs = tabs.filterNot { it.id in removed }.map { tab ->
+                reloaded[tab.id]?.let { tab.copy(text = it, modified = false) } ?: tab
+            }
+            copy(
+                tabs = reconciledTabs,
+                activeTabId = activeTabId?.takeIf { id -> reconciledTabs.any { it.id == id } }
+                    ?: reconciledTabs.lastOrNull()?.id,
+                snackbarMessage = when {
+                    dirtyNames.isNotEmpty() -> "‘${dirtyNames.first()}’ changed on disk; unsaved edits were kept"
+                    removed.isNotEmpty() -> "Closed ${removed.size} file(s) removed by Git"
+                    else -> snackbarMessage
+                },
+            )
+        }
+        state.value.activeTabId?.let { requestGutter(it, immediate = true) }
+    }
+
+    private fun canonicalPath(path: String): String = runCatching { File(path).canonicalPath }
+        .getOrDefault(File(path).absolutePath)
     fun sessionFor(id: String?): EditorSession? = id?.let { sessions[it] }
 
     override fun onSelectTab(id: String) {
@@ -225,6 +334,7 @@ class EditorViewModel(
                 return@launch
             }
             updateState { copy(activeTabId = id, activeDiagnostics = emptyList()) }
+            requestGutter(id, immediate = true)
         }
     }
     override fun onCloseTab(id: String) {
@@ -278,6 +388,16 @@ class EditorViewModel(
             EditorFileTreeAction.Paste -> if (isDirectory) pasteFileTreeEntry(id)
             EditorFileTreeAction.Delete -> updateState {
                 copy(fileOperationDialog = EditorFileOperationDialogUiState.Delete(path = id, name = name, isDirectory = isDirectory))
+            }
+            EditorFileTreeAction.ShowHistory, EditorFileTreeAction.Blame -> Unit
+            EditorFileTreeAction.AddToGitignore -> {
+                val root = projectRootPath?.let(::File) ?: return
+                val git = gitRepository ?: return
+                tryToExecute(
+                    block = { git.addToGitignore(root, id) },
+                    onSuccess = { updateState { copy(snackbarMessage = "Added to .gitignore") } },
+                    onError = { updateState { copy(snackbarMessage = it.message ?: "Could not update .gitignore") } },
+                )
             }
         }
     }
@@ -542,6 +662,7 @@ class EditorViewModel(
             copy(tabs = tabs.map { if (it.id == id) it.copy(text = newText, modified = true) else it })
         }
         scheduleAutoSave()
+        if (id == state.value.activeTabId) requestGutter(id, immediate = false)
     }
 
     /**
@@ -599,11 +720,99 @@ class EditorViewModel(
         flushScope.launch { flushDirtyFiles() }
     }
 
+    suspend fun flushDirtyBuffers(): Boolean = withContext(Dispatchers.Main.immediate) {
+        autoSaveJob?.cancel()
+        flushDirtyFiles()
+    }
+
+    fun onAppForegrounded() {
+        val root = projectRootPath?.let(::File) ?: return
+        val git = gitRepository ?: return
+        tryToExecute(block = { git.onAppForegrounded(root) })
+    }
+
+    private fun observeGitState(root: File) {
+        val git = gitRepository ?: return
+        tryToCollect(
+            block = { git.observeState(root) },
+            onCollect = { gitState ->
+                latestGitFiles = gitState.files.associateBy { it.path }
+                val gitUi = gitState.toEditorGitUiModel()
+                updateState {
+                    copy(
+                        gitStatusText = gitUi.statusText,
+                        gitPendingChangeCount = gitUi.pendingChangeCount,
+                        fileTree = fileTree.map { it.withGitStatus(root) },
+                    )
+                }
+                state.value.activeTabId?.let { requestGutter(it, immediate = true) }
+            },
+        )
+        tryToExecute(block = { git.refresh(root) })
+    }
+
+    private fun requestGutter(tabId: String, immediate: Boolean) {
+        gutterRequests.tryEmit(GutterRequest(tabId, immediate))
+    }
+
+    private suspend fun recomputeGutter(tabId: String) {
+        if (state.value.activeTabId != tabId) return
+        val rootPath = projectRootPath ?: return clearGutter(tabId)
+        val git = gitRepository ?: return clearGutter(tabId)
+        val root = File(rootPath).canonicalFile
+        val file = File(tabId).canonicalFile
+        val prefix = root.path.trimEnd(File.separatorChar) + File.separator
+        if (!file.path.startsWith(prefix)) return clearGutter(tabId)
+        val relative = file.relativeTo(root).invariantSeparatorsPath
+        if (latestGitFiles[relative]?.conflictStage != null) return clearGutter(tabId)
+        val buffer = sessions[tabId]?.text ?: return clearGutter(tabId)
+        val diff = runCatching { git.diffIndexToBuffer(root, relative, buffer) }.getOrNull()
+            ?: return clearGutter(tabId)
+        if (diff.isBinary || diff.tooLarge) return clearGutter(tabId)
+        val markers = buildMap {
+            diff.hunks.forEach { hunk ->
+                var removed = 0
+                val added = mutableListOf<Int>()
+                var newCursor = (hunk.newStart - 1).coerceAtLeast(0)
+                fun flushEdit() {
+                    if (added.isNotEmpty()) {
+                        added.forEach { put(it, if (removed > 0) AslLineGit.Modified else AslLineGit.Added) }
+                    } else if (removed > 0) {
+                        put(newCursor.coerceAtLeast(0), AslLineGit.Deleted)
+                    }
+                    removed = 0
+                    added.clear()
+                }
+                hunk.lines.forEach { line ->
+                    when (line.kind) {
+                        GitDiffKind.REMOVED -> removed++
+                        GitDiffKind.ADDED, GitDiffKind.MODIFIED -> {
+                            line.newNo?.let { added += it - 1; newCursor = it }
+                        }
+                        GitDiffKind.CONTEXT -> {
+                            flushEdit()
+                            newCursor = line.newNo ?: newCursor
+                        }
+                    }
+                }
+                flushEdit()
+            }
+        }
+        if (state.value.activeTabId == tabId && sessions[tabId]?.text == buffer) {
+            updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = markers) else it }) }
+        }
+    }
+
+    private fun clearGutter(tabId: String) {
+        updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = emptyMap()) else it }) }
+    }
+
     override fun onCleared() {
         // Last-chance persist: viewModelScope is cancelled during onCleared, so this must run on the
         // independent flushScope. Left un-cancelled so the in-flight write can complete.
         autoSaveJob?.cancel()
         flushScope.launch { flushDirtyFiles() }
+        workspaceWriteRegistration?.close()
         super.onCleared()
     }
     private fun undoRedoActive(action: (EditorSession) -> Boolean) {
@@ -758,6 +967,7 @@ class EditorViewModel(
                     return@launch
                 }
                 updateState { copy(activeTabId = id, openRailTool = null) }
+                requestGutter(id, immediate = true)
             }
             return
         }
@@ -785,6 +995,7 @@ class EditorViewModel(
             } else {
                 updateState { copy(tabs = tabs + tab, activeTabId = id, openRailTool = null) }
             }
+            requestGutter(id, immediate = true)
         }
     }
     private fun breadcrumbFor(id: String, name: String): List<String> {
@@ -1066,6 +1277,21 @@ class EditorViewModel(
         id = id,
         name = name,
         children = children?.map { it.toUiModel() },
-        gitStatus = gitStatus,
+        gitStatus = layeredGitStatus(id) ?: gitStatus,
     )
+
+    private fun EditorFileNodeUiModel.withGitStatus(root: File): EditorFileNodeUiModel = copy(
+        children = children?.map { it.withGitStatus(root) },
+        gitStatus = if (children != null) null else layeredGitStatus(id, root),
+    )
+
+    private fun layeredGitStatus(path: String, root: File? = projectRootPath?.let(::File)): GitFileStatus? {
+        root ?: return null
+        val file = runCatching { File(path).canonicalFile }.getOrDefault(File(path).absoluteFile)
+        val canonicalRoot = runCatching { root.canonicalFile }.getOrDefault(root.absoluteFile)
+        val relative = runCatching { file.relativeTo(canonicalRoot).invariantSeparatorsPath }.getOrNull()
+            ?: return null
+        val state = latestGitFiles[relative] ?: return null
+        return state.toEditorFileStatus()
+    }
 }

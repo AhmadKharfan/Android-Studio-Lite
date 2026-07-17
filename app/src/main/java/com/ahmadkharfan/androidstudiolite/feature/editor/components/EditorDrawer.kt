@@ -42,6 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelRoute
@@ -51,9 +52,9 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreeAction
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRailTool
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsRoute
 
-private val RAIL_ITEMS = listOf(
+private fun railItems(gitBadge: String?) = listOf(
     AslToolRailEntry.Item("files", "folder", "Files"),
-    AslToolRailEntry.Item("git", "git-branch", "Git", badge = "4"),
+    AslToolRailEntry.Item("git", "git-branch", "Git", badge = gitBadge),
     AslToolRailEntry.Item("ai", "sparkles", "AI Agent"),
     AslToolRailEntry.Item("variants", "layers", "Variants"),
     AslToolRailEntry.Item("assets", "image", "Assets"),
@@ -91,6 +92,7 @@ private fun String.toRailTool(): EditorRailTool? = when (this) {
 fun EditorDrawer(
     openTool: EditorRailTool?,
     projectId: String,
+    gitBadge: String?,
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
@@ -104,6 +106,12 @@ fun EditorDrawer(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
+    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
+    onOpenGitHistory: () -> Unit,
+    onOpenGitBranches: () -> Unit,
+    onOpenGitTags: () -> Unit,
+    onOpenGitStashes: () -> Unit,
+    onOpenGitConflicts: () -> Unit,
     onCloseProject: () -> Unit,
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
@@ -148,6 +156,7 @@ fun EditorDrawer(
             Row(modifier = Modifier.fillMaxHeight()) {
                 EditorToolRail(
                     activeId = tool.toRailId(),
+                    gitBadge = gitBadge,
                     onSelectTool = onSelectTool,
                     onOpenSettings = onOpenSettings,
                     onCloseProject = onCloseProject,
@@ -166,6 +175,12 @@ fun EditorDrawer(
                     onFileTreeAction = onFileTreeAction,
                     onDismiss = onDismiss,
                     onOpenAiAgentSettings = onOpenAiAgentSettings,
+                    onOpenGitDiff = onOpenGitDiff,
+                    onOpenGitHistory = onOpenGitHistory,
+                    onOpenGitBranches = onOpenGitBranches,
+                    onOpenGitTags = onOpenGitTags,
+                    onOpenGitStashes = onOpenGitStashes,
+                    onOpenGitConflicts = onOpenGitConflicts,
                     isLoadingFileTree = isLoadingFileTree,
                 )
             }
@@ -180,6 +195,7 @@ fun EditorDrawer(
 fun EditorDockedPanel(
     openTool: EditorRailTool?,
     projectId: String,
+    gitBadge: String?,
     fileTree: List<EditorFileNodeUiModel>,
     expandedFolderIds: Set<String>,
     selectedFileId: String?,
@@ -193,6 +209,12 @@ fun EditorDockedPanel(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
+    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
+    onOpenGitHistory: () -> Unit,
+    onOpenGitBranches: () -> Unit,
+    onOpenGitTags: () -> Unit,
+    onOpenGitStashes: () -> Unit,
+    onOpenGitConflicts: () -> Unit,
     onCloseProject: () -> Unit,
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
@@ -200,6 +222,7 @@ fun EditorDockedPanel(
     Row(modifier = modifier.fillMaxHeight()) {
         EditorToolRail(
             activeId = openTool.toRailId(),
+            gitBadge = gitBadge,
             onSelectTool = onSelectTool,
             onOpenSettings = onOpenSettings,
             onCloseProject = onCloseProject,
@@ -219,6 +242,12 @@ fun EditorDockedPanel(
                 onFileTreeAction = onFileTreeAction,
                 onDismiss = onDismiss,
                 onOpenAiAgentSettings = onOpenAiAgentSettings,
+                onOpenGitDiff = onOpenGitDiff,
+                onOpenGitHistory = onOpenGitHistory,
+                onOpenGitBranches = onOpenGitBranches,
+                onOpenGitTags = onOpenGitTags,
+                onOpenGitStashes = onOpenGitStashes,
+                onOpenGitConflicts = onOpenGitConflicts,
                 isLoadingFileTree = isLoadingFileTree,
             )
         }
@@ -228,12 +257,13 @@ fun EditorDockedPanel(
 @Composable
 private fun EditorToolRail(
     activeId: String?,
+    gitBadge: String?,
     onSelectTool: (EditorRailTool) -> Unit,
     onOpenSettings: () -> Unit,
     onCloseProject: () -> Unit,
 ) {
     AslToolRail(
-        items = RAIL_ITEMS,
+        items = railItems(gitBadge),
         activeId = activeId,
         onSelect = { id ->
             when (id) {
@@ -260,6 +290,12 @@ private fun EditorToolPanelContent(
     onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
+    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
+    onOpenGitHistory: () -> Unit,
+    onOpenGitBranches: () -> Unit,
+    onOpenGitTags: () -> Unit,
+    onOpenGitStashes: () -> Unit,
+    onOpenGitConflicts: () -> Unit,
     isLoadingFileTree: Boolean = false,
 ) {
     // Cross-fade between Files/Git/AI Agent/Variants/Assets on rail switch, instead of an instant
@@ -303,7 +339,16 @@ private fun EditorToolPanelContent(
                     }
                 }
             }
-            EditorRailTool.Git -> GitPanelRoute(projectId = projectId, onClose = onDismiss)
+            EditorRailTool.Git -> GitPanelRoute(
+                projectId = projectId,
+                onClose = onDismiss,
+                onOpenDiff = onOpenGitDiff,
+                onOpenHistory = onOpenGitHistory,
+                onOpenBranches = onOpenGitBranches,
+                onOpenTags = onOpenGitTags,
+                onOpenStashes = onOpenGitStashes,
+                onOpenConflicts = onOpenGitConflicts,
+            )
             EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
             EditorRailTool.Variants -> VariantsRoute(onClose = onDismiss)
             EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)
@@ -365,6 +410,9 @@ private fun AslFileTreeAction.toEditorAction(): EditorFileTreeAction = when (thi
     AslFileTreeAction.Copy -> EditorFileTreeAction.Copy
     AslFileTreeAction.Paste -> EditorFileTreeAction.Paste
     AslFileTreeAction.Delete -> EditorFileTreeAction.Delete
+    AslFileTreeAction.ShowHistory -> EditorFileTreeAction.ShowHistory
+    AslFileTreeAction.Blame -> EditorFileTreeAction.Blame
+    AslFileTreeAction.AddToGitignore -> EditorFileTreeAction.AddToGitignore
 }
 
 private fun EditorFileNodeUiModel.toAslNode(): AslFileTreeNode = AslFileTreeNode(
@@ -380,4 +428,5 @@ private fun GitFileStatus.toAslGitStatus(): AslGitStatus = when (this) {
     GitFileStatus.ADDED -> AslGitStatus.Added
     GitFileStatus.DELETED -> AslGitStatus.Deleted
     GitFileStatus.UNTRACKED -> AslGitStatus.Untracked
+    GitFileStatus.CONFLICTED -> AslGitStatus.Conflicted
 }
