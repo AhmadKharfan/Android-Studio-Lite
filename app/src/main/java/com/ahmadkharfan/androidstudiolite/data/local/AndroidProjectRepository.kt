@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ahmadkharfan.androidstudiolite.data.templates.ProjectTemplateEngine
-import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
@@ -14,7 +13,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -22,11 +20,8 @@ import java.io.File
 /**
  * Real [ProjectRepository]. The recent-projects list is persisted in a DataStore (mirroring the
  * DataStore pattern in [com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository])
- * as a single serialized string; all projects live as real directories under [projectsRoot], so a
- * project's id is simply its directory name. Project detection is the presence of a
- * `settings.gradle[.kts]`. Mutations publish events on the shared [changeBus].
- *
- * Git clone is stubbed here — the JGit-backed implementation is task T5.
+ * as a single serialized string. Created/imported projects live under [projectsRoot], while existing
+ * projects may be registered at another absolute path. Mutations publish events on [changeBus].
  */
 class AndroidProjectRepository(
     private val projectsRoot: File,
@@ -56,10 +51,22 @@ class AndroidProjectRepository(
             project
         }
 
-    override fun cloneRepository(url: String, branch: String?): Flow<CloneProgress> = flow {
-        // The real JGit clone (and its progress reporting) lands in task T5; until then fail clearly
-        // instead of silently doing nothing.
-        emit(CloneProgress(fraction = null, message = "Git clone is not available in this build yet"))
+    override suspend fun registerExistingProject(path: File): Project = withContext(Dispatchers.IO) {
+        val dir = path.absoluteFile
+        require(dir.isDirectory) { "Not a directory: ${dir.absolutePath}" }
+        val projects = current()
+        val alreadyRegistered = projects.firstOrNull { File(it.path).absoluteFile == dir }
+        val project = Project(
+            id = alreadyRegistered?.id ?: uniqueProjectId(dir.name, projects),
+            name = alreadyRegistered?.name ?: dir.name.ifBlank { "Project" },
+            path = dir.absolutePath,
+            language = detectLanguage(dir),
+            lastOpenedMillis = clock(),
+            packageName = alreadyRegistered?.packageName,
+            buildable = isGradleProject(dir),
+        )
+        upsert(project)
+        project
     }
 
     override suspend fun openProject(id: String): Project = withContext(Dispatchers.IO) {
@@ -143,6 +150,15 @@ class AndroidProjectRepository(
     private fun isGradleProject(dir: File): Boolean =
         File(dir, "settings.gradle.kts").exists() || File(dir, "settings.gradle").exists()
 
+    private fun uniqueProjectId(name: String, projects: List<Project>): String {
+        val base = name.ifBlank { "project" }
+        val existingIds = projects.mapTo(mutableSetOf()) { it.id }
+        var candidate = base
+        var suffix = 2
+        while (candidate in existingIds) candidate = "$base-${suffix++}"
+        return candidate
+    }
+
     private fun detectLanguage(dir: File): String {
         val sources = dir.walkTopDown()
             .onEnter { !LocalFsSupport.isIgnoredDir(it) }
@@ -172,12 +188,12 @@ class AndroidProjectRepository(
             projects.joinToString("\n") { p ->
                 listOf(
                     p.id, p.name, p.path, p.language, (p.lastOpenedMillis ?: 0L).toString(),
-                    p.packageName.orEmpty(),
+                    p.packageName.orEmpty(), p.buildable.toString(),
                 ).joinToString("\t") { escape(it) }
             }
 
-        // packageName is read positionally but optionally, so records written before it existed (5
-        // fields) still decode instead of dropping the user's project list on upgrade.
+        // Additive fields are read optionally, so older five/six-field records still decode instead
+        // of dropping the user's project list on upgrade.
         fun decode(raw: String): List<Project> =
             if (raw.isEmpty()) emptyList()
             else raw.split("\n").mapNotNull { line ->
@@ -190,6 +206,9 @@ class AndroidProjectRepository(
                     language = unescape(parts[3]),
                     lastOpenedMillis = unescape(parts[4]).toLongOrNull()?.takeIf { it > 0L },
                     packageName = parts.getOrNull(5)?.let(::unescape)?.takeIf { it.isNotBlank() },
+                    // Records written before buildability existed are created/imported projects and
+                    // remain buildable by default.
+                    buildable = parts.getOrNull(6)?.let(::unescape)?.toBooleanStrictOrNull() ?: true,
                 )
             }
 
