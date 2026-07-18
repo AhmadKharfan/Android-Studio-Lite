@@ -7,6 +7,9 @@ import androidx.security.crypto.MasterKey
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import java.net.URI
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * [GitCredentialStore] backed by [EncryptedSharedPreferences] (AES-256 over a Keystore-held master
@@ -27,18 +30,29 @@ class EncryptedGitCredentialStore(context: Context) : GitCredentialStore {
         )
     }
 
+    private val _changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    override val changes: Flow<Unit> = _changes.asSharedFlow()
+
     override fun credentialsForUrl(url: String): GitCredentials? {
         val host = hostOf(url) ?: return null
+        return credentialsForHost(host)
+    }
+
+    override fun credentialsForHost(host: String): GitCredentials? {
         val token = prefs.getString(tokenKey(host), null) ?: return null
         val username = prefs.getString(userKey(host), null).orEmpty()
         return GitCredentials(username = username, token = token)
     }
+
+    override fun hasCredentials(host: String): Boolean =
+        !prefs.getString(tokenKey(host), null).isNullOrBlank()
 
     override fun save(host: String, credentials: GitCredentials) {
         prefs.edit()
             .putString(tokenKey(host), credentials.token)
             .putString(userKey(host), credentials.username)
             .apply()
+        _changes.tryEmit(Unit)
     }
 
     override fun clear(host: String) {
@@ -46,6 +60,7 @@ class EncryptedGitCredentialStore(context: Context) : GitCredentialStore {
             .remove(tokenKey(host))
             .remove(userKey(host))
             .apply()
+        _changes.tryEmit(Unit)
     }
 
     private fun tokenKey(host: String) = "host:$host:token"
