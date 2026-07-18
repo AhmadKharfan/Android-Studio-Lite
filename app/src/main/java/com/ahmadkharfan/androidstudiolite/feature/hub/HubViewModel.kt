@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.hub
 
+import android.content.Context
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
@@ -11,8 +13,9 @@ import java.util.Calendar
 
 class HubViewModel(
     private val projectRepository: ProjectRepository,
+    private val appContext: Context,
 ) : BaseViewModel<HubUiState, HubEffect>(
-    initialState = HubUiState(greeting = greetingForNow()),
+    initialState = HubUiState(greeting = greetingForNow(appContext)),
 ), HubInteractionListener {
 
     private var resumeDismissed = false
@@ -169,15 +172,15 @@ class HubViewModel(
         name = name,
         path = path,
         language = language,
-        lastOpenedText = lastOpenedMillis?.let { formatRelativeTime(it) },
+        lastOpenedText = lastOpenedMillis?.let { formatRelativeTime(appContext, it) },
     )
 }
 
-private fun greetingForNow(): String {
+private fun greetingForNow(context: Context): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when {
-        hour < 12 -> "Good morning"
-        hour < 18 -> "Good afternoon"
-        else -> "Good evening"
+        hour < 12 -> context.getString(R.string.greeting_morning)
+        hour < 18 -> context.getString(R.string.greeting_afternoon)
+        else -> context.getString(R.string.greeting_evening)
     }
 }

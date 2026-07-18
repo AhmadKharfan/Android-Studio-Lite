@@ -30,8 +30,7 @@ sealed interface HubSheetUiState {
 
 @Immutable
 data class HubUiState(
-    val greeting: String = "Good morning",
-    val userName: String = "Alex",
+    val greeting: String = "",
     val resumeProject: HubProjectUiModel? = null,
     val recentProjects: List<HubProjectUiModel> = emptyList(),
     val isLoadingRecents: Boolean = true,

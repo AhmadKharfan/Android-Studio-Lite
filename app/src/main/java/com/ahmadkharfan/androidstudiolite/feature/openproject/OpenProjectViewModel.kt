@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.openproject
 
+import android.content.Context
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
@@ -7,6 +8,7 @@ import com.ahmadkharfan.androidstudiolite.feature.formatRelativeTime
 
 class OpenProjectViewModel(
     private val projectRepository: ProjectRepository,
+    private val appContext: Context,
 ) : BaseViewModel<OpenProjectUiState, OpenProjectEffect>(
     initialState = OpenProjectUiState(),
 ), OpenProjectInteractionListener {
@@ -35,6 +37,6 @@ class OpenProjectViewModel(
     private fun Project.toUiModel() = OpenProjectItemUiModel(
         id = id,
         name = name,
-        subtitle = path + (lastOpenedMillis?.let { " · ${formatRelativeTime(it)}" } ?: ""),
+        subtitle = path + (lastOpenedMillis?.let { " · ${formatRelativeTime(appContext, it)}" } ?: ""),
     )
 }

@@ -35,11 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStaggeredAppear
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
@@ -107,7 +109,7 @@ fun HubRoute(
 
         if (uiState.dialog is HubDialogUiState.InvalidFolder) {
             AslSnackbar(
-                message = "Not a valid Android project",
+                message = stringResource(R.string.hub_invalid_project_snackbar),
                 icon = "octagon-alert",
                 tone = AslSnackbarTone.Error,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
@@ -143,17 +145,17 @@ private fun HubProjectMenuHost(
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                 AslListItem(
-                    title = "Open",
+                    title = stringResource(R.string.hub_project_menu_open),
                     icon = "folder-open",
                     onClick = { viewModel.dismissProjectMenu(); onOpenProject(project.id) },
                 )
                 AslListItem(
-                    title = "Rename",
+                    title = stringResource(R.string.hub_project_menu_rename),
                     icon = "pencil",
                     onClick = { viewModel.requestRenameProject() },
                 )
                 AslListItem(
-                    title = "Delete from device",
+                    title = stringResource(R.string.hub_project_menu_delete),
                     icon = "trash-2",
                     iconColor = colors.error,
                     divider = false,
@@ -196,41 +198,41 @@ private fun HubDialogHost(
 ) {
     when (val dialog = uiState.dialog) {
         is HubDialogUiState.ResumeProject -> AslDialog(
-            title = "Open last project?",
+            title = stringResource(R.string.hub_dialog_resume_title),
             body = "${dialog.projectName}\n${dialog.path}",
-            confirmLabel = "Open",
-            cancelLabel = "Not now",
+            confirmLabel = stringResource(R.string.action_open),
+            cancelLabel = stringResource(R.string.action_not_now),
             onConfirm = { viewModel.confirmResumeDialog() },
             onDismiss = { viewModel.dismissResumeDialog() },
         )
         is HubDialogUiState.InvalidFolder -> AslDialog(
-            title = "Can't open folder",
-            body = "${dialog.path} has no settings.gradle — it isn't a valid Android project.",
-            confirmLabel = "Choose another",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.hub_dialog_invalid_folder_title),
+            body = stringResource(R.string.hub_dialog_invalid_folder_body, dialog.path),
+            confirmLabel = stringResource(R.string.action_choose_another),
+            cancelLabel = stringResource(R.string.action_cancel),
             onConfirm = { viewModel.confirmInvalidFolderDialog(onReopenPicker = onBrowseFolder) },
             onDismiss = { viewModel.dismissInvalidFolderDialog() },
         )
         is HubDialogUiState.RenameProject -> {
             var name by remember(dialog.id) { mutableStateOf(dialog.currentName) }
             AslDialog(
-                title = "Rename project",
+                title = stringResource(R.string.hub_rename_project_title),
                 onDismiss = { viewModel.dismissProjectDialog() },
                 variant = AslDialogVariant.Input,
-                confirmLabel = "Rename",
-                cancelLabel = "Cancel",
+                confirmLabel = stringResource(R.string.action_rename),
+                cancelLabel = stringResource(R.string.action_cancel),
                 onConfirm = { viewModel.confirmRenameProject(name) },
                 inputContent = {
-                    AslTextField(value = name, onValueChange = { name = it }, label = "Project name")
+                    AslTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.hub_rename_project_label))
                 },
             )
         }
         is HubDialogUiState.DeleteProject -> AslDialog(
-            title = "Delete ${dialog.name}?",
-            body = "This permanently deletes the project folder and all its files from this device. This can't be undone.",
+            title = stringResource(R.string.hub_delete_project_title, dialog.name),
+            body = stringResource(R.string.hub_delete_project_body),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Delete",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.action_delete),
+            cancelLabel = stringResource(R.string.action_cancel),
             onConfirm = { viewModel.confirmDeleteProject() },
             onDismiss = { viewModel.dismissProjectDialog() },
         )
@@ -288,7 +290,7 @@ private fun HubTopBar(
             Text(text = "{ }", color = Color(0xFF34D399), fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
         }
         Text(
-            text = "Android Studio Lite",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.titleMedium,
             color = colors.textPrimary,
             modifier = Modifier.weight(1f),
@@ -307,7 +309,11 @@ private fun HubGreeting(
     colors: AslColorScheme,
 ) {
     Text(
-        text = "${uiState.greeting}, ${uiState.userName}",
+        text = stringResource(
+            R.string.greeting_user,
+            uiState.greeting,
+            stringResource(R.string.default_user_name),
+        ),
         style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
         color = colors.textPrimary,
         modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
@@ -332,8 +338,8 @@ private fun HubResumeBanner(
         lastResume?.let { project ->
             AslBanner(
                 tone = AslBannerTone.Info,
-                message = "Resume ${project.name} where you left off?",
-                actionLabel = "Resume",
+                message = stringResource(R.string.hub_resume_banner, project.name),
+                actionLabel = stringResource(R.string.action_resume),
                 onAction = { interactionListener.onResumeProject() },
                 onDismiss = { interactionListener.onDismissResume() },
             )
@@ -366,26 +372,26 @@ private fun HubMoreSectionTablet(
     interactionListener: HubInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader("More")
+    HubSectionHeader(stringResource(R.string.hub_section_more))
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surface, AslShape.lg),
     ) {
         AslListItem(
-            title = "IDE configurations",
+            title = stringResource(R.string.hub_ide_configurations),
             icon = "wrench",
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = { interactionListener.onOpenIdeConfig() },
         )
         AslListItem(
-            title = "Preferences",
+            title = stringResource(R.string.hub_preferences),
             icon = "sliders-horizontal",
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = { interactionListener.onOpenPreferences() },
         )
         AslListItem(
-            title = "Documentation",
+            title = stringResource(R.string.hub_documentation),
             icon = "book-open",
             divider = false,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
@@ -401,7 +407,7 @@ private fun HubPhoneLayout(
 ) {
     RecentProjectsRow(uiState = uiState, interactionListener = interactionListener)
     StartSection(interactionListener = interactionListener)
-    HubSectionHeader("More")
+    HubSectionHeader(stringResource(R.string.hub_section_more))
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -410,17 +416,17 @@ private fun HubPhoneLayout(
             .fillMaxWidth()
             .height(88.dp),
     ) {
-        item { HubSectionTile(icon = "terminal", label = "Terminal", onClick = { interactionListener.onOpenTerminal() }) }
-        item { HubSectionTile(icon = "wrench", label = "IDE config", onClick = { interactionListener.onOpenIdeConfig() }) }
-        item { HubSectionTile(icon = "sliders-horizontal", label = "Preferences", onClick = { interactionListener.onOpenPreferences() }) }
-        item { HubSectionTile(icon = "book-open", label = "Docs", onClick = { interactionListener.onOpenDocs() }) }
+        item { HubSectionTile(icon = "terminal", label = stringResource(R.string.hub_terminal), onClick = { interactionListener.onOpenTerminal() }) }
+        item { HubSectionTile(icon = "wrench", label = stringResource(R.string.hub_ide_config), onClick = { interactionListener.onOpenIdeConfig() }) }
+        item { HubSectionTile(icon = "sliders-horizontal", label = stringResource(R.string.hub_preferences), onClick = { interactionListener.onOpenPreferences() }) }
+        item { HubSectionTile(icon = "book-open", label = stringResource(R.string.hub_docs), onClick = { interactionListener.onOpenDocs() }) }
     }
 }
 
 @Composable
 private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
-    HubSectionHeader("Recent projects")
+    HubSectionHeader(stringResource(R.string.hub_section_recent))
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsRow") { loading ->
         if (loading) {
             AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
@@ -452,7 +458,7 @@ private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInter
 @Composable
 private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
-    HubSectionHeader("Recent projects")
+    HubSectionHeader(stringResource(R.string.hub_section_recent))
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsList") { loading ->
         if (loading) {
             AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
@@ -479,30 +485,30 @@ private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInte
 @Composable
 private fun StartSection(interactionListener: HubInteractionListener) {
     val colors = AslTheme.colors
-    HubSectionHeader("Start")
+    HubSectionHeader(stringResource(R.string.hub_section_start))
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surface, AslShape.lg),
     ) {
         AslListItem(
-            title = "Create project",
-            subtitle = "From a template",
+            title = stringResource(R.string.hub_create_project),
+            subtitle = stringResource(R.string.hub_create_project_sub),
             icon = "plus",
             iconColor = colors.accentPrimary,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = { interactionListener.onCreateProject() },
         )
         AslListItem(
-            title = "Open project",
-            subtitle = "Browse device storage",
+            title = stringResource(R.string.hub_open_project),
+            subtitle = stringResource(R.string.hub_open_project_sub),
             icon = "folder-open",
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = { interactionListener.onOpenProjectPicker() },
         )
         AslListItem(
-            title = "Clone repository",
-            subtitle = "GitHub, GitLab or any URL",
+            title = stringResource(R.string.hub_clone_repo),
+            subtitle = stringResource(R.string.hub_clone_repo_sub),
             icon = "git-branch",
             divider = false,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
