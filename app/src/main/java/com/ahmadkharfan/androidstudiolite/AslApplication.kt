@@ -1,8 +1,6 @@
 package com.ahmadkharfan.androidstudiolite
 
 import android.app.Application
-import android.content.Context
-import com.ahmadkharfan.androidstudiolite.core.locale.AppLocale
 import com.ahmadkharfan.androidstudiolite.di.aiModule
 import com.ahmadkharfan.androidstudiolite.di.appModules
 import com.ahmadkharfan.androidstudiolite.di.buildRunModule
@@ -18,10 +16,6 @@ import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 
 class AslApplication : Application() {
-    override fun attachBaseContext(base: Context) {
-        super.attachBaseContext(AppLocale.wrap(base, AppLocale.readLanguage(base)))
-    }
-
     override fun onCreate() {
         super.onCreate()
         startKoin {
