@@ -13,6 +13,11 @@ data class AiAgentPreferences(
     val instructions: String = "",
     /** Persisted validation outcome per provider id (`valid` / `invalid`). */
     val keyStatuses: Map<String, String> = emptyMap(),
+    val autoApply: Boolean = false,
+    /** Default provider used for new chats; blank means "first validated provider". */
+    val activeProviderId: String = "",
+    /** Default model id chosen per provider id. */
+    val models: Map<String, String> = emptyMap(),
 )
 
 class AiAgentPreferencesStore(
@@ -27,11 +32,21 @@ class AiAgentPreferencesStore(
                 .filterKeys { it.name.startsWith(STATUS_PREFIX) }
                 .mapKeys { it.key.name.removePrefix(STATUS_PREFIX) }
                 .mapValues { it.value.toString() },
+            autoApply = prefs[AUTO_APPLY] ?: false,
+            activeProviderId = prefs[ACTIVE_PROVIDER] ?: "",
+            models = prefs.asMap()
+                .filterKeys { it.name.startsWith(MODEL_PREFIX) }
+                .mapKeys { it.key.name.removePrefix(MODEL_PREFIX) }
+                .mapValues { it.value.toString() },
         )
     }
 
     suspend fun setEnabled(enabled: Boolean) {
         dataStore.edit { it[ENABLED] = enabled }
+    }
+
+    suspend fun setAutoApply(enabled: Boolean) {
+        dataStore.edit { it[AUTO_APPLY] = enabled }
     }
 
     suspend fun setInstructions(instructions: String) {
@@ -45,11 +60,27 @@ class AiAgentPreferencesStore(
         }
     }
 
+    suspend fun setActiveProvider(providerId: String) {
+        dataStore.edit { it[ACTIVE_PROVIDER] = providerId }
+    }
+
+    suspend fun setModel(providerId: String, model: String?) {
+        dataStore.edit { prefs ->
+            val key = modelKey(providerId)
+            if (model.isNullOrBlank()) prefs.remove(key) else prefs[key] = model
+        }
+    }
+
     private companion object {
         val ENABLED = booleanPreferencesKey("ai_agent_enabled")
+        val AUTO_APPLY = booleanPreferencesKey("ai_agent_auto_apply")
         val INSTRUCTIONS = stringPreferencesKey("ai_agent_instructions")
+        val ACTIVE_PROVIDER = stringPreferencesKey("ai_agent_active_provider")
         const val STATUS_PREFIX = "ai_key_status_"
+        const val MODEL_PREFIX = "ai_model_"
 
         fun statusKey(providerId: String) = stringPreferencesKey("$STATUS_PREFIX$providerId")
+
+        fun modelKey(providerId: String) = stringPreferencesKey("$MODEL_PREFIX$providerId")
     }
 }

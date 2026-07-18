@@ -4,10 +4,12 @@ import com.ahmadkharfan.androidstudiolite.domain.model.AiAgentSettings
 import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderConfig
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 
 class RealAiAgentRepository(
     private val keyStore: EncryptedAiKeyStore,
@@ -17,12 +19,20 @@ class RealAiAgentRepository(
 
     private val testingProviders = MutableStateFlow<Set<String>>(emptySet())
 
+    /** Transient, per-provider reason for the last failed key test (cleared on a new key or success). */
+    private val keyErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    /** In-memory cache of live model ids fetched from each provider. */
+    private val fetchedModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+
     override fun observeSettings(): Flow<AiAgentSettings> = combine(
         preferencesStore.observe(),
         keyStore.changes.onStart { emit(Unit) },
         testingProviders,
-    ) { prefs, _, testing ->
-        buildSettings(prefs, testing)
+        keyErrors,
+        fetchedModels,
+    ) { prefs, _, testing, errors, fetched ->
+        buildSettings(prefs, testing, errors, fetched)
     }
 
     override suspend fun setEnabled(enabled: Boolean) {
@@ -35,29 +45,67 @@ class RealAiAgentRepository(
         } else {
             keyStore.setKey(providerId, key.trim())
         }
+        keyErrors.value = keyErrors.value - providerId
         preferencesStore.setKeyStatus(providerId, null)
     }
 
     override suspend fun testApiKey(providerId: String) {
         val key = keyStore.getKey(providerId)
+        if (key.isBlank()) {
+            keyErrors.value = keyErrors.value + (providerId to "Enter an API key first.")
+            preferencesStore.setKeyStatus(providerId, "invalid")
+            return
+        }
         testingProviders.value = testingProviders.value + providerId
-        val status = runCatching { gateway.testKey(providerId, key) }
-            .fold(
-                onSuccess = { "valid" },
-                onFailure = { "invalid" },
-            )
-        preferencesStore.setKeyStatus(providerId, status)
+        val result = withContext(Dispatchers.IO) {
+            runCatching { gateway.testKey(providerId, key) }
+        }
+        keyErrors.value = if (result.isSuccess) {
+            keyErrors.value - providerId
+        } else {
+            keyErrors.value + (providerId to (result.exceptionOrNull()?.message ?: "Unknown error"))
+        }
+        preferencesStore.setKeyStatus(providerId, if (result.isSuccess) "valid" else "invalid")
         testingProviders.value = testingProviders.value - providerId
+        if (result.isSuccess) refreshModels(providerId)
     }
 
     override suspend fun setInstructions(instructions: String) {
         preferencesStore.setInstructions(instructions)
     }
 
-    private fun buildSettings(prefs: AiAgentPreferences, testing: Set<String>): AiAgentSettings =
+    override suspend fun setAutoApply(enabled: Boolean) {
+        preferencesStore.setAutoApply(enabled)
+    }
+
+    override suspend fun setModel(providerId: String, model: String) {
+        preferencesStore.setModel(providerId, model)
+    }
+
+    override suspend fun setActiveProvider(providerId: String) {
+        preferencesStore.setActiveProvider(providerId)
+    }
+
+    override suspend fun refreshModels(providerId: String) {
+        val key = keyStore.getKey(providerId)
+        if (key.isBlank()) return
+        val models = withContext(Dispatchers.IO) { gateway.listModels(providerId, key) }
+        if (models.isNotEmpty()) {
+            fetchedModels.value = fetchedModels.value + (providerId to models)
+        }
+    }
+
+    private fun buildSettings(
+        prefs: AiAgentPreferences,
+        testing: Set<String>,
+        errors: Map<String, String>,
+        fetched: Map<String, List<String>>,
+    ): AiAgentSettings =
         AiAgentSettings(
             enabled = prefs.enabled,
             instructions = prefs.instructions,
+            autoApply = prefs.autoApply,
+            activeProviderId = prefs.activeProviderId,
             providers = AiProviderCatalog.all.map { def ->
                 val apiKey = keyStore.getKey(def.id)
                 val status = when {
@@ -67,6 +115,9 @@ class RealAiAgentRepository(
                     prefs.keyStatuses[def.id] == "invalid" -> ApiKeyStatus.INVALID
                     else -> ApiKeyStatus.EMPTY
                 }
+                // Fetched ids first (most current), then any curated ones not already present.
+                val availableModels = (fetched[def.id].orEmpty() + def.curatedModels).distinct()
+                val selectedModel = prefs.models[def.id]?.takeIf { it.isNotBlank() } ?: def.defaultModel
                 AiProviderConfig(
                     id = def.id,
                     name = def.name,
@@ -75,6 +126,9 @@ class RealAiAgentRepository(
                     apiKey = apiKey,
                     status = status,
                     featured = def.featured,
+                    keyError = errors[def.id]?.takeIf { status == ApiKeyStatus.INVALID },
+                    availableModels = availableModels,
+                    selectedModel = selectedModel,
                 )
             },
         )

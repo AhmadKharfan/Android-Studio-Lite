@@ -16,16 +16,17 @@ class ParseLlmReplyTest {
 
     @Test
     fun fencedBlockExtractsSnippet() {
+        val dollar = "$"
         val raw = """
             Here's a helper:
             ```kotlin
-            fun greet(name: String) = "Hello, $name"
+            fun greet(name: String) = "Hello, ${dollar}name"
             ```
         """.trimIndent()
         val reply = parseLlmReply(raw)
         assertEquals("Here's a helper:", reply.text)
         assertNotNull(reply.codeSnippet)
         assertEquals("kotlin", reply.codeSnippet?.language)
-        assertEquals("fun greet(name: String) = \"Hello, $name\"", reply.codeSnippet?.code)
+        assertEquals("fun greet(name: String) = \"Hello, ${dollar}name\"", reply.codeSnippet?.code)
     }
 }

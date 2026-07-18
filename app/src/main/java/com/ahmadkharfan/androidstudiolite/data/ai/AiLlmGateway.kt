@@ -42,18 +42,44 @@ class AiLlmGateway(
     fun chat(
         providerId: String,
         apiKey: String,
+        model: String,
         systemPrompt: String,
         history: List<LlmChatTurn>,
         userMessage: String,
     ): LlmReply {
+        val turns = history + LlmChatTurn(ChatRole.USER, userMessage)
+        return parseLlmReply(chatRaw(providerId, apiKey, model, systemPrompt, turns))
+    }
+
+    /** Sends the full [turns] conversation and returns the model's raw text (no fenced-code parsing). */
+    fun chatRaw(
+        providerId: String,
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        turns: List<LlmChatTurn>,
+    ): String {
         require(apiKey.isNotBlank()) { "API key is empty" }
-        val raw = when (providerId) {
-            "anthropic" -> anthropicChat(apiKey, systemPrompt, history, userMessage)
-            "gemini" -> geminiChat(apiKey, systemPrompt, history, userMessage)
-            "openai", "deepseek", "grok" -> openAiCompatChat(providerId, apiKey, systemPrompt, history, userMessage)
+        val resolvedModel = model.ifBlank { AiProviderCatalog.defaultModel(providerId) }
+        return when (providerId) {
+            "anthropic" -> anthropicChat(apiKey, resolvedModel, systemPrompt, turns)
+            "gemini" -> geminiChat(apiKey, resolvedModel, systemPrompt, turns)
+            "openai", "deepseek", "grok" -> openAiCompatChat(providerId, apiKey, resolvedModel, systemPrompt, turns)
             else -> throw AiLlmException("Unknown provider: $providerId")
         }
-        return parseLlmReply(raw)
+    }
+
+    /** Best-effort list of available model ids for [providerId]; empty on failure. */
+    fun listModels(providerId: String, apiKey: String): List<String> {
+        if (apiKey.isBlank()) return emptyList()
+        return runCatching {
+            when (providerId) {
+                "anthropic" -> anthropicModels(apiKey)
+                "gemini" -> geminiModels(apiKey)
+                "openai", "deepseek", "grok" -> openAiCompatModels(providerId, apiKey)
+                else -> emptyList()
+            }
+        }.getOrDefault(emptyList())
     }
 
     private fun anthropicTest(apiKey: String) {
@@ -77,21 +103,21 @@ class AiLlmGateway(
 
     private fun anthropicChat(
         apiKey: String,
+        model: String,
         systemPrompt: String,
-        history: List<LlmChatTurn>,
-        userMessage: String,
+        turns: List<LlmChatTurn>,
     ): String {
-        val messages = history.mapNotNull { turn ->
+        val messages = turns.map { turn ->
             when (turn.role) {
                 ChatRole.USER -> AnthropicMessage("user", turn.text)
                 ChatRole.AI -> AnthropicMessage("assistant", turn.text)
             }
-        } + AnthropicMessage("user", userMessage)
+        }
         val body = json.encodeToString(
             AnthropicRequest.serializer(),
             AnthropicRequest(
-                model = ANTHROPIC_MODEL,
-                maxTokens = 4096,
+                model = model,
+                maxTokens = 8192,
                 system = systemPrompt.ifBlank { DEFAULT_SYSTEM },
                 messages = messages,
             ),
@@ -121,16 +147,13 @@ class AiLlmGateway(
 
     private fun geminiChat(
         apiKey: String,
+        model: String,
         systemPrompt: String,
-        history: List<LlmChatTurn>,
-        userMessage: String,
+        turns: List<LlmChatTurn>,
     ): String {
-        val contents = buildList {
-            history.forEach { turn ->
-                val role = if (turn.role == ChatRole.USER) "user" else "model"
-                add(GeminiContent(role, listOf(GeminiPart(turn.text))))
-            }
-            add(GeminiContent("user", listOf(GeminiPart(userMessage))))
+        val contents = turns.map { turn ->
+            val role = if (turn.role == ChatRole.USER) "user" else "model"
+            GeminiContent(role, listOf(GeminiPart(turn.text)))
         }
         val body = json.encodeToString(
             GeminiRequest.serializer(),
@@ -140,7 +163,7 @@ class AiLlmGateway(
             ),
         )
         val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent?key=$apiKey")
+            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
             .post(body.toRequestBody(JSON))
             .build()
         val responseBody = execute(request)
@@ -164,24 +187,56 @@ class AiLlmGateway(
         execute(request)
     }
 
+    private fun anthropicModels(apiKey: String): List<String> {
+        val request = Request.Builder()
+            .url("https://api.anthropic.com/v1/models?limit=100")
+            .header("x-api-key", apiKey)
+            .header("anthropic-version", ANTHROPIC_VERSION)
+            .get()
+            .build()
+        val body = execute(request)
+        return json.decodeFromString(IdListResponse.serializer(), body).data.map { it.id }
+    }
+
+    private fun geminiModels(apiKey: String): List<String> {
+        val request = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey&pageSize=200")
+            .get()
+            .build()
+        val body = execute(request)
+        return json.decodeFromString(GeminiModelsResponse.serializer(), body)
+            .models
+            .map { it.name.removePrefix("models/") }
+            .filter { it.startsWith("gemini") }
+    }
+
+    private fun openAiCompatModels(providerId: String, apiKey: String): List<String> {
+        val request = Request.Builder()
+            .url("${openAiBaseUrl(providerId)}/v1/models")
+            .header("Authorization", "Bearer $apiKey")
+            .get()
+            .build()
+        val body = execute(request)
+        return json.decodeFromString(IdListResponse.serializer(), body).data.map { it.id }
+    }
+
     private fun openAiCompatChat(
         providerId: String,
         apiKey: String,
+        model: String,
         systemPrompt: String,
-        history: List<LlmChatTurn>,
-        userMessage: String,
+        turns: List<LlmChatTurn>,
     ): String {
         val messages = buildList {
             add(OpenAiMessage("system", systemPrompt.ifBlank { DEFAULT_SYSTEM }))
-            history.forEach { turn ->
+            turns.forEach { turn ->
                 val role = if (turn.role == ChatRole.USER) "user" else "assistant"
                 add(OpenAiMessage(role, turn.text))
             }
-            add(OpenAiMessage("user", userMessage))
         }
         val body = json.encodeToString(
             OpenAiChatRequest.serializer(),
-            OpenAiChatRequest(model = openAiModel(providerId), messages = messages),
+            OpenAiChatRequest(model = model, messages = messages),
         )
         val request = Request.Builder()
             .url("${openAiBaseUrl(providerId)}/v1/chat/completions")
@@ -222,17 +277,10 @@ class AiLlmGateway(
         else -> "https://api.openai.com"
     }
 
-    private fun openAiModel(providerId: String): String = when (providerId) {
-        "deepseek" -> "deepseek-chat"
-        "grok" -> "grok-2-latest"
-        else -> "gpt-4o-mini"
-    }
-
     companion object {
         val JSON = "application/json; charset=utf-8".toMediaType()
         const val ANTHROPIC_VERSION = "2023-06-01"
         const val ANTHROPIC_MODEL = "claude-3-5-haiku-latest"
-        const val GEMINI_MODEL = "gemini-2.0-flash"
         const val DEFAULT_SYSTEM =
             "You are an Android development assistant inside Android Studio Lite. " +
                 "Prefer Kotlin and Jetpack Compose. Be concise. Use fenced code blocks for snippets."
@@ -309,3 +357,16 @@ private data class OpenAiChatResponse(val choices: List<OpenAiChoice> = emptyLis
 
 @Serializable
 private data class OpenAiChoice(val message: OpenAiMessage? = null)
+
+/** Shared shape for OpenAI-compatible and Anthropic model-list endpoints: `{"data":[{"id":...}]}`. */
+@Serializable
+private data class IdListResponse(val data: List<IdEntry> = emptyList())
+
+@Serializable
+private data class IdEntry(val id: String)
+
+@Serializable
+private data class GeminiModelsResponse(val models: List<GeminiModelInfo> = emptyList())
+
+@Serializable
+private data class GeminiModelInfo(val name: String)
