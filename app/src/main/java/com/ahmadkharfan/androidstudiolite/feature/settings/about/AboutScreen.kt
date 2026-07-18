@@ -1,4 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.about
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,10 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmadkharfan.androidstudiolite.BuildConfig
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
@@ -34,14 +40,22 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-private data class AboutLink(val title: String, val subtitle: String?, val icon: String)
+private const val REPO_URL = "https://github.com/AhmadKharfan/Android-Studio-Lite"
+
+private data class AboutLink(val title: String, val subtitle: String?, val icon: String, val uri: String)
 
 private val ABOUT_LINKS = listOf(
-    AboutLink("GitHub", "Source & issues", "github"),
-    AboutLink("Telegram", "Community channel", "send"),
-    AboutLink("Documentation", null, "book-open"),
-    AboutLink("Email", "team@aslite.dev", "mail"),
+    AboutLink("GitHub", "Source & issues", "github", REPO_URL),
+    AboutLink("Documentation", "Guides & references", "book-open", "$REPO_URL/tree/main/docs"),
+    AboutLink("Email", "team@aslite.dev", "mail", "mailto:team@aslite.dev"),
 )
+
+/** Opens [uri] in an external handler (browser, email client, …), ignoring "no app can handle it". */
+private fun Context.openExternal(uri: String) {
+    runCatching {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }.onFailure { if (it !is ActivityNotFoundException) throw it }
+}
 
 @Composable
 fun AboutRoute(onBack: () -> Unit) {
@@ -51,6 +65,7 @@ fun AboutRoute(onBack: () -> Unit) {
 @Composable
 private fun AboutScreen(onBack: () -> Unit) {
     val colors = AslTheme.colors
+    val context = LocalContext.current
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = "About", onBack = onBack)
@@ -61,10 +76,10 @@ private fun AboutScreen(onBack: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 AboutHeader(colors = colors)
-                AboutLinksList(colors = colors)
+                AboutLinksList(colors = colors, onOpen = { context.openExternal(it) })
                 AslButton(
                     label = "Contributors",
-                    onClick = {},
+                    onClick = { context.openExternal("$REPO_URL/graphs/contributors") },
                     variant = AslButtonVariant.Secondary,
                     icon = "users",
                     fullWidth = true,
@@ -119,12 +134,12 @@ private fun AboutHeader(colors: AslColorScheme) {
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
         )
-        AslChip(label = "v1.2.0 · build 214", kind = AslChipKind.Status)
+        AslChip(label = "v${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}", kind = AslChipKind.Status)
     }
 }
 
 @Composable
-private fun AboutLinksList(colors: AslColorScheme) {
+private fun AboutLinksList(colors: AslColorScheme, onOpen: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,7 +153,7 @@ private fun AboutLinksList(colors: AslColorScheme) {
                 icon = link.icon,
                 divider = index != ABOUT_LINKS.lastIndex,
                 trailing = { AslIcon(name = "arrow-up-right", size = 16.dp, tint = colors.textTertiary) },
-                onClick = {},
+                onClick = { onOpen(link.uri) },
             )
         }
     }
