@@ -70,8 +70,17 @@ class XmlNode(
     }
 }
 
-/** A structural (well-formedness) problem found while parsing. Severity is decided by the caller. */
+/** A structural (well-formedness) problem found while parsing. */
 data class XmlIssue(val start: Int, val end: Int, val code: String, val message: String)
+
+object XmlIssueCodes {
+    const val STRAY_CLOSE = "xml.strayClose"
+    const val EXPECTED_NAME = "xml.expectedName"
+    const val MALFORMED_TAG = "xml.malformedTag"
+    const val UNCLOSED_TAG = "xml.unclosedTag"
+    const val UNTERMINATED_VALUE = "xml.unterminatedValue"
+    const val UNQUOTED_VALUE = "xml.unquotedValue"
+}
 
 /** The result of parsing: the document root plus every well-formedness issue encountered. */
 class ParsedXml(val root: XmlNode, val issues: List<XmlIssue>) {

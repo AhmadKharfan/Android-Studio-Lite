@@ -1,7 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml
 
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticCodes
-
 /**
  * A forgiving, single-pass XML parser for the editor.
  *
@@ -63,7 +61,7 @@ class XmlParser(private val src: CharSequence) {
         val name = readName()
         val element = XmlNode(XmlNodeType.ELEMENT, name, start, cursor, src)
         if (name.isEmpty()) {
-            report(start, cursor, DiagnosticCodes.XML_EXPECTED_NAME, "Expected element name")
+            report(start, cursor, XmlIssueCodes.EXPECTED_NAME, "Expected element name")
         }
 
         when (readAttributesInto(element)) {
@@ -78,7 +76,7 @@ class XmlParser(private val src: CharSequence) {
                 open.addLast(element)
             }
             TagClose.TRUNCATED -> {
-                report(start, cursor, DiagnosticCodes.XML_MALFORMED_TAG, "Malformed start tag for <$name>")
+                report(start, cursor, XmlIssueCodes.MALFORMED_TAG, "Malformed start tag for <$name>")
                 element.end = cursor
                 open.last().append(element)
             }
@@ -104,7 +102,7 @@ class XmlParser(private val src: CharSequence) {
         }
 
         if (match < 0) {
-            report(start, end, DiagnosticCodes.XML_STRAY_CLOSE, "Unexpected closing tag")
+            report(start, end, XmlIssueCodes.STRAY_CLOSE, "Unexpected closing tag")
             open.last().append(XmlNode(XmlNodeType.MALFORMED, name, start, end, src))
             return
         }
@@ -152,7 +150,7 @@ class XmlParser(private val src: CharSequence) {
                 if (cursor < length && src[cursor] == opener) {
                     cursor++
                 } else {
-                    report(valueStart, cursor, DiagnosticCodes.XML_UNTERMINATED_VALUE, "Unterminated attribute value")
+                    report(valueStart, cursor, XmlIssueCodes.UNTERMINATED_VALUE, "Unterminated attribute value")
                 }
             } else {
                 val valueStart = cursor
@@ -160,7 +158,7 @@ class XmlParser(private val src: CharSequence) {
                 attribute.valueStart = valueStart
                 attribute.valueEnd = cursor
                 if (cursor > valueStart) {
-                    report(valueStart, cursor, DiagnosticCodes.XML_UNQUOTED_VALUE, "Attribute value must be quoted")
+                    report(valueStart, cursor, XmlIssueCodes.UNQUOTED_VALUE, "Attribute value must be quoted")
                 }
             }
         }
@@ -224,7 +222,7 @@ class XmlParser(private val src: CharSequence) {
 
     private fun reportUnclosed(element: XmlNode, at: Int) {
         element.end = at
-        report(element.start, at, DiagnosticCodes.XML_UNCLOSED_TAG, "Missing closing tag </${element.name}>")
+        report(element.start, at, XmlIssueCodes.UNCLOSED_TAG, "Missing closing tag </${element.name}>")
     }
 
     private fun report(start: Int, end: Int, code: String, message: String) {
