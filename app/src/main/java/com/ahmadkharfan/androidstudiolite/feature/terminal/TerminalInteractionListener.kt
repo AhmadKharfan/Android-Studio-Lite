@@ -13,11 +13,29 @@ interface TerminalInteractionListener {
     /** One of the on-screen helper keys was tapped (Esc, Ctrl, Tab, arrows, …). */
     fun onExtraKeyPressed(key: String)
 
-    /** Kill the current shell and start a fresh session. */
+    /** Open a new terminal tab (existing tabs keep running) and make it active. */
     fun onNewSession()
+
+    /** Switch to the tab with [id] without disturbing any running shell. */
+    fun onSelectTab(id: String)
+
+    /** Close the tab with [id], terminating only that tab's shell. */
+    fun onCloseTab(id: String)
+
+    /** Download + install the full Linux userland; on success a fresh Linux tab is opened. */
+    fun onInstallLinux()
+
+    /** Open the terminal settings sheet. */
+    fun onOpenSettings()
+
+    /** Close the terminal settings sheet. */
+    fun onDismissSettings()
+
+    /** Remove and re-download the Linux userland. */
+    fun onReinstallLinux()
 }
 
 /** Non-printing keys the terminal translates into control/escape byte sequences for the PTY. */
 enum class TerminalKey {
-    Enter, Backspace, Tab, Escape, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CtrlC, CtrlD, CtrlL, CtrlZ,
+    Enter, Backspace, Delete, Tab, Escape, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CtrlC, CtrlD, CtrlL, CtrlZ,
 }

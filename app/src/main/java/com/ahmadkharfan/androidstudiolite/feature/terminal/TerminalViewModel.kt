@@ -2,72 +2,92 @@ package com.ahmadkharfan.androidstudiolite.feature.terminal
 
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
-import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
-import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulator
-import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalScreen
+import com.ahmadkharfan.androidstudiolite.core.linux.LinuxBootstrapInstaller
+import com.ahmadkharfan.androidstudiolite.core.linux.LinuxInstallState
+import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 private const val DEFAULT_ROWS = 24
 private const val DEFAULT_COLS = 80
 
+/**
+ * Binds the terminal UI to the process-scoped [TerminalSessionManager]. The ViewModel is disposable:
+ * it mirrors the manager's tabs + the active tab's screen into [TerminalUiState], forwards user input
+ * to the active session, and drives the optional Linux-userland install via [LinuxBootstrapInstaller].
+ * Sessions live in the manager, so navigating away and back does not restart any shell.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TerminalViewModel(
-    private val terminalRepository: TerminalRepository,
+    private val sessionManager: TerminalSessionManager,
+    private val linuxInstaller: LinuxBootstrapInstaller,
+    private val proot: ProotEnvironment,
 ) : BaseViewModel<TerminalUiState, Nothing>(
-    initialState = TerminalUiState(screen = TerminalScreen.blank(DEFAULT_ROWS, DEFAULT_COLS)),
+    initialState = TerminalUiState(),
 ), TerminalInteractionListener {
 
-    /** The emulator is the single source of truth for the screen; all access goes through [emulatorLock]. */
-    private var emulator = TerminalEmulator(DEFAULT_ROWS, DEFAULT_COLS)
-    private val emulatorLock = Any()
+    private var measuredRows = DEFAULT_ROWS
+    private var measuredCols = DEFAULT_COLS
 
     init {
-        // Subscribe before the session starts — the repository's stream has no replay buffer.
-        observeSession()
-        viewModelScope.launch { terminalRepository.start(rows = DEFAULT_ROWS, cols = DEFAULT_COLS) }
-    }
-
-    private fun observeSession() {
+        linuxInstaller.refreshState()
+        viewModelScope.launch { linuxInstaller.ensureBootstrapPackages() }
+        sessionManager.ensureSession(measuredRows, measuredCols)
         viewModelScope.launch {
-            terminalRepository.events.collect { event ->
-                when (event) {
-                    is TerminalEvent.Bytes -> pushScreen { feed(event.text) }
-                    // Line-oriented events shouldn't occur on a PTY, but stay tolerant if a fallback repo is wired.
-                    is TerminalEvent.Output -> pushScreen { feed(event.line.text + "\r\n") }
-                    is TerminalEvent.CommandFinished -> Unit
-                    TerminalEvent.SessionEnded -> updateState { copy(running = false) }
-                }
+            derivedState().collect { newState ->
+                updateState { copy(linux = newState.linux, tabs = newState.tabs, activeTabId = newState.activeTabId, screen = newState.screen) }
             }
         }
     }
 
-    private inline fun pushScreen(block: TerminalEmulator.() -> Unit) {
-        val snapshot = synchronized(emulatorLock) {
-            emulator.block()
-            emulator.snapshot()
+    /**
+     * Flattens the manager's tab list, active id, the active tab's screen, every tab's running flag
+     * and the Linux install state into a single [TerminalUiState] stream. [flatMapLatest] re-subscribes
+     * whenever the set of tabs or the active tab changes.
+     */
+    private fun derivedState(): Flow<TerminalUiState> {
+        val tabsState = combine(sessionManager.sessions, sessionManager.activeId) { sessions, activeId ->
+            sessions to activeId
+        }.flatMapLatest { (sessions, activeId) ->
+            if (sessions.isEmpty()) {
+                flowOf(TerminalUiState())
+            } else {
+                val active = sessions.firstOrNull { it.id == activeId } ?: sessions.first()
+                val runningFlows = sessions.map { it.running }
+                combine(active.screen, combine(runningFlows) { it.toList() }) { screen, runnings ->
+                    TerminalUiState(
+                        tabs = sessions.mapIndexed { i, s -> TerminalTab(s.id, s.title, runnings[i]) },
+                        activeTabId = active.id,
+                        screen = screen,
+                    )
+                }
+            }
         }
-        updateState { copy(screen = snapshot) }
+        return combine(tabsState, linuxInstaller.state) { base, install ->
+            base.copy(linux = install.toLinuxStatus(proot))
+        }
     }
 
     override fun onKeyInput(text: String) {
         if (text.isEmpty()) return
-        viewModelScope.launch { terminalRepository.writeInput(text) }
+        val session = sessionManager.activeSession() ?: return
+        if (!session.offerInput(text)) session.submitInput(text)
     }
 
     override fun onSpecialKey(key: TerminalKey) {
-        viewModelScope.launch { terminalRepository.writeInput(TerminalKeys.bytes(key)) }
+        val bytes = TerminalKeys.bytes(key)
+        val session = sessionManager.activeSession() ?: return
+        if (!session.offerInput(bytes)) session.submitInput(bytes)
     }
 
     override fun onResize(rows: Int, cols: Int) {
-        val r = rows.coerceAtLeast(1)
-        val c = cols.coerceAtLeast(1)
-        val snapshot = synchronized(emulatorLock) {
-            if (emulator.rows == r && emulator.cols == c) return
-            emulator.resize(r, c)
-            emulator.snapshot()
-        }
-        updateState { copy(screen = snapshot) }
-        viewModelScope.launch { terminalRepository.resize(r, c) }
+        measuredRows = rows.coerceAtLeast(1)
+        measuredCols = cols.coerceAtLeast(1)
+        sessionManager.activeSession()?.resize(measuredRows, measuredCols)
     }
 
     override fun onExtraKeyPressed(key: String) {
@@ -76,16 +96,47 @@ class TerminalViewModel(
     }
 
     override fun onNewSession() {
+        sessionManager.newSession(measuredRows, measuredCols)
+    }
+
+    override fun onSelectTab(id: String) {
+        sessionManager.select(id)
+        // The newly shown tab may have been created/last sized while hidden; match the current view.
+        sessionManager.session(id)?.resize(measuredRows, measuredCols)
+    }
+
+    override fun onCloseTab(id: String) {
+        sessionManager.close(id)
+        // Never leave the user with zero tabs.
+        sessionManager.ensureSession(measuredRows, measuredCols)
+    }
+
+    override fun onInstallLinux() {
         viewModelScope.launch {
-            terminalRepository.stop()
-            val (rows, cols) = synchronized(emulatorLock) {
-                emulator = TerminalEmulator(emulator.rows, emulator.cols)
-                emulator.rows to emulator.cols
+            linuxInstaller.install()
+            linuxInstaller.refreshState()
+            if (linuxInstaller.state.value is LinuxInstallState.Installed || proot.isInstalled()) {
+                sessionManager.restartAllSessions(measuredRows, measuredCols)
             }
-            updateState {
-                copy(sessionNumber = sessionNumber + 1, screen = TerminalScreen.blank(rows, cols), running = true)
+        }
+    }
+
+    override fun onOpenSettings() {
+        updateState { copy(settingsVisible = true) }
+    }
+
+    override fun onDismissSettings() {
+        updateState { copy(settingsVisible = false) }
+    }
+
+    override fun onReinstallLinux() {
+        viewModelScope.launch {
+            linuxInstaller.uninstall()
+            linuxInstaller.install()
+            linuxInstaller.refreshState()
+            if (linuxInstaller.state.value is LinuxInstallState.Installed || proot.isInstalled()) {
+                sessionManager.restartAllSessions(measuredRows, measuredCols)
             }
-            terminalRepository.start(rows = rows, cols = cols)
         }
     }
 }
