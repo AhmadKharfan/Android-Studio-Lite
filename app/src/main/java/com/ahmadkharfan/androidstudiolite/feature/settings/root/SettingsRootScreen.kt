@@ -11,9 +11,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
@@ -59,6 +61,7 @@ fun SettingsRootRoute(
     )
 }
 
+@Composable
 private fun buildSettingsSections(
     onOpenGeneral: () -> Unit,
     onOpenEditor: () -> Unit,
@@ -71,19 +74,19 @@ private fun buildSettingsSections(
     onOpenDeveloperOptions: () -> Unit,
 ): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
-        SettingsRow("General", "Appearance, language, startup", "sliders-horizontal", onOpenGeneral),
-        SettingsRow("Editor", "Font, color scheme, tabs", "file-code", onOpenEditor),
-        SettingsRow("AI Agent", "Providers & API keys", "sparkles", onOpenAiAgent),
-        SettingsRow("Build & Run", "Signing, install options", "hammer", onOpenBuildRun),
-        SettingsRow("Git & GitHub", "Sign-in, tokens, author", "git-branch", onOpenGitAuth),
-        SettingsRow("Build server", "Server URL, device token", "server", onOpenServer),
-        SettingsRow("Terminal", "Shell, extra keys", "terminal", onOpenTerminal),
+        SettingsRow(stringResource(R.string.settings_general), stringResource(R.string.settings_general_sub), "sliders-horizontal", onOpenGeneral),
+        SettingsRow(stringResource(R.string.settings_editor), stringResource(R.string.settings_editor_sub), "file-code", onOpenEditor),
+        SettingsRow(stringResource(R.string.settings_ai_agent), stringResource(R.string.settings_ai_agent_sub), "sparkles", onOpenAiAgent),
+        SettingsRow(stringResource(R.string.settings_build_run), stringResource(R.string.settings_build_run_sub), "hammer", onOpenBuildRun),
+        SettingsRow(stringResource(R.string.settings_git_auth), stringResource(R.string.settings_git_auth_sub), "git-branch", onOpenGitAuth),
+        SettingsRow(stringResource(R.string.settings_server), stringResource(R.string.settings_server_sub), "server", onOpenServer),
+        SettingsRow(stringResource(R.string.settings_terminal), stringResource(R.string.settings_terminal_sub), "terminal", onOpenTerminal),
     )
     val advancedRows = listOf(
-        SettingsRow("Developer options", null, "wrench", onOpenDeveloperOptions),
-        SettingsRow("About", "v1.2.0", "info", onOpenAbout),
+        SettingsRow(stringResource(R.string.settings_developer), null, "wrench", onOpenDeveloperOptions),
+        SettingsRow(stringResource(R.string.settings_about), null, "info", onOpenAbout),
     )
-    return listOf("Configure" to configureRows, "Advanced" to advancedRows)
+    return listOf(stringResource(R.string.settings_section_configure) to configureRows, stringResource(R.string.settings_section_advanced) to advancedRows)
 }
 
 @Composable
@@ -120,7 +123,7 @@ private fun SettingsRootScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            AslTopAppBar(title = "Preferences", onBack = onBack)
+            AslTopAppBar(title = stringResource(R.string.settings_title), onBack = onBack)
             SettingsRootContent(uiState = uiState, interactionListener = interactionListener, sections = sections, colors = colors)
         }
     }
@@ -142,7 +145,7 @@ private fun SettingsRootContent(
         AslSearchField(
             value = uiState.query,
             onValueChange = { interactionListener.onQueryChanged(it) },
-            placeholder = "Search settings",
+            placeholder = stringResource(R.string.settings_search_placeholder),
         )
         sections.forEach { (header, rows) ->
             val visible = rows.filter { uiState.query.isBlank() || it.title.contains(uiState.query, ignoreCase = true) }

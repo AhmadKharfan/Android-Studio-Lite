@@ -17,10 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -46,7 +48,7 @@ private fun WelcomeScreen(onGetStarted: () -> Unit) {
             WelcomeHero(colors = colors, modifier = Modifier.weight(1.1f).fillMaxWidth())
             WelcomeBulletList(modifier = Modifier.padding(vertical = 8.dp))
             AslButton(
-                label = "Get started",
+                label = stringResource(R.string.action_get_started),
                 onClick = onGetStarted,
                 size = AslButtonSize.Lg,
                 fullWidth = true,
@@ -83,13 +85,13 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Welcome to\nAndroid Studio Lite",
+                    text = stringResource(R.string.onboarding_welcome_title),
                     style = MaterialTheme.typography.displaySmall,
                     textAlign = TextAlign.Center,
                     color = colors.textPrimary,
                 )
                 Text(
-                    text = "Build real Android apps from your device.",
+                    text = stringResource(R.string.onboarding_welcome_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -103,9 +105,21 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
 @Composable
 private fun WelcomeBulletList(modifier: Modifier = Modifier) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = modifier) {
-        WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Builds run on the cloud service; APKs install straight to your device.")
-        WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion and navigation for Kotlin & Java.")
-        WelcomeBullet(icon = "git-branch", title = "Git & AI built-in", text = "Clone, commit, and generate code with the AI agent.")
+        WelcomeBullet(
+            icon = "hammer",
+            title = stringResource(R.string.onboarding_bullet_builds_title),
+            text = stringResource(R.string.onboarding_bullet_builds_text),
+        )
+        WelcomeBullet(
+            icon = "braces",
+            title = stringResource(R.string.onboarding_bullet_code_title),
+            text = stringResource(R.string.onboarding_bullet_code_text),
+        )
+        WelcomeBullet(
+            icon = "git-branch",
+            title = stringResource(R.string.onboarding_bullet_git_ai_title),
+            text = stringResource(R.string.onboarding_bullet_git_ai_text),
+        )
     }
 }
 

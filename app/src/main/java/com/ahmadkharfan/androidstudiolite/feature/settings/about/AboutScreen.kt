@@ -23,11 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmadkharfan.androidstudiolite.BuildConfig
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
@@ -44,10 +46,10 @@ private const val REPO_URL = "https://github.com/AhmadKharfan/Android-Studio-Lit
 
 private data class AboutLink(val title: String, val subtitle: String?, val icon: String, val uri: String)
 
-private val ABOUT_LINKS = listOf(
-    AboutLink("GitHub", "Source & issues", "github", REPO_URL),
-    AboutLink("Documentation", "Guides & references", "book-open", "$REPO_URL/tree/main/docs"),
-    AboutLink("Email", "team@aslite.dev", "mail", "mailto:team@aslite.dev"),
+private val ABOUT_LINKS @Composable get() = listOf(
+    AboutLink(stringResource(R.string.about_github), stringResource(R.string.about_github_sub), "github", REPO_URL),
+    AboutLink(stringResource(R.string.about_docs), stringResource(R.string.about_docs_sub), "book-open", "$REPO_URL/tree/main/docs"),
+    AboutLink(stringResource(R.string.about_email), "team@aslite.dev", "mail", "mailto:team@aslite.dev"),
 )
 
 /** Opens [uri] in an external handler (browser, email client, …), ignoring "no app can handle it". */
@@ -68,7 +70,7 @@ private fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = "About", onBack = onBack)
+            AslTopAppBar(title = stringResource(R.string.about_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -78,7 +80,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                 AboutHeader(colors = colors)
                 AboutLinksList(colors = colors, onOpen = { context.openExternal(it) })
                 AslButton(
-                    label = "Contributors",
+                    label = stringResource(R.string.about_contributors),
                     onClick = { context.openExternal("$REPO_URL/graphs/contributors") },
                     variant = AslButtonVariant.Secondary,
                     icon = "users",
@@ -86,7 +88,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(top = 14.dp),
                 )
                 Text(
-                    text = "Free software · GPLv3 license",
+                    text = stringResource(R.string.about_license),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                     textAlign = TextAlign.Center,
@@ -124,17 +126,20 @@ private fun AboutHeader(colors: AslColorScheme) {
             )
         }
         Text(
-            text = "Android Studio Lite",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "Simply, an IDE for Android",
+            text = stringResource(R.string.app_tagline),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
         )
-        AslChip(label = "v${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}", kind = AslChipKind.Status)
+        AslChip(
+            label = stringResource(R.string.about_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+            kind = AslChipKind.Status,
+        )
     }
 }
 
