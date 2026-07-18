@@ -11,25 +11,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.R
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -38,25 +34,12 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralIntera
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralUiState
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
 
-private val LANGUAGE_OPTIONS @Composable get() = listOf(
-    AslDropdownOption(stringResource(R.string.general_language_en), "en"),
-    AslDropdownOption(stringResource(R.string.general_language_ar), "ar"),
-)
-
 @Composable
 fun GeneralRoute(
     onBack: () -> Unit,
     viewModel: GeneralViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        viewModel.effect.collectLatest { effect ->
-            when (effect) {
-                GeneralEffect.RecreateForLocale -> (context as? android.app.Activity)?.recreate()
-            }
-        }
-    }
     GeneralScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
@@ -74,6 +57,7 @@ private fun GeneralScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .aslImePadding()
                     .padding(16.dp),
             ) {
                 val swatches = listOf(
@@ -87,13 +71,6 @@ private fun GeneralScreen(
                     swatches = swatches,
                     value = uiState.accentId,
                     onValueChange = { interactionListener.onAccentChanged(it) },
-                    modifier = Modifier.padding(top = 20.dp),
-                )
-                AslDropdown(
-                    label = stringResource(R.string.general_language),
-                    value = uiState.language,
-                    onValueChange = { interactionListener.onLanguageChanged(it) },
-                    options = LANGUAGE_OPTIONS,
                     modifier = Modifier.padding(top = 20.dp),
                 )
                 GeneralTogglesSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -141,17 +118,5 @@ private fun GeneralTogglesSection(
             onCheckedChange = { interactionListener.onToggleAutoOpenLastProject(it) },
             modifier = Modifier.fillMaxWidth(),
         )
-        AslSwitch(
-            label = stringResource(R.string.general_snowfall),
-            checked = uiState.snowfallEasterEgg,
-            onCheckedChange = { interactionListener.onToggleSnowfallEasterEgg(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
-    Text(
-        text = stringResource(R.string.general_snowfall_hint),
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.textTertiary,
-        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
-    )
 }

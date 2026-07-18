@@ -79,7 +79,7 @@
     <string name="settings_section_configure">Configure</string>
     <string name="settings_section_advanced">Advanced</string>
     <string name="settings_general">General</string>
-    <string name="settings_general_sub">Appearance, language, startup</string>
+    <string name="settings_general_sub">Appearance, startup</string>
     <string name="settings_editor">Editor</string>
     <string name="settings_editor_sub">Font, color scheme, tabs</string>
     <string name="settings_ai_agent">AI Agent</string>
@@ -92,7 +92,6 @@
     <string name="settings_server_sub">Server URL, device token</string>
     <string name="settings_terminal">Terminal</string>
     <string name="settings_terminal_sub">Shell, extra keys</string>
-    <string name="settings_developer">Developer options</string>
     <string name="settings_about">About</string>
 
     <!-- General settings -->
@@ -105,22 +104,14 @@
     <string name="general_accent_emerald">Nordic Emerald</string>
     <string name="general_accent_fjord">Fjord Blue</string>
     <string name="general_accent_amber">Amber</string>
-    <string name="general_language">Language</string>
-    <string name="general_language_en">English</string>
-    <string name="general_language_ar">العربية</string>
     <string name="general_auto_open_last">Auto-open last project</string>
-    <string name="general_snowfall">Snowfall in December</string>
-    <string name="general_snowfall_hint">A quiet seasonal easter egg. Off by default.</string>
 
     <!-- About -->
     <string name="about_title">About</string>
     <string name="about_github">GitHub</string>
     <string name="about_github_sub">Source &amp; issues</string>
-    <string name="about_docs">Documentation</string>
-    <string name="about_docs_sub">Guides &amp; references</string>
-    <string name="about_email">Email</string>
     <string name="about_contributors">Contributors</string>
-    <string name="about_license">Free software · GPLv3 license</string>
+    <string name="about_description">A lightweight Android IDE for building and editing projects on device. Builds run on a remote server; you edit, commit, and iterate locally.</string>
     <string name="about_version">v%1$s · build %2$d</string>
 
     <!-- Onboarding -->
