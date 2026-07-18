@@ -13,9 +13,6 @@ data class ServerSettingsUiState(
     /** One-shot feedback shown under the actions (registration result / save confirmation / error). */
     val statusMessage: String? = null,
     val isError: Boolean = false,
-    val gitAuthorName: String = "",
-    val gitAuthorEmail: String = "",
-    val gitAuthorDirty: Boolean = false,
 ) {
     /** Masked token for display — never show the full secret. */
     val tokenPreview: String?

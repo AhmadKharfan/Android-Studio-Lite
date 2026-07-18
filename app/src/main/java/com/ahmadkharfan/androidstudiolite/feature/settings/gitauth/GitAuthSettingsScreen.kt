@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.feature.settings.server
+package com.ahmadkharfan.androidstudiolite.feature.settings.gitauth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,26 +23,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ServerSettingsRoute(
+fun GitAuthSettingsRoute(
     onBack: () -> Unit,
-    viewModel: ServerSettingsViewModel = koinViewModel(),
+    viewModel: GitAuthSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
-    ServerSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
+    GitAuthSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
-private fun ServerSettingsScreen(
-    uiState: ServerSettingsUiState,
-    interactionListener: ServerSettingsInteractionListener,
+private fun GitAuthSettingsScreen(
+    uiState: GitAuthSettingsUiState,
+    interactionListener: GitAuthSettingsInteractionListener,
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -52,33 +52,43 @@ private fun ServerSettingsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            AslTopAppBar(title = "Build server", subtitle = "Server-side builds", onBack = onBack)
+            AslTopAppBar(title = "Git & GitHub", subtitle = "Sign-in, tokens, author", onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                HubSectionHeader("Endpoint")
+                HubSectionHeader("GitHub account")
+                GitHubAccountCard(uiState = uiState, interactionListener = interactionListener)
+
+                Spacer(Modifier.height(20.dp))
+                HubSectionHeader("Git author")
+                Text(
+                    text = "Used as the author and committer of new commits across all projects.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textTertiary,
+                )
+                Spacer(Modifier.height(8.dp))
                 AslTextField(
-                    value = uiState.baseUrl,
-                    onValueChange = interactionListener::onBaseUrlChanged,
-                    label = "Base URL",
-                    placeholder = "https://build.example.com",
-                    helper = "Control-plane address. Builds POST to /v1 here.",
-                    type = AslTextFieldType.Url,
-                    leadingIcon = "server",
+                    value = uiState.gitAuthorName,
+                    onValueChange = interactionListener::onGitAuthorNameChanged,
+                    label = "Name",
+                    placeholder = "Your name",
+                )
+                Spacer(Modifier.height(10.dp))
+                AslTextField(
+                    value = uiState.gitAuthorEmail,
+                    onValueChange = interactionListener::onGitAuthorEmailChanged,
+                    label = "Email",
+                    placeholder = "you@example.com",
                 )
                 Spacer(Modifier.height(10.dp))
                 AslButton(
-                    label = "Save",
-                    onClick = interactionListener::onSaveBaseUrl,
-                    disabled = !uiState.dirty,
+                    label = "Save Git author",
+                    onClick = interactionListener::onSaveGitAuthor,
+                    disabled = !uiState.gitAuthorDirty,
                 )
-
-                Spacer(Modifier.height(20.dp))
-                HubSectionHeader("Device")
-                DeviceCard(uiState = uiState, interactionListener = interactionListener)
 
                 if (uiState.statusMessage != null) {
                     Spacer(Modifier.height(12.dp))
@@ -91,12 +101,14 @@ private fun ServerSettingsScreen(
             }
         }
     }
+
+    GitHubAuthDialog(uiState.authPrompt, interactionListener)
 }
 
 @Composable
-private fun DeviceCard(
-    uiState: ServerSettingsUiState,
-    interactionListener: ServerSettingsInteractionListener,
+private fun GitHubAccountCard(
+    uiState: GitAuthSettingsUiState,
+    interactionListener: GitAuthSettingsInteractionListener,
 ) {
     val colors = AslTheme.colors
     Column(
@@ -107,30 +119,38 @@ private fun DeviceCard(
             .padding(16.dp),
     ) {
         Text(
-            text = if (uiState.isRegistered) "Registered" else "Not registered",
+            text = if (uiState.gitHubConnected) "Connected" else "Not connected",
             style = MaterialTheme.typography.titleSmall,
-            color = if (uiState.isRegistered) colors.success else colors.textSecondary,
+            color = if (uiState.gitHubConnected) colors.success else colors.textSecondary,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = uiState.tokenPreview?.let { "Device token: $it" }
-                ?: "Register this device to mint an anonymous build token.",
+            text = if (uiState.gitHubConnected) {
+                "A GitHub credential is saved and reused for push/pull in every project."
+            } else if (uiState.gitHubAvailable) {
+                "Sign in with your GitHub account or add an access token. Stored securely and shared across projects."
+            } else {
+                "Add a GitHub personal access token. Stored securely and shared across projects."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AslButton(
-                label = if (uiState.isRegistered) "Re-register" else "Register",
-                onClick = interactionListener::onRegisterDevice,
-                loading = uiState.isRegistering,
+                label = when {
+                    uiState.gitHubConnected -> "Update credential"
+                    uiState.gitHubAvailable -> "Sign in with GitHub"
+                    else -> "Add access token"
+                },
+                icon = if (uiState.gitHubAvailable && !uiState.gitHubConnected) "github" else "key-round",
+                onClick = interactionListener::onConnectGitHub,
             )
-            if (uiState.isRegistered) {
+            if (uiState.gitHubConnected) {
                 AslButton(
-                    label = "Clear token",
-                    onClick = interactionListener::onClearToken,
+                    label = "Sign out",
+                    onClick = interactionListener::onDisconnectGitHub,
                     variant = AslButtonVariant.Secondary,
-                    disabled = uiState.isRegistering,
                 )
             }
         }
