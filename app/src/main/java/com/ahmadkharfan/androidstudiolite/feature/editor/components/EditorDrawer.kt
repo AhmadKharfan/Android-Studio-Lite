@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
+import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslToolRailContent
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTreeAction
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
@@ -39,6 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSke
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolRail
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolRailEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
@@ -298,22 +299,18 @@ private fun EditorToolPanelContent(
     onOpenGitConflicts: () -> Unit,
     isLoadingFileTree: Boolean = false,
 ) {
-    // Cross-fade between Files/Git/AI Agent/Variants/Assets on rail switch, instead of an instant
-    // swap; animateContentSize smooths the width change too (each tool panel has its own fixed width).
-    AslStateCrossfade(
+    // Rail tabs slide vertically in the direction of travel (down the rail → from below).
+    AslToolRailContent(
         targetState = openTool,
-        modifier = Modifier.animateContentSize(AslMotion.standardSpec()),
+        indexOf = EditorRailTool::ordinal,
+        modifier = Modifier.fillMaxHeight(),
         label = "toolPanel",
     ) { tool ->
+        val toolWindowWidth = rememberAslToolWindowWidth()
         when (tool) {
             EditorRailTool.Files -> AslToolWindowPanel(
                 title = "Project",
-                // Wider than the original 252dp, but still leaves enough editor visible to avoid
-                // feeling like a full-screen takeover on phones.
-                width = minOf(
-                    androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * 0.72f,
-                    320f,
-                ).dp,
+                width = toolWindowWidth,
                 onClose = onDismiss,
                 actions = {
                     FileTreeCreateMenu(onCreate = { kind -> onCreateFileTreeEntry(kind, null) })

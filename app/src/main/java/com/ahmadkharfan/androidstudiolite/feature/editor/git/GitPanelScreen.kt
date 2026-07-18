@@ -56,6 +56,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitc
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
@@ -122,7 +123,7 @@ private fun GitPanelScreen(
             uiState.submodulesVisible -> "Git submodules"
             else -> "Git · ${uiState.branch}"
         },
-        width = 280.dp,
+        width = rememberAslToolWindowWidth(),
         onClose = when {
             uiState.remotesVisible -> interactionListener::onCloseRemotes
             uiState.submodulesVisible -> interactionListener::onCloseSubmodules

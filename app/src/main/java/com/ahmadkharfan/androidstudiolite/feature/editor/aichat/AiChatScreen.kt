@@ -29,6 +29,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslChat
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatInteractionListener
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatUiState
@@ -57,7 +58,7 @@ private fun AiChatScreen(
     onClose: () -> Unit,
     onOpenAiAgentSettings: () -> Unit,
 ) {
-    AslToolWindowPanel(title = "AI Agent", width = 300.dp, onClose = onClose, scrollable = false) {
+    AslToolWindowPanel(title = "AI Agent", width = rememberAslToolWindowWidth(), onClose = onClose, scrollable = false) {
         AslStateCrossfade(
             targetState = uiState.hasConfiguredProvider,
             modifier = Modifier.fillMaxSize(),

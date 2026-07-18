@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 
 private data class AssetEntry(val name: String, val subtitle: String)
 
@@ -25,7 +26,7 @@ fun AssetsRoute(onClose: () -> Unit) {
 
 @Composable
 private fun AssetsScreen(onClose: () -> Unit) {
-    AslToolWindowPanel(title = "Assets", onClose = onClose, scrollable = false) {
+    AslToolWindowPanel(title = "Assets", width = rememberAslToolWindowWidth(), onClose = onClose, scrollable = false) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(ASSETS) { asset ->
                 AslListItem(title = asset.name, subtitle = asset.subtitle, icon = "image")

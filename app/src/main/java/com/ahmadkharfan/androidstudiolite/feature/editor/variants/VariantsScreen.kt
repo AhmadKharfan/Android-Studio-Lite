@@ -13,6 +13,7 @@ import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsInteractionListener
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsUiState
@@ -36,7 +37,7 @@ private fun VariantsScreen(
     onClose: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    AslToolWindowPanel(title = "Build Variants", onClose = onClose) {
+    AslToolWindowPanel(title = "Build Variants", width = rememberAslToolWindowWidth(), onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
             AslDropdown(
                 label = uiState.module,
