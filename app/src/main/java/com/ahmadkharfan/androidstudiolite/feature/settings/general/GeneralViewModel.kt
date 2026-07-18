@@ -1,17 +1,18 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.general
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.core.locale.AppLocale
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
+import com.ahmadkharfan.androidstudiolite.feature.editor.view.EditorPalette
 import kotlinx.coroutines.launch
 
 class GeneralViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val appContext: Context,
-) : BaseViewModel<GeneralUiState, GeneralEffect>(
+) : BaseViewModel<GeneralUiState, Nothing>(
     initialState = GeneralUiState(),
 ), GeneralInteractionListener {
 
@@ -23,9 +24,7 @@ class GeneralViewModel(
                     copy(
                         themeMode = prefs.themeMode,
                         accentId = prefs.accentId,
-                        language = prefs.language,
                         autoOpenLastProject = prefs.autoOpenLastProject,
-                        snowfallEasterEgg = prefs.snowfallEasterEgg,
                     )
                 }
             },
@@ -33,27 +32,28 @@ class GeneralViewModel(
     }
 
     override fun onThemeModeChanged(mode: AppThemeMode) {
-        viewModelScope.launch { preferencesRepository.setThemeMode(mode) }
+        viewModelScope.launch {
+            preferencesRepository.setThemeMode(mode)
+            preferencesRepository.setEditorTheme(
+                EditorPalette.defaultSchemeId(resolveDarkUi(mode)),
+            )
+        }
     }
 
     override fun onAccentChanged(id: String) {
         viewModelScope.launch { preferencesRepository.setAccent(id) }
     }
 
-    override fun onLanguageChanged(language: String) {
-        viewModelScope.launch {
-            val normalized = AppLocale.supported(language)
-            preferencesRepository.setLanguage(normalized)
-            AppLocale.writeLanguage(appContext, normalized)
-            emitEffect(GeneralEffect.RecreateForLocale)
-        }
-    }
-
     override fun onToggleAutoOpenLastProject(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setAutoOpenLastProject(enabled) }
     }
 
-    override fun onToggleSnowfallEasterEgg(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.setSnowfallEasterEgg(enabled) }
+    private fun resolveDarkUi(mode: AppThemeMode): Boolean = when (mode) {
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+        AppThemeMode.SYSTEM -> {
+            (appContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        }
     }
 }

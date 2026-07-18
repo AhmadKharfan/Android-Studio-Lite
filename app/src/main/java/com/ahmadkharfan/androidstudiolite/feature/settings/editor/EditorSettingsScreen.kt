@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.feature.editor.view.EditorPalette
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
@@ -36,8 +38,8 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettings
 
 private val COLOR_SCHEME_SWATCHES = listOf(
     AslThemeSwatch("darcula", "Darcula", listOf(Color(0xFF1E1E1E), Color(0xFFCC7832), Color(0xFF6A8759))),
-    AslThemeSwatch("light", "GitHub Light", listOf(Color(0xFFFFFFFF), Color(0xFFCF222E), Color(0xFF0A3069))),
     AslThemeSwatch("hc", "High Contrast", listOf(Color(0xFF000000), Color(0xFFFFFFFF), Color(0xFF34D399))),
+    AslThemeSwatch("light", "GitHub Light", listOf(Color(0xFFFFFFFF), Color(0xFFCF222E), Color(0xFF0A3069))),
 )
 
 @Composable
@@ -56,6 +58,7 @@ private fun EditorSettingsScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
+    val previewPalette = EditorPalette.forScheme(uiState.colorSchemeId)
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = "Editor", onBack = onBack)
@@ -63,10 +66,16 @@ private fun EditorSettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .aslImePadding()
                     .padding(16.dp),
             ) {
                 EditorFontFamilySection(uiState = uiState, interactionListener = interactionListener, colors = colors)
-                EditorFontSizeSlider(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                EditorFontSizeSlider(
+                    uiState = uiState,
+                    interactionListener = interactionListener,
+                    previewCanvas = Color(previewPalette.canvas),
+                    previewText = Color(previewPalette.defaultText),
+                )
                 AslThemeSwatchPicker(
                     label = "Color scheme",
                     swatches = COLOR_SCHEME_SWATCHES,
@@ -74,6 +83,14 @@ private fun EditorSettingsScreen(
                     onValueChange = { interactionListener.onColorSchemeChanged(it) },
                     modifier = Modifier.padding(top = 18.dp),
                 )
+                if (!EditorPalette.isDarkScheme(uiState.colorSchemeId)) {
+                    Text(
+                        text = "Light scheme — editor stays bright even in dark UI mode.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textTertiary,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
                 EditorTabSizeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 EditorBehaviorSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
@@ -108,8 +125,10 @@ private fun EditorFontFamilySection(
 private fun EditorFontSizeSlider(
     uiState: EditorSettingsUiState,
     interactionListener: EditorSettingsInteractionListener,
-    colors: AslColorScheme,
+    previewCanvas: Color,
+    previewText: Color,
 ) {
+    val colors = AslTheme.colors
     Column(modifier = Modifier.padding(top = 18.dp)) {
         AslSlider(
             value = uiState.fontSize.toFloat(),
@@ -121,11 +140,11 @@ private fun EditorFontSizeSlider(
         Text(
             text = "val preview = \"Aa 0O 1lI\"",
             style = AslCode.codeBody.copy(fontSize = uiState.fontSize.sp),
-            color = colors.textPrimary,
+            color = previewText,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp)
-                .background(colors.editorCanvas, AslShape.sm)
+                .background(previewCanvas, AslShape.sm)
                 .border(1.dp, colors.borderSubtle, AslShape.sm)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )

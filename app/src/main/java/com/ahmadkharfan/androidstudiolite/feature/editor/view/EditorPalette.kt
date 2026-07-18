@@ -47,6 +47,11 @@ data class EditorPalette(
             else -> Darcula
         }
 
+        fun isDarkScheme(schemeId: String): Boolean = schemeId != "light"
+
+        /** Default editor scheme for the current app UI appearance. */
+        fun defaultSchemeId(darkUi: Boolean): String = if (darkUi) "darcula" else "light"
+
         private val Darcula = EditorPalette(
             canvas = 0xFF1E1E1E.toInt(),
             gutter = 0xFF1E1E1E.toInt(),

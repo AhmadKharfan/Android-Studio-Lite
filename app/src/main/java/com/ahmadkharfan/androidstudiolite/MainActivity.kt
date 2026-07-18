@@ -8,16 +8,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.ahmadkharfan.androidstudiolite.core.locale.AppLocale
-import com.ahmadkharfan.androidstudiolite.designsystem.animation.SnowfallOverlay
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
@@ -26,7 +24,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepositor
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalVolumeKeyDispatcher
 import com.ahmadkharfan.androidstudiolite.navigation.AslNavHost
 import com.ahmadkharfan.androidstudiolite.navigation.Routes
-import java.util.Calendar
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -45,12 +42,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
             startDestination = if (onboardingComplete) Routes.HUB else Routes.ONBOARDING_WELCOME
-            val preferredLanguage = preferencesRepository.observePreferences().first().language
-            val syncLanguage = AppLocale.readLanguage(this@MainActivity)
-            if (AppLocale.supported(preferredLanguage) != syncLanguage) {
-                AppLocale.writeLanguage(this@MainActivity, preferredLanguage)
-                recreate()
-            }
         }
 
         enableEdgeToEdge()
@@ -63,13 +54,12 @@ class MainActivity : ComponentActivity() {
                 AppThemeMode.DARK -> true
                 AppThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
+            LaunchedEffect(darkTheme) {
+                preferencesRepository.ensureEditorThemeDefault(darkTheme)
+            }
             AslAppTheme(darkTheme = darkTheme, accentId = preferences.accentId) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AslNavHost(startDestination = destination)
-                    val isDecember = remember { Calendar.getInstance().get(Calendar.MONTH) == Calendar.DECEMBER }
-                    if (preferences.snowfallEasterEgg && isDecember) {
-                        SnowfallOverlay()
-                    }
                 }
             }
         }
