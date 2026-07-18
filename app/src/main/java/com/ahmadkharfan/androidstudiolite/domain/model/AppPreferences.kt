@@ -13,9 +13,6 @@ data class AppPreferences(
     val snowfallEasterEgg: Boolean = false,
     val editorTabSize: Int = 4,
     val editorAutoSave: Boolean = true,
-    val kotlinLspEnabled: Boolean = true,
-    val javaLspEnabled: Boolean = true,
-    val xmlLspEnabled: Boolean = false,
     val launchAfterInstall: Boolean = true,
     val installViaShizuku: Boolean = false,
     /** When true, release builds produce an Android App Bundle (.aab) instead of an APK. */

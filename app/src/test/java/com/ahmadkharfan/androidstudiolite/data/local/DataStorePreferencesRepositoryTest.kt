@@ -95,9 +95,6 @@ class DataStorePreferencesRepositoryTest {
             snowfallEasterEgg = true,
             editorTabSize = 2,
             editorAutoSave = false,
-            kotlinLspEnabled = false,
-            javaLspEnabled = false,
-            xmlLspEnabled = true,
             launchAfterInstall = false,
             installViaShizuku = true,
         )

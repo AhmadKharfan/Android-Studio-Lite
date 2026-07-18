@@ -77,7 +77,6 @@ private fun EditorSettingsScreen(
                 )
                 EditorTabSizeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 EditorBehaviorSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
-                EditorLanguageServersSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
         }
     }
@@ -170,41 +169,6 @@ private fun EditorBehaviorSection(
             label = "Auto-save",
             checked = uiState.autoSave,
             onCheckedChange = { interactionListener.onToggleAutoSave(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun EditorLanguageServersSection(
-    uiState: EditorSettingsUiState,
-    interactionListener: EditorSettingsInteractionListener,
-    colors: AslColorScheme,
-) {
-    HubSectionHeader("Language servers")
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
-            .padding(horizontal = 16.dp),
-    ) {
-        AslSwitch(
-            label = "Kotlin LSP",
-            checked = uiState.kotlinLsp,
-            onCheckedChange = { interactionListener.onToggleKotlinLsp(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        AslSwitch(
-            label = "Java LSP",
-            checked = uiState.javaLsp,
-            onCheckedChange = { interactionListener.onToggleJavaLsp(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        AslSwitch(
-            label = "XML LSP",
-            checked = uiState.xmlLsp,
-            onCheckedChange = { interactionListener.onToggleXmlLsp(it) },
             modifier = Modifier.fillMaxWidth(),
         )
     }

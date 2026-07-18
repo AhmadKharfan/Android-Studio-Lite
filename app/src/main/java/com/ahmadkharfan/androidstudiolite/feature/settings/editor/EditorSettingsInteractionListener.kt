@@ -5,7 +5,4 @@ interface EditorSettingsInteractionListener {
     fun onColorSchemeChanged(id: String)
     fun onTabSizeChanged(size: Int)
     fun onToggleAutoSave(enabled: Boolean)
-    fun onToggleKotlinLsp(enabled: Boolean)
-    fun onToggleJavaLsp(enabled: Boolean)
-    fun onToggleXmlLsp(enabled: Boolean)
 }

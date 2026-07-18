@@ -74,9 +74,6 @@ class DataStorePreferencesRepository(
             snowfallEasterEgg = this[SNOWFALL_EASTER_EGG] ?: defaults.snowfallEasterEgg,
             editorTabSize = this[EDITOR_TAB_SIZE] ?: defaults.editorTabSize,
             editorAutoSave = this[EDITOR_AUTO_SAVE] ?: defaults.editorAutoSave,
-            kotlinLspEnabled = this[KOTLIN_LSP_ENABLED] ?: defaults.kotlinLspEnabled,
-            javaLspEnabled = this[JAVA_LSP_ENABLED] ?: defaults.javaLspEnabled,
-            xmlLspEnabled = this[XML_LSP_ENABLED] ?: defaults.xmlLspEnabled,
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
             installViaShizuku = this[INSTALL_VIA_SHIZUKU] ?: defaults.installViaShizuku,
             buildOutputAab = this[BUILD_OUTPUT_AAB] ?: defaults.buildOutputAab,
@@ -96,9 +93,6 @@ class DataStorePreferencesRepository(
         this[SNOWFALL_EASTER_EGG] = value.snowfallEasterEgg
         this[EDITOR_TAB_SIZE] = value.editorTabSize
         this[EDITOR_AUTO_SAVE] = value.editorAutoSave
-        this[KOTLIN_LSP_ENABLED] = value.kotlinLspEnabled
-        this[JAVA_LSP_ENABLED] = value.javaLspEnabled
-        this[XML_LSP_ENABLED] = value.xmlLspEnabled
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
         this[INSTALL_VIA_SHIZUKU] = value.installViaShizuku
         this[BUILD_OUTPUT_AAB] = value.buildOutputAab
@@ -116,9 +110,6 @@ class DataStorePreferencesRepository(
         val SNOWFALL_EASTER_EGG = booleanPreferencesKey("snowfall_easter_egg")
         val EDITOR_TAB_SIZE = intPreferencesKey("editor_tab_size")
         val EDITOR_AUTO_SAVE = booleanPreferencesKey("editor_auto_save")
-        val KOTLIN_LSP_ENABLED = booleanPreferencesKey("kotlin_lsp_enabled")
-        val JAVA_LSP_ENABLED = booleanPreferencesKey("java_lsp_enabled")
-        val XML_LSP_ENABLED = booleanPreferencesKey("xml_lsp_enabled")
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
         val INSTALL_VIA_SHIZUKU = booleanPreferencesKey("install_via_shizuku")
         val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")

@@ -21,9 +21,6 @@ class EditorSettingsViewModel(
                         colorSchemeId = prefs.editorThemeId,
                         tabSize = prefs.editorTabSize,
                         autoSave = prefs.editorAutoSave,
-                        kotlinLsp = prefs.kotlinLspEnabled,
-                        javaLsp = prefs.javaLspEnabled,
-                        xmlLsp = prefs.xmlLspEnabled,
                     )
                 }
             },
@@ -44,17 +41,5 @@ class EditorSettingsViewModel(
 
     override fun onToggleAutoSave(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.update { it.copy(editorAutoSave = enabled) } }
-    }
-
-    override fun onToggleKotlinLsp(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(kotlinLspEnabled = enabled) } }
-    }
-
-    override fun onToggleJavaLsp(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(javaLspEnabled = enabled) } }
-    }
-
-    override fun onToggleXmlLsp(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(xmlLspEnabled = enabled) } }
     }
 }

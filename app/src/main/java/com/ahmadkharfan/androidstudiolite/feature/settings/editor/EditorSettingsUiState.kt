@@ -7,7 +7,4 @@ data class EditorSettingsUiState(
     val colorSchemeId: String = "darcula",
     val tabSize: Int = 4,
     val autoSave: Boolean = true,
-    val kotlinLsp: Boolean = true,
-    val javaLsp: Boolean = true,
-    val xmlLsp: Boolean = false,
 )
