@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite
 
 import android.app.Application
+import com.ahmadkharfan.androidstudiolite.di.aiModule
 import com.ahmadkharfan.androidstudiolite.di.appModules
 import com.ahmadkharfan.androidstudiolite.di.buildRunModule
 import com.ahmadkharfan.androidstudiolite.di.gitModule
@@ -22,7 +23,7 @@ class AslApplication : Application() {
             androidContext(this@AslApplication)
             // Single flavor (builds run server-side). buildRunModule binds BuildSystem to
             // RemoteBuildSystem; remoteModule provides its transport, packager, downloader, settings.
-            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule)
+            modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule + aiModule)
         }
     }
 }
