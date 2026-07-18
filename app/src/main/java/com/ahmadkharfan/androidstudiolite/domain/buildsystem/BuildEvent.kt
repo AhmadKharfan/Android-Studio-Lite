@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.domain.buildsystem
 
 import java.io.File
 
-/** Stream of everything a running build reports, shared by both flavor backends. */
+/** Stream of everything a running build reports, streamed from the remote build backend. */
 sealed interface BuildEvent {
 
     data class Started(val request: BuildRequest) : BuildEvent

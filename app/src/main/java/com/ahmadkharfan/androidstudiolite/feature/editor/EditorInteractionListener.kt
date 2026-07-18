@@ -33,10 +33,6 @@ interface EditorInteractionListener {
     /** Approves uninstalling the conflicting package, then reinstalling. Destroys that app's data. */
     fun onConfirmInstallConflictUninstall()
     fun onDismissInstallConflict()
-    fun onSimulateBuildFailure()
-    fun onToggleMemoryPressure()
-    fun onToggleMemoryChartExpanded()
-    fun onFreeUpMemory()
     fun onToggleFindBar()
     fun onFindQueryChanged(query: String)
     fun onFindNext()

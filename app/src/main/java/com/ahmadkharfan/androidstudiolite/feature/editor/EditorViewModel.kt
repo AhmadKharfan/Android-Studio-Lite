@@ -478,10 +478,6 @@ class EditorViewModel(
     override fun onBuildReleaseApk() = startBuild(variant = "release", kind = BuildKind.ASSEMBLE, install = false)
     override fun onBuildReleaseBundle() = startBuild(variant = "release", kind = BuildKind.BUNDLE, install = false)
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
-    override fun onSimulateBuildFailure() {
-        buildRunCoordinator.simulateNextFailure()
-        startBuild(variant = "debug", kind = BuildKind.ASSEMBLE, install = true)
-    }
     override fun onSelectBottomTab(id: String) {
         updateState { copy(activeBottomTabId = id, bottomPanelExpanded = true) }
     }
@@ -511,13 +507,6 @@ class EditorViewModel(
     override fun onSnackbarShown() {
         updateState { copy(snackbarMessage = null) }
     }
-    override fun onToggleMemoryPressure() {
-        updateState { copy(memoryPressureActive = !memoryPressureActive, memoryChartExpanded = false) }
-    }
-    override fun onToggleMemoryChartExpanded() {
-        updateState { copy(memoryChartExpanded = !memoryChartExpanded) }
-    }
-    override fun onFreeUpMemory() = freeUpMemory()
     override fun onToggleFindBar() {
         updateState { copy(findBarOpen = !findBarOpen, findQuery = "", findMatchCount = 0, findCurrentMatch = 0) }
     }
@@ -858,25 +847,6 @@ class EditorViewModel(
         }
         return count
     }
-    private fun freeUpMemory() {
-        viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (!flushDirtyFiles()) {
-                updateState { copy(snackbarMessage = "Couldn't save pending editor changes") }
-                return@launch
-            }
-            val kept = state.value.tabs.filter { it.id == state.value.activeTabId }
-            val keptIds = kept.map { it.id }.toSet()
-            sessions.keys.retainAll(keptIds)
-            updateState {
-                copy(
-                    tabs = kept,
-                    memoryPressureActive = false,
-                    memoryChartExpanded = false,
-                )
-            }
-        }
-    }
     private fun closeTab(id: String) {
         viewModelScope.launch {
             autoSaveJob?.cancel()
@@ -943,9 +913,9 @@ class EditorViewModel(
         return if (parts.size > 1) parts else listOf(name)
     }
     /**
-     * Drives a real build through the [BuildRunCoordinator] (backed by the flavor's [BuildSystem], or
-     * the temporary FakeBuildSystem). Runs the reliability preflight, folds the [BuildEvent] stream
-     * into [EditorUiState.buildConsole], and — for a run — installs and launches the produced APK.
+     * Drives a real build through the [BuildRunCoordinator] (backed by the remote [BuildSystem]).
+     * Runs the reliability preflight, folds the [BuildEvent] stream into [EditorUiState.buildConsole],
+     * and — for a run — installs and launches the produced APK.
      */
     private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
         // Guard the WHOLE run (build+install), not just the build phase — see [runInFlight].
@@ -1091,7 +1061,6 @@ class EditorViewModel(
         }
         val apk = File(artifact.path)
         if (!apk.isFile) {
-            // The temporary FakeBuildSystem produces a placeholder path with no bytes on disk.
             updateState { copy(snackbarMessage = "Build succeeded — install skipped (no APK on disk)") }
             return
         }

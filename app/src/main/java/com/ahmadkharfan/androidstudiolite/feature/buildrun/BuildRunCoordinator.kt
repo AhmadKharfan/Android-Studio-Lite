@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
 import android.content.Context
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.FakeBuildSystem
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
@@ -21,10 +20,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 /**
- * The single, flavor-agnostic entry point the UI uses to build → install → run. It composes the
- * bound [BuildSystem] (the play/full backend, or [com.ahmadkharfan.androidstudiolite.data.buildsystem.FakeBuildSystem]
- * until they land) with the reliability preflight, keystore management, APK installation, and
- * finish-notification — none of which depend on which backend is bound.
+ * The single entry point the UI uses to build → install → run. It composes the bound [BuildSystem]
+ * (the remote build backend) with the reliability preflight, keystore management, APK installation,
+ * and finish-notification.
  */
 class BuildRunCoordinator(
     private val context: Context,
@@ -58,14 +56,6 @@ class BuildRunCoordinator(
     fun cancel() = buildSystem.cancel()
 
     /**
-     * Dev-only: makes the next build fail, for exercising the failure UI. No-ops unless the temporary
-     * [FakeBuildSystem] is bound (the real backends have nothing to simulate).
-     */
-    fun simulateNextFailure() {
-        (buildSystem as? FakeBuildSystem)?.failNextBuild = true
-    }
-
-    /**
      * The applicationId [modulePath] installs as, read straight off the build script, or null when the
      * project can't be parsed / declares none. The build backend reports the APK's path but not its
      * package, so this is what lets the install flow name — and, on a signature conflict, uninstall —
@@ -91,7 +81,7 @@ class BuildRunCoordinator(
         notifier.notifyFinished(projectName, success, durationMillis)
 
     private companion object {
-        /** The full flavor ships OpenJDK 17; the play engine targets the same source/target level. */
+        /** The remote build worker ships OpenJDK 17; preflight checks compatibility against it. */
         const val TOOLCHAIN_JDK_MAJOR = 17
         val AGP_VERSION_KEYS = listOf("agp", "androidGradlePlugin", "android-gradle-plugin", "android")
     }

@@ -17,7 +17,7 @@ import org.koin.dsl.module
 /**
  * Wiring for the server-side build backend (A2): settings persistence, the OkHttp transport, the
  * project packager and artifact downloader, plus the build-server settings screen's ViewModel.
- * `RemoteBuildSystem` itself is bound in [buildRunModule] (it replaces the temporary FakeBuildSystem).
+ * `RemoteBuildSystem` itself is bound in [buildRunModule].
  * Registered from [com.ahmadkharfan.androidstudiolite.AslApplication].
  */
 val remoteModule = module {

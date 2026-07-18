@@ -2,9 +2,12 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 
 import androidx.lifecycle.viewModelScope
 import android.content.ContextWrapper
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.FakeBuildSystem
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.data.local.FileChangeBus
 import com.ahmadkharfan.androidstudiolite.data.local.LocalFileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
@@ -28,6 +31,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -119,7 +123,6 @@ class EditorRootInvalidationTest {
         override suspend fun setThemeMode(mode: AppThemeMode) = Unit
         override suspend fun setEditorFontSize(size: Int) = Unit
         override suspend fun setEditorTheme(id: String) = Unit
-        override suspend fun setShareUsageStats(enabled: Boolean) = Unit
         override suspend fun setAccent(id: String) = Unit
         override suspend fun setLanguage(language: String) = Unit
         override suspend fun setAutoOpenLastProject(enabled: Boolean) = Unit
@@ -134,12 +137,18 @@ class EditorRootInvalidationTest {
         val gradleReader = GradleProjectReader()
         return BuildRunCoordinator(
             context = context,
-            buildSystem = FakeBuildSystem(stepDelayMillis = 0),
+            buildSystem = NoopBuildSystem,
             keystoreManager = UnusedKeystoreManager,
             apkInstaller = ApkInstaller(context),
             gradleReader = gradleReader,
             notifier = BuildNotifier(context),
         )
+    }
+
+    private object NoopBuildSystem : BuildSystem {
+        override suspend fun sync(projectRoot: File): ProjectModel = error("not used")
+        override fun build(request: BuildRequest): Flow<BuildEvent> = emptyFlow()
+        override fun cancel() = Unit
     }
 
     private object UnusedKeystoreManager : KeystoreManager {

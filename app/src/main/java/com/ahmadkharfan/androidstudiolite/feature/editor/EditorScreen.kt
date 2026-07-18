@@ -1,9 +1,4 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -50,18 +45,11 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslS
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslStatusBarEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslStatusTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOverflowMenuEntry
-import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBanner
-import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBannerTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslMemoryChartMini
-import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslMemoryChartTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import com.ahmadkharfan.androidstudiolite.feature.editor.view.AslEditableCodeEditor
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorBottomPanelContent
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDockedPanel
@@ -307,13 +295,9 @@ private fun EditorTopBar(
             overflowItems = listOf(
                 AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
                 AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
-                AslOverflowMenuEntry.Item("Sync Gradle", icon = "refresh-cw"),
                 AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Build APK (release)", icon = "package"),
                 AslOverflowMenuEntry.Item("Build AAB (release)", icon = "package"),
-                AslOverflowMenuEntry.Divider,
-                AslOverflowMenuEntry.Item("Simulate build failure", icon = "octagon-alert"),
-                AslOverflowMenuEntry.Item("Simulate memory pressure", icon = "memory-stick"),
                 AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Close project", icon = "x"),
             ),
@@ -323,8 +307,6 @@ private fun EditorTopBar(
                     "Close project" -> interactionListener.onCloseProject()
                     "Build APK (release)" -> interactionListener.onBuildReleaseApk()
                     "Build AAB (release)" -> interactionListener.onBuildReleaseBundle()
-                    "Simulate build failure" -> interactionListener.onSimulateBuildFailure()
-                    "Simulate memory pressure" -> interactionListener.onToggleMemoryPressure()
                 }
             },
         )
@@ -365,9 +347,6 @@ private fun EditorContentArea(
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
-        if (!keyboardOpen) {
-            EditorMemoryPressureBanner(uiState = uiState, interactionListener = interactionListener, colors = colors)
-        }
         // Keep the bottom panel visible while typing in the project terminal (Android Studio behaviour).
         if (!keyboardOpen || terminalPanelActive) {
             EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
@@ -491,50 +470,6 @@ private fun EditorCodeSurface(
 }
 
 @Composable
-private fun EditorMemoryPressureBanner(
-    uiState: EditorUiState,
-    interactionListener: EditorInteractionListener,
-    colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
-) {
-    AnimatedVisibility(
-        visible = uiState.memoryPressureActive,
-        enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-        exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.bgElevated)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-        ) {
-            AslBanner(
-                tone = AslBannerTone.Warning,
-                message = "Memory is running low — close unused projects.",
-                actionLabel = "Free up",
-                onAction = { interactionListener.onFreeUpMemory() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { interactionListener.onToggleMemoryChartExpanded() },
-            )
-            AnimatedVisibility(
-                visible = uiState.memoryChartExpanded,
-                enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-                exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-            ) {
-                AslMemoryChartMini(
-                    label = "Heap",
-                    value = uiState.heapUsedMb,
-                    max = uiState.heapMaxMb,
-                    series = uiState.heapSeries,
-                    tone = AslMemoryChartTone.Warning,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun EditorBottomToolSection(
     uiState: EditorUiState,
     interactionListener: EditorInteractionListener,
@@ -569,9 +504,6 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
             }
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
-            if (uiState.memoryPressureActive) {
-                add(AslStatusBarEntry.Item("${uiState.heapUsedMb} / ${uiState.heapMaxMb} MB", icon = "memory-stick", tone = AslStatusTone.Warning))
-            }
             when {
                 uiState.running -> add(AslStatusBarEntry.Item("assembleDebug", tone = AslStatusTone.Warning))
                 else -> add(AslStatusBarEntry.Item("Synced", icon = "check", tone = AslStatusTone.Success))
