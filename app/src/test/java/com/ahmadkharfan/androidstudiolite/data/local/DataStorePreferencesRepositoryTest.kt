@@ -63,7 +63,6 @@ class DataStorePreferencesRepositoryTest {
             repo.setThemeMode(AppThemeMode.DARK)
             repo.setEditorFontSize(21)
             repo.setEditorTheme("solarized")
-            repo.setShareUsageStats(true)
             repo.setAccent("crimson")
             repo.setLanguage("ar")
             repo.setAutoOpenLastProject(false)
@@ -75,7 +74,6 @@ class DataStorePreferencesRepositoryTest {
         assertEquals(AppThemeMode.DARK, reloaded.themeMode)
         assertEquals(21, reloaded.editorFontSize)
         assertEquals("solarized", reloaded.editorThemeId)
-        assertEquals(true, reloaded.shareUsageStats)
         assertEquals("crimson", reloaded.accentId)
         assertEquals("ar", reloaded.language)
         assertEquals(false, reloaded.autoOpenLastProject)
@@ -88,7 +86,6 @@ class DataStorePreferencesRepositoryTest {
             themeMode = AppThemeMode.LIGHT,
             editorFontSize = 18,
             editorThemeId = "github",
-            shareUsageStats = true,
             accentId = "violet",
             language = "fr",
             autoOpenLastProject = false,

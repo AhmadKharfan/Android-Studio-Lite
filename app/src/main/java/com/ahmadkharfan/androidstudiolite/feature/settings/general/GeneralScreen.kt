@@ -41,8 +41,7 @@ private val ACCENT_SWATCHES = listOf(
 
 private val LANGUAGE_OPTIONS = listOf(
     AslDropdownOption("English", "en"),
-    AslDropdownOption("Deutsch", "de"),
-    AslDropdownOption("日本語", "ja"),
+    AslDropdownOption("العربية", "ar"),
 )
 
 @Composable

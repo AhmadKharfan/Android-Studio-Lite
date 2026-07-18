@@ -60,7 +60,6 @@ fun SettingsRootRoute(
 }
 
 private fun buildSettingsSections(
-    uiState: SettingsRootUiState,
     onOpenGeneral: () -> Unit,
     onOpenEditor: () -> Unit,
     onOpenAiAgent: () -> Unit,
@@ -73,21 +72,18 @@ private fun buildSettingsSections(
 ): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
         SettingsRow("General", "Appearance, language, startup", "sliders-horizontal", onOpenGeneral),
-        SettingsRow("Editor", "Font, color scheme, LSP", "file-code", onOpenEditor),
+        SettingsRow("Editor", "Font, color scheme, tabs", "file-code", onOpenEditor),
         SettingsRow("AI Agent", "Providers & API keys", "sparkles", onOpenAiAgent),
-        SettingsRow("Build & Run", "Gradle, install options", "hammer", onOpenBuildRun),
+        SettingsRow("Build & Run", "Signing, install options", "hammer", onOpenBuildRun),
         SettingsRow("Git & GitHub", "Sign-in, tokens, author", "git-branch", onOpenGitAuth),
         SettingsRow("Build server", "Server URL, device token", "server", onOpenServer),
         SettingsRow("Terminal", "Shell, extra keys", "terminal", onOpenTerminal),
-    )
-    val privacyRows = listOf(
-        SettingsRow("Statistics", "Anonymous usage sharing — ${if (uiState.shareUsageStats) "on" else "off"}", "chart-no-axes-column"),
     )
     val advancedRows = listOf(
         SettingsRow("Developer options", null, "wrench", onOpenDeveloperOptions),
         SettingsRow("About", "v1.2.0", "info", onOpenAbout),
     )
-    return listOf("Configure" to configureRows, "Privacy" to privacyRows, "Advanced" to advancedRows)
+    return listOf("Configure" to configureRows, "Advanced" to advancedRows)
 }
 
 @Composable
@@ -107,7 +103,6 @@ private fun SettingsRootScreen(
 ) {
     val colors = AslTheme.colors
     val sections = buildSettingsSections(
-        uiState = uiState,
         onOpenGeneral = onOpenGeneral,
         onOpenEditor = onOpenEditor,
         onOpenAiAgent = onOpenAiAgent,

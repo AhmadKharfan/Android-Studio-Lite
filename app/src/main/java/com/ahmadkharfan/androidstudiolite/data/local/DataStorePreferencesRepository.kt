@@ -38,9 +38,6 @@ class DataStorePreferencesRepository(
     override suspend fun setEditorTheme(id: String) =
         update { it.copy(editorThemeId = id) }
 
-    override suspend fun setShareUsageStats(enabled: Boolean) =
-        update { it.copy(shareUsageStats = enabled) }
-
     override suspend fun setAccent(id: String) =
         update { it.copy(accentId = id) }
 
@@ -67,7 +64,6 @@ class DataStorePreferencesRepository(
                 ?: defaults.themeMode,
             editorFontSize = this[EDITOR_FONT_SIZE] ?: defaults.editorFontSize,
             editorThemeId = this[EDITOR_THEME_ID] ?: defaults.editorThemeId,
-            shareUsageStats = this[SHARE_USAGE_STATS] ?: defaults.shareUsageStats,
             accentId = this[ACCENT_ID] ?: defaults.accentId,
             language = this[LANGUAGE] ?: defaults.language,
             autoOpenLastProject = this[AUTO_OPEN_LAST_PROJECT] ?: defaults.autoOpenLastProject,
@@ -86,7 +82,6 @@ class DataStorePreferencesRepository(
         this[THEME_MODE] = value.themeMode.name
         this[EDITOR_FONT_SIZE] = value.editorFontSize
         this[EDITOR_THEME_ID] = value.editorThemeId
-        this[SHARE_USAGE_STATS] = value.shareUsageStats
         this[ACCENT_ID] = value.accentId
         this[LANGUAGE] = value.language
         this[AUTO_OPEN_LAST_PROJECT] = value.autoOpenLastProject
@@ -103,7 +98,6 @@ class DataStorePreferencesRepository(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val EDITOR_FONT_SIZE = intPreferencesKey("editor_font_size")
         val EDITOR_THEME_ID = stringPreferencesKey("editor_theme_id")
-        val SHARE_USAGE_STATS = booleanPreferencesKey("share_usage_stats")
         val ACCENT_ID = stringPreferencesKey("accent_id")
         val LANGUAGE = stringPreferencesKey("language")
         val AUTO_OPEN_LAST_PROJECT = booleanPreferencesKey("auto_open_last_project")
