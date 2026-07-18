@@ -1,7 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine
-class EditorCompletionController(
-    private val lspEnabled: (EditorLanguage) -> Boolean = { false },
-) {
+class EditorCompletionController {
     private val builtInCache = HashMap<EditorLanguage, BuiltInCompletionProvider>()
 
     /**
@@ -18,20 +16,11 @@ class EditorCompletionController(
         val builtIn = builtInCache.getOrPut(language) {
             BuiltInCompletionProvider(language)
         }
-        // Project symbols only make sense for the JVM languages the index understands.
-        val withProject: (List<CompletionProvider>) -> List<CompletionProvider> = { base ->
-            if (language == EditorLanguage.Kotlin || language == EditorLanguage.Java) listOf(projectProvider) + base
-            else base
+        return if (language == EditorLanguage.Kotlin || language == EditorLanguage.Java) {
+            listOf(projectProvider, builtIn)
+        } else {
+            listOf(builtIn)
         }
-        if (!lspEnabled(language)) return withProject(listOf(builtIn))
-        return when (language) {
-            EditorLanguage.Kotlin -> withProject(listOf(builtIn))
-            EditorLanguage.Java -> withProject(listOf(JavaLanguageServicePlaceholder, builtIn))
-            else -> listOf(builtIn)
-        }
-    }
-    fun invalidateProviders() {
-        builtInCache.clear()
     }
     fun buildContext(session: EditorSession): CompletionContext {
         val text = session.text

@@ -24,16 +24,15 @@ data class ProjectSymbol(
 
 /**
  * The editor's view of everything the last sync made resolvable: project + dependency symbols indexed
- * for the three questions the completion/diagnostics layers ask — "what names exist" (unresolved-ref
- * suppression), "what top-level symbols/types start with this prefix" (name/type completion), and
- * "what lives under this qualifier" (import / member-access completion).
+ * for the three questions the completion layer asks — "what top-level symbols/types start with this prefix"
+ * (name/type completion), and "what lives under this qualifier" (import / member-access completion).
  *
  * Immutable and pure: [ProjectSymbolIndexer] builds one off the disk; the engine only reads it, so it
  * stays trivially unit-testable and safe to publish across threads.
  */
 class ProjectSymbolIndex(val symbols: List<ProjectSymbol>) {
 
-    /** Every simple name known to the project — the set diagnostics treats as "declared/resolvable". */
+    /** Every simple name known to the project. */
     val simpleNames: Set<String> = symbols.mapTo(HashSet()) { it.simpleName }
 
     /**

@@ -3,7 +3,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 class TypeCompletionTest {
-    private val controller = EditorCompletionController(lspEnabled = { true })
+    private val controller = EditorCompletionController()
     @Test
     fun parameterTypePosition_offersStringType() {
         val code = "fun foo(x: |)"

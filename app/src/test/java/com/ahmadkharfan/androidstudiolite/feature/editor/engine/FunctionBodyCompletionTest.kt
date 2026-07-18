@@ -3,7 +3,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 class FunctionBodyCompletionTest {
-    private val controller = EditorCompletionController(lspEnabled = { true })
+    private val controller = EditorCompletionController()
     @Test
     fun emptyFunctionBody_doesNotOfferKeywords() {
         val code = "fun demo() {\n    |}"

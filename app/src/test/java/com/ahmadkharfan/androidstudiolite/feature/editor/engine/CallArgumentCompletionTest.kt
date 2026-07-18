@@ -4,7 +4,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 class CallArgumentCompletionTest {
-    private val controller = EditorCompletionController(lspEnabled = { true })
+    private val controller = EditorCompletionController()
     @Test
     fun textCall_offersAllNamedParametersAtOpenParen() {
         val code = "@Composable\nfun S() { Text(|) }"

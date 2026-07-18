@@ -10,8 +10,6 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorCompletionController
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.LanguageDiagnostics
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticCodes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -117,24 +115,6 @@ class ProjectSymbolIndexTest {
         assertTrue("OkHttpClient" in depLabels)
     }
 
-    @Test
-    fun diagnostics_do_not_flag_project_symbols_as_unresolved() {
-        val model = fixtureModel(mapOf("com/example/Repo.kt" to "package com.example\nclass RepositoryHub"))
-        val known = ProjectSymbolIndexer.index(model).simpleNames
-
-        val code = "fun use() { val r = RepositoryHub() }"
-        val withoutIndex = LanguageDiagnostics.analyze(code, EditorLanguage.Kotlin, semantic = true)
-        assertTrue(
-            "control: RepositoryHub is unresolved without the index",
-            withoutIndex.any { it.code == DiagnosticCodes.KT_UNRESOLVED && "RepositoryHub" in it.message },
-        )
-
-        val withIndex = LanguageDiagnostics.analyze(code, EditorLanguage.Kotlin, semantic = true, knownSymbols = known)
-        assertFalse(
-            "RepositoryHub should resolve once indexed",
-            withIndex.any { it.code == DiagnosticCodes.KT_UNRESOLVED && "RepositoryHub" in it.message },
-        )
-    }
 
     @Test
     fun memberAccess_offers_subpackages_and_classes_under_qualifier() {
