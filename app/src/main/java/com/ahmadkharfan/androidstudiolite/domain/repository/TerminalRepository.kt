@@ -31,6 +31,12 @@ interface TerminalRepository {
     suspend fun writeInput(text: String) {}
 
     /**
+     * Non-blocking enqueue of raw PTY bytes for the keystroke hot path. Returns false if the session
+     * is not running or the queue rejected the write. Default is a no-op for line-oriented repos.
+     */
+    fun offerInput(text: String): Boolean = false
+
+    /**
      * Notifies the terminal it was resized to [rows]×[cols] so the child reflows (SIGWINCH). No-op for
      * the line-oriented session, which has no window.
      */

@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -41,14 +42,20 @@ class PtyTerminalRepository(
     override val events: SharedFlow<TerminalEvent> = _events.asSharedFlow()
 
     private val lifecycle = Mutex()
+    // Read off the keystroke hot path without taking [lifecycle]; hence @Volatile for visibility.
+    @Volatile
     private var session: PtySession? = null
+    @Volatile
     private var writer: OutputStream? = null
     private var scope: CoroutineScope? = null
+    /** Serializes PTY writes on one IO coroutine so fast typing never piles up suspended callers. */
+    private var inputChannel = Channel<ByteArray>(Channel.UNLIMITED)
     private var lastRows = 24
     private var lastCols = 80
 
     override suspend fun start(workingDirectory: String?, rows: Int, cols: Int): Unit = lifecycle.withLock {
         if (session != null) return@withLock
+        inputChannel = Channel(Channel.UNLIMITED)
         val dir = workingDirectory?.let(::File) ?: defaultWorkingDirectory()
         lastRows = rows.coerceAtLeast(1)
         lastCols = cols.coerceAtLeast(1)
@@ -65,7 +72,19 @@ class PtyTerminalRepository(
         session = launched
         writer = launched.input
         scope = sessionScope
+        sessionScope.launch { drainInput(launched.input) }
         sessionScope.launch { drainOutput(launched) }
+    }
+
+    private suspend fun drainInput(stream: OutputStream) {
+        for (bytes in inputChannel) {
+            try {
+                stream.write(bytes)
+                stream.flush()
+            } catch (_: IOException) {
+                // Shell died; SessionEnded will follow from the read loop.
+            }
+        }
     }
 
     private suspend fun drainOutput(target: PtySession) {
@@ -93,16 +112,16 @@ class PtyTerminalRepository(
     }
 
     override suspend fun writeInput(text: String) {
-        start()
-        val target = writer ?: return
-        withContext(ioDispatcher) {
-            try {
-                target.write(text.toByteArray(StandardCharsets.UTF_8))
-                target.flush()
-            } catch (_: IOException) {
-                // The shell died between checks; a SessionEnded event will already be in flight.
-            }
-        }
+        if (text.isEmpty()) return
+        if (writer == null) start()
+        if (writer == null) return
+        inputChannel.send(text.toByteArray(StandardCharsets.UTF_8))
+    }
+
+    override fun offerInput(text: String): Boolean {
+        if (text.isEmpty()) return true
+        if (writer == null) return false
+        return inputChannel.trySend(text.toByteArray(StandardCharsets.UTF_8)).isSuccess
     }
 
     override suspend fun resize(rows: Int, cols: Int) {
@@ -116,6 +135,7 @@ class PtyTerminalRepository(
 
     override suspend fun stop(): Unit = lifecycle.withLock {
         val doomed = session
+        inputChannel.close()
         withContext(ioDispatcher) {
             runCatching { doomed?.destroy() }
         }

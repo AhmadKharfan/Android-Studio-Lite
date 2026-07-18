@@ -1,36 +1,38 @@
 package com.ahmadkharfan.androidstudiolite.di
 
-import android.content.Context
-import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironment
-import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
+import com.ahmadkharfan.androidstudiolite.core.linux.LinuxBootstrapInstaller
+import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
 import com.ahmadkharfan.androidstudiolite.data.local.pty.PtyTerminalRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
+import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
 
 /**
- * Terminal wiring. Kept as its own module (registered in `AslApplication`) rather than folded into the
- * central `dataModule`, so the shell binding stays self-contained.
+ * Terminal wiring. Kept as its own module (registered in `AslApplication`) so the shell binding stays
+ * self-contained.
  *
- * T12 upgrades the binding from the line-oriented T7 shell to [PtyTerminalRepository], a real
- * pseudo-terminal so interactive/curses programs work. `TERM` is exported so those programs pick the
- * right capabilities; we exec a system/toolchain shell (always allowed to run), not an app-data binary.
+ * Exposes a single [TerminalSessionManager] that mints a fresh [PtyTerminalRepository] per tab, so
+ * multiple independent sessions can run at once. Each session forks a real pseudo-terminal. The
+ * command + environment come from [ProotEnvironment]: once the user installs the Linux userland it
+ * launches an Alpine shell under proot (so any tool can run); until then it falls back to the system
+ * shell so the terminal always works. [LinuxBootstrapInstaller] downloads that userland on demand.
  */
 val terminalModule: Module = module {
-    single<TerminalRepository> {
-        val context: Context = androidContext()
-        PtyTerminalRepository(
-            shellCommandProvider = { listOf(resolveShellPath(context)) },
-            environmentProvider = { IdeEnvironment.environment(context) + mapOf("TERM" to "xterm-256color") },
-            defaultWorkingDirectory = { IdeEnvironmentPaths.home(context) },
+    single { ProotEnvironment(androidContext()) }
+    single { LinuxBootstrapInstaller(androidContext(), get()) }
+    single {
+        val proot: ProotEnvironment = get()
+        TerminalSessionManager(
+            repositoryFactory = { hostWorkingDir ->
+                val hostDir = hostWorkingDir?.let(::File)
+                PtyTerminalRepository(
+                    shellCommandProvider = { proot.shellCommand(hostDir) },
+                    environmentProvider = { proot.environment() },
+                    defaultWorkingDirectory = { proot.workingDirectory(hostWorkingDir) },
+                )
+            },
         )
     }
-}
-
-/** Prefer the toolchain shell once installed; fall back to the system shell that always exists. */
-private fun resolveShellPath(context: Context): String {
-    val prefixShell = File(IdeEnvironmentPaths.prefix(context), "bin/sh")
-    return if (prefixShell.exists()) prefixShell.absolutePath else "/system/bin/sh"
 }

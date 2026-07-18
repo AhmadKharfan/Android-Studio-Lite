@@ -23,10 +23,9 @@ object IdeEnvironment {
                 File(prefix, "lib").absolutePath,
                 context.applicationInfo.nativeLibraryDir,
             ).joinToString(File.pathSeparator))
-            put("PATH", listOf(
-                File(prefix, "bin").absolutePath,
-                "/system/bin",
-            ).joinToString(File.pathSeparator))
+            // Only the system shell is available until the Linux userland is installed; stale
+            // prefix binaries from the old on-device toolchain must not shadow it.
+            put("PATH", "/system/bin")
         }
     }
 }
