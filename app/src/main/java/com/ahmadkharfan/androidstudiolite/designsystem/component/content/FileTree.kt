@@ -6,7 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -24,10 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,12 +38,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.window.PopupProperties
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import androidx.compose.material3.MaterialTheme
 
 enum class AslGitStatus(val letter: String) { Modified("M"), Added("A"), Deleted("D"), Untracked("?"), Conflicted("!") }
 
@@ -269,39 +267,23 @@ private fun AslFileTreeActionMenu(
     onDismiss: () -> Unit,
     onSelect: (AslFileTreeAction) -> Unit,
 ) {
-    val colors = AslTheme.colors
-    DropdownMenu(
+    AslDropdownMenu(
         expanded = true,
         onDismissRequest = onDismiss,
-        modifier = Modifier.widthIn(min = 196.dp),
-        offset = if (openUpward) {
-            DpOffset(0.dp, (-8).dp)
-        } else {
-            DpOffset.Zero
-        },
-        containerColor = colors.surface,
-        shadowElevation = 8.dp,
-        tonalElevation = 0.dp,
-        border = BorderStroke(1.dp, colors.borderStrong),
-        shape = AslShape.lg,
-        properties = PopupProperties(focusable = true),
+        offset = if (openUpward) DpOffset(0.dp, (-8).dp) else DpOffset.Zero,
     ) {
         if (isDirectory) {
-            FileTreeMenuItem("New file", "file-plus-2") { onSelect(AslFileTreeAction.NewFile) }
-            FileTreeMenuItem("New folder", "folder") { onSelect(AslFileTreeAction.NewFolder) }
+            AslDropdownMenuItem(label = "New file", icon = "file-plus-2", onClick = { onSelect(AslFileTreeAction.NewFile) })
+            AslDropdownMenuItem(label = "New folder", icon = "folder", onClick = { onSelect(AslFileTreeAction.NewFolder) })
             if (canPaste) {
-                FileTreeMenuItem("Paste", "copy") { onSelect(AslFileTreeAction.Paste) }
+                AslDropdownMenuItem(label = "Paste", icon = "copy", onClick = { onSelect(AslFileTreeAction.Paste) })
             }
-            HorizontalDivider()
+            AslDropdownMenuDivider()
         }
-        FileTreeMenuItem("Rename", "pencil") { onSelect(AslFileTreeAction.Rename) }
-        FileTreeMenuItem("Copy", "copy") { onSelect(AslFileTreeAction.Copy) }
-        HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text("Delete", style = MaterialTheme.typography.bodyMedium, color = colors.error) },
-            leadingIcon = { AslIcon("trash-2", size = 16.dp, tint = colors.error) },
-            onClick = { onSelect(AslFileTreeAction.Delete) },
-        )
+        AslDropdownMenuItem(label = "Rename", icon = "pencil", onClick = { onSelect(AslFileTreeAction.Rename) })
+        AslDropdownMenuItem(label = "Copy", icon = "copy", onClick = { onSelect(AslFileTreeAction.Copy) })
+        AslDropdownMenuDivider()
+        AslDropdownMenuItem(label = "Delete", icon = "trash-2", destructive = true, onClick = { onSelect(AslFileTreeAction.Delete) })
     }
 }
 
@@ -324,16 +306,6 @@ private fun estimateTreeWidth(nodes: List<AslFileTreeNode>, depth: Int): Dp {
         node.children?.let { widest = maxOf(widest, estimateTreeWidth(it, depth + 1)) }
     }
     return widest
-}
-
-@Composable
-private fun FileTreeMenuItem(label: String, icon: String, onClick: () -> Unit) {
-    val colors = AslTheme.colors
-    DropdownMenuItem(
-        text = { Text(label, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary) },
-        leadingIcon = { AslIcon(icon, size = 16.dp, tint = colors.textSecondary) },
-        onClick = onClick,
-    )
 }
 
 private fun gitTint(status: AslGitStatus, colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme): Color = when (status) {

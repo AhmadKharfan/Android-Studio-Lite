@@ -1,20 +1,14 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.buttons
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 
 sealed interface AslOverflowMenuEntry {
     data class Item(
@@ -34,7 +28,6 @@ fun AslOverflowMenu(
     onSelect: (AslOverflowMenuEntry.Item, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = AslTheme.colors
     var open by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
@@ -44,37 +37,18 @@ fun AslOverflowMenu(
             active = open,
             onClick = { open = !open },
         )
-        DropdownMenu(
+        AslDropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
-            containerColor = colors.surface,
-            shadowElevation = 8.dp,
-            tonalElevation = 0.dp,
-            border = BorderStroke(1.dp, colors.borderStrong),
         ) {
             items.forEachIndexed { index, entry ->
                 when (entry) {
-                    is AslOverflowMenuEntry.Divider -> HorizontalDivider()
-                    is AslOverflowMenuEntry.Item -> DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = entry.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (entry.destructive) colors.error else colors.textPrimary,
-                            )
-                        },
-                        leadingIcon = entry.icon?.let { iconName ->
-                            {
-                                AslIcon(
-                                    name = iconName,
-                                    size = 16.dp,
-                                    tint = if (entry.destructive) colors.error else colors.textSecondary,
-                                )
-                            }
-                        },
-                        trailingIcon = entry.shortcut?.let { shortcut ->
-                            { Text(text = shortcut, style = MaterialTheme.typography.labelSmall, color = colors.textTertiary) }
-                        },
+                    is AslOverflowMenuEntry.Divider -> AslDropdownMenuDivider()
+                    is AslOverflowMenuEntry.Item -> AslDropdownMenuItem(
+                        label = entry.label,
+                        icon = entry.icon,
+                        shortcut = entry.shortcut,
+                        destructive = entry.destructive,
                         enabled = !entry.disabled,
                         onClick = {
                             open = false

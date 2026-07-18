@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.buttons
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -74,18 +73,14 @@ fun AslSplitButton(
                 AslIcon(name = if (open) "chevron-up" else "chevron-down", size = 16.dp, tint = contentColor)
             }
         }
-        DropdownMenu(
+        AslDropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
-            containerColor = colors.surface,
-            shadowElevation = 8.dp,
-            tonalElevation = 0.dp,
-            border = BorderStroke(1.dp, colors.borderStrong),
         ) {
             items.forEachIndexed { index, item ->
-                DropdownMenuItem(
-                    text = { Text(item.label) },
-                    leadingIcon = item.icon?.let { iconName -> { AslIcon(name = iconName, size = 16.dp, tint = colors.textSecondary) } },
+                AslDropdownMenuItem(
+                    label = item.label,
+                    icon = item.icon,
                     onClick = {
                         open = false
                         onSelect(item, index)

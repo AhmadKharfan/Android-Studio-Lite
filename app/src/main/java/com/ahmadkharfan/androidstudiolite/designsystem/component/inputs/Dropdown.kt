@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.inputs
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
@@ -77,18 +76,14 @@ fun AslDropdown(
                 )
                 AslIcon(name = if (open) "chevron-up" else "chevron-down", size = 16.dp, tint = colors.textTertiary)
             }
-            DropdownMenu(
+            AslDropdownMenu(
                 expanded = open,
                 onDismissRequest = { open = false },
-                containerColor = colors.surface,
-                shadowElevation = 8.dp,
-                tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, colors.borderStrong),
             ) {
                 options.forEach { option ->
                     val selected = option.value == value
-                    DropdownMenuItem(
-                        text = { Text(option.label, color = colors.textPrimary) },
+                    AslDropdownMenuItem(
+                        label = option.label,
                         trailingIcon = if (selected) {
                             { AslIcon(name = "check", size = 16.dp, tint = colors.accentPrimary) }
                         } else {

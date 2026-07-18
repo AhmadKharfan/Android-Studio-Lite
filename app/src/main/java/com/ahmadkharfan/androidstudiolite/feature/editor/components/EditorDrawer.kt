@@ -7,18 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +27,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFile
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTreeNode
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslGitStatus
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSkeleton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSkeletonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolRail
@@ -41,7 +36,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatRoute
@@ -355,7 +349,6 @@ private fun EditorToolPanelContent(
 
 @Composable
 private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
-    val colors = com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme.colors
     var open by remember { mutableStateOf(false) }
     Box {
         AslIconButton(
@@ -366,31 +359,21 @@ private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
             size = 32.dp,
             iconSize = 16.dp,
         )
-        DropdownMenu(
+        AslDropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
-            modifier = Modifier.widthIn(min = 196.dp),
-            containerColor = colors.surface,
-            shadowElevation = 8.dp,
-            tonalElevation = 0.dp,
-            border = BorderStroke(1.dp, colors.borderStrong),
-            shape = AslShape.lg,
         ) {
-            DropdownMenuItem(
-                text = { Text("New file", style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary) },
-                leadingIcon = {
-                    com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon("file-plus-2", size = 16.dp, tint = colors.textSecondary)
-                },
+            AslDropdownMenuItem(
+                label = "New file",
+                icon = "file-plus-2",
                 onClick = {
                     open = false
                     onCreate(EditorFileCreateKind.File)
                 },
             )
-            DropdownMenuItem(
-                text = { Text("New folder", style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary) },
-                leadingIcon = {
-                    com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon("folder", size = 16.dp, tint = colors.textSecondary)
-                },
+            AslDropdownMenuItem(
+                label = "New folder",
+                icon = "folder",
                 onClick = {
                     open = false
                     onCreate(EditorFileCreateKind.Folder)
