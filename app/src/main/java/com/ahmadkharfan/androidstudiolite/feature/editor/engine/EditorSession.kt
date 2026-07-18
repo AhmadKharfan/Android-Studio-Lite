@@ -23,7 +23,6 @@ class EditorSession(
         private set
     var revision: Int = 0
         private set
-    var diagnostics: List<Diagnostic> = emptyList()
     var onChange: (() -> Unit)? = null
     init {
         tokenizeAll()
