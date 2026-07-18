@@ -55,9 +55,11 @@ object AslTheme {
 @Composable
 fun AslAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    accentId: String = "emerald",
     content: @Composable () -> Unit,
 ) {
-    val aslColors = if (darkTheme) AslDarkColors else AslLightColors
+    val base = if (darkTheme) AslDarkColors else AslLightColors
+    val aslColors = base.withAccent(accentColorsFor(accentId, darkTheme))
     CompositionLocalProvider(LocalAslColors provides aslColors) {
         MaterialTheme(
             colorScheme = colorScheme(aslColors, darkTheme),
