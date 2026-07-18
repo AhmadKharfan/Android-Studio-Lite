@@ -94,6 +94,40 @@
     <string name="settings_terminal_sub">Shell, extra keys</string>
     <string name="settings_about">About</string>
 
+    <!-- AI Agent -->
+    <string name="ai_agent_enable">Enable AI Agent</string>
+    <string name="ai_agent_auto_apply">Auto-apply changes (no confirmation)</string>
+    <string name="ai_agent_instructions">Instructions</string>
+    <string name="ai_chat_title">AI Agent</string>
+    <string name="ai_chat_input_hint">Ask the AI agent…</string>
+    <string name="ai_chat_send">Send</string>
+    <string name="ai_chat_typing">AI is working…</string>
+    <string name="ai_chat_no_provider_title">No AI provider configured</string>
+    <string name="ai_chat_no_provider_sub">Add and validate an API key in Settings to start chatting.</string>
+    <string name="ai_chat_open_settings">Open AI Agent settings</string>
+    <string name="ai_chat_auto_apply_on">Auto-apply on — tap to require approval</string>
+    <string name="ai_chat_auto_apply_off">Approval required — tap to auto-apply</string>
+    <string name="ai_tool_approve">Approve</string>
+    <string name="ai_tool_reject">Reject</string>
+    <string name="ai_chat_new_chat">New chat</string>
+    <string name="ai_chat_history">Chat history</string>
+    <string name="ai_chat_delete_chat">Delete chat</string>
+    <string name="ai_chat_history_empty_title">No saved chats</string>
+    <string name="ai_chat_history_empty_sub">Start a conversation and it will appear here.</string>
+    <string name="ai_chat_controls_title">Chat controls</string>
+    <string name="ai_chat_mode">Mode</string>
+    <string name="ai_chat_mode_agent">Agent</string>
+    <string name="ai_chat_mode_ask">Ask</string>
+    <string name="ai_chat_mode_plan">Plan</string>
+    <string name="ai_chat_mode_agent_desc">Reads and edits files to complete the task.</string>
+    <string name="ai_chat_mode_ask_desc">Answers questions about the project. Never edits files.</string>
+    <string name="ai_chat_mode_plan_desc">Investigates and writes a step-by-step plan. Never edits files.</string>
+    <string name="ai_chat_provider">Provider</string>
+    <string name="ai_chat_model">Model</string>
+    <string name="ai_chat_custom_model">Custom model id</string>
+    <string name="ai_chat_set_model">Set</string>
+    <string name="ai_chat_refresh_models">Refresh models</string>
+
     <!-- General settings -->
     <string name="general_title">General</string>
     <string name="general_ui_mode">UI mode</string>

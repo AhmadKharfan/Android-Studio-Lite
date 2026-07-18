@@ -3,6 +3,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,19 +28,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStaggeredAppear
+import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
+import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslApiKeyCard
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslApiKeyStatus
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
@@ -129,9 +140,16 @@ private fun AiAgentEnableToggle(
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
-            label = "Enable AI Agent",
+            label = stringResource(R.string.ai_agent_enable),
             checked = uiState.enabled,
             onCheckedChange = { interactionListener.onToggleEnabled(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        AslSwitch(
+            label = stringResource(R.string.ai_agent_auto_apply),
+            checked = uiState.autoApply,
+            onCheckedChange = { interactionListener.onToggleAutoApply(it) },
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -144,15 +162,75 @@ private fun AiAgentExpandedProviderCards(
 ) {
     providers.forEachIndexed { index, provider ->
         AslStaggeredAppear(index = index) {
-            AslApiKeyCard(
-                provider = provider.name,
-                providerIcon = provider.icon,
-                description = provider.description,
-                value = provider.apiKey,
-                onValueChange = { interactionListener.onApiKeyChanged(provider.id, it) },
-                status = provider.status.toAslStatus(),
-                testing = provider.status == ApiKeyStatus.TESTING,
-                onTest = { interactionListener.onTestApiKey(provider.id) },
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AslApiKeyCard(
+                    provider = provider.name,
+                    providerIcon = provider.icon,
+                    description = provider.description,
+                    value = provider.apiKey,
+                    onValueChange = { interactionListener.onApiKeyChanged(provider.id, it) },
+                    status = provider.status.toAslStatus(),
+                    testing = provider.status == ApiKeyStatus.TESTING,
+                    errorMessage = provider.keyError,
+                    onTest = { interactionListener.onTestApiKey(provider.id) },
+                )
+                if (provider.status == ApiKeyStatus.VALID) {
+                    AiAgentModelPicker(provider = provider, interactionListener = interactionListener)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiAgentModelPicker(
+    provider: AiProviderUiModel,
+    interactionListener: AiAgentInteractionListener,
+) {
+    val colors = AslTheme.colors
+    var custom by remember(provider.selectedModel) { mutableStateOf(provider.selectedModel) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.ai_chat_model),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            AslIconButton(
+                icon = "refresh-cw",
+                contentDescription = stringResource(R.string.ai_chat_refresh_models),
+                size = 32.dp,
+                iconSize = 16.dp,
+                onClick = { interactionListener.onRefreshModels(provider.id) },
+            )
+        }
+        if (provider.availableModels.isNotEmpty()) {
+            AslDropdown(
+                options = provider.availableModels.map { AslDropdownOption(it, it) },
+                value = provider.selectedModel,
+                onValueChange = { interactionListener.onModelChanged(provider.id, it) },
+            )
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AslTextField(
+                value = custom,
+                onValueChange = { custom = it },
+                placeholder = stringResource(R.string.ai_chat_custom_model),
+                modifier = Modifier.weight(1f),
+            )
+            AslButton(
+                label = stringResource(R.string.ai_chat_set_model),
+                onClick = { if (custom.isNotBlank()) interactionListener.onModelChanged(provider.id, custom.trim()) },
+                variant = AslButtonVariant.Secondary,
+                disabled = custom.isBlank() || custom == provider.selectedModel,
             )
         }
     }
@@ -195,7 +273,7 @@ private fun AiAgentInstructionsField(
     val scope = rememberCoroutineScope()
     Column {
         Text(
-            text = "Instructions",
+            text = stringResource(R.string.ai_agent_instructions),
             style = MaterialTheme.typography.labelMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),

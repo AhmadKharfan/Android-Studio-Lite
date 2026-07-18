@@ -352,7 +352,12 @@ private fun EditorToolPanelContent(
                 onOpenStashes = onOpenGitStashes,
                 onOpenConflicts = onOpenGitConflicts,
             )
-            EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
+            EditorRailTool.AiAgent -> AiChatRoute(
+                projectId = projectId,
+                onClose = onDismiss,
+                onOpenAiAgentSettings = onOpenAiAgentSettings,
+                activeFilePath = selectedFileId,
+            )
             EditorRailTool.Variants -> VariantsRoute(
                 selectedVariant = selectedVariant,
                 onSelectVariant = onSelectVariant,

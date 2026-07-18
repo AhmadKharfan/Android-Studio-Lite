@@ -45,7 +45,7 @@ val viewModelModule = module {
         )
     }
     // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
-    viewModelOf(::AiChatViewModel)
+    viewModel { params -> AiChatViewModel(get(), get(), projectId = params.get()) }
     viewModelOf(::TerminalViewModel)
     viewModelOf(::FolderPickerViewModel)
     viewModelOf(::SettingsRootViewModel)

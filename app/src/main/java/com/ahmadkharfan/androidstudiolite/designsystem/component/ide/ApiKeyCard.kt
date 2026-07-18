@@ -41,6 +41,7 @@ fun AslApiKeyCard(
     description: String? = null,
     placeholder: String = "sk-…",
     status: AslApiKeyStatus = AslApiKeyStatus.None,
+    errorMessage: String? = null,
     onTest: () -> Unit = {},
     testing: Boolean = false,
 ) {
@@ -95,6 +96,13 @@ fun AslApiKeyCard(
                 onTrailingClick = { reveal = !reveal },
             )
             AslButton(label = "Test", onClick = onTest, variant = AslButtonVariant.Secondary, loading = testing)
+        }
+        if (status == AslApiKeyStatus.Invalid && !errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.error,
+            )
         }
     }
 }

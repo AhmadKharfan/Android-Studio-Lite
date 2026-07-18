@@ -12,6 +12,9 @@ data class AiProviderUiModel(
     val apiKey: String,
     val status: ApiKeyStatus,
     val featured: Boolean,
+    val keyError: String? = null,
+    val availableModels: List<String> = emptyList(),
+    val selectedModel: String = "",
 )
 
 @Immutable
@@ -19,4 +22,5 @@ data class AiAgentUiState(
     val enabled: Boolean = true,
     val providers: List<AiProviderUiModel> = emptyList(),
     val instructions: String = "",
+    val autoApply: Boolean = false,
 )
