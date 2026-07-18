@@ -135,7 +135,10 @@ class CloneProjectUseCaseTest {
 
     private object EmptyCredentialStore : GitCredentialStore {
         override fun credentialsForUrl(url: String): GitCredentials? = null
+        override fun credentialsForHost(host: String): GitCredentials? = null
+        override fun hasCredentials(host: String): Boolean = false
         override fun save(host: String, credentials: GitCredentials) = Unit
         override fun clear(host: String) = Unit
+        override val changes = kotlinx.coroutines.flow.emptyFlow<Unit>()
     }
 }

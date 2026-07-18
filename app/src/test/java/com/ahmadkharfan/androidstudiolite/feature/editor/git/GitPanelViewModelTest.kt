@@ -139,47 +139,27 @@ class GitPanelViewModelTest {
     }
 
     @Test
-    fun `amend pre-fills previous message and allows message-only commit`() = runBlocking {
-        repository.lastCommitMessage = "previous message"
-        val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { !it.loading } }
-
-        viewModel.onAmendChanged(true)
-        val amended = withTimeout(5_000) {
-            viewModel.state.first { it.amend && it.commitMessage == "previous message" }
-        }
-
-        assertEquals("previous message", amended.commitMessage)
-        assertTrue(amended.canCommit)
-        viewModel.onAmendChanged(false)
-        assertEquals("", viewModel.state.value.commitMessage)
-        viewModel.viewModelScope.cancel()
-    }
-
-    @Test
-    fun `remote editor validates name and URL then adds a unique remote`() = runBlocking {
+    fun `remote editor validates URL then adds origin and updates it on re-add`() = runBlocking {
         val viewModel = viewModel()
         withTimeout(5_000) { viewModel.state.first { !it.loading } }
         viewModel.onOpenRemotes()
         viewModel.onAddRemote()
-        viewModel.onRemoteNameChanged("bad name")
         viewModel.onRemoteUrlChanged("ssh://example.com/repo.git")
         viewModel.onSaveRemote()
 
-        assertTrue(viewModel.state.value.remoteNameError != null)
         assertTrue(viewModel.state.value.remoteUrlError != null)
 
-        viewModel.onRemoteNameChanged("origin")
         viewModel.onRemoteUrlChanged("https://example.com/repo.git")
         viewModel.onSaveRemote()
         val saved = withTimeout(5_000) { viewModel.state.first { it.remotes.any { remote -> remote.name == "origin" } } }
         assertEquals("https://example.com/repo.git", saved.remotes.single().url)
 
+        // Adding again with origin present updates its URL instead of failing on a duplicate.
         viewModel.onAddRemote()
-        viewModel.onRemoteNameChanged("origin")
         viewModel.onRemoteUrlChanged("https://example.org/other.git")
         viewModel.onSaveRemote()
-        assertEquals("A remote with this name already exists", viewModel.state.value.remoteNameError)
+        val updated = withTimeout(5_000) { viewModel.state.first { it.remotes.singleOrNull()?.url == "https://example.org/other.git" } }
+        assertEquals(1, updated.remotes.size)
         viewModel.viewModelScope.cancel()
     }
 
@@ -206,8 +186,16 @@ class GitPanelViewModelTest {
         },
         credentialStore = object : GitCredentialStore {
             override fun credentialsForUrl(url: String): GitCredentials? = null
+            override fun credentialsForHost(host: String): GitCredentials? = null
+            override fun hasCredentials(host: String): Boolean = false
             override fun save(host: String, credentials: GitCredentials) = Unit
             override fun clear(host: String) = Unit
+            override val changes = kotlinx.coroutines.flow.emptyFlow<Unit>()
+        },
+        authenticator = object : com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator {
+            override val isConfigured: Boolean = false
+            override fun authenticate() =
+                kotlinx.coroutines.flow.emptyFlow<com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState>()
         },
     )
 

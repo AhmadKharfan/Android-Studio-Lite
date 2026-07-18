@@ -230,7 +230,10 @@ class JGitGitRepositoryTest {
         private val byHost = mutableMapOf<String, GitCredentials>()
         override fun credentialsForUrl(url: String): GitCredentials? =
             runCatching { java.net.URI(url).host }.getOrNull()?.let { byHost[it] }
+        override fun credentialsForHost(host: String): GitCredentials? = byHost[host]
+        override fun hasCredentials(host: String): Boolean = byHost.containsKey(host)
         override fun save(host: String, credentials: GitCredentials) { byHost[host] = credentials }
         override fun clear(host: String) { byHost.remove(host) }
+        override val changes = kotlinx.coroutines.flow.emptyFlow<Unit>()
     }
 }
