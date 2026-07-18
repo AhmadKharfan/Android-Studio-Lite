@@ -18,12 +18,23 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+
+/**
+ * Shared width for every editor tool window (Project, Git, AI Agent, Variants, Assets). Matches the
+ * Project explorer: wide enough to read paths, but capped so the editor stays visible on phones.
+ */
+@Composable
+fun rememberAslToolWindowWidth(): Dp {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp.toFloat()
+    return minOf(screenWidthDp * 0.72f, 320f).dp
+}
 
 /** ToolWindowPanel.jsx — 48dp header (title + actions) + scrollable content. */
 @Composable

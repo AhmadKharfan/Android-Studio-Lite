@@ -5,7 +5,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -62,6 +64,39 @@ fun <T> AslSlideContent(
             (slideInHorizontally(AslMotion.offsetSpec()) { w -> dir * w / 4 } + fadeIn(AslMotion.enterSpec()))
                 .togetherWith(
                     slideOutHorizontally(AslMotion.offsetSpec()) { w -> -dir * w / 4 } + fadeOut(AslMotion.exitSpec()),
+                )
+        },
+        label = label,
+    ) { state ->
+        content(state)
+    }
+}
+
+/**
+ * Vertical shared-axis swap for tool-rail tab changes (Files → Git → AI Agent …). The incoming panel
+ * slides in from the direction you moved on the rail (down → from below, up → from above) with a
+ * light fade — clearer than a full crossfade and lighter than a horizontal master-detail slide.
+ */
+@Composable
+fun <T> AslToolRailContent(
+    targetState: T,
+    indexOf: (T) -> Int,
+    modifier: Modifier = Modifier,
+    label: String = "AslToolRailContent",
+    content: @Composable (T) -> Unit,
+) {
+    AnimatedContent(
+        targetState = targetState,
+        modifier = modifier,
+        transitionSpec = {
+            val from = indexOf(initialState)
+            val to = indexOf(targetState)
+            val dir = if (to >= from) 1 else -1
+            (slideInVertically(AslMotion.offsetSpec(AslMotion.fast)) { h -> dir * h / 5 } +
+                fadeIn(AslMotion.enterSpec(AslMotion.fast)))
+                .togetherWith(
+                    slideOutVertically(AslMotion.exitSpec(AslMotion.fast)) { h -> -dir * h / 5 } +
+                        fadeOut(AslMotion.exitSpec(AslMotion.fast)),
                 )
         },
         label = label,
