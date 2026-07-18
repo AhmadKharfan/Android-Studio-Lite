@@ -3,9 +3,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -13,12 +20,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
@@ -30,12 +41,14 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslApiKeySt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentInteractionListener
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentUiState
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun AiAgentSettingsRoute(
@@ -46,6 +59,7 @@ fun AiAgentSettingsRoute(
     AiAgentSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun AiAgentSettingsScreen(
     uiState: AiAgentUiState,
@@ -54,21 +68,40 @@ private fun AiAgentSettingsScreen(
 ) {
     val colors = AslTheme.colors
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
 
-    Scaffold(containerColor = colors.bgBase) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+    LaunchedEffect(expandedIds, imeBottom) {
+        if (expandedIds.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
+    Scaffold(
+        containerColor = colors.bgBase,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .aslImePadding(),
+        ) {
             AslTopAppBar(title = "AI Agent", onBack = onBack)
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .imeNestedScroll()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 AiAgentEnableToggle(uiState = uiState, interactionListener = interactionListener, colors = colors)
 
-                val expanded = uiState.providers.filter { it.featured || it.id in expandedIds }
-                val collapsed = uiState.providers.filterNot { it.featured || it.id in expandedIds }
+                val expanded = uiState.providers.filter { it.id in expandedIds }
+                val collapsed = uiState.providers.filterNot { it.id in expandedIds }
 
                 AiAgentExpandedProviderCards(providers = expanded, interactionListener = interactionListener)
                 AiAgentCollapsedProviderList(
@@ -151,12 +184,15 @@ private fun AiAgentCollapsedProviderList(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AiAgentInstructionsField(
     uiState: AiAgentUiState,
     interactionListener: AiAgentInteractionListener,
     colors: AslColorScheme,
 ) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
     Column {
         Text(
             text = "Instructions",
@@ -171,6 +207,12 @@ private fun AiAgentInstructionsField(
             cursorBrush = SolidColor(colors.accentPrimary),
             modifier = Modifier
                 .fillMaxWidth()
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged {
+                    if (it.isFocused) {
+                        scope.launch { bringIntoViewRequester.bringIntoView() }
+                    }
+                }
                 .background(colors.bgElevated, AslShape.md)
                 .border(1.dp, colors.borderStrong, AslShape.md)
                 .padding(horizontal = 12.dp, vertical = 10.dp),

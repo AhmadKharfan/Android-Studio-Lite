@@ -15,6 +15,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.createproject.components.ConfigureStep
 import com.ahmadkharfan.androidstudiolite.feature.createproject.components.SummaryStep
@@ -63,7 +64,7 @@ private fun CreateProjectScreen(
 ) {
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).aslImePadding()) {
             AslTopAppBar(
                 title = "Create project",
                 onBack = { if (uiState.step == 0) onBack() else interactionListener.onBackStep() },

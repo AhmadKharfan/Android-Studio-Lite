@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -57,7 +58,7 @@ fun AslDialog(
             exit = fadeOut(AslMotion.exitSpec()) + scaleOut(AslMotion.exitSpec(), targetScale = 0.90f),
         ) {
         Surface(
-            modifier = modifier.widthIn(max = 360.dp),
+            modifier = modifier.widthIn(max = 360.dp).aslImePadding(),
             shape = AslShape.xl,
             color = colors.surface,
             tonalElevation = 0.dp,

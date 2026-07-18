@@ -12,7 +12,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslBottomSheetSize { Peek, Half, Full }
@@ -43,7 +43,7 @@ fun AslBottomSheet(
                 .fillMaxWidth()
                 .heightIn(min = if (size == AslBottomSheetSize.Full) 600.dp else 0.dp),
         ) {
-            androidx.compose.foundation.layout.Column {
+            androidx.compose.foundation.layout.Column(modifier = Modifier.aslImePadding()) {
                 if (title != null) {
                     Text(
                         text = title,
