@@ -18,8 +18,7 @@ interface EditorInteractionListener {
     fun onRunProject()
     fun onSelectVariant(variant: String)
     fun onCancelBuild()
-    fun onBuildReleaseApk()
-    fun onBuildReleaseBundle()
+    fun onBuildRelease()
     fun onJumpToBuildProblem(problem: com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem)
     fun onSelectBottomTab(id: String)
     fun onToggleBottomPanel()
@@ -29,6 +28,7 @@ interface EditorInteractionListener {
     fun onSave()
     fun onUndo()
     fun onRedo()
+    fun onReformatCode()
     fun onSnackbarShown()
 
     /** Approves uninstalling the conflicting package, then reinstalling. Destroys that app's data. */

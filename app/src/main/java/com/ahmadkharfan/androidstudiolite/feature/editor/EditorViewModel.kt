@@ -27,6 +27,7 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.reduce
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import java.io.File
 import java.io.Closeable
@@ -43,7 +44,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
-    BottomPanelTabUiModel("logs", "App Logs", "scroll-text"),
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
@@ -132,6 +132,7 @@ class EditorViewModel(
                         editorTabSize = prefs.editorTabSize,
                         editorThemeId = prefs.editorThemeId,
                         editorFontFamily = prefs.editorFontFamily,
+                        buildOutputAab = prefs.buildOutputAab,
                     )
                 }
             },
@@ -477,8 +478,10 @@ class EditorViewModel(
     override fun onRunProject() = startBuild(variant = state.value.selectedVariant, kind = BuildKind.ASSEMBLE, install = true)
     override fun onSelectVariant(variant: String) = updateState { copy(selectedVariant = variant) }
     override fun onCancelBuild() = cancelBuild()
-    override fun onBuildReleaseApk() = startBuild(variant = "release", kind = BuildKind.ASSEMBLE, install = false)
-    override fun onBuildReleaseBundle() = startBuild(variant = "release", kind = BuildKind.BUNDLE, install = false)
+    override fun onBuildRelease() {
+        val kind = if (state.value.buildOutputAab) BuildKind.BUNDLE else BuildKind.ASSEMBLE
+        startBuild(variant = "release", kind = kind, install = false)
+    }
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
     override fun onSelectBottomTab(id: String) {
         updateState { copy(activeBottomTabId = id, bottomPanelExpanded = true) }
@@ -489,6 +492,27 @@ class EditorViewModel(
     override fun onSave() = saveActiveTab()
     override fun onUndo() = undoRedoActive { it.undo() }
     override fun onRedo() = undoRedoActive { it.redo() }
+    override fun onReformatCode() {
+        val id = state.value.activeTabId ?: return
+        val session = sessions[id] ?: return
+        val original = session.text
+        val formatted = CodeFormatter.reformat(original, state.value.editorTabSize, session.language)
+        if (formatted == original) {
+            updateState { copy(snackbarMessage = "Already formatted") }
+            return
+        }
+        session.replaceRange(0, original.length, formatted)
+        val caret = session.caretPosition
+        updateState {
+            copy(
+                tabs = tabs.map { if (it.id == id) it.copy(text = session.text, modified = true) else it },
+                caretLine = caret.line,
+                caretColumn = caret.column,
+                snackbarMessage = "Reformatted",
+            )
+        }
+        scheduleAutoSave()
+    }
     override fun onCloseProject() {
         viewModelScope.launch {
             // Persist edits before leaving the editor.

@@ -296,17 +296,16 @@ private fun EditorTopBar(
                 AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
                 AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
                 AslOverflowMenuEntry.Divider,
-                AslOverflowMenuEntry.Item("Build APK (release)", icon = "package"),
-                AslOverflowMenuEntry.Item("Build AAB (release)", icon = "package"),
+                AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package"),
                 AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Close project", icon = "x"),
             ),
             onOverflowSelect = { item, _ ->
                 when (item.label) {
                     "Find in file" -> interactionListener.onToggleFindBar()
+                    "Reformat code" -> interactionListener.onReformatCode()
                     "Close project" -> interactionListener.onCloseProject()
-                    "Build APK (release)" -> interactionListener.onBuildReleaseApk()
-                    "Build AAB (release)" -> interactionListener.onBuildReleaseBundle()
+                    uiState.releaseBuildLabel -> interactionListener.onBuildRelease()
                 }
             },
         )
@@ -489,7 +488,6 @@ private fun EditorBottomToolSection(
             activeTabId = uiState.activeBottomTabId,
             buildConsole = uiState.buildConsole,
             projectRootPath = uiState.projectRootPath,
-            appLogLines = uiState.appLogLines,
             onCancelBuild = { interactionListener.onCancelBuild() },
             onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
         )

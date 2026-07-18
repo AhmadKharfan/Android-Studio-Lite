@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.compose.runtime.Immutable
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLevel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitHeadState
@@ -46,13 +45,6 @@ data class BuildOutputLineUiModel(
     val status: String? = null,
     val duration: String? = null,
     val jumpToTabId: String? = null,
-)
-@Immutable
-data class AppLogLineUiModel(
-    val time: String,
-    val level: AslLogLevel,
-    val tag: String?,
-    val message: String,
 )
 /**
  * A build's APK couldn't install over the copy already on the device because the two are signed
@@ -134,7 +126,6 @@ data class EditorUiState(
     val findQuery: String = "",
     val findMatchCount: Int = 0,
     val findCurrentMatch: Int = 0,
-    val appLogLines: List<AppLogLineUiModel> = emptyList(),
     val isLoadingFileTree: Boolean = true,
     val autocompletePopupVisible: Boolean = false,
     val editorFontSize: Int = 13,
@@ -142,6 +133,8 @@ data class EditorUiState(
     val editorThemeId: String = "darcula",
     val editorFontFamily: String = "jetbrains",
     val selectedVariant: String = "debug",
+    /** When true, the release build produces an .aab bundle instead of an .apk (Build & Run setting). */
+    val buildOutputAab: Boolean = false,
     val caretLine: Int = 0,
     val caretColumn: Int = 0,
     val editorRevealNonce: Int = 0,
@@ -153,6 +146,8 @@ data class EditorUiState(
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }
     val gitBadge: String? get() = gitPendingChangeCount.takeIf { it > 0 }?.toString()
+    /** Label for the single release-build menu action; format follows the Build & Run output setting. */
+    val releaseBuildLabel: String get() = if (buildOutputAab) "Build AAB (release)" else "Build APK (release)"
 }
 
 internal data class EditorGitUiModel(val statusText: String?, val pendingChangeCount: Int)

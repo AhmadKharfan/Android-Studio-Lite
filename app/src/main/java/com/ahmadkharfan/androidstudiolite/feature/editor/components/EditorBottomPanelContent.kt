@@ -19,7 +19,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLogLine
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslBuildOutputLine
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTaskStatus
@@ -30,7 +29,6 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
-import com.ahmadkharfan.androidstudiolite.feature.editor.AppLogLineUiModel
 import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 
 @Composable
@@ -39,13 +37,11 @@ fun EditorBottomPanelContent(
     buildConsole: BuildConsoleState,
     modifier: Modifier = Modifier,
     projectRootPath: String = "",
-    appLogLines: List<AppLogLineUiModel> = emptyList(),
     onCancelBuild: () -> Unit = {},
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
 ) {
     when (activeTabId) {
         "build" -> BuildTab(buildConsole, onCancelBuild, onJumpToBuildProblem, modifier)
-        "logs" -> AppLogsTab(appLogLines, modifier)
         "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
         else -> AslEmptyState(
             icon = "terminal",
@@ -181,19 +177,6 @@ private fun ProblemRow(problem: BuildProblem, onJump: (BuildProblem) -> Unit) {
         Text(text = problem.message, style = AslCode.codeTiny, color = colors.textPrimary, modifier = Modifier.weight(1f))
         problem.location?.let {
             Text(text = it, style = AslCode.codeTiny, color = colors.info)
-        }
-    }
-}
-
-@Composable
-private fun AppLogsTab(appLogLines: List<AppLogLineUiModel>, modifier: Modifier) {
-    Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
-        if (appLogLines.isEmpty()) {
-            AslEmptyState(icon = "scroll-text", title = "No app logs yet", subtitle = "Run the project to see logcat output here.")
-        } else {
-            appLogLines.forEach { line ->
-                AslLogLine(time = line.time, level = line.level, tag = line.tag, message = line.message)
-            }
         }
     }
 }
