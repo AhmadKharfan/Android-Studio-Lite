@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.history
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -208,9 +210,18 @@ private fun HistoryList(
 @Composable
 private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: () -> Unit, onReset: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        graph?.let { GitGraphGutter(it) }
+        if (graph != null) {
+            GitGraphGutter(graph)
+        }
         Column(
-            Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier
+                .weight(1f)
+                .padding(
+                    start = if (graph != null) 8.dp else 16.dp,
+                    end = 16.dp,
+                    top = 12.dp,
+                    bottom = 12.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -251,6 +262,10 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
     HorizontalDivider()
 }
 
+private val GitGraphGutterWidth = 44.dp
+private val GitGraphLaneWidth = 10.dp
+private val GitGraphRowHeight = 72.dp
+
 @Composable
 private fun GitGraphGutter(row: GitGraphRow) {
     val palette = listOf(
@@ -261,31 +276,45 @@ private fun GitGraphGutter(row: GitGraphRow) {
         Color(0xFF43A047),
         Color(0xFFFF8F00),
     )
-    val laneWidth = 12.dp
-    Canvas(Modifier.width(laneWidth * row.laneCount).height(72.dp)) {
-        val step = laneWidth.toPx()
-        fun x(lane: Int) = step * lane.coerceIn(0, row.laneCount - 1) + step / 2f
-        if (row.hasIncoming) {
-            drawLine(
+    Box(
+        modifier = Modifier
+            .width(GitGraphGutterWidth)
+            .height(GitGraphRowHeight)
+            .padding(start = 12.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val laneStep = GitGraphLaneWidth.toPx()
+            val laneSpan = laneStep * row.laneCount
+            val laneOriginX = ((size.width - laneSpan) / 2f).coerceAtLeast(0f)
+            fun x(lane: Int): Float {
+                val laneIndex = lane.coerceIn(0, row.laneCount - 1)
+                return laneOriginX + laneStep * laneIndex + laneStep / 2f
+            }
+            val dotY = size.height / 2f
+            val stroke = 2.dp.toPx()
+            if (row.hasIncoming) {
+                drawLine(
+                    color = palette[row.lane % palette.size],
+                    start = Offset(x(row.lane), 0f),
+                    end = Offset(x(row.lane), dotY),
+                    strokeWidth = stroke,
+                )
+            }
+            row.edges.forEach { edge ->
+                drawLine(
+                    color = palette[edge.fromLane % palette.size],
+                    start = Offset(x(edge.fromLane), if (edge.fromLane == row.lane) dotY else 0f),
+                    end = Offset(x(edge.toLane), size.height),
+                    strokeWidth = stroke,
+                )
+            }
+            drawCircle(
                 color = palette[row.lane % palette.size],
-                start = Offset(x(row.lane), 0f),
-                end = Offset(x(row.lane), size.height / 2f),
-                strokeWidth = 2.dp.toPx(),
+                radius = if (row.collapsed) 5.dp.toPx() else 4.dp.toPx(),
+                center = Offset(x(row.lane), dotY),
             )
         }
-        row.edges.forEach { edge ->
-            drawLine(
-                color = palette[edge.fromLane % palette.size],
-                start = Offset(x(edge.fromLane), if (edge.fromLane == row.lane) size.height / 2f else 0f),
-                end = Offset(x(edge.toLane), size.height),
-                strokeWidth = 2.dp.toPx(),
-            )
-        }
-        drawCircle(
-            color = palette[row.lane % palette.size],
-            radius = if (row.collapsed) 5.dp.toPx() else 4.dp.toPx(),
-            center = Offset(x(row.lane), size.height / 2f),
-        )
     }
 }
 
