@@ -6,9 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.ahmadkharfan.androidstudiolite.data.ai.AiAgentPreferencesStore
 import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmGateway
+import com.ahmadkharfan.androidstudiolite.data.ai.ChatHistoryStore
 import com.ahmadkharfan.androidstudiolite.data.ai.EncryptedAiKeyStore
 import com.ahmadkharfan.androidstudiolite.data.ai.RealAiAgentRepository
 import com.ahmadkharfan.androidstudiolite.data.ai.RealAiChatRepository
+import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentToolExecutor
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
 import org.koin.android.ext.koin.androidContext
@@ -20,6 +22,8 @@ val aiModule = module {
     single { EncryptedAiKeyStore(androidContext()) }
     single { AiAgentPreferencesStore(androidContext().aiAgentDataStore) }
     single { AiLlmGateway() }
+    single { ChatHistoryStore(androidContext()) }
+    single { AgentToolExecutor(get(), get(), get()) }
     single<AiAgentRepository> { RealAiAgentRepository(get(), get(), get()) }
-    single<AiChatRepository> { RealAiChatRepository(get(), get(), get()) }
+    single<AiChatRepository> { RealAiChatRepository(get(), get(), get(), get(), get()) }
 }
