@@ -37,6 +37,7 @@ fun AslListItem(
     subtitle: String? = null,
     icon: String? = null,
     iconColor: Color? = null,
+    leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     divider: Boolean = true,
     selected: Boolean = false,
@@ -74,6 +75,10 @@ fun AslListItem(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (leading != null) {
+                leading()
+                Spacer(Modifier.width(4.dp))
+            }
             if (icon != null) {
                 AslIcon(
                     name = icon,
