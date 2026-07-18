@@ -41,6 +41,7 @@ class AiChatViewModel(
         tryToExecute(
             block = { aiChatRepository.sendMessage(text) },
             onSuccess = { updateState { copy(sending = false) } },
+            onError = { updateState { copy(sending = false) } },
         )
     }
 
