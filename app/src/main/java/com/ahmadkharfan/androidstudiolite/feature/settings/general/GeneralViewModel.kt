@@ -1,14 +1,17 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.general
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.locale.AppLocale
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import kotlinx.coroutines.launch
 
 class GeneralViewModel(
     private val preferencesRepository: PreferencesRepository,
-) : BaseViewModel<GeneralUiState, Nothing>(
+    private val appContext: Context,
+) : BaseViewModel<GeneralUiState, GeneralEffect>(
     initialState = GeneralUiState(),
 ), GeneralInteractionListener {
 
@@ -38,7 +41,12 @@ class GeneralViewModel(
     }
 
     override fun onLanguageChanged(language: String) {
-        viewModelScope.launch { preferencesRepository.setLanguage(language) }
+        viewModelScope.launch {
+            val normalized = AppLocale.supported(language)
+            preferencesRepository.setLanguage(normalized)
+            AppLocale.writeLanguage(appContext, normalized)
+            emitEffect(GeneralEffect.RecreateForLocale)
+        }
     }
 
     override fun onToggleAutoOpenLastProject(enabled: Boolean) {

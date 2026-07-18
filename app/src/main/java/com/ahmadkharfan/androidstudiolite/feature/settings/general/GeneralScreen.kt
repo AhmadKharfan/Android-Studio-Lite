@@ -11,12 +11,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
@@ -33,15 +38,9 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralIntera
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralUiState
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
 
-private val ACCENT_SWATCHES = listOf(
-    AslThemeSwatch("emerald", "Nordic Emerald", listOf(Color(0xFF10B981))),
-    AslThemeSwatch("fjord", "Fjord Blue", listOf(Color(0xFF3B82F6))),
-    AslThemeSwatch("amber", "Amber", listOf(Color(0xFFF59E0B))),
-)
-
-private val LANGUAGE_OPTIONS = listOf(
-    AslDropdownOption("English", "en"),
-    AslDropdownOption("العربية", "ar"),
+private val LANGUAGE_OPTIONS @Composable get() = listOf(
+    AslDropdownOption(stringResource(R.string.general_language_en), "en"),
+    AslDropdownOption(stringResource(R.string.general_language_ar), "ar"),
 )
 
 @Composable
@@ -50,6 +49,14 @@ fun GeneralRoute(
     viewModel: GeneralViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.effect.collectLatest { effect ->
+            when (effect) {
+                GeneralEffect.RecreateForLocale -> (context as? android.app.Activity)?.recreate()
+            }
+        }
+    }
     GeneralScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
@@ -62,23 +69,28 @@ private fun GeneralScreen(
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = "General", onBack = onBack)
+            AslTopAppBar(title = stringResource(R.string.general_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
+                val swatches = listOf(
+                    AslThemeSwatch("emerald", stringResource(R.string.general_accent_emerald), listOf(Color(0xFF10B981))),
+                    AslThemeSwatch("fjord", stringResource(R.string.general_accent_fjord), listOf(Color(0xFF3B82F6))),
+                    AslThemeSwatch("amber", stringResource(R.string.general_accent_amber), listOf(Color(0xFFF59E0B))),
+                )
                 GeneralUiModeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 AslThemeSwatchPicker(
-                    label = "Accent",
-                    swatches = ACCENT_SWATCHES,
+                    label = stringResource(R.string.general_accent),
+                    swatches = swatches,
                     value = uiState.accentId,
                     onValueChange = { interactionListener.onAccentChanged(it) },
                     modifier = Modifier.padding(top = 20.dp),
                 )
                 AslDropdown(
-                    label = "Language",
+                    label = stringResource(R.string.general_language),
                     value = uiState.language,
                     onValueChange = { interactionListener.onLanguageChanged(it) },
                     options = LANGUAGE_OPTIONS,
@@ -96,12 +108,12 @@ private fun GeneralUiModeSection(
     interactionListener: GeneralInteractionListener,
     colors: AslColorScheme,
 ) {
-    Text(text = "UI mode", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
+    Text(text = stringResource(R.string.general_ui_mode), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
     AslSegmentedButton(
         options = listOf(
-            AslSegmentedOption("Light", "light", "sun"),
-            AslSegmentedOption("Dark", "dark", "moon"),
-            AslSegmentedOption("System", "system", "monitor"),
+            AslSegmentedOption(stringResource(R.string.general_theme_light), "light", "sun"),
+            AslSegmentedOption(stringResource(R.string.general_theme_dark), "dark", "moon"),
+            AslSegmentedOption(stringResource(R.string.general_theme_system), "system", "monitor"),
         ),
         value = uiState.themeMode.name.lowercase(),
         onValueChange = { interactionListener.onThemeModeChanged(it.uppercase().let(AppThemeMode::valueOf)) },
@@ -124,20 +136,20 @@ private fun GeneralTogglesSection(
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
-            label = "Auto-open last project",
+            label = stringResource(R.string.general_auto_open_last),
             checked = uiState.autoOpenLastProject,
             onCheckedChange = { interactionListener.onToggleAutoOpenLastProject(it) },
             modifier = Modifier.fillMaxWidth(),
         )
         AslSwitch(
-            label = "Snowfall in December",
+            label = stringResource(R.string.general_snowfall),
             checked = uiState.snowfallEasterEgg,
             onCheckedChange = { interactionListener.onToggleSnowfallEasterEgg(it) },
             modifier = Modifier.fillMaxWidth(),
         )
     }
     Text(
-        text = "A quiet seasonal easter egg. Off by default.",
+        text = stringResource(R.string.general_snowfall_hint),
         style = MaterialTheme.typography.bodySmall,
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp),
