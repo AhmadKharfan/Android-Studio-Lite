@@ -37,8 +37,6 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootRout
 import com.ahmadkharfan.androidstudiolite.feature.settings.server.ServerSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalRoute
-import com.ahmadkharfan.androidstudiolite.feature.uidesigner.DesignerRoute
-
 @Composable
 fun AslNavHost(
     startDestination: String,
@@ -112,10 +110,6 @@ fun AslNavHost(
 
         composable(Routes.TERMINAL) {
             TerminalRoute(onBack = { navController.popBackStack() })
-        }
-
-        composable(Routes.UI_DESIGNER) {
-            DesignerRoute(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.CRASH_REPORT) {
@@ -270,7 +264,6 @@ fun AslNavHost(
         composable(Routes.SETTINGS_DEVELOPER) {
             DeveloperOptionsRoute(
                 onBack = { navController.popBackStack() },
-                onOpenUiDesigner = { navController.navigate(Routes.UI_DESIGNER) },
                 onSimulateCrash = { navController.navigate(Routes.CRASH_REPORT) },
                 onSimulateAcsMissing = { navController.navigate(Routes.ACS_MISSING) },
                 onSimulateUnsupportedDevice = { navController.navigate(Routes.blockingError("device")) },

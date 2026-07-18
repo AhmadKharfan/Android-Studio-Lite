@@ -28,7 +28,6 @@ private data class DeveloperRow(val title: String, val subtitle: String, val ico
 @Composable
 fun DeveloperOptionsRoute(
     onBack: () -> Unit,
-    onOpenUiDesigner: () -> Unit,
     onSimulateCrash: () -> Unit,
     onSimulateAcsMissing: () -> Unit,
     onSimulateUnsupportedDevice: () -> Unit,
@@ -40,7 +39,6 @@ fun DeveloperOptionsRoute(
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 DeveloperOptionsEffect.NavigateBack -> onBack()
-                DeveloperOptionsEffect.NavigateToUiDesigner -> onOpenUiDesigner()
                 DeveloperOptionsEffect.SimulateCrash -> onSimulateCrash()
                 DeveloperOptionsEffect.SimulateAcsMissing -> onSimulateAcsMissing()
                 DeveloperOptionsEffect.SimulateUnsupportedDevice -> onSimulateUnsupportedDevice()
@@ -57,7 +55,6 @@ fun DeveloperOptionsRoute(
 private fun DeveloperOptionsScreen(interactionListener: DeveloperOptionsInteractionListener) {
     val colors = AslTheme.colors
     val rows = listOf(
-        DeveloperRow("UI Designer preview", "Palette · canvas · properties", "layout", interactionListener::onOpenUiDesigner),
         DeveloperRow("Simulate crash", "Trigger the crash-recovery screen", "life-buoy", interactionListener::onSimulateCrash),
         DeveloperRow("Simulate ACS components missing", "Trigger the blocking reinstall dialog", "octagon-alert", interactionListener::onSimulateAcsMissing),
         DeveloperRow("Simulate unsupported device", "Trigger the blocking device-compat error", "smartphone", interactionListener::onSimulateUnsupportedDevice),

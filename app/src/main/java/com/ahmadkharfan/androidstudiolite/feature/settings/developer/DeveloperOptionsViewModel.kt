@@ -12,10 +12,6 @@ class DeveloperOptionsViewModel :
         emitEffect(DeveloperOptionsEffect.NavigateBack)
     }
 
-    override fun onOpenUiDesigner() {
-        emitEffect(DeveloperOptionsEffect.NavigateToUiDesigner)
-    }
-
     override fun onSimulateCrash() {
         emitEffect(DeveloperOptionsEffect.SimulateCrash)
     }

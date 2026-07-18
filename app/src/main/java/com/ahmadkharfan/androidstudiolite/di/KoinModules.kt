@@ -22,7 +22,6 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettings
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
 import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootViewModel
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalViewModel
-import com.ahmadkharfan.androidstudiolite.feature.uidesigner.DesignerViewModel
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -57,7 +56,6 @@ val viewModelModule = module {
     viewModelOf(::AiChatViewModel)
     viewModelOf(::VariantsViewModel)
     viewModelOf(::TerminalViewModel)
-    viewModelOf(::DesignerViewModel)
     viewModelOf(::FolderPickerViewModel)
     viewModelOf(::SettingsRootViewModel)
     viewModelOf(::GeneralViewModel)

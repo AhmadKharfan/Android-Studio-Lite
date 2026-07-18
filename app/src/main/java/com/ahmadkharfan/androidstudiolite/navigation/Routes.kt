@@ -44,7 +44,6 @@ object Routes {
     const val SETTINGS_DEVELOPER = "settings/developer"
 
     const val TERMINAL = "terminal"
-    const val UI_DESIGNER = "uiDesigner"
     const val CRASH_REPORT = "crashReport"
     const val FOLDER_PICKER = "folderPicker"
     const val ACS_MISSING = "acsMissing"
