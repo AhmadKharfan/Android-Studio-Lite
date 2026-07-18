@@ -212,19 +212,7 @@ private fun BuildRunAfterBuildSection(
             onCheckedChange = { interactionListener.onToggleLaunchAfterInstall(it) },
             modifier = Modifier.fillMaxWidth(),
         )
-        AslSwitch(
-            label = "Install via Shizuku",
-            checked = uiState.installViaShizuku,
-            onCheckedChange = { interactionListener.onToggleInstallViaShizuku(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
-    Text(
-        text = "Shizuku installs APKs silently without the system prompt. Requires the Shizuku service.",
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.textTertiary,
-        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
-    )
 }
 
 @Composable

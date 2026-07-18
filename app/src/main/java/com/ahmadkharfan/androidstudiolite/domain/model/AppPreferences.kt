@@ -14,7 +14,6 @@ data class AppPreferences(
     val editorTabSize: Int = 4,
     val editorAutoSave: Boolean = true,
     val launchAfterInstall: Boolean = true,
-    val installViaShizuku: Boolean = false,
     /** When true, release builds produce an Android App Bundle (.aab) instead of an APK. */
     val buildOutputAab: Boolean = false,
     /**

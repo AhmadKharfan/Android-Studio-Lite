@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 
 interface BuildRunInteractionListener {
     fun onToggleLaunchAfterInstall(enabled: Boolean)
-    fun onToggleInstallViaShizuku(enabled: Boolean)
     fun onToggleAabOutput(enabled: Boolean)
     fun onTogglePreferGitSource(enabled: Boolean)
 

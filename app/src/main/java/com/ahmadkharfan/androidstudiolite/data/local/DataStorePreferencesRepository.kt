@@ -75,7 +75,6 @@ class DataStorePreferencesRepository(
             editorTabSize = this[EDITOR_TAB_SIZE] ?: defaults.editorTabSize,
             editorAutoSave = this[EDITOR_AUTO_SAVE] ?: defaults.editorAutoSave,
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
-            installViaShizuku = this[INSTALL_VIA_SHIZUKU] ?: defaults.installViaShizuku,
             buildOutputAab = this[BUILD_OUTPUT_AAB] ?: defaults.buildOutputAab,
             preferGitSource = this[PREFER_GIT_SOURCE] ?: defaults.preferGitSource,
         )
@@ -94,7 +93,6 @@ class DataStorePreferencesRepository(
         this[EDITOR_TAB_SIZE] = value.editorTabSize
         this[EDITOR_AUTO_SAVE] = value.editorAutoSave
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
-        this[INSTALL_VIA_SHIZUKU] = value.installViaShizuku
         this[BUILD_OUTPUT_AAB] = value.buildOutputAab
         this[PREFER_GIT_SOURCE] = value.preferGitSource
     }
@@ -111,7 +109,6 @@ class DataStorePreferencesRepository(
         val EDITOR_TAB_SIZE = intPreferencesKey("editor_tab_size")
         val EDITOR_AUTO_SAVE = booleanPreferencesKey("editor_auto_save")
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
-        val INSTALL_VIA_SHIZUKU = booleanPreferencesKey("install_via_shizuku")
         val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")
         val PREFER_GIT_SOURCE = booleanPreferencesKey("prefer_git_source")
     }

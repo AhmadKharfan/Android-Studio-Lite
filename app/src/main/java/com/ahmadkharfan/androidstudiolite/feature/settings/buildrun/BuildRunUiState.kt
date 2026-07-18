@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class BuildRunUiState(
     val launchAfterInstall: Boolean = true,
-    val installViaShizuku: Boolean = false,
     /** Release builds emit an .aab bundle instead of an .apk. */
     val buildOutputAab: Boolean = false,
     /**

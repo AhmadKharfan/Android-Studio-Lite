@@ -23,7 +23,6 @@ class BuildRunViewModel(
                 updateState {
                     copy(
                         launchAfterInstall = prefs.launchAfterInstall,
-                        installViaShizuku = prefs.installViaShizuku,
                         buildOutputAab = prefs.buildOutputAab,
                         preferGitSource = prefs.preferGitSource,
                     )
@@ -48,10 +47,6 @@ class BuildRunViewModel(
 
     override fun onToggleLaunchAfterInstall(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.update { it.copy(launchAfterInstall = enabled) } }
-    }
-
-    override fun onToggleInstallViaShizuku(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.update { it.copy(installViaShizuku = enabled) } }
     }
 
     override fun onToggleAabOutput(enabled: Boolean) {

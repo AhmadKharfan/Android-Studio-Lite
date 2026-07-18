@@ -93,7 +93,7 @@ class DataStorePreferencesRepositoryTest {
             editorTabSize = 2,
             editorAutoSave = false,
             launchAfterInstall = false,
-            installViaShizuku = true,
+            buildOutputAab = true,
         )
 
         withRepository { it.update { expected } }
