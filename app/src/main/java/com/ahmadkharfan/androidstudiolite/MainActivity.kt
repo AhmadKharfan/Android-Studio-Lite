@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.ahmadkharfan.androidstudiolite.core.locale.AppLocale
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.SnowfallOverlay
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
@@ -44,6 +45,12 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
             startDestination = if (onboardingComplete) Routes.HUB else Routes.ONBOARDING_WELCOME
+            val preferredLanguage = preferencesRepository.observePreferences().first().language
+            val syncLanguage = AppLocale.readLanguage(this@MainActivity)
+            if (AppLocale.supported(preferredLanguage) != syncLanguage) {
+                AppLocale.writeLanguage(this@MainActivity, preferredLanguage)
+                recreate()
+            }
         }
 
         enableEdgeToEdge()
