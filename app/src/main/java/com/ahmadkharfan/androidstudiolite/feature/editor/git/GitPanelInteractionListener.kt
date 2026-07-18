@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 
-interface GitPanelInteractionListener {
+interface GitPanelInteractionListener : GitAuthPromptActions {
     fun onSelectChange(path: String, target: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget)
     fun onCloseDiff()
     fun onStage(path: String)
@@ -10,7 +10,6 @@ interface GitPanelInteractionListener {
     fun onStageAll()
     fun onUnstageAll()
     fun onCommitMessageChanged(message: String)
-    fun onAmendChanged(amend: Boolean)
     fun onCommit()
     fun onCommitAndPush()
     fun onOpenAuthorDialog()
@@ -67,8 +66,4 @@ interface GitPanelInteractionListener {
     fun onStageSelected()
     fun onUnstageSelected()
     fun onRevertSelected()
-    fun onRemoteTokenChanged(token: String)
-    fun onAuthTokenChanged(token: String)
-    fun onSubmitAuthToken()
-    fun onDismissAuthPrompt()
 }

@@ -1,16 +1,21 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.refs
 
+import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
-import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
 import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptState
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
 import java.net.URI
@@ -30,9 +35,7 @@ data class GitRefsUiState(
     val syncing: Boolean = false,
     val ahead: Int? = null,
     val behind: Int? = null,
-    val authPromptVisible: Boolean = false,
-    val authPromptToken: String = "",
-    val authPromptHost: String? = null,
+    val authPrompt: GitAuthPromptState = GitAuthPromptState(),
 )
 
 class GitRefsViewModel(
@@ -41,7 +44,10 @@ class GitRefsViewModel(
     projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
     private val credentialStore: GitCredentialStore,
-) : BaseViewModel<GitRefsUiState, Nothing>(GitRefsUiState(mode)) {
+    private val authenticator: GitHubDeviceAuthenticator,
+) : BaseViewModel<GitRefsUiState, Nothing>(
+    GitRefsUiState(mode, authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
+), GitAuthPromptActions {
     private data class LoadedRefs(
         val branches: List<GitBranch> = emptyList(),
         val tags: List<GitTag> = emptyList(),
@@ -49,6 +55,13 @@ class GitRefsViewModel(
     )
 
     private var repoDir: File? = null
+
+    private val authController = GitAuthController(
+        scope = viewModelScope,
+        credentialStore = credentialStore,
+        authenticator = authenticator,
+        emit = { prompt -> updateState { copy(authPrompt = prompt) } },
+    )
 
     init {
         tryToExecute(
@@ -119,7 +132,7 @@ class GitRefsViewModel(
     fun dismissForceDelete() = updateState { copy(forceDeleteCandidate = null) }
 
     fun publish(name: String) {
-        syncOp(retry = { publish(name) }) { gitRepository.publishBranch(requireRoot(), name).detail }
+        ensureRemoteAuth { syncOp(retry = { publish(name) }) { gitRepository.publishBranch(requireRoot(), name).detail } }
     }
 
     /** Merges [name] into the current branch. Conflicts leave the working tree for the Changes panel. */
@@ -136,18 +149,18 @@ class GitRefsViewModel(
     }
 
     fun fetch() {
-        syncOp(retry = ::fetch) { gitRepository.fetch(requireRoot()).detail }
+        ensureRemoteAuth { syncOp(retry = ::fetch) { gitRepository.fetch(requireRoot()).detail } }
     }
 
     fun pull(mode: PullMode) {
-        syncOp(retry = { pull(mode) }) { gitRepository.pull(requireRoot(), mode).detail }
+        ensureRemoteAuth { syncOp(retry = { pull(mode) }) { gitRepository.pull(requireRoot(), mode).detail } }
     }
 
     fun push() {
-        syncOp(retry = ::push) { gitRepository.push(requireRoot()).detail }
+        ensureRemoteAuth { syncOp(retry = ::push) { gitRepository.push(requireRoot()).detail } }
     }
 
-    /** Runs a network sync, showing the token prompt (then retrying) when it fails with an auth error. */
+    /** Runs a network sync, re-prompting for credentials (then retrying) when it fails auth. */
     private fun syncOp(retry: () -> Unit, block: suspend () -> String) {
         if (state.value.syncing) return
         updateState { copy(syncing = true, error = null, syncMessage = null) }
@@ -162,37 +175,41 @@ class GitRefsViewModel(
         )
     }
 
-    private var pendingAuthRetry: (() -> Unit)? = null
-
-    private fun promptForAuth(retry: () -> Unit) {
-        pendingAuthRetry = retry
+    /**
+     * Requires GitHub credentials before any remote op. When the origin host has no stored token the
+     * auth prompt opens first, retrying [run] once signed in; a local/file remote runs immediately.
+     */
+    private fun ensureRemoteAuth(run: () -> Unit) {
+        if (state.value.syncing) return
         tryToExecute(
-            block = {
-                val remotes = gitRepository.listRemotes(requireRoot())
-                (remotes.firstOrNull { it.name == "origin" } ?: remotes.firstOrNull())?.url
-                    ?.let { runCatching { URI(it.trim()).host }.getOrNull() }?.takeIf { it.isNotBlank() }
+            block = { resolveRemoteHost() },
+            onSuccess = { host ->
+                if (host == null || authController.hasCredentials(host)) run()
+                else authController.open(host, retry = run)
             },
-            onSuccess = { host -> updateState { copy(authPromptVisible = true, authPromptToken = "", authPromptHost = host) } },
-            onError = { updateState { copy(authPromptVisible = true, authPromptToken = "", authPromptHost = null) } },
+            onError = { run() },
         )
     }
 
-    fun onAuthTokenChanged(token: String) = updateState { copy(authPromptToken = token) }
-
-    fun submitAuthToken() {
-        val token = state.value.authPromptToken.trim()
-        val host = state.value.authPromptHost
-        if (token.isNotBlank() && host != null) credentialStore.save(host, GitCredentials(username = "", token = token))
-        updateState { copy(authPromptVisible = false, authPromptToken = "") }
-        val retry = pendingAuthRetry
-        pendingAuthRetry = null
-        if (token.isNotBlank()) retry?.invoke()
+    private fun promptForAuth(retry: () -> Unit) {
+        tryToExecute(
+            block = { resolveRemoteHost() },
+            onSuccess = { host -> authController.open(host, retry) },
+            onError = { authController.open(null, retry) },
+        )
     }
 
-    fun dismissAuthPrompt() {
-        pendingAuthRetry = null
-        updateState { copy(authPromptVisible = false, authPromptToken = "") }
+    private suspend fun resolveRemoteHost(): String? {
+        val remotes = gitRepository.listRemotes(requireRoot())
+        val url = (remotes.firstOrNull { it.name == "origin" } ?: remotes.firstOrNull())?.url ?: return null
+        return runCatching { URI(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() }
     }
+
+    override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
 
     fun dismissSyncMessage() = updateState { copy(syncMessage = null) }
 
@@ -202,9 +219,13 @@ class GitRefsViewModel(
 
     fun deleteTag(name: String) = runMutation { gitRepository.deleteTag(requireRoot(), name) }
 
-    fun pushTag(name: String) = runMutation { gitRepository.pushTag(requireRoot(), name) }
+    fun pushTag(name: String) = ensureRemoteAuth {
+        runMutation { gitRepository.pushTag(requireRoot(), name) }
+    }
 
-    fun pushAllTags() = runMutation { gitRepository.pushAllTags(requireRoot()) }
+    fun pushAllTags() = ensureRemoteAuth {
+        runMutation { gitRepository.pushAllTags(requireRoot()) }
+    }
 
     fun createStash(message: String?, includeUntracked: Boolean) = runMutation {
         gitRepository.stashCreate(requireRoot(), message?.takeIf { it.isNotBlank() }, includeUntracked)

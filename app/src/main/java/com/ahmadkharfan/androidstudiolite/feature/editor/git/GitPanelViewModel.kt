@@ -7,13 +7,14 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
-import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.CancellationException
@@ -29,15 +30,21 @@ class GitPanelViewModel(
     private val gitRepository: GitRepository,
     private val operationMonitor: GitOperationMonitor,
     private val credentialStore: GitCredentialStore,
+    private val authenticator: GitHubDeviceAuthenticator,
 ) : BaseViewModel<GitPanelUiState, Nothing>(
-    initialState = GitPanelUiState(),
-), GitPanelInteractionListener {
+    initialState = GitPanelUiState(authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
+), GitPanelInteractionListener, GitAuthPromptActions {
 
     @Volatile
     private var repoDir: File? = null
-    private var messageBeforeAmend = ""
     private var syncJob: Job? = null
-    private var pendingAuthRetry: (() -> Unit)? = null
+
+    private val authController = GitAuthController(
+        scope = viewModelScope,
+        credentialStore = credentialStore,
+        authenticator = authenticator,
+        emit = { prompt -> updateState { copy(authPrompt = prompt) } },
+    )
 
     init {
         tryToExecute(
@@ -45,13 +52,11 @@ class GitPanelViewModel(
                 projectPathResolver(projectId).also { gitRepository.refresh(it) }
             },
             onSuccess = { resolved ->
-                android.util.Log.e("GITDBG", "init onSuccess projectId=$projectId resolved=$resolved")
                 repoDir = resolved
                 observeRepository(resolved)
                 observeOperation(resolved)
             },
             onError = {
-                android.util.Log.e("GITDBG", "init onError projectId=$projectId", it)
                 updateState { copy(isRepository = false, loading = false, branch = "—") }
             },
         )
@@ -159,38 +164,19 @@ class GitPanelViewModel(
         tryToExecute(block = { gitRepository.setCommitMessage(repoDir, message) })
     }
 
-    override fun onAmendChanged(amend: Boolean) {
-        val repoDir = repoDir ?: return
-        if (!amend) {
-            updateState { copy(amend = false, commitMessage = messageBeforeAmend) }
-            tryToExecute(block = { gitRepository.setCommitMessage(repoDir, messageBeforeAmend) })
-            return
-        }
-        messageBeforeAmend = state.value.commitMessage
-        updateState { copy(amend = true) }
-        tryToExecute(
-            block = { gitRepository.log(repoDir, 1).firstOrNull()?.message.orEmpty() },
-            onSuccess = { message ->
-                if (state.value.amend) {
-                    updateState { copy(commitMessage = message) }
-                    tryToExecute(block = { gitRepository.setCommitMessage(repoDir, message) })
-                }
-            },
-            onError = ::showError,
-        )
-    }
-
     override fun onCommit() {
         if (!state.value.canCommit) return
         val repoDir = repoDir ?: return
         updateState { copy(committing = true) }
         tryToExecute(
-            block = { gitRepository.commit(repoDir, state.value.amend) },
+            block = {
+                stageForCommit(repoDir)
+                gitRepository.commit(repoDir, amend = false)
+            },
             onSuccess = { id ->
                 updateState {
                     copy(
                         committing = false,
-                        amend = false,
                         selectedPath = null,
                         diffLines = emptyList(),
                         statusMessage = "Committed ${id.take(7)}",
@@ -203,13 +189,33 @@ class GitPanelViewModel(
 
     override fun onCommitAndPush() {
         if (!state.value.canCommit) return
+        // Ensure remote auth BEFORE committing so the retry re-enters cleanly without double-committing.
+        ensureRemoteAuth { doCommitAndPush() }
+    }
+
+    /**
+     * Ensures the index has something to commit. If files are already staged we commit those (git's
+     * usual behaviour). Otherwise we stage the ticked files, or — when nothing is ticked — every
+     * change, so the user can just type a message and hit Commit without a separate staging step.
+     */
+    private suspend fun stageForCommit(repoDir: File) {
+        val current = state.value
+        if (current.stagedChanges.isNotEmpty()) return
+        val unstagedPaths = (current.unstagedChanges + current.untrackedChanges).map { it.path }
+        val selected = current.selectedPaths.filter { it in unstagedPaths }
+        val toStage = selected.ifEmpty { unstagedPaths }
+        toStage.forEach { gitRepository.stage(repoDir, it) }
+    }
+
+    private fun doCommitAndPush() {
+        if (!state.value.canCommit) return
         val repoDir = repoDir ?: return
-        val amend = state.value.amend
         var committedId: String? = null
         updateState { copy(committing = true) }
         val job = tryToExecute(
             block = {
-                val id = gitRepository.commit(repoDir, amend)
+                stageForCommit(repoDir)
+                val id = gitRepository.commit(repoDir, amend = false)
                 committedId = id
                 try {
                     gitRepository.push(repoDir)
@@ -221,7 +227,7 @@ class GitPanelViewModel(
                 }
             },
             onSuccess = { id ->
-                updateState { copy(committing = false, amend = false, statusMessage = "Committed and pushed ${id.take(7)}") }
+                updateState { copy(committing = false, statusMessage = "Committed and pushed ${id.take(7)}") }
             },
             onError = { error ->
                 val message = if (error is CommitSucceededPushFailed) {
@@ -229,13 +235,7 @@ class GitPanelViewModel(
                 } else {
                     gitErrorMessage(error)
                 }
-                updateState {
-                    copy(
-                        committing = false,
-                        amend = if (error is CommitSucceededPushFailed) false else amend,
-                        statusMessage = message,
-                    )
-                }
+                updateState { copy(committing = false, statusMessage = message) }
             },
         )
         job.invokeOnCompletion { error ->
@@ -244,7 +244,6 @@ class GitPanelViewModel(
                 updateState {
                     copy(
                         committing = false,
-                        amend = if (id != null) false else amend,
                         statusMessage = id?.let { "Committed ${it.take(7)}, but push was cancelled" }
                             ?: "Operation cancelled",
                     )
@@ -293,20 +292,20 @@ class GitPanelViewModel(
     override fun onPush() {
         if (state.value.busy) return
         val repoDir = repoDir ?: return
-        sync("Push") { gitRepository.push(repoDir) }
+        ensureRemoteAuth { sync("Push") { gitRepository.push(repoDir) } }
     }
 
     override fun onFetch() {
         if (state.value.busy) return
         val repoDir = repoDir ?: return
-        sync("Fetch") { gitRepository.fetch(repoDir) }
+        ensureRemoteAuth { sync("Fetch") { gitRepository.fetch(repoDir) } }
     }
 
     override fun onPull() {
         if (state.value.busy) return
         val repoDir = repoDir ?: return
         val mode = state.value.pullMode
-        sync("Pull") { gitRepository.pull(repoDir, mode) }
+        ensureRemoteAuth { sync("Pull") { gitRepository.pull(repoDir, mode) } }
     }
 
     override fun onPullModeChanged(mode: PullMode) = updateState { copy(pullMode = mode) }
@@ -321,7 +320,7 @@ class GitPanelViewModel(
     override fun onConfirmForcePush() {
         updateState { copy(forcePushConfirmVisible = false) }
         val repoDir = repoDir ?: return
-        sync("Force push") { gitRepository.pushForceWithLease(repoDir) }
+        ensureRemoteAuth { sync("Force push") { gitRepository.pushForceWithLease(repoDir) } }
     }
 
     override fun onDismissForcePush() = updateState { copy(forcePushConfirmVisible = false) }
@@ -366,35 +365,28 @@ class GitPanelViewModel(
         copy(remoteUrl = url, remoteUrlError = null)
     }
 
-    override fun onRemoteTokenChanged(token: String) = updateState { copy(remoteToken = token) }
-
     override fun onSaveRemote() {
         val repoDir = repoDir ?: return
-        val name = state.value.remoteName.trim()
-        val url = state.value.remoteUrl.trim()
         val editing = state.value.editingRemoteName
-        val nameError = when {
-            !REMOTE_NAME.matches(name) -> "Use letters, numbers, _ or -"
-            editing == null && state.value.remotes.any { it.name == name } -> "A remote with this name already exists"
-            else -> null
-        }
+        val url = state.value.remoteUrl.trim()
+        // The dialog only asks for a URL: adding always targets "origin". If origin already exists,
+        // update its URL rather than failing on a duplicate the user can't rename.
         val urlError = if (isSupportedRemoteUrl(url)) null else "Use an http(s):// or file:// URL"
-        if (nameError != null || urlError != null) {
-            updateState { copy(remoteNameError = nameError, remoteUrlError = urlError) }
+        if (urlError != null) {
+            updateState { copy(remoteUrlError = urlError) }
             return
         }
+        val originExists = state.value.remotes.any { it.name == "origin" }
         tryToExecute(
             block = {
-                if (editing == null) gitRepository.addRemote(repoDir, name, url)
-                else gitRepository.setRemoteUrl(repoDir, editing, url)
-                state.value.remoteToken.trim().takeIf { it.isNotBlank() }?.let { token ->
-                    URI(url).host?.takeIf { it.isNotBlank() }?.let { host ->
-                        credentialStore.save(host, GitCredentials(username = "", token = token))
-                    }
+                when {
+                    editing != null -> gitRepository.setRemoteUrl(repoDir, editing, url)
+                    originExists -> gitRepository.setRemoteUrl(repoDir, "origin", url)
+                    else -> gitRepository.addRemote(repoDir, "origin", url)
                 }
             },
             onSuccess = {
-                updateState { copy(remoteEditorVisible = false, remoteToken = "", statusMessage = "Remote saved") }
+                updateState { copy(remoteEditorVisible = false, statusMessage = "Remote saved") }
                 reloadRemotes()
             },
             onError = ::showError,
@@ -605,26 +597,38 @@ class GitPanelViewModel(
         updateState { copy(pendingRestorePaths = paths) }
     }
 
-    override fun onAuthTokenChanged(token: String) = updateState { copy(authPromptToken = token) }
-
-    override fun onSubmitAuthToken() {
-        val token = state.value.authPromptToken.trim()
-        val host = state.value.authPromptHost
-        if (token.isNotBlank() && host != null) {
-            credentialStore.save(host, GitCredentials(username = "", token = token))
-        }
-        updateState { copy(authPromptVisible = false, authPromptToken = "") }
-        val retry = pendingAuthRetry
-        pendingAuthRetry = null
-        if (token.isNotBlank()) retry?.invoke()
-    }
-
-    override fun onDismissAuthPrompt() {
-        pendingAuthRetry = null
-        updateState { copy(authPromptVisible = false, authPromptToken = "") }
-    }
+    // --- Unified GitHub / token auth, delegated to the shared controller ---
+    override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
 
     private fun showError(error: Throwable) = updateState { copy(statusMessage = gitErrorMessage(error)) }
+
+    /**
+     * Every remote operation requires GitHub credentials. Resolves the origin host and, when no token
+     * is stored for it, opens the auth prompt first (retrying [run] once signed in). A `file://` or
+     * absent remote (host == null) needs no auth and runs immediately.
+     */
+    private fun ensureRemoteAuth(run: () -> Unit) {
+        if (state.value.syncing || state.value.busy) return
+        tryToExecute(
+            block = { resolveRemoteHost() },
+            onSuccess = { host ->
+                if (host == null || authController.hasCredentials(host)) run()
+                else authController.open(host, retry = run)
+            },
+            onError = { run() },
+        )
+    }
+
+    private suspend fun resolveRemoteHost(): String? {
+        val dir = repoDir ?: return null
+        val remotes = gitRepository.listRemotes(dir)
+        val url = (remotes.firstOrNull { it.name == "origin" } ?: remotes.firstOrNull())?.url ?: return null
+        return runCatching { URI(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() }
+    }
 
     private fun sync(label: String, block: suspend () -> com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult) {
         if (state.value.syncing || state.value.busy) return
@@ -635,11 +639,16 @@ class GitPanelViewModel(
                 updateState { copy(syncing = false, statusMessage = "$label: ${result.detail}") }
             },
             onError = { error ->
+                updateState { copy(syncing = false) }
                 if (error is GitException.Auth) {
-                    promptForAuth { sync(label, block) }
-                    updateState { copy(syncing = false) }
+                    // Token missing/expired despite the pre-check: re-prompt and retry once provided.
+                    tryToExecute(
+                        block = { resolveRemoteHost() },
+                        onSuccess = { host -> authController.open(host) { sync(label, block) } },
+                        onError = { authController.open(null) { sync(label, block) } },
+                    )
                 } else {
-                    updateState { copy(syncing = false, statusMessage = gitErrorMessage(error)) }
+                    updateState { copy(statusMessage = gitErrorMessage(error)) }
                 }
             },
         )
@@ -648,23 +657,6 @@ class GitPanelViewModel(
                 updateState { copy(syncing = false, statusMessage = "Operation cancelled") }
             }
         }
-    }
-
-    private fun promptForAuth(retry: () -> Unit) {
-        pendingAuthRetry = retry
-        tryToExecute(
-            block = {
-                val remotes = gitRepository.listRemotes(checkNotNull(repoDir))
-                (remotes.firstOrNull { it.name == "origin" } ?: remotes.firstOrNull())?.url
-                    ?.let { runCatching { URI(it.trim()).host }.getOrNull() }?.takeIf { it.isNotBlank() }
-            },
-            onSuccess = { host ->
-                updateState { copy(authPromptVisible = true, authPromptToken = "", authPromptHost = host) }
-            },
-            onError = {
-                updateState { copy(authPromptVisible = true, authPromptToken = "", authPromptHost = null) }
-            },
-        )
     }
 
     private fun reloadRemotes() {
@@ -705,7 +697,6 @@ class GitPanelViewModel(
     }
 
     private companion object {
-        val REMOTE_NAME = Regex("[A-Za-z0-9_-]+")
         val SUPPORTED_REMOTE_SCHEMES = setOf("http", "https", "file")
         val SUPPORTED_REMOTE_PREFIXES = listOf("http://", "https://", "file://")
     }

@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslCheck
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
 import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
@@ -201,41 +201,7 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
             dismiss = viewModel::dismissForceDelete,
         )
     }
-    if (state.authPromptVisible) {
-        val uriHandler = LocalUriHandler.current
-        val host = state.authPromptHost ?: "the remote"
-        AslDialog(
-            title = "Sign in to $host",
-            variant = AslDialogVariant.Input,
-            confirmLabel = "Save & retry",
-            cancelLabel = "Cancel",
-            onDismiss = viewModel::dismissAuthPrompt,
-            onConfirm = viewModel::submitAuthToken,
-            inputContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Pushing to $host needs a GitHub personal access token with repository write " +
-                            "access. It's stored securely and reused for future push/pull.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AslTheme.colors.textSecondary,
-                    )
-                    AslTextField(
-                        value = state.authPromptToken,
-                        onValueChange = viewModel::onAuthTokenChanged,
-                        label = "Access token",
-                        placeholder = "ghp_…",
-                        type = com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType.Password,
-                    )
-                    AslButton(
-                        label = "Create a token on GitHub",
-                        onClick = { uriHandler.openUri("https://github.com/settings/tokens/new?scopes=repo&description=Android%20Studio%20Lite") },
-                        icon = "external-link",
-                        variant = AslButtonVariant.Tertiary,
-                    )
-                }
-            },
-        )
-    }
+    GitHubAuthDialog(state.authPrompt, viewModel)
     deleteTag?.let { tag ->
         ConfirmDelete(
             title = "Delete tag ${tag.name}?",

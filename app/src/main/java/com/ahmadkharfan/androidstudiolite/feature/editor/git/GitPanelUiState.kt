@@ -42,7 +42,6 @@ data class GitPanelUiState(
     val selectedDiffTarget: GitDiffTarget = GitDiffTarget.INDEX_TO_WORKTREE,
     val diffLines: List<GitDiffLineUiModel> = emptyList(),
     val commitMessage: String = "",
-    val amend: Boolean = false,
     val committing: Boolean = false,
     val authorDialogVisible: Boolean = false,
     val authorName: String = "",
@@ -63,14 +62,10 @@ data class GitPanelUiState(
     val editingRemoteName: String? = null,
     val remoteName: String = "",
     val remoteUrl: String = "",
-    /** Optional PAT entered in the remote editor; saved to the credential store on save for push/pull. */
-    val remoteToken: String = "",
     val remoteNameError: String? = null,
     val remoteUrlError: String? = null,
-    /** Shown when a push/pull fails auth: prompt for a token (keyed by [authPromptHost]) and retry. */
-    val authPromptVisible: Boolean = false,
-    val authPromptToken: String = "",
-    val authPromptHost: String? = null,
+    /** Shown before/after a remote op needs auth: collect a GitHub sign-in or token, then retry. */
+    val authPrompt: GitAuthPromptState = GitAuthPromptState(),
     val pendingRemoteRemoval: String? = null,
     val statusMessage: String? = null,
     val repositoryState: GitRepositoryState = GitRepositoryState.SAFE,
@@ -90,8 +85,14 @@ data class GitPanelUiState(
     val hasChanges: Boolean get() =
         conflicts.isNotEmpty() || stagedChanges.isNotEmpty() ||
             unstagedChanges.isNotEmpty() || untrackedChanges.isNotEmpty()
+    /**
+     * Commit is allowed when there's a message, no conflicts and something to commit. "Something" is
+     * any staged change, or — for convenience — any unstaged/untracked change (the panel auto-stages
+     * the selected files, or all changes when none are ticked, right before committing).
+     */
     val canCommit: Boolean get() = commitMessage.isNotBlank() && conflicts.isEmpty() &&
-        (stagedChanges.isNotEmpty() || amend) && !committing && !busy
+        (stagedChanges.isNotEmpty() || unstagedChanges.isNotEmpty() || untrackedChanges.isNotEmpty()) &&
+        !committing && !busy
 
     /** Distinct paths across every section (a path may be both staged and modified). */
     val allChangePaths: Set<String> get() =

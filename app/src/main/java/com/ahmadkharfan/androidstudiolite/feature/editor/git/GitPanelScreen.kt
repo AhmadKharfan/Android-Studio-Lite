@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,7 +52,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChip
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipStatus
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
@@ -184,7 +182,7 @@ private fun GitPanelScreen(
         )
     }
     if (uiState.remoteEditorVisible) RemoteEditorDialog(uiState, interactionListener)
-    if (uiState.authPromptVisible) AuthTokenPromptDialog(uiState, interactionListener)
+    GitHubAuthDialog(uiState.authPrompt, interactionListener)
     if (uiState.bootstrapVisible) BootstrapDialog(uiState, interactionListener)
     if (uiState.abortConfirmVisible) {
         AslDialog(
@@ -699,12 +697,6 @@ private fun GitCommitBox(
             onValueChange = { interactionListener.onCommitMessageChanged(it) },
             placeholder = "Commit message",
         )
-        AslSwitch(
-            checked = uiState.amend,
-            onCheckedChange = interactionListener::onAmendChanged,
-            label = "Amend previous commit",
-            disabled = uiState.committing || uiState.busy,
-        )
         // Stacked, full-width actions: at the panel's ~280dp width a side-by-side pair forces
         // "Commit & push" onto two lines. Commit is the primary action; push-too is secondary below it.
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -837,7 +829,8 @@ private fun RemoteEditorDialog(uiState: GitPanelUiState, interactionListener: Gi
         onConfirm = interactionListener::onSaveRemote,
         inputContent = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Adding always creates/updates "origin" — no name to type; only the URL (+ token).
+                // Adding always creates/updates "origin" — only the URL. Credentials are collected
+                // separately (on push/pull or in Settings → Git & GitHub) and stored per host.
                 AslTextField(
                     value = uiState.remoteUrl,
                     onValueChange = interactionListener::onRemoteUrlChanged,
@@ -845,51 +838,6 @@ private fun RemoteEditorDialog(uiState: GitPanelUiState, interactionListener: Gi
                     placeholder = "https://github.com/owner/repo.git",
                     helper = if (editing == null) "Added as the 'origin' remote." else null,
                     error = uiState.remoteUrlError,
-                )
-                AslTextField(
-                    value = uiState.remoteToken,
-                    onValueChange = interactionListener::onRemoteTokenChanged,
-                    label = "Access token (optional)",
-                    placeholder = "ghp_…",
-                    helper = "A GitHub token is needed to push/pull. Stored securely; you can add it later.",
-                    type = AslTextFieldType.Password,
-                )
-            }
-        },
-    )
-}
-
-@Composable
-private fun AuthTokenPromptDialog(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
-    val uriHandler = LocalUriHandler.current
-    val host = uiState.authPromptHost ?: "the remote"
-    AslDialog(
-        title = "Sign in to $host",
-        variant = AslDialogVariant.Input,
-        confirmLabel = "Save & retry",
-        cancelLabel = "Cancel",
-        onDismiss = interactionListener::onDismissAuthPrompt,
-        onConfirm = interactionListener::onSubmitAuthToken,
-        inputContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "Pushing to $host needs a GitHub personal access token (classic or fine-grained) with " +
-                        "repository write access. It's stored securely and reused for future push/pull.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AslTheme.colors.textSecondary,
-                )
-                AslTextField(
-                    value = uiState.authPromptToken,
-                    onValueChange = interactionListener::onAuthTokenChanged,
-                    label = "Access token",
-                    placeholder = "ghp_…",
-                    type = AslTextFieldType.Password,
-                )
-                AslButton(
-                    label = "Create a token on GitHub",
-                    onClick = { uriHandler.openUri("https://github.com/settings/tokens/new?scopes=repo&description=Android%20Studio%20Lite") },
-                    icon = "external-link",
-                    variant = AslButtonVariant.Tertiary,
                 )
             }
         },
