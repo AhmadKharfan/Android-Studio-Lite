@@ -9,7 +9,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerViewModel
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubViewModel
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteViewModel
@@ -54,7 +53,6 @@ val viewModelModule = module {
     }
     // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
     viewModelOf(::AiChatViewModel)
-    viewModelOf(::VariantsViewModel)
     viewModelOf(::TerminalViewModel)
     viewModelOf(::FolderPickerViewModel)
     viewModelOf(::SettingsRootViewModel)

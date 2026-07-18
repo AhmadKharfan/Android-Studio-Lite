@@ -5,51 +5,44 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsUiState
-import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsViewModel
 
 private val VARIANT_OPTIONS = listOf(
     AslDropdownOption("debug", "debug"),
     AslDropdownOption("release", "release"),
 )
 
+/**
+ * Build-variant picker. The selected variant is owned by the editor (it drives Run), so this panel is
+ * stateless: it reflects [selectedVariant] and reports changes through [onSelectVariant].
+ */
 @Composable
-fun VariantsRoute(onClose: () -> Unit, viewModel: VariantsViewModel = koinViewModel()) {
-    val uiState by viewModel.state.collectAsStateWithLifecycle()
-    VariantsScreen(uiState = uiState, interactionListener = viewModel, onClose = onClose)
-}
-
-@Composable
-private fun VariantsScreen(
-    uiState: VariantsUiState,
-    interactionListener: VariantsInteractionListener,
+fun VariantsRoute(
+    selectedVariant: String,
+    onSelectVariant: (String) -> Unit,
     onClose: () -> Unit,
+    module: String = "app",
 ) {
     val colors = AslTheme.colors
     AslToolWindowPanel(title = "Build Variants", width = rememberAslToolWindowWidth(), onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
             AslDropdown(
-                label = uiState.module,
-                value = uiState.selectedVariant,
+                label = module,
+                value = selectedVariant,
                 options = VARIANT_OPTIONS,
-                onValueChange = { interactionListener.onSelectVariant(it) },
+                onValueChange = onSelectVariant,
             )
             Text(
-                text = if (uiState.selectedVariant == "debug") {
-                    "Debug builds keep debugging symbols and are not optimized."
+                text = if (selectedVariant == "debug") {
+                    "Debug builds keep debugging symbols and are not optimized. Run installs this variant."
                 } else {
-                    "Release builds are minified and optimized for distribution."
+                    "Release builds are minified and optimized for distribution. Run installs this variant (release signing required)."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,
