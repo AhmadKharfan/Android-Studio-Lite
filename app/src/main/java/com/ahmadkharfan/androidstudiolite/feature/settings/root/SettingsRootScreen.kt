@@ -20,6 +20,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslList
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -41,7 +42,6 @@ fun SettingsRootRoute(
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onOpenDeveloperOptions: () -> Unit,
     viewModel: SettingsRootViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -57,7 +57,6 @@ fun SettingsRootRoute(
         onOpenGitAuth = onOpenGitAuth,
         onOpenAbout = onOpenAbout,
         onOpenTerminal = onOpenTerminal,
-        onOpenDeveloperOptions = onOpenDeveloperOptions,
     )
 }
 
@@ -71,7 +70,6 @@ private fun buildSettingsSections(
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onOpenDeveloperOptions: () -> Unit,
 ): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
         SettingsRow(stringResource(R.string.settings_general), stringResource(R.string.settings_general_sub), "sliders-horizontal", onOpenGeneral),
@@ -83,7 +81,6 @@ private fun buildSettingsSections(
         SettingsRow(stringResource(R.string.settings_terminal), stringResource(R.string.settings_terminal_sub), "terminal", onOpenTerminal),
     )
     val advancedRows = listOf(
-        SettingsRow(stringResource(R.string.settings_developer), null, "wrench", onOpenDeveloperOptions),
         SettingsRow(stringResource(R.string.settings_about), null, "info", onOpenAbout),
     )
     return listOf(stringResource(R.string.settings_section_configure) to configureRows, stringResource(R.string.settings_section_advanced) to advancedRows)
@@ -102,7 +99,6 @@ private fun SettingsRootScreen(
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onOpenDeveloperOptions: () -> Unit,
 ) {
     val colors = AslTheme.colors
     val sections = buildSettingsSections(
@@ -114,7 +110,6 @@ private fun SettingsRootScreen(
         onOpenGitAuth = onOpenGitAuth,
         onOpenAbout = onOpenAbout,
         onOpenTerminal = onOpenTerminal,
-        onOpenDeveloperOptions = onOpenDeveloperOptions,
     )
 
     Scaffold(containerColor = colors.bgBase) { padding ->
@@ -140,6 +135,7 @@ private fun SettingsRootContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .aslImePadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         AslSearchField(

@@ -64,9 +64,7 @@ class DataStorePreferencesRepositoryTest {
             repo.setEditorFontSize(21)
             repo.setEditorTheme("solarized")
             repo.setAccent("crimson")
-            repo.setLanguage("ar")
             repo.setAutoOpenLastProject(false)
-            repo.setSnowfallEasterEgg(true)
         }
 
         val reloaded = withRepository { it.observePreferences().first() }
@@ -75,9 +73,7 @@ class DataStorePreferencesRepositoryTest {
         assertEquals(21, reloaded.editorFontSize)
         assertEquals("solarized", reloaded.editorThemeId)
         assertEquals("crimson", reloaded.accentId)
-        assertEquals("ar", reloaded.language)
         assertEquals(false, reloaded.autoOpenLastProject)
-        assertEquals(true, reloaded.snowfallEasterEgg)
     }
 
     @Test
@@ -87,9 +83,7 @@ class DataStorePreferencesRepositoryTest {
             editorFontSize = 18,
             editorThemeId = "github",
             accentId = "violet",
-            language = "fr",
             autoOpenLastProject = false,
-            snowfallEasterEgg = true,
             editorTabSize = 2,
             editorAutoSave = false,
             launchAfterInstall = false,

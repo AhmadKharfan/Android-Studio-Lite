@@ -125,9 +125,8 @@ class EditorRootInvalidationTest {
         override suspend fun setEditorTheme(id: String) = Unit
         override suspend fun setEditorFontFamily(family: String) = Unit
         override suspend fun setAccent(id: String) = Unit
-        override suspend fun setLanguage(language: String) = Unit
         override suspend fun setAutoOpenLastProject(enabled: Boolean) = Unit
-        override suspend fun setSnowfallEasterEgg(enabled: Boolean) = Unit
+        override suspend fun ensureEditorThemeDefault(isDarkUi: Boolean) = Unit
         override suspend fun update(transform: (AppPreferences) -> AppPreferences) {
             preferences.value = transform(preferences.value)
         }

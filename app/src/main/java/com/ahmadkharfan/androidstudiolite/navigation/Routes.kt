@@ -41,7 +41,6 @@ object Routes {
     const val SETTINGS_GIT_AUTH = "settings/gitAuth"
     const val SETTINGS_ABOUT = "settings/about"
     const val SETTINGS_IDE_CONFIG = "settings/ideConfig"
-    const val SETTINGS_DEVELOPER = "settings/developer"
 
     const val TERMINAL = "terminal"
     const val CRASH_REPORT = "crashReport"

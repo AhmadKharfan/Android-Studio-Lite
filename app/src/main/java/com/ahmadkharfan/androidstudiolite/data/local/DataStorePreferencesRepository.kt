@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.view.EditorPalette
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -44,14 +45,16 @@ class DataStorePreferencesRepository(
     override suspend fun setAccent(id: String) =
         update { it.copy(accentId = id) }
 
-    override suspend fun setLanguage(language: String) =
-        update { it.copy(language = language) }
-
     override suspend fun setAutoOpenLastProject(enabled: Boolean) =
         update { it.copy(autoOpenLastProject = enabled) }
 
-    override suspend fun setSnowfallEasterEgg(enabled: Boolean) =
-        update { it.copy(snowfallEasterEgg = enabled) }
+    override suspend fun ensureEditorThemeDefault(isDarkUi: Boolean) {
+        dataStore.edit { prefs ->
+            if (prefs[EDITOR_THEME_ID] == null) {
+                prefs[EDITOR_THEME_ID] = EditorPalette.defaultSchemeId(isDarkUi)
+            }
+        }
+    }
 
     override suspend fun update(transform: (AppPreferences) -> AppPreferences) {
         dataStore.edit { prefs ->
@@ -69,9 +72,7 @@ class DataStorePreferencesRepository(
             editorThemeId = this[EDITOR_THEME_ID] ?: defaults.editorThemeId,
             editorFontFamily = this[EDITOR_FONT_FAMILY] ?: defaults.editorFontFamily,
             accentId = this[ACCENT_ID] ?: defaults.accentId,
-            language = this[LANGUAGE] ?: defaults.language,
             autoOpenLastProject = this[AUTO_OPEN_LAST_PROJECT] ?: defaults.autoOpenLastProject,
-            snowfallEasterEgg = this[SNOWFALL_EASTER_EGG] ?: defaults.snowfallEasterEgg,
             editorTabSize = this[EDITOR_TAB_SIZE] ?: defaults.editorTabSize,
             editorAutoSave = this[EDITOR_AUTO_SAVE] ?: defaults.editorAutoSave,
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
@@ -87,9 +88,7 @@ class DataStorePreferencesRepository(
         this[EDITOR_THEME_ID] = value.editorThemeId
         this[EDITOR_FONT_FAMILY] = value.editorFontFamily
         this[ACCENT_ID] = value.accentId
-        this[LANGUAGE] = value.language
         this[AUTO_OPEN_LAST_PROJECT] = value.autoOpenLastProject
-        this[SNOWFALL_EASTER_EGG] = value.snowfallEasterEgg
         this[EDITOR_TAB_SIZE] = value.editorTabSize
         this[EDITOR_AUTO_SAVE] = value.editorAutoSave
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
@@ -103,9 +102,7 @@ class DataStorePreferencesRepository(
         val EDITOR_THEME_ID = stringPreferencesKey("editor_theme_id")
         val EDITOR_FONT_FAMILY = stringPreferencesKey("editor_font_family")
         val ACCENT_ID = stringPreferencesKey("accent_id")
-        val LANGUAGE = stringPreferencesKey("language")
         val AUTO_OPEN_LAST_PROJECT = booleanPreferencesKey("auto_open_last_project")
-        val SNOWFALL_EASTER_EGG = booleanPreferencesKey("snowfall_easter_egg")
         val EDITOR_TAB_SIZE = intPreferencesKey("editor_tab_size")
         val EDITOR_AUTO_SAVE = booleanPreferencesKey("editor_auto_save")
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")

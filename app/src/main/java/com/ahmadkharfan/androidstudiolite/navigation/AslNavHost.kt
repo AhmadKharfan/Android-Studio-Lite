@@ -29,7 +29,6 @@ import com.ahmadkharfan.androidstudiolite.feature.onboarding.welcome.WelcomeRout
 import com.ahmadkharfan.androidstudiolite.feature.settings.about.AboutRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.buildrun.BuildRunSettingsRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.developer.DeveloperOptionsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.ideconfig.IdeConfigRoute
@@ -231,7 +230,6 @@ fun AslNavHost(
                 onOpenGitAuth = { navController.navigate(Routes.SETTINGS_GIT_AUTH) },
                 onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
                 onOpenTerminal = { navController.navigate(Routes.TERMINAL) },
-                onOpenDeveloperOptions = { navController.navigate(Routes.SETTINGS_DEVELOPER) },
             )
         }
         composable(Routes.SETTINGS_GENERAL) {
@@ -259,16 +257,6 @@ fun AslNavHost(
             IdeConfigRoute(
                 onBack = { navController.popBackStack() },
                 onOpenServerSettings = { navController.navigate(Routes.SETTINGS_SERVER) },
-            )
-        }
-        composable(Routes.SETTINGS_DEVELOPER) {
-            DeveloperOptionsRoute(
-                onBack = { navController.popBackStack() },
-                onSimulateCrash = { navController.navigate(Routes.CRASH_REPORT) },
-                onSimulateAcsMissing = { navController.navigate(Routes.ACS_MISSING) },
-                onSimulateUnsupportedDevice = { navController.navigate(Routes.blockingError("device")) },
-                onSimulateSdCardInstall = { navController.navigate(Routes.blockingError("sdcard")) },
-                onSimulateSecondaryUser = { navController.navigate(Routes.blockingError("user")) },
             )
         }
         composable(Routes.ACS_MISSING) {
