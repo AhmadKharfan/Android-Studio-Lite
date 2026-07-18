@@ -48,6 +48,10 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslProj
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBanner
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBannerTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
+import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheetSize
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSkeleton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSkeletonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSnackbar
@@ -120,6 +124,44 @@ fun HubRoute(
     )
 
     HubDialogHost(uiState = uiState, viewModel = viewModel, onBrowseFolder = onBrowseFolder)
+
+    HubProjectMenuHost(uiState = uiState, viewModel = viewModel, onOpenProject = onOpenProject)
+}
+
+@Composable
+private fun HubProjectMenuHost(
+    uiState: HubUiState,
+    viewModel: HubViewModel,
+    onOpenProject: (String) -> Unit,
+) {
+    val colors = AslTheme.colors
+    uiState.projectMenu?.let { project ->
+        AslBottomSheet(
+            onDismiss = { viewModel.dismissProjectMenu() },
+            title = project.name,
+            size = AslBottomSheetSize.Peek,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                AslListItem(
+                    title = "Open",
+                    icon = "folder-open",
+                    onClick = { viewModel.dismissProjectMenu(); onOpenProject(project.id) },
+                )
+                AslListItem(
+                    title = "Rename",
+                    icon = "pencil",
+                    onClick = { viewModel.requestRenameProject() },
+                )
+                AslListItem(
+                    title = "Delete from device",
+                    icon = "trash-2",
+                    iconColor = colors.error,
+                    divider = false,
+                    onClick = { viewModel.requestDeleteProject() },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -161,14 +203,6 @@ private fun HubDialogHost(
             onConfirm = { viewModel.confirmResumeDialog() },
             onDismiss = { viewModel.dismissResumeDialog() },
         )
-        is HubDialogUiState.UpdateAvailable -> AslDialog(
-            title = "Update available — v${dialog.toVersion}",
-            body = "${dialog.notes}\nv${dialog.fromVersion} → v${dialog.toVersion} · ${dialog.sizeMb} MB",
-            confirmLabel = "Download",
-            cancelLabel = "Later",
-            onConfirm = { viewModel.confirmUpdateDialog() },
-            onDismiss = { viewModel.dismissUpdateDialog() },
-        )
         is HubDialogUiState.InvalidFolder -> AslDialog(
             title = "Can't open folder",
             body = "${dialog.path} has no settings.gradle — it isn't a valid Android project.",
@@ -176,6 +210,29 @@ private fun HubDialogHost(
             cancelLabel = "Cancel",
             onConfirm = { viewModel.confirmInvalidFolderDialog(onReopenPicker = onBrowseFolder) },
             onDismiss = { viewModel.dismissInvalidFolderDialog() },
+        )
+        is HubDialogUiState.RenameProject -> {
+            var name by remember(dialog.id) { mutableStateOf(dialog.currentName) }
+            AslDialog(
+                title = "Rename project",
+                onDismiss = { viewModel.dismissProjectDialog() },
+                variant = AslDialogVariant.Input,
+                confirmLabel = "Rename",
+                cancelLabel = "Cancel",
+                onConfirm = { viewModel.confirmRenameProject(name) },
+                inputContent = {
+                    AslTextField(value = name, onValueChange = { name = it }, label = "Project name")
+                },
+            )
+        }
+        is HubDialogUiState.DeleteProject -> AslDialog(
+            title = "Delete ${dialog.name}?",
+            body = "This permanently deletes the project folder and all its files from this device. This can't be undone.",
+            variant = AslDialogVariant.Confirm,
+            confirmLabel = "Delete",
+            cancelLabel = "Cancel",
+            onConfirm = { viewModel.confirmDeleteProject() },
+            onDismiss = { viewModel.dismissProjectDialog() },
         )
         HubDialogUiState.None -> Unit
     }

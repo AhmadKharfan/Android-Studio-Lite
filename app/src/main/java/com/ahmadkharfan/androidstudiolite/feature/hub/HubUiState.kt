@@ -15,9 +15,11 @@ sealed interface HubDialogUiState {
     @Immutable
     data class ResumeProject(val projectId: String, val projectName: String, val path: String) : HubDialogUiState
     @Immutable
-    data class UpdateAvailable(val fromVersion: String, val toVersion: String, val sizeMb: Int, val notes: String) : HubDialogUiState
-    @Immutable
     data class InvalidFolder(val path: String) : HubDialogUiState
+    @Immutable
+    data class RenameProject(val id: String, val currentName: String) : HubDialogUiState
+    @Immutable
+    data class DeleteProject(val id: String, val name: String) : HubDialogUiState
 }
 
 sealed interface HubSheetUiState {
@@ -35,4 +37,5 @@ data class HubUiState(
     val isLoadingRecents: Boolean = true,
     val dialog: HubDialogUiState = HubDialogUiState.None,
     val sheet: HubSheetUiState = HubSheetUiState.None,
+    val projectMenu: HubProjectUiModel? = null,
 )

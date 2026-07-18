@@ -9,9 +9,6 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
 import java.util.Calendar
 
-private const val CURRENT_VERSION = "1.1.3"
-private const val LATEST_VERSION = "1.2.0"
-
 class HubViewModel(
     private val projectRepository: ProjectRepository,
 ) : BaseViewModel<HubUiState, HubEffect>(
@@ -21,7 +18,6 @@ class HubViewModel(
     private var resumeDismissed = false
     private var dialogsInitialized = false
     private var resumeDialogShown = false
-    private var updateDialogShown = false
 
     init {
         tryToCollect(
@@ -48,7 +44,40 @@ class HubViewModel(
     }
 
     override fun onProjectMenu(id: String) {
-        // No project actions menu yet.
+        val project = state.value.recentProjects.firstOrNull { it.id == id } ?: return
+        updateState { copy(projectMenu = project) }
+    }
+
+    fun dismissProjectMenu() {
+        updateState { copy(projectMenu = null) }
+    }
+
+    fun requestRenameProject() {
+        val project = state.value.projectMenu ?: return
+        updateState { copy(projectMenu = null, dialog = HubDialogUiState.RenameProject(project.id, project.name)) }
+    }
+
+    fun requestDeleteProject() {
+        val project = state.value.projectMenu ?: return
+        updateState { copy(projectMenu = null, dialog = HubDialogUiState.DeleteProject(project.id, project.name)) }
+    }
+
+    fun confirmRenameProject(newName: String) {
+        val dialog = state.value.dialog as? HubDialogUiState.RenameProject ?: return
+        val trimmed = newName.trim()
+        updateState { copy(dialog = HubDialogUiState.None) }
+        if (trimmed.isEmpty() || trimmed == dialog.currentName) return
+        viewModelScope.launch { runCatching { projectRepository.renameProject(dialog.id, trimmed) } }
+    }
+
+    fun confirmDeleteProject() {
+        val dialog = state.value.dialog as? HubDialogUiState.DeleteProject ?: return
+        updateState { copy(dialog = HubDialogUiState.None) }
+        viewModelScope.launch { runCatching { projectRepository.deleteProject(dialog.id) } }
+    }
+
+    fun dismissProjectDialog() {
+        updateState { copy(dialog = HubDialogUiState.None) }
     }
 
     override fun onResumeProject() {
@@ -104,15 +133,6 @@ class HubViewModel(
         showNextDialog(state.value.resumeProject)
     }
 
-    fun dismissUpdateDialog() {
-        updateState { copy(dialog = HubDialogUiState.None) }
-    }
-
-    /** "Confirm" (Download) is a no-op in this fake environment — there's nothing to actually download. */
-    fun confirmUpdateDialog() {
-        updateState { copy(dialog = HubDialogUiState.None) }
-    }
-
     /** Validates a folder picked via [com.ahmadkharfan.androidstudiolite.feature.folderpicker] against known project paths. */
     fun handlePickedFolder(path: String) {
         val leafName = path.substringAfterLast('/')
@@ -133,23 +153,13 @@ class HubViewModel(
         onReopenPicker()
     }
 
-    /** Shows the resume dialog once (if there's a resume candidate), then the update-available dialog once. */
+    /** Shows the resume dialog once, if there's a resume candidate. */
     private fun showNextDialog(resume: HubProjectUiModel?) {
-        val next = when {
-            resume != null && !resumeDialogShown -> {
-                resumeDialogShown = true
-                HubDialogUiState.ResumeProject(resume.id, resume.name, resume.path)
-            }
-            !updateDialogShown -> {
-                updateDialogShown = true
-                HubDialogUiState.UpdateAvailable(
-                    fromVersion = CURRENT_VERSION,
-                    toVersion = LATEST_VERSION,
-                    sizeMb = 48,
-                    notes = "Faster Gradle sync, Kotlin 2.0 support and fixes for the file tree.",
-                )
-            }
-            else -> HubDialogUiState.None
+        val next = if (resume != null && !resumeDialogShown) {
+            resumeDialogShown = true
+            HubDialogUiState.ResumeProject(resume.id, resume.name, resume.path)
+        } else {
+            HubDialogUiState.None
         }
         updateState { copy(dialog = next) }
     }
