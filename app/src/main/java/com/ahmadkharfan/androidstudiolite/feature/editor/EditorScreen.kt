@@ -672,6 +672,6 @@ private fun EditorDrawerOverlay(
         onOpenGitConflicts = gitNavigation.openConflicts,
         onCloseProject = { interactionListener.onCloseProject() },
         isLoadingFileTree = uiState.isLoadingFileTree,
-        modifier = Modifier.fillMaxSize().imePadding(),
+        modifier = Modifier.fillMaxSize(),
     )
 }

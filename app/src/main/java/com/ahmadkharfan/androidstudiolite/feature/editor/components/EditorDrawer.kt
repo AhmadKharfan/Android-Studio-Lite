@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -128,7 +129,8 @@ fun EditorDrawer(
     panelState.targetState = visible
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Dim scrim fades in/out and only intercepts touches while the drawer is present.
+        // Full-screen scrim sits behind the panel; the panel is drawn on top so taps on Git
+        // controls (commit field, ⋮ menu) never fall through to onDismiss.
         AnimatedVisibility(
             visibleState = scrimState,
             modifier = Modifier.fillMaxSize(),
@@ -142,9 +144,9 @@ fun EditorDrawer(
                     .clickable(onClick = onDismiss),
             )
         }
-        // Rail + tool panel slide in from the leading edge.
         AnimatedVisibility(
             visibleState = panelState,
+            modifier = Modifier.align(Alignment.CenterStart),
             enter = slideInHorizontally(AslMotion.offsetSpec()) { -it } + fadeIn(AslMotion.enterSpec()),
             exit = slideOutHorizontally(AslMotion.offsetSpec(AslMotion.fast)) { -it } + fadeOut(AslMotion.exitSpec()),
         ) {
