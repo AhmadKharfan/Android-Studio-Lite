@@ -1,0 +1,147 @@
+<resources>
+    <string name="app_name">Android Studio Lite</string>
+    <string name="app_tagline">ببساطة، بيئة تطوير لتطبيقات Android</string>
+    <string name="default_user_name">مطوّر</string>
+
+    <!-- Common actions -->
+    <string name="action_back">رجوع</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_close">إغلاق</string>
+    <string name="action_confirm">تأكيد</string>
+    <string name="action_continue">متابعة</string>
+    <string name="action_create">إنشاء</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_get_started">ابدأ</string>
+    <string name="action_import">استيراد</string>
+    <string name="action_later">لاحقًا</string>
+    <string name="action_not_now">ليس الآن</string>
+    <string name="action_open">فتح</string>
+    <string name="action_open_settings">فتح الإعدادات</string>
+    <string name="action_remove">إزالة</string>
+    <string name="action_rename">إعادة تسمية</string>
+    <string name="action_resume">استئناف</string>
+    <string name="action_send">إرسال</string>
+    <string name="action_test">اختبار</string>
+    <string name="action_choose_another">اختيار مجلد آخر</string>
+
+    <!-- Greetings & time -->
+    <string name="greeting_morning">صباح الخير</string>
+    <string name="greeting_afternoon">مساء الخير</string>
+    <string name="greeting_evening">مساء الخير</string>
+    <string name="greeting_user">%1$s، %2$s</string>
+    <string name="time_just_now">الآن</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="zero">منذ %d دقيقة</item>
+        <item quantity="one">منذ دقيقة واحدة</item>
+        <item quantity="two">منذ دقيقتين</item>
+        <item quantity="few">منذ %d دقائق</item>
+        <item quantity="many">منذ %d دقيقة</item>
+        <item quantity="other">منذ %d دقيقة</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="zero">منذ %d ساعة</item>
+        <item quantity="one">منذ ساعة واحدة</item>
+        <item quantity="two">منذ ساعتين</item>
+        <item quantity="few">منذ %d ساعات</item>
+        <item quantity="many">منذ %d ساعة</item>
+        <item quantity="other">منذ %d ساعة</item>
+    </plurals>
+    <string name="time_yesterday">أمس</string>
+    <plurals name="time_days_ago">
+        <item quantity="zero">منذ %d يوم</item>
+        <item quantity="one">منذ يوم واحد</item>
+        <item quantity="two">منذ يومين</item>
+        <item quantity="few">منذ %d أيام</item>
+        <item quantity="many">منذ %d يومًا</item>
+        <item quantity="other">منذ %d يوم</item>
+    </plurals>
+
+    <!-- Hub -->
+    <string name="hub_section_recent">المشاريع الأخيرة</string>
+    <string name="hub_section_start">البدء</string>
+    <string name="hub_section_more">المزيد</string>
+    <string name="hub_create_project">إنشاء مشروع</string>
+    <string name="hub_create_project_sub">من قالب</string>
+    <string name="hub_open_project">فتح مشروع</string>
+    <string name="hub_open_project_sub">تصفّح مساحة الجهاز</string>
+    <string name="hub_clone_repo">استنساخ مستودع</string>
+    <string name="hub_clone_repo_sub">GitHub أو GitLab أو أي رابط</string>
+    <string name="hub_terminal">الطرفية</string>
+    <string name="hub_ide_config">إعدادات IDE</string>
+    <string name="hub_preferences">التفضيلات</string>
+    <string name="hub_docs">الوثائق</string>
+    <string name="hub_ide_configurations">إعدادات IDE</string>
+    <string name="hub_documentation">الوثائق</string>
+    <string name="hub_resume_banner">استئناف %1$s من حيث توقفت؟</string>
+    <string name="hub_invalid_project_snackbar">ليس مشروع Android صالحًا</string>
+    <string name="hub_dialog_resume_title">فتح آخر مشروع؟</string>
+    <string name="hub_dialog_invalid_folder_title">تعذّر فتح المجلد</string>
+    <string name="hub_dialog_invalid_folder_body">%1$s لا يحتوي على settings.gradle — ليس مشروع Android صالحًا.</string>
+    <string name="hub_project_menu_open">فتح</string>
+    <string name="hub_project_menu_rename">إعادة تسمية</string>
+    <string name="hub_project_menu_delete">حذف من الجهاز</string>
+    <string name="hub_rename_project_title">إعادة تسمية المشروع</string>
+    <string name="hub_rename_project_label">اسم المشروع</string>
+    <string name="hub_delete_project_title">حذف %1$s؟</string>
+    <string name="hub_delete_project_body">سيؤدي هذا إلى حذف مجلد المشروع وجميع ملفاته من هذا الجهاز نهائيًا. لا يمكن التراجع عن ذلك.</string>
+
+    <!-- Settings root -->
+    <string name="settings_title">التفضيلات</string>
+    <string name="settings_search_placeholder">البحث في الإعدادات</string>
+    <string name="settings_section_configure">الإعداد</string>
+    <string name="settings_section_advanced">متقدّم</string>
+    <string name="settings_general">عام</string>
+    <string name="settings_general_sub">المظهر، اللغة، بدء التشغيل</string>
+    <string name="settings_editor">المحرّر</string>
+    <string name="settings_editor_sub">الخط، نظام الألوان، المسافات</string>
+    <string name="settings_ai_agent">وكيل الذكاء الاصطناعي</string>
+    <string name="settings_ai_agent_sub">المزوّدون ومفاتيح API</string>
+    <string name="settings_build_run">البناء والتشغيل</string>
+    <string name="settings_build_run_sub">التوقيع، خيارات التثبيت</string>
+    <string name="settings_git_auth">Git وGitHub</string>
+    <string name="settings_git_auth_sub">تسجيل الدخول، الرموز، المؤلف</string>
+    <string name="settings_server">خادم البناء</string>
+    <string name="settings_server_sub">رابط الخادم، رمز الجهاز</string>
+    <string name="settings_terminal">الطرفية</string>
+    <string name="settings_terminal_sub">Shell، مفاتيح إضافية</string>
+    <string name="settings_developer">خيارات المطوّر</string>
+    <string name="settings_about">حول</string>
+
+    <!-- General settings -->
+    <string name="general_title">عام</string>
+    <string name="general_ui_mode">وضع الواجهة</string>
+    <string name="general_theme_light">فاتح</string>
+    <string name="general_theme_dark">داكن</string>
+    <string name="general_theme_system">النظام</string>
+    <string name="general_accent">لون التمييز</string>
+    <string name="general_accent_emerald">زمردي nordic</string>
+    <string name="general_accent_fjord">أزرق fjord</string>
+    <string name="general_accent_amber">كهرماني</string>
+    <string name="general_language">اللغة</string>
+    <string name="general_language_en">English</string>
+    <string name="general_language_ar">العربية</string>
+    <string name="general_auto_open_last">فتح آخر مشروع تلقائيًا</string>
+    <string name="general_snowfall">ثلوج في ديسمبر</string>
+    <string name="general_snowfall_hint">مفاجأة موسمية هادئة. مغلقة افتراضيًا.</string>
+
+    <!-- About -->
+    <string name="about_title">حول</string>
+    <string name="about_github">GitHub</string>
+    <string name="about_github_sub">المصدر والمشكلات</string>
+    <string name="about_docs">الوثائق</string>
+    <string name="about_docs_sub">أدلة ومراجع</string>
+    <string name="about_email">البريد</string>
+    <string name="about_contributors">المساهمون</string>
+    <string name="about_license">برمجيات حرة · ترخيص GPLv3</string>
+    <string name="about_version">v%1$s · build %2$d</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">مرحبًا بك في\nAndroid Studio Lite</string>
+    <string name="onboarding_welcome_subtitle">ابنِ تطبيقات Android حقيقية من جهازك.</string>
+    <string name="onboarding_bullet_builds_title">بناء Gradle</string>
+    <string name="onboarding_bullet_builds_text">تعمل عمليات البناء على الخدمة السحابية؛ تُثبَّت APKs مباشرة على جهازك.</string>
+    <string name="onboarding_bullet_code_title">ذكاء الشيفرة</string>
+    <string name="onboarding_bullet_code_text">إكمال وتنقّل لـ Kotlin وJava.</string>
+    <string name="onboarding_bullet_git_ai_title">Git والذكاء الاصطناعي مدمجان</string>
+    <string name="onboarding_bullet_git_ai_text">استنساخ، commit، وتوليد شيفرة عبر وكيل الذكاء الاصطناعي.</string>
+</resources>
