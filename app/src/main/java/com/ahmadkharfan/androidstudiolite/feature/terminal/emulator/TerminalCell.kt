@@ -23,7 +23,10 @@ data class TerminalCell(
 
 /**
  * An immutable snapshot of the emulator's visible screen, safe to hand to the UI thread. [lines] is
- * row-major and always [rows] × [cols].
+ * row-major and always [rows] × [cols]. [scrollback] holds the lines that have scrolled off the top
+ * (oldest first), so the view can offer scroll-back history; it is empty while an alt-screen (TUI)
+ * app is active. Unchanged rows keep their previous list instance across snapshots (referential
+ * equality) so recomposition/redraw can skip them cheaply.
  */
 data class TerminalScreen(
     val rows: Int,
@@ -32,6 +35,7 @@ data class TerminalScreen(
     val cursorRow: Int,
     val cursorCol: Int,
     val cursorVisible: Boolean,
+    val scrollback: List<List<TerminalCell>> = emptyList(),
 ) {
     companion object {
         fun blank(rows: Int, cols: Int): TerminalScreen = TerminalScreen(
@@ -41,6 +45,7 @@ data class TerminalScreen(
             cursorRow = 0,
             cursorCol = 0,
             cursorVisible = true,
+            scrollback = emptyList(),
         )
     }
 }

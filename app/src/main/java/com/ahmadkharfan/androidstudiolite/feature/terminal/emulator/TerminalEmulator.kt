@@ -49,6 +49,19 @@ class TerminalEmulator(rows: Int, cols: Int) {
     // xterm — this is what stops a full-width line from eating a blank line.
     private var wrapPending = false
 
+    // Per-row "changed since last snapshot" flags. snapshot() reuses the previous row list for rows
+    // that stayed clean so the UI sees referential equality and can skip work.
+    private var dirtyRows = BooleanArray(this.rows) { true }
+    private var snapshotCache: Array<List<TerminalCell>>? = null
+
+    // Lines that have scrolled off the top of the screen (oldest first), capped at [scrollbackLimit].
+    // Populated only for whole-screen scrolls in the normal buffer; alt-screen apps never contribute.
+    private val scrollback = ArrayDeque<List<TerminalCell>>()
+    private var scrollbackLimit = DEFAULT_SCROLLBACK
+    private var scrollbackCache: List<List<TerminalCell>> = emptyList()
+    private var scrollbackDirty = true
+    private var altScreen = false
+
     private enum class State { GROUND, ESC, CSI, OSC, CHARSET }
 
     private var state = State.GROUND
@@ -71,15 +84,47 @@ class TerminalEmulator(rows: Int, cols: Int) {
         }
     }
 
-    /** Immutable snapshot for rendering. */
-    fun snapshot(): TerminalScreen = TerminalScreen(
-        rows = rows,
-        cols = cols,
-        lines = grid.map { it.toList() },
-        cursorRow = cursorRow,
-        cursorCol = cursorCol,
-        cursorVisible = cursorVisible,
-    )
+    /**
+     * Immutable snapshot for rendering. Rows unchanged since the previous snapshot keep their old
+     * list instance (referential equality) so the renderer can cheaply detect what changed; the
+     * scrollback list is likewise only rebuilt when it actually changed.
+     */
+    fun snapshot(): TerminalScreen {
+        val prev = snapshotCache
+        val canReuse = prev != null && prev.size == rows
+        val out = Array(rows) { r ->
+            if (canReuse && !dirtyRows[r]) prev!![r] else grid[r].toList()
+        }
+        snapshotCache = out
+        dirtyRows.fill(false)
+        return TerminalScreen(
+            rows = rows,
+            cols = cols,
+            lines = out.asList(),
+            cursorRow = cursorRow,
+            cursorCol = cursorCol,
+            cursorVisible = cursorVisible,
+            scrollback = scrollbackSnapshot(),
+        )
+    }
+
+    private fun scrollbackSnapshot(): List<List<TerminalCell>> {
+        if (scrollbackDirty) {
+            scrollbackCache = scrollback.toList()
+            scrollbackDirty = false
+        }
+        return scrollbackCache
+    }
+
+    private fun markDirty(row: Int) {
+        if (row in 0 until rows) dirtyRows[row] = true
+    }
+
+    private fun markRegionDirty(top: Int, bottom: Int) {
+        for (r in top.coerceAtLeast(0)..bottom.coerceAtMost(rows - 1)) dirtyRows[r] = true
+    }
+
+    private fun markAllDirty() = dirtyRows.fill(true)
 
     /**
      * Resize the grid to [newRows] × [newCols], preserving the top-left content and clamping the cursor
@@ -103,6 +148,8 @@ class TerminalEmulator(rows: Int, cols: Int) {
         scrollTop = 0
         scrollBottom = r - 1
         wrapPending = false
+        dirtyRows = BooleanArray(r) { true }
+        snapshotCache = null
     }
 
     // ---------------------------------------------------------------- ground state
@@ -126,6 +173,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
             wrapPending = false
         }
         grid[cursorRow][cursorCol] = TerminalCell(c, curFg, curBg, bold, underline, inverse)
+        markDirty(cursorRow)
         if (cursorCol == cols - 1) {
             wrapPending = true
         } else {
@@ -234,7 +282,9 @@ class TerminalEmulator(rows: Int, cols: Int) {
         for (mode in params) {
             when (mode) {
                 25 -> cursorVisible = enable // DECTCEM show/hide cursor
-                1049, 47, 1047 -> if (enable) clearAll() // enter/leave alt screen: give the app a clean slate
+                // Enter/leave alt screen: track it (so scroll-back isn't polluted by TUIs) and give
+                // the app a clean slate either way.
+                1049, 47, 1047 -> { altScreen = enable; clearAll() }
             }
         }
     }
@@ -271,11 +321,13 @@ class TerminalEmulator(rows: Int, cols: Int) {
             else -> 0 until cols
         }
         for (col in range) row[col] = blankCell()
+        markDirty(cursorRow)
     }
 
     private fun eraseChars(n: Int) {
         val row = grid[cursorRow]
         for (col in cursorCol until minOf(cols, cursorCol + n)) row[col] = blankCell()
+        markDirty(cursorRow)
     }
 
     private fun deleteChars(n: Int) {
@@ -284,6 +336,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
         for (col in cursorCol until cols) {
             row[col] = if (col + count < cols) row[col + count] else blankCell()
         }
+        markDirty(cursorRow)
     }
 
     private fun insertBlanks(n: Int) {
@@ -292,6 +345,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
         for (col in cols - 1 downTo cursorCol) {
             row[col] = if (col - count >= cursorCol) row[col - count] else blankCell()
         }
+        markDirty(cursorRow)
     }
 
     private fun insertLines(n: Int) {
@@ -300,6 +354,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
             for (r in scrollBottom downTo cursorRow + 1) grid[r] = grid[r - 1]
             grid[cursorRow] = blankRowArray()
         }
+        markRegionDirty(cursorRow, scrollBottom)
     }
 
     private fun deleteLines(n: Int) {
@@ -308,15 +363,19 @@ class TerminalEmulator(rows: Int, cols: Int) {
             for (r in cursorRow until scrollBottom) grid[r] = grid[r + 1]
             grid[scrollBottom] = blankRowArray()
         }
+        markRegionDirty(cursorRow, scrollBottom)
     }
 
     // ---------------------------------------------------------------- scrolling
 
     private fun scrollUp(n: Int) {
         repeat(n.coerceAtLeast(0)) {
+            // A whole-screen scroll in the normal buffer pushes the top line into scroll-back history.
+            if (scrollTop == 0 && !altScreen) pushScrollback(grid[0].toList())
             for (r in scrollTop until scrollBottom) grid[r] = grid[r + 1]
             grid[scrollBottom] = blankRowArray()
         }
+        markRegionDirty(scrollTop, scrollBottom)
     }
 
     private fun scrollDown(n: Int) {
@@ -324,6 +383,14 @@ class TerminalEmulator(rows: Int, cols: Int) {
             for (r in scrollBottom downTo scrollTop + 1) grid[r] = grid[r - 1]
             grid[scrollTop] = blankRowArray()
         }
+        markRegionDirty(scrollTop, scrollBottom)
+    }
+
+    private fun pushScrollback(line: List<TerminalCell>) {
+        if (scrollbackLimit <= 0) return
+        scrollback.addLast(line)
+        while (scrollback.size > scrollbackLimit) scrollback.removeFirst()
+        scrollbackDirty = true
     }
 
     private fun setScrollRegion(top: Int, bottom: Int) {
@@ -398,6 +465,9 @@ class TerminalEmulator(rows: Int, cols: Int) {
     private fun reset() {
         resetAttributes()
         clearAll()
+        scrollback.clear()
+        scrollbackDirty = true
+        altScreen = false
         scrollTop = 0
         scrollBottom = rows - 1
         cursorRow = 0
@@ -415,6 +485,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
 
     private fun blankRow(r: Int) {
         grid[r] = blankRowArray()
+        markDirty(r)
     }
 
     private fun blankRowArray(): Array<TerminalCell> = Array(cols) { blankCell() }
@@ -423,6 +494,9 @@ class TerminalEmulator(rows: Int, cols: Int) {
         if (curBg == DEFAULT_COLOR) TerminalCell.BLANK else TerminalCell(' ', DEFAULT_COLOR, curBg)
 
     private companion object {
+        /** Default number of scrolled-off lines to retain for scroll-back history. */
+        const val DEFAULT_SCROLLBACK = 2000
+
         fun blankGrid(rows: Int, cols: Int): Array<Array<TerminalCell>> =
             Array(rows) { Array(cols) { TerminalCell.BLANK } }
     }

@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +17,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
+import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalVolumeKeyDispatcher
 import com.ahmadkharfan.androidstudiolite.navigation.AslNavHost
 import com.ahmadkharfan.androidstudiolite.navigation.Routes
 import kotlinx.coroutines.flow.first
@@ -52,5 +54,12 @@ class MainActivity : ComponentActivity() {
                 AslNavHost(startDestination = destination)
             }
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            TerminalVolumeKeyDispatcher.handler?.invoke(event)?.takeIf { it }?.let { return true }
+        }
+        return super.dispatchKeyEvent(event)
     }
 }

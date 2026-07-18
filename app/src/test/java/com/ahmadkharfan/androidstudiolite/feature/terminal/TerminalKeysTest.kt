@@ -17,6 +17,7 @@ class TerminalKeysTest {
         assertEquals("\u0003", TerminalKeys.bytes(TerminalKey.CtrlC))
         assertEquals("\r", TerminalKeys.bytes(TerminalKey.Enter))
         assertEquals("\u007F", TerminalKeys.bytes(TerminalKey.Backspace))
+        assertEquals("\u001B[3~", TerminalKeys.bytes(TerminalKey.Delete))
         assertEquals("\u001B", TerminalKeys.bytes(TerminalKey.Escape))
     }
 

@@ -10,6 +10,7 @@ object TerminalKeys {
     fun bytes(key: TerminalKey): String = when (key) {
         TerminalKey.Enter -> "\r"
         TerminalKey.Backspace -> "\u007F" // DEL — what xterm sends for Backspace by default
+        TerminalKey.Delete -> "\u001B[3~" // forward delete (xterm)
         TerminalKey.Tab -> "\t"
         TerminalKey.Escape -> "\u001B"
         TerminalKey.ArrowUp -> "\u001B[A"

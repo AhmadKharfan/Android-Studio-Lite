@@ -2,6 +2,8 @@ package com.ahmadkharfan.androidstudiolite.feature.terminal.emulator
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -132,5 +134,37 @@ class TerminalEmulatorTest {
         term.feed("${ESC}[H")
         term.feed("${ESC}[2@") // insert 2 blanks
         assertEquals("  cdef", term.rowText(0))
+    }
+
+    @Test
+    fun snapshot_reuses_unchanged_row_instances() {
+        val term = TerminalEmulator(3, 10)
+        term.feed("a\r\nb")
+        val first = term.snapshot()
+        term.feed("c") // extends row 1 only; row 0 is untouched
+        val second = term.snapshot()
+        // Clean rows keep their previous list instance so the renderer can skip them.
+        assertSame(first.lines[0], second.lines[0])
+        assertNotSame(first.lines[1], second.lines[1])
+        assertEquals("bc", second.lines[1].joinToString("") { it.char.toString() }.trimEnd())
+    }
+
+    @Test
+    fun lines_scrolled_off_the_top_go_to_scrollback() {
+        val term = TerminalEmulator(2, 10)
+        term.feed("l1\r\nl2\r\nl3") // only 2 rows tall, so l1 scrolls off
+        val snap = term.snapshot()
+        assertEquals(1, snap.scrollback.size)
+        assertEquals("l1", snap.scrollback[0].joinToString("") { it.char.toString() }.trimEnd())
+        assertEquals("l2", snap.lines[0].joinToString("") { it.char.toString() }.trimEnd())
+        assertEquals("l3", snap.lines[1].joinToString("") { it.char.toString() }.trimEnd())
+    }
+
+    @Test
+    fun alt_screen_does_not_pollute_scrollback() {
+        val term = TerminalEmulator(2, 10)
+        term.feed("${ESC}[?1049h") // enter alt screen (e.g. a TUI app)
+        term.feed("x\r\ny\r\nz") // scrolls within the alt buffer
+        assertTrue(term.snapshot().scrollback.isEmpty())
     }
 }
