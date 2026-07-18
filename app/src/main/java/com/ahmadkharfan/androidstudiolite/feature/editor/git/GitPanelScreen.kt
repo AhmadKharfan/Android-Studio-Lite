@@ -1,4 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -55,12 +57,13 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDia
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelInteractionListener
+import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitChangeUiModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelUiState
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
@@ -130,6 +133,26 @@ private fun GitPanelScreen(
         closeIcon = if (inSubView) "arrow-left" else "x",
         closeContentDescription = if (inSubView) "Back" else "Close panel",
         scrollable = false,
+        actions = if (!inSubView && uiState.isRepository) {
+            {
+                AslIconButton(
+                    icon = "git-branch",
+                    contentDescription = "Branches",
+                    onClick = onOpenBranches,
+                    size = 32.dp,
+                    iconSize = 16.dp,
+                    disabled = uiState.busy,
+                )
+                GitActionsOverflowMenu(
+                    uiState = uiState,
+                    interactionListener = interactionListener,
+                    onOpenHistory = onOpenHistory,
+                    onOpenStashes = onOpenStashes,
+                )
+            }
+        } else {
+            null
+        },
     ) {
         if (!uiState.isRepository) {
             AslEmptyState(
@@ -161,7 +184,7 @@ private fun GitPanelScreen(
             if (state.selectedPath != null) {
                 DiffView(uiState = state, interactionListener = interactionListener, onOpenDiff = onOpenDiff)
             } else {
-                ChangesView(state, interactionListener, onOpenHistory, onOpenBranches, onOpenStashes, onOpenConflicts)
+                ChangesView(state, interactionListener, onOpenConflicts)
             }
         }
     }
@@ -226,31 +249,28 @@ private fun GitPanelScreen(
 private fun ChangesView(
     uiState: GitPanelUiState,
     interactionListener: GitPanelInteractionListener,
-    onOpenHistory: () -> Unit,
-    onOpenBranches: () -> Unit,
-    onOpenStashes: () -> Unit,
     onOpenConflicts: () -> Unit,
 ) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxSize()) {
-        GitSyncBar(uiState, interactionListener, onOpenHistory, onOpenBranches, onOpenStashes)
+        GitChangesHeader(uiState, interactionListener)
         if (uiState.repositoryState != GitRepositoryState.SAFE) {
             OperationBanner(uiState, interactionListener)
         }
-        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
         GitChangedFileList(uiState = uiState, interactionListener = interactionListener, onOpenConflicts = onOpenConflicts, modifier = Modifier.weight(1f).fillMaxSize())
         HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-        GitCommitBox(uiState = uiState, interactionListener = interactionListener)
+        GitCommitBox(
+            uiState = uiState,
+            interactionListener = interactionListener,
+            modifier = Modifier.imePadding(),
+        )
     }
 }
 
 @Composable
-private fun GitSyncBar(
+private fun GitChangesHeader(
     uiState: GitPanelUiState,
     interactionListener: GitPanelInteractionListener,
-    onOpenHistory: () -> Unit,
-    onOpenBranches: () -> Unit,
-    onOpenStashes: () -> Unit,
 ) {
     val colors = AslTheme.colors
     LaunchedEffect(uiState.statusMessage) {
@@ -259,89 +279,160 @@ private fun GitSyncBar(
             interactionListener.onStatusMessageShown()
         }
     }
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = uiState.operationLabel ?: uiState.statusMessage.orEmpty(),
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(start = 6.dp),
-            )
-            if (uiState.operationCancellable) {
-                AslIconButton(
-                    icon = "x",
-                    contentDescription = "Cancel Git operation",
-                    onClick = interactionListener::onCancelOperation,
-                    size = 32.dp,
-                    iconSize = 16.dp,
-                )
+    val statusText = uiState.operationLabel ?: uiState.statusMessage
+    if (statusText != null || uiState.busy) {
+        Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp)) {
+            if (statusText != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (uiState.operationCancellable) {
+                        AslIconButton(
+                            icon = "x",
+                            contentDescription = "Cancel Git operation",
+                            onClick = interactionListener::onCancelOperation,
+                            size = 32.dp,
+                            iconSize = 16.dp,
+                        )
+                    }
+                }
+            }
+            if (uiState.busy) {
+                AslLinearProgress(value = uiState.operationProgress, modifier = Modifier.padding(top = 4.dp, end = 4.dp))
             }
         }
-        if (uiState.busy) {
-            AslLinearProgress(value = uiState.operationProgress, modifier = Modifier.padding(horizontal = 6.dp))
-        }
+    }
+    val changeCount = uiState.stagedChanges.size + uiState.unstagedChanges.size + uiState.untrackedChanges.size
+    val hasChipRow = uiState.hasSelection || changeCount > 0 ||
+        (uiState.behind ?: 0) > 0 || (uiState.ahead ?: 0) > 0
+    if (hasChipRow) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (uiState.hasSelection) {
+                AslChip(
+                    label = "${uiState.selectionCount} selected",
+                    kind = AslChipKind.Filter,
+                    selected = true,
+                )
+                if (uiState.canStageSelection) {
+                    AslChip(
+                        label = "Stage",
+                        icon = "plus",
+                        kind = AslChipKind.Filter,
+                        disabled = uiState.busy,
+                        onClick = interactionListener::onStageSelected,
+                    )
+                }
+                if (uiState.canUnstageSelection) {
+                    AslChip(
+                        label = "Unstage",
+                        icon = "minus",
+                        kind = AslChipKind.Filter,
+                        disabled = uiState.busy,
+                        onClick = interactionListener::onUnstageSelected,
+                    )
+                }
+                if (uiState.canRevertSelection) {
+                    AslChip(
+                        label = "Revert",
+                        icon = "rotate-ccw",
+                        kind = AslChipKind.Filter,
+                        disabled = uiState.busy,
+                        onClick = interactionListener::onRevertSelected,
+                    )
+                }
+                AslChip(
+                    label = "Clear",
+                    icon = "x",
+                    kind = AslChipKind.Assist,
+                    disabled = uiState.busy,
+                    onClick = interactionListener::onClearSelection,
+                )
+            } else {
+                if (changeCount > 0) {
+                    AslChip(
+                        label = if (changeCount == 1) "1 change" else "$changeCount changes",
+                        kind = AslChipKind.Status,
+                        status = AslChipStatus.Neutral,
+                    )
+                }
                 uiState.behind?.takeIf { it > 0 }?.let {
                     AslChip(label = "↓$it", kind = AslChipKind.Status, status = AslChipStatus.Info)
                 }
                 uiState.ahead?.takeIf { it > 0 }?.let {
                     AslChip(label = "↑$it", kind = AslChipKind.Status, status = AslChipStatus.Success)
                 }
+                if (changeCount > 0) {
+                    AslChip(
+                        label = "Select",
+                        icon = "circle-check",
+                        kind = AslChipKind.Filter,
+                        disabled = uiState.busy,
+                        onClick = interactionListener::onSelectAllChanges,
+                    )
+                }
             }
-            AslIconButton(
-                icon = "git-branch",
-                contentDescription = "Branches",
-                onClick = onOpenBranches,
-                size = 32.dp,
-                iconSize = 16.dp,
-                disabled = uiState.busy,
-            )
-            AslOverflowMenu(
-                items = listOf(
-                    AslOverflowMenuEntry.Item("Push", icon = "upload", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Item("Fetch", icon = "refresh-cw", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Item("Pull (merge)", icon = "download", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Item("Pull (rebase)", icon = "download", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Divider,
-                    AslOverflowMenuEntry.Item("Git author", icon = "user", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Item("Remotes", icon = "globe", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Divider,
-                    AslOverflowMenuEntry.Item("Commit history", icon = "history", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Item("Stashes", icon = "package", disabled = uiState.busy),
-                    AslOverflowMenuEntry.Divider,
-                    AslOverflowMenuEntry.Item("Clean untracked files", icon = "trash-2", disabled = uiState.busy, destructive = true),
-                    AslOverflowMenuEntry.Item("Force push (with lease)", icon = "upload", disabled = uiState.busy, destructive = true),
-                ),
-                onSelect = { item, _ ->
-                    when (item.label) {
-                        "Push" -> interactionListener.onPush()
-                        "Fetch" -> interactionListener.onFetch()
-                        "Pull (merge)" -> {
-                            interactionListener.onPullModeChanged(PullMode.MERGE)
-                            interactionListener.onPull()
-                        }
-                        "Pull (rebase)" -> {
-                            interactionListener.onPullModeChanged(PullMode.REBASE)
-                            interactionListener.onPull()
-                        }
-                        "Git author" -> interactionListener.onOpenAuthorDialog()
-                        "Remotes" -> interactionListener.onOpenRemotes()
-                        "Commit history" -> onOpenHistory()
-                        "Stashes" -> onOpenStashes()
-                        "Clean untracked files" -> interactionListener.onPreviewClean()
-                        else -> interactionListener.onRequestForcePush()
-                    }
-                },
-            )
         }
     }
+    HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+}
+
+@Composable
+private fun GitActionsOverflowMenu(
+    uiState: GitPanelUiState,
+    interactionListener: GitPanelInteractionListener,
+    onOpenHistory: () -> Unit,
+    onOpenStashes: () -> Unit,
+) {
+    AslOverflowMenu(
+        items = listOf(
+            AslOverflowMenuEntry.Item("Push", icon = "upload", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Fetch", icon = "refresh-cw", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Pull (merge)", icon = "download", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Pull (rebase)", icon = "download", disabled = uiState.busy),
+            AslOverflowMenuEntry.Divider,
+            AslOverflowMenuEntry.Item("Git author", icon = "user", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Remotes", icon = "globe", disabled = uiState.busy),
+            AslOverflowMenuEntry.Divider,
+            AslOverflowMenuEntry.Item("Commit history", icon = "history", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Stashes", icon = "package", disabled = uiState.busy),
+            AslOverflowMenuEntry.Divider,
+            AslOverflowMenuEntry.Item("Clean untracked files", icon = "trash-2", disabled = uiState.busy, destructive = true),
+            AslOverflowMenuEntry.Item("Force push (with lease)", icon = "upload", disabled = uiState.busy, destructive = true),
+        ),
+        onSelect = { item, _ ->
+            when (item.label) {
+                "Push" -> interactionListener.onPush()
+                "Fetch" -> interactionListener.onFetch()
+                "Pull (merge)" -> {
+                    interactionListener.onPullModeChanged(PullMode.MERGE)
+                    interactionListener.onPull()
+                }
+                "Pull (rebase)" -> {
+                    interactionListener.onPullModeChanged(PullMode.REBASE)
+                    interactionListener.onPull()
+                }
+                "Git author" -> interactionListener.onOpenAuthorDialog()
+                "Remotes" -> interactionListener.onOpenRemotes()
+                "Commit history" -> onOpenHistory()
+                "Stashes" -> onOpenStashes()
+                "Clean untracked files" -> interactionListener.onPreviewClean()
+                else -> interactionListener.onRequestForcePush()
+            }
+        },
+    )
 }
 
 @Composable
@@ -506,7 +597,6 @@ private fun GitChangedFileList(
             )
             GitListState.Populated ->
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    GitSelectionBar(uiState, interactionListener)
                     GitConflictSection(uiState.conflicts, interactionListener, onOpenConflicts)
                     GitChangeSection("Staged", uiState.stagedChanges, GitDiffTarget.HEAD_TO_INDEX, uiState, interactionListener)
                     GitChangeSection("Changes", uiState.unstagedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
@@ -518,66 +608,6 @@ private fun GitChangedFileList(
 
 private enum class GitListState { Loading, Empty, Populated }
 
-/** Master select-all + bulk stage/unstage/revert acting on the ticked files. */
-@Composable
-private fun GitSelectionBar(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
-    val colors = AslTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AslCheckbox(
-            checked = uiState.allSelected,
-            indeterminate = uiState.hasSelection && !uiState.allSelected,
-            onCheckedChange = { checked ->
-                if (checked) interactionListener.onSelectAllChanges() else interactionListener.onClearSelection()
-            },
-            disabled = uiState.busy,
-        )
-        Text(
-            text = if (uiState.hasSelection) "${uiState.selectionCount} selected" else "Select all",
-            style = MaterialTheme.typography.labelMedium,
-            color = if (uiState.hasSelection) colors.textPrimary else colors.textSecondary,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 4.dp)
-                .clickable {
-                    if (uiState.allSelected) interactionListener.onClearSelection()
-                    else interactionListener.onSelectAllChanges()
-                },
-        )
-        if (uiState.hasSelection) {
-            AslIconButton(
-                icon = "plus",
-                contentDescription = "Stage selected",
-                onClick = interactionListener::onStageSelected,
-                size = 32.dp,
-                iconSize = 16.dp,
-                disabled = !uiState.canStageSelection,
-            )
-            AslIconButton(
-                icon = "minus",
-                contentDescription = "Unstage selected",
-                onClick = interactionListener::onUnstageSelected,
-                size = 32.dp,
-                iconSize = 16.dp,
-                disabled = !uiState.canUnstageSelection,
-            )
-            AslIconButton(
-                icon = "rotate-ccw",
-                contentDescription = "Revert selected",
-                onClick = interactionListener::onRevertSelected,
-                size = 32.dp,
-                iconSize = 16.dp,
-                disabled = !uiState.canRevertSelection,
-            )
-        }
-    }
-    HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-}
-
 @Composable
 private fun GitConflictSection(
     conflicts: List<GitChangeUiModel>,
@@ -585,7 +615,7 @@ private fun GitConflictSection(
     onOpenConflicts: () -> Unit,
 ) {
     if (conflicts.isEmpty()) return
-    SectionHeader(title = "Conflicts", count = conflicts.size, sectionCheckbox = null)
+    SectionHeader(title = "Conflicts", count = conflicts.size)
     conflicts.forEach { change ->
         AslListItem(
             title = change.displayPath.middleEllipsis(),
@@ -609,15 +639,15 @@ private fun GitChangeSection(
     if (changes.isEmpty()) return
     val paths = changes.map { it.path }
     val selectedInSection = paths.count { it in uiState.selectedPaths }
+    val allSelected = selectedInSection == paths.size
     SectionHeader(
         title = title,
         count = changes.size,
-        sectionCheckbox = SectionCheckboxState(
-            checked = selectedInSection == paths.size,
-            indeterminate = selectedInSection in 1 until paths.size,
-            disabled = uiState.busy,
-            onToggle = { select -> interactionListener.onToggleSectionSelect(paths, select) },
-        ),
+        onToggleSection = if (uiState.busy) null else {
+            { select -> interactionListener.onToggleSectionSelect(paths, select) }
+        },
+        sectionSelected = allSelected,
+        sectionIndeterminate = selectedInSection in 1 until paths.size,
     )
     changes.forEach { change ->
         val checked = change.path in uiState.selectedPaths
@@ -626,56 +656,68 @@ private fun GitChangeSection(
             subtitle = change.description,
             icon = "file-code",
             selected = checked,
-            trailing = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    GitStatusBadge(change.status)
-                    AslCheckbox(
-                        checked = checked,
-                        onCheckedChange = { interactionListener.onToggleSelect(change.path) },
-                        disabled = uiState.busy,
-                    )
-                }
+            leading = {
+                AslCheckbox(
+                    checked = checked,
+                    onCheckedChange = { interactionListener.onToggleSelect(change.path) },
+                    disabled = uiState.busy,
+                )
             },
+            trailing = { GitStatusBadge(change.status) },
             onClick = { interactionListener.onSelectChange(change.path, diffTarget) },
         )
     }
 }
 
-private data class SectionCheckboxState(
-    val checked: Boolean,
-    val indeterminate: Boolean,
-    val disabled: Boolean,
-    val onToggle: (Boolean) -> Unit,
-)
-
 @Composable
-private fun SectionHeader(title: String, count: Int, sectionCheckbox: SectionCheckboxState?) {
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    onToggleSection: ((Boolean) -> Unit)? = null,
+    sectionSelected: Boolean = false,
+    sectionIndeterminate: Boolean = false,
+) {
     val colors = AslTheme.colors
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (sectionCheckbox != null) {
-            AslCheckbox(
-                checked = sectionCheckbox.checked,
-                indeterminate = sectionCheckbox.indeterminate,
-                onCheckedChange = sectionCheckbox.onToggle,
-                disabled = sectionCheckbox.disabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onToggleSection != null) {
+                    Modifier.clickable(enabled = true) {
+                        if (sectionSelected && !sectionIndeterminate) onToggleSection(false)
+                        else onToggleSection(true)
+                    }
+                } else {
+                    Modifier
+                },
             )
-            Spacer(Modifier.width(2.dp))
-        } else {
-            Spacer(Modifier.width(6.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (onToggleSection != null) {
+            AslIcon(
+                name = when {
+                    sectionSelected && !sectionIndeterminate -> "circle-check"
+                    sectionIndeterminate -> "minus"
+                    else -> "square"
+                },
+                size = 16.dp,
+                tint = if (sectionSelected || sectionIndeterminate) colors.accentPrimary else colors.textTertiary,
+            )
         }
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.textTertiary,
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.textSecondary,
         )
-        Spacer(Modifier.width(6.dp))
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.labelSmall,
             color = colors.textTertiary,
+            modifier = Modifier
+                .background(colors.surfaceContainerLow, AslShape.xs)
+                .padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
 }
@@ -684,9 +726,10 @@ private fun SectionHeader(title: String, count: Int, sectionCheckbox: SectionChe
 private fun GitCommitBox(
     uiState: GitPanelUiState,
     interactionListener: GitPanelInteractionListener,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
