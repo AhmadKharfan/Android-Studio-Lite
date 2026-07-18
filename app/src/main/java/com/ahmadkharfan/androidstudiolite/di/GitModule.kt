@@ -4,14 +4,17 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.ahmadkharfan.androidstudiolite.BuildConfig
 import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
 import com.ahmadkharfan.androidstudiolite.data.local.EncryptedGitCredentialStore
 import com.ahmadkharfan.androidstudiolite.data.local.JGitGitRepository
+import com.ahmadkharfan.androidstudiolite.data.remote.github.GitHubDeviceFlowAuthenticator
 import com.ahmadkharfan.androidstudiolite.data.local.GitOperationCoordinator
 import com.ahmadkharfan.androidstudiolite.data.local.DataStoreGitAuthorStore
 import com.ahmadkharfan.androidstudiolite.data.local.DefaultWorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
@@ -24,6 +27,7 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameVie
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitHistoryViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict.GitConflictViewModel
+import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -37,6 +41,12 @@ private val Context.gitAuthorDataStore: DataStore<Preferences> by preferencesDat
  */
 val gitModule = module {
     single<GitCredentialStore> { EncryptedGitCredentialStore(androidContext()) }
+    single<GitHubDeviceAuthenticator> {
+        GitHubDeviceFlowAuthenticator(
+            clientId = BuildConfig.GITHUB_OAUTH_CLIENT_ID,
+            credentialStore = get(),
+        )
+    }
     single<GitAuthorStore> { DataStoreGitAuthorStore(androidContext().gitAuthorDataStore) }
     single<WorkspaceWriteGate> { DefaultWorkspaceWriteGate() }
     single { GitOperationCoordinator() }
@@ -71,6 +81,7 @@ val gitModule = module {
             gitRepository = get(),
             operationMonitor = get(),
             credentialStore = get(),
+            authenticator = get(),
         )
     }
     viewModel { params ->
@@ -107,6 +118,7 @@ val gitModule = module {
             projectPathResolver = get(),
             gitRepository = get(),
             credentialStore = get(),
+            authenticator = get(),
         )
     }
     viewModel { params ->
@@ -114,6 +126,13 @@ val gitModule = module {
             projectId = params.get(),
             projectPathResolver = get(),
             gitRepository = get(),
+        )
+    }
+    viewModel {
+        GitAuthSettingsViewModel(
+            credentialStore = get(),
+            authenticator = get(),
+            gitAuthorStore = get(),
         )
     }
 }

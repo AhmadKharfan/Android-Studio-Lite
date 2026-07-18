@@ -35,6 +35,7 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.ideconfig.IdeConfigRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.server.ServerSettingsRoute
+import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalRoute
 import com.ahmadkharfan.androidstudiolite.feature.uidesigner.DesignerRoute
 
@@ -233,6 +234,7 @@ fun AslNavHost(
                 onOpenAiAgent = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
                 onOpenBuildRun = { navController.navigate(Routes.SETTINGS_BUILD_RUN) },
                 onOpenServer = { navController.navigate(Routes.SETTINGS_SERVER) },
+                onOpenGitAuth = { navController.navigate(Routes.SETTINGS_GIT_AUTH) },
                 onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
                 onOpenTerminal = { navController.navigate(Routes.TERMINAL) },
                 onOpenDeveloperOptions = { navController.navigate(Routes.SETTINGS_DEVELOPER) },
@@ -252,6 +254,9 @@ fun AslNavHost(
         }
         composable(Routes.SETTINGS_SERVER) {
             ServerSettingsRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.SETTINGS_GIT_AUTH) {
+            GitAuthSettingsRoute(onBack = { navController.popBackStack() })
         }
         composable(Routes.SETTINGS_ABOUT) {
             AboutRoute(onBack = { navController.popBackStack() })

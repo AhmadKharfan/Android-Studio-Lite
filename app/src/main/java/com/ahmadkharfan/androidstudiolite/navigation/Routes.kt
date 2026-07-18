@@ -38,6 +38,7 @@ object Routes {
     const val SETTINGS_AI_AGENT = "settings/aiAgent"
     const val SETTINGS_BUILD_RUN = "settings/buildRun"
     const val SETTINGS_SERVER = "settings/server"
+    const val SETTINGS_GIT_AUTH = "settings/gitAuth"
     const val SETTINGS_ABOUT = "settings/about"
     const val SETTINGS_IDE_CONFIG = "settings/ideConfig"
     const val SETTINGS_DEVELOPER = "settings/developer"
