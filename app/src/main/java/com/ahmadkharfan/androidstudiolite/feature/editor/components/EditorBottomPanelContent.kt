@@ -31,12 +31,14 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.editor.AppLogLineUiModel
+import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 
 @Composable
 fun EditorBottomPanelContent(
     activeTabId: String,
     buildConsole: BuildConsoleState,
     modifier: Modifier = Modifier,
+    projectRootPath: String = "",
     appLogLines: List<AppLogLineUiModel> = emptyList(),
     onCancelBuild: () -> Unit = {},
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
@@ -44,6 +46,7 @@ fun EditorBottomPanelContent(
     when (activeTabId) {
         "build" -> BuildTab(buildConsole, onCancelBuild, onJumpToBuildProblem, modifier)
         "logs" -> AppLogsTab(appLogLines, modifier)
+        "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
         else -> AslEmptyState(
             icon = "terminal",
             title = "Nothing here yet",

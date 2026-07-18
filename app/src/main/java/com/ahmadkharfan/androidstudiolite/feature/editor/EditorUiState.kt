@@ -106,6 +106,8 @@ sealed interface EditorFileOperationDialogUiState {
 data class EditorUiState(
     val projectId: String = "",
     val projectName: String = "",
+    /** Absolute path to the open project root — used by the bottom-panel terminal. */
+    val projectRootPath: String = "",
     val tabs: List<EditorTabUiModel> = emptyList(),
     val activeTabId: String? = null,
     val running: Boolean = false,

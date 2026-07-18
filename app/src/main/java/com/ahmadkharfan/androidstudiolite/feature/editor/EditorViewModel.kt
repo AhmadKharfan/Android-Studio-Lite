@@ -156,6 +156,7 @@ class EditorViewModel(
                         // otherwise shadow the ViewModel's field and leave the UI state's id blank.
                         projectId = this@EditorViewModel.projectId,
                         projectName = projectName,
+                        projectRootPath = projectPath,
                         fileTree = nodes.map { it.toUiModel() },
                         expandedFolderIds = defaultExpandedIds(nodes),
                         isLoadingFileTree = false,

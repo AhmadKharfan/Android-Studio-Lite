@@ -36,7 +36,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFindBar
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
@@ -354,6 +353,7 @@ private fun EditorContentArea(
     colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
     modifier: Modifier = Modifier,
 ) {
+    val terminalPanelActive = uiState.activeBottomTabId == "term" && uiState.bottomPanelExpanded
     Column(modifier = modifier) {
         EditorEditingRow(
             uiState = uiState,
@@ -367,7 +367,12 @@ private fun EditorContentArea(
         )
         if (!keyboardOpen) {
             EditorMemoryPressureBanner(uiState = uiState, interactionListener = interactionListener, colors = colors)
+        }
+        // Keep the bottom panel visible while typing in the project terminal (Android Studio behaviour).
+        if (!keyboardOpen || terminalPanelActive) {
             EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
+        }
+        if (!keyboardOpen) {
             EditorFullStatusBar(uiState = uiState, onOpenBranches = gitNavigation.openBranches)
         } else {
             EditorCompactStatusBar(uiState = uiState)
@@ -541,15 +546,14 @@ private fun EditorBottomToolSection(
         onSelect = { interactionListener.onSelectBottomTab(it) },
         onToggle = { interactionListener.onToggleBottomPanel() },
     ) {
-        AslStateCrossfade(targetState = uiState.activeBottomTabId, label = "bottomPanelContent") { tabId ->
-            EditorBottomPanelContent(
-                activeTabId = tabId,
-                buildConsole = uiState.buildConsole,
-                appLogLines = uiState.appLogLines,
-                onCancelBuild = { interactionListener.onCancelBuild() },
-                onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
-            )
-        }
+        EditorBottomPanelContent(
+            activeTabId = uiState.activeBottomTabId,
+            buildConsole = uiState.buildConsole,
+            projectRootPath = uiState.projectRootPath,
+            appLogLines = uiState.appLogLines,
+            onCancelBuild = { interactionListener.onCancelBuild() },
+            onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
+        )
     }
 }
 
