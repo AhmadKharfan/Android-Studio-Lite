@@ -11,11 +11,10 @@ import android.provider.Settings
 import androidx.core.content.ContextCompat
 
 /**
- * Every permission the IDE needs to build and run real Android projects on device, and how to check
- * and request each one for real — no fake "granted" flags. Modeled on android-code-studio's
- * `PermissionsFragment` (storage / install-packages checks are API-level dependent, not a single
- * `checkSelfPermission` call), adapted to the on-device full-Gradle-build direction this app is taking
- * (see docs/build-run/06-full-build-production-study.md).
+ * Every permission the IDE needs to store projects on device and install the APKs the remote build
+ * server produces, and how to check and request each one for real — no fake "granted" flags. Modeled
+ * on android-code-studio's `PermissionsFragment` (storage / install-packages checks are API-level
+ * dependent, not a single `checkSelfPermission` call).
  */
 enum class AslPermissionId {
     STORAGE,

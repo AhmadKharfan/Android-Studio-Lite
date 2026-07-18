@@ -8,8 +8,8 @@ package com.ahmadkharfan.androidstudiolite.data.gradle.model
  *
  * Everything here is deliberately lossy-but-honest: values we can read statically are captured,
  * and anything we can't understand is recorded as a [GradleDiagnostic] rather than throwing. Full
- * build fidelity is a job for the real Gradle sync (full flavor); this layer only ever reports
- * what is *statically visible*.
+ * build fidelity is a job for the remote build worker's real Gradle run; this layer only ever
+ * reports what is *statically visible*.
  */
 
 /** Severity of a static-parse observation. */

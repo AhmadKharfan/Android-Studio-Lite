@@ -25,7 +25,7 @@ import java.io.File
 /**
  * The full result of a static read: the shared [ProjectModel] plus everything the parse surfaced
  * that doesn't fit the model — diagnostics, the resolved version catalog, and the wrapper Gradle
- * version. This is what "sync" produces for the play flavor and what pre-sync validation consumes.
+ * version. This is what the editor's symbol index and the build preflight consume.
  */
 data class GradleProjectReadResult(
     val model: ProjectModel,
