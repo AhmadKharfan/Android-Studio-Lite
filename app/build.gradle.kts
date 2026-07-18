@@ -36,6 +36,13 @@ android {
         // Placeholder until the app is linked; only read when PLAY_INTEGRITY_ENABLED is true.
         buildConfigField("Long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "0L")
 
+        // GitHub OAuth App client ID used for the "Sign in with GitHub" device flow (see
+        // GitHubDeviceFlowAuthenticator). This is a PUBLIC identifier, not a secret. Create an OAuth
+        // App at GitHub → Settings → Developer settings → OAuth Apps, enable "Device Flow", and paste
+        // its "Ov23li…" Client ID here. While empty, the device flow is disabled and the auth UI only
+        // offers manual personal-access-token entry.
+        buildConfigField("String", "GITHUB_OAUTH_CLIENT_ID", "\"Ov23liwZZUUv9fXJksGe\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
