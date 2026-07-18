@@ -21,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameViewModel
@@ -126,6 +127,13 @@ val gitModule = module {
             projectId = params.get(),
             projectPathResolver = get(),
             gitRepository = get(),
+        )
+    }
+    // The Assets panel lists real on-disk resources for the open project, resolved from its id.
+    viewModel { params ->
+        AssetsViewModel(
+            projectId = params.get(),
+            projectPathResolver = get(),
         )
     }
     viewModel {

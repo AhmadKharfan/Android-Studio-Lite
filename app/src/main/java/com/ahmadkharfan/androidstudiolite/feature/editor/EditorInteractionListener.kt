@@ -16,6 +16,7 @@ interface EditorInteractionListener {
     fun onConfirmDeleteFileTreeEntry()
     fun onDismissFileOperationDialog()
     fun onRunProject()
+    fun onSelectVariant(variant: String)
     fun onCancelBuild()
     fun onBuildReleaseApk()
     fun onBuildReleaseBundle()

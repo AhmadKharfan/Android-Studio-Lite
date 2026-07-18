@@ -402,6 +402,8 @@ private fun EditorEditingRow(
                 onOpenGitStashes = gitNavigation.openStashes,
                 onOpenGitConflicts = gitNavigation.openConflicts,
                 onCloseProject = { interactionListener.onCloseProject() },
+                selectedVariant = uiState.selectedVariant,
+                onSelectVariant = { interactionListener.onSelectVariant(it) },
                 isLoadingFileTree = uiState.isLoadingFileTree,
             )
         }
@@ -439,6 +441,8 @@ private fun EditorCodeSurface(
                     session = activeSession,
                     fontSizeSp = uiState.editorFontSize,
                     tabSize = uiState.editorTabSize,
+                    colorSchemeId = uiState.editorThemeId,
+                    fontFamilyId = uiState.editorFontFamily,
                     onEdited = { onEdited(activeTab.id) },
                     onCaretMoved = onCaretMoved,
                     gitLineStatus = activeTab.gitLineStatus,
@@ -504,9 +508,10 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
             }
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
+            val variantLabel = uiState.selectedVariant.replaceFirstChar { it.uppercase() }
             when {
-                uiState.running -> add(AslStatusBarEntry.Item("assembleDebug", tone = AslStatusTone.Warning))
-                else -> add(AslStatusBarEntry.Item("Synced", icon = "check", tone = AslStatusTone.Success))
+                uiState.running -> add(AslStatusBarEntry.Item("assemble$variantLabel", tone = AslStatusTone.Warning))
+                else -> add(AslStatusBarEntry.Item(variantLabel, icon = "layers"))
             }
         },
     )
@@ -557,6 +562,8 @@ private fun EditorDrawerOverlay(
         onOpenGitStashes = gitNavigation.openStashes,
         onOpenGitConflicts = gitNavigation.openConflicts,
         onCloseProject = { interactionListener.onCloseProject() },
+        selectedVariant = uiState.selectedVariant,
+        onSelectVariant = { interactionListener.onSelectVariant(it) },
         isLoadingFileTree = uiState.isLoadingFileTree,
         modifier = Modifier.fillMaxSize(),
     )

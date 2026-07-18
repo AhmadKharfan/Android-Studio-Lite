@@ -140,6 +140,8 @@ data class EditorUiState(
     val editorFontSize: Int = 13,
     val editorTabSize: Int = 4,
     val editorThemeId: String = "darcula",
+    val editorFontFamily: String = "jetbrains",
+    val selectedVariant: String = "debug",
     val caretLine: Int = 0,
     val caretColumn: Int = 0,
     val editorRevealNonce: Int = 0,

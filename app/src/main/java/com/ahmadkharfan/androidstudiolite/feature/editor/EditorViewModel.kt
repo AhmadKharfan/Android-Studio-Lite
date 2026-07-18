@@ -131,6 +131,7 @@ class EditorViewModel(
                         editorFontSize = prefs.editorFontSize,
                         editorTabSize = prefs.editorTabSize,
                         editorThemeId = prefs.editorThemeId,
+                        editorFontFamily = prefs.editorFontFamily,
                     )
                 }
             },
@@ -473,7 +474,8 @@ class EditorViewModel(
     override fun onDismissFileOperationDialog() {
         updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
     }
-    override fun onRunProject() = startBuild(variant = "debug", kind = BuildKind.ASSEMBLE, install = true)
+    override fun onRunProject() = startBuild(variant = state.value.selectedVariant, kind = BuildKind.ASSEMBLE, install = true)
+    override fun onSelectVariant(variant: String) = updateState { copy(selectedVariant = variant) }
     override fun onCancelBuild() = cancelBuild()
     override fun onBuildReleaseApk() = startBuild(variant = "release", kind = BuildKind.ASSEMBLE, install = false)
     override fun onBuildReleaseBundle() = startBuild(variant = "release", kind = BuildKind.BUNDLE, install = false)

@@ -109,6 +109,8 @@ fun EditorDrawer(
     onOpenGitStashes: () -> Unit,
     onOpenGitConflicts: () -> Unit,
     onCloseProject: () -> Unit,
+    selectedVariant: String,
+    onSelectVariant: (String) -> Unit,
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
 ) {
@@ -178,6 +180,8 @@ fun EditorDrawer(
                     onOpenGitTags = onOpenGitTags,
                     onOpenGitStashes = onOpenGitStashes,
                     onOpenGitConflicts = onOpenGitConflicts,
+                    selectedVariant = selectedVariant,
+                    onSelectVariant = onSelectVariant,
                     isLoadingFileTree = isLoadingFileTree,
                 )
             }
@@ -213,6 +217,8 @@ fun EditorDockedPanel(
     onOpenGitStashes: () -> Unit,
     onOpenGitConflicts: () -> Unit,
     onCloseProject: () -> Unit,
+    selectedVariant: String,
+    onSelectVariant: (String) -> Unit,
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
 ) {
@@ -245,6 +251,8 @@ fun EditorDockedPanel(
                 onOpenGitTags = onOpenGitTags,
                 onOpenGitStashes = onOpenGitStashes,
                 onOpenGitConflicts = onOpenGitConflicts,
+                selectedVariant = selectedVariant,
+                onSelectVariant = onSelectVariant,
                 isLoadingFileTree = isLoadingFileTree,
             )
         }
@@ -293,6 +301,8 @@ private fun EditorToolPanelContent(
     onOpenGitTags: () -> Unit,
     onOpenGitStashes: () -> Unit,
     onOpenGitConflicts: () -> Unit,
+    selectedVariant: String,
+    onSelectVariant: (String) -> Unit,
     isLoadingFileTree: Boolean = false,
 ) {
     // Rail tabs slide vertically in the direction of travel (down the rail → from below).
@@ -343,8 +353,12 @@ private fun EditorToolPanelContent(
                 onOpenConflicts = onOpenGitConflicts,
             )
             EditorRailTool.AiAgent -> AiChatRoute(onClose = onDismiss, onOpenAiAgentSettings = onOpenAiAgentSettings)
-            EditorRailTool.Variants -> VariantsRoute(onClose = onDismiss)
-            EditorRailTool.Assets -> AssetsRoute(onClose = onDismiss)
+            EditorRailTool.Variants -> VariantsRoute(
+                selectedVariant = selectedVariant,
+                onSelectVariant = onSelectVariant,
+                onClose = onDismiss,
+            )
+            EditorRailTool.Assets -> AssetsRoute(projectId = projectId, onClose = onDismiss)
         }
     }
 }
