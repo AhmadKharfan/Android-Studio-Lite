@@ -19,6 +19,7 @@ class EditorSettingsViewModel(
                     copy(
                         fontSize = prefs.editorFontSize,
                         colorSchemeId = prefs.editorThemeId,
+                        fontFamilyId = prefs.editorFontFamily,
                         tabSize = prefs.editorTabSize,
                         autoSave = prefs.editorAutoSave,
                     )
@@ -33,6 +34,10 @@ class EditorSettingsViewModel(
 
     override fun onColorSchemeChanged(id: String) {
         viewModelScope.launch { preferencesRepository.setEditorTheme(id) }
+    }
+
+    override fun onFontFamilyChanged(family: String) {
+        viewModelScope.launch { preferencesRepository.setEditorFontFamily(family) }
     }
 
     override fun onTabSizeChanged(size: Int) {

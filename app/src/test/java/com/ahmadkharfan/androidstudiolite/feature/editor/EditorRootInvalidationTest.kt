@@ -123,6 +123,7 @@ class EditorRootInvalidationTest {
         override suspend fun setThemeMode(mode: AppThemeMode) = Unit
         override suspend fun setEditorFontSize(size: Int) = Unit
         override suspend fun setEditorTheme(id: String) = Unit
+        override suspend fun setEditorFontFamily(family: String) = Unit
         override suspend fun setAccent(id: String) = Unit
         override suspend fun setLanguage(language: String) = Unit
         override suspend fun setAutoOpenLastProject(enabled: Boolean) = Unit

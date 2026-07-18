@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
@@ -66,7 +65,7 @@ private fun EditorSettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                EditorFontFamilyRow(colors = colors)
+                EditorFontFamilySection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 EditorFontSizeSlider(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 AslThemeSwatchPicker(
                     label = "Color scheme",
@@ -83,21 +82,26 @@ private fun EditorSettingsScreen(
 }
 
 @Composable
-private fun EditorFontFamilyRow(colors: AslColorScheme) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg),
-    ) {
-        AslListItem(
-            title = "Font family",
-            subtitle = "JetBrains Mono",
-            icon = "type",
-            divider = false,
-            trailing = { Text(text = "built-in", style = MaterialTheme.typography.labelSmall, color = colors.textTertiary) },
-        )
-    }
+private fun EditorFontFamilySection(
+    uiState: EditorSettingsUiState,
+    interactionListener: EditorSettingsInteractionListener,
+    colors: AslColorScheme,
+) {
+    Text(
+        text = "Font family",
+        style = MaterialTheme.typography.labelMedium,
+        color = colors.textSecondary,
+        modifier = Modifier.padding(bottom = 8.dp),
+    )
+    AslSegmentedButton(
+        options = listOf(
+            AslSegmentedOption("JetBrains Mono", "jetbrains"),
+            AslSegmentedOption("System mono", "monospace"),
+        ),
+        value = uiState.fontFamilyId,
+        onValueChange = { interactionListener.onFontFamilyChanged(it) },
+        fullWidth = true,
+    )
 }
 
 @Composable

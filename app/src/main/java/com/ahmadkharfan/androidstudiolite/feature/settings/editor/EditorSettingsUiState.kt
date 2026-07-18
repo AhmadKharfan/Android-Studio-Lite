@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 data class EditorSettingsUiState(
     val fontSize: Int = 13,
     val colorSchemeId: String = "darcula",
+    val fontFamilyId: String = "jetbrains",
     val tabSize: Int = 4,
     val autoSave: Boolean = true,
 )

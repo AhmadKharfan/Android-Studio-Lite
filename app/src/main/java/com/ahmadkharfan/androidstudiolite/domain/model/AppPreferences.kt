@@ -6,6 +6,7 @@ data class AppPreferences(
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val editorFontSize: Int = 13,
     val editorThemeId: String = "darcula",
+    val editorFontFamily: String = "jetbrains",
     val accentId: String = "emerald",
     val language: String = "en",
     val autoOpenLastProject: Boolean = true,

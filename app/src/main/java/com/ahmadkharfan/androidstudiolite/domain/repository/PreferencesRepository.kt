@@ -9,6 +9,7 @@ interface PreferencesRepository {
     suspend fun setThemeMode(mode: AppThemeMode)
     suspend fun setEditorFontSize(size: Int)
     suspend fun setEditorTheme(id: String)
+    suspend fun setEditorFontFamily(family: String)
     suspend fun setAccent(id: String)
     suspend fun setLanguage(language: String)
     suspend fun setAutoOpenLastProject(enabled: Boolean)
