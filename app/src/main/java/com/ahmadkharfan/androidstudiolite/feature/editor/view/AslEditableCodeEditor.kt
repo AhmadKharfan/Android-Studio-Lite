@@ -40,6 +40,8 @@ fun AslEditableCodeEditor(
     onEdited: () -> Unit,
     onCaretMoved: (line: Int, column: Int) -> Unit,
     modifier: Modifier = Modifier,
+    colorSchemeId: String = "darcula",
+    fontFamilyId: String = "jetbrains",
     gitLineStatus: Map<Int, AslLineGit> = emptyMap(),
     breakpoints: Set<Int> = emptySet(),
     findQuery: String = "",
@@ -52,29 +54,13 @@ fun AslEditableCodeEditor(
     val colors = AslTheme.colors
     val density = LocalDensity.current
     val context = LocalContext.current
-    val typeface = remember { ResourcesCompat.getFont(context, R.font.jetbrains_mono) }
-    val palette = EditorPalette(
-        canvas = colors.editorCanvas.toArgb(),
-        gutter = colors.editorGutter.toArgb(),
-        lineHighlight = colors.editorLineHighlight.toArgb(),
-        selection = colors.editorSelection.toArgb(),
-        cursor = colors.editorCursor.toArgb(),
-        divider = colors.borderSubtle.toArgb(),
-        gutterTextActive = colors.textSecondary.toArgb(),
-        gutterTextInactive = colors.textTertiary.toArgb(),
-        breakpoint = colors.error.toArgb(),
-        defaultText = colors.syntaxVariable.toArgb(),
-        keyword = colors.syntaxKeyword.toArgb(),
-        string = colors.syntaxString.toArgb(),
-        comment = colors.syntaxComment.toArgb(),
-        function = colors.syntaxFunction.toArgb(),
-        type = colors.syntaxType.toArgb(),
-        variable = colors.syntaxVariable.toArgb(),
-        number = colors.syntaxNumber.toArgb(),
-        findMatch = colors.warning.copy(alpha = 0.25f).toArgb(),
-        findCurrent = colors.accentPrimary.copy(alpha = 0.40f).toArgb(),
-        bracketMatch = colors.accentPrimary.toArgb(),
-    )
+    val typeface = remember(fontFamilyId) {
+        when (fontFamilyId) {
+            "monospace" -> android.graphics.Typeface.MONOSPACE
+            else -> ResourcesCompat.getFont(context, R.font.jetbrains_mono)
+        }
+    }
+    val palette = remember(colorSchemeId) { EditorPalette.forScheme(colorSchemeId) }
     val gitArgb = gitLineStatus.mapValues { (_, git) ->
         when (git) {
             AslLineGit.Added -> colors.success.toArgb()
