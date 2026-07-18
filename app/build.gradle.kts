@@ -78,6 +78,14 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        jniLibs {
+            // proot + its loader ship as native libs so they land in the exec-capable
+            // nativeLibraryDir; legacy packaging forces them to be extracted to disk (compressed
+            // libs loaded straight from the APK can't be executed). See ProotEnvironment.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
