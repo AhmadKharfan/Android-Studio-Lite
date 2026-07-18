@@ -31,8 +31,6 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.editor.AppLogLineUiModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.DiagnosticUiModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity
 
 @Composable
 fun EditorBottomPanelContent(
@@ -40,14 +38,10 @@ fun EditorBottomPanelContent(
     buildConsole: BuildConsoleState,
     modifier: Modifier = Modifier,
     appLogLines: List<AppLogLineUiModel> = emptyList(),
-    diagnostics: List<DiagnosticUiModel> = emptyList(),
-    activeFileName: String? = null,
     onCancelBuild: () -> Unit = {},
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
-    onJumpToDiagnostic: (DiagnosticUiModel) -> Unit = {},
 ) {
     when (activeTabId) {
-        "diag" -> DiagnosticsTab(diagnostics, activeFileName, onJumpToDiagnostic, modifier)
         "build" -> BuildTab(buildConsole, onCancelBuild, onJumpToBuildProblem, modifier)
         "logs" -> AppLogsTab(appLogLines, modifier)
         else -> AslEmptyState(
@@ -56,48 +50,6 @@ fun EditorBottomPanelContent(
             subtitle = "The terminal is coming in a future update.",
             modifier = modifier.fillMaxSize(),
         )
-    }
-}
-
-@Composable
-private fun DiagnosticsTab(
-    diagnostics: List<DiagnosticUiModel>,
-    activeFileName: String?,
-    onJumpToDiagnostic: (DiagnosticUiModel) -> Unit,
-    modifier: Modifier,
-) {
-    val colors = AslTheme.colors
-    Column(modifier = modifier.fillMaxSize()) {
-        if (diagnostics.isEmpty()) {
-            AslEmptyState(icon = "check", title = "No problems", subtitle = "Analysis found no errors or warnings in this file.")
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
-                items(diagnostics) { d ->
-                    val (icon, tint) = when (d.severity) {
-                        DiagnosticSeverity.Error -> "octagon-alert" to colors.error
-                        DiagnosticSeverity.Warning -> "triangle-alert" to colors.warning
-                        DiagnosticSeverity.Info -> "info" to colors.info
-                        DiagnosticSeverity.Hint -> "info" to colors.textTertiary
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onJumpToDiagnostic(d) }
-                            .padding(horizontal = 12.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        AslIcon(name = icon, size = 14.dp, tint = tint, modifier = Modifier.padding(top = 1.dp))
-                        Text(text = d.message, style = AslCode.codeTiny, color = colors.textPrimary, modifier = Modifier.weight(1f))
-                        Text(
-                            text = "${activeFileName ?: "file"}:${d.line + 1}:${d.column + 1}",
-                            style = AslCode.codeTiny,
-                            color = colors.textTertiary,
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

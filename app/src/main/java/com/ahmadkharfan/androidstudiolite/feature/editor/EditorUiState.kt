@@ -10,18 +10,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
-@Immutable
-data class DiagnosticUiModel(
-    val offset: Int,
-    val endOffset: Int,
-    val line: Int,
-    val column: Int,
-    val severity: DiagnosticSeverity,
-    val message: String,
-    val code: String? = null,
-)
 @Immutable
 data class EditorTabUiModel(
     val id: String,
@@ -144,7 +133,6 @@ data class EditorUiState(
     val heapUsedMb: Int = 489,
     val heapMaxMb: Int = 512,
     val heapSeries: List<Int> = listOf(300, 340, 390, 420, 455, 470, 489),
-    val lspUpdating: Boolean = false,
     val findBarOpen: Boolean = false,
     val findQuery: String = "",
     val findMatchCount: Int = 0,
@@ -155,22 +143,16 @@ data class EditorUiState(
     val editorFontSize: Int = 13,
     val editorTabSize: Int = 4,
     val editorThemeId: String = "darcula",
-    val kotlinLspEnabled: Boolean = true,
-    val javaLspEnabled: Boolean = true,
-    val xmlLspEnabled: Boolean = false,
     val caretLine: Int = 0,
     val caretColumn: Int = 0,
-    val activeDiagnostics: List<DiagnosticUiModel> = emptyList(),
-    val diagnosticRevealNonce: Int = 0,
-    val diagnosticRevealOffset: Int = 0,
-    /** Project + dependency symbols from the last static sync; drives project-aware completion/diagnostics. */
+    val editorRevealNonce: Int = 0,
+    val editorRevealOffset: Int = 0,
+    /** Project + dependency symbols from the last static sync; drives project-aware completion. */
     val projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
         com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }
-    val errorCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Error }
-    val warningCount: Int get() = activeDiagnostics.count { it.severity == DiagnosticSeverity.Warning }
     val gitBadge: String? get() = gitPendingChangeCount.takeIf { it > 0 }?.toString()
 }
 

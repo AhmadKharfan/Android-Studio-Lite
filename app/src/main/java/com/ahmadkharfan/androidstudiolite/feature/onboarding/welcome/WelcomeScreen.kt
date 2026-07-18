@@ -104,7 +104,7 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
 private fun WelcomeBulletList(modifier: Modifier = Modifier) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp), modifier = modifier) {
         WelcomeBullet(icon = "hammer", title = "Gradle builds", text = "Builds run on the cloud service; APKs install straight to your device.")
-        WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion, navigation and diagnostics for Kotlin & Java.")
+        WelcomeBullet(icon = "braces", title = "Code intelligence", text = "Completion and navigation for Kotlin & Java.")
         WelcomeBullet(icon = "git-branch", title = "Git & AI built-in", text = "Clone, commit, and generate code with the AI agent.")
     }
 }

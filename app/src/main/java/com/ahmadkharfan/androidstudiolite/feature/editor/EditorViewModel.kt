@@ -45,7 +45,6 @@ private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
     BottomPanelTabUiModel("logs", "App Logs", "scroll-text"),
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
-    BottomPanelTabUiModel("diag", "Diagnostics", "stethoscope"),
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val GUTTER_DEBOUNCE_MS = 300L
@@ -132,9 +131,6 @@ class EditorViewModel(
                         editorFontSize = prefs.editorFontSize,
                         editorTabSize = prefs.editorTabSize,
                         editorThemeId = prefs.editorThemeId,
-                        kotlinLspEnabled = prefs.kotlinLspEnabled,
-                        javaLspEnabled = prefs.javaLspEnabled,
-                        xmlLspEnabled = prefs.xmlLspEnabled,
                     )
                 }
             },
@@ -231,7 +227,7 @@ class EditorViewModel(
 
     /**
      * Static "sync": read the Gradle project off disk and index the open module's declarations plus its
-     * resolved dependency classes, so completion and diagnostics resolve project symbols instead of only
+     * resolved dependency classes, so completion resolves project symbols instead of only
      * the built-in stdlib catalog. Best-effort — a non-Gradle or unreadable project just leaves the index
      * empty, preserving the previous behaviour.
      */
@@ -333,7 +329,7 @@ class EditorViewModel(
                 updateState { copy(snackbarMessage = "Couldn't save file before switching tabs") }
                 return@launch
             }
-            updateState { copy(activeTabId = id, activeDiagnostics = emptyList()) }
+            updateState { copy(activeTabId = id) }
             requestGutter(id, immediate = true)
         }
     }
@@ -521,7 +517,6 @@ class EditorViewModel(
         updateState { copy(memoryChartExpanded = !memoryChartExpanded) }
     }
     override fun onFreeUpMemory() = freeUpMemory()
-    override fun onSimulateLspReindex() = simulateLspReindex()
     override fun onToggleFindBar() {
         updateState { copy(findBarOpen = !findBarOpen, findQuery = "", findMatchCount = 0, findCurrentMatch = 0) }
     }
@@ -537,7 +532,6 @@ class EditorViewModel(
     override fun onToggleAutocompleteDemo() {
         updateState { copy(autocompletePopupVisible = !autocompletePopupVisible) }
     }
-    override fun onJumpToDiagnostic(diagnostic: DiagnosticUiModel) = jumpToDiagnostic(diagnostic)
 
     private fun defaultCreateParentPath(): String? {
         state.value.selectedFileTreeId?.let { selectedId ->
@@ -829,55 +823,6 @@ class EditorViewModel(
         }
         scheduleAutoSave()
     }
-    fun onDiagnostics(id: String, diagnostics: List<com.ahmadkharfan.androidstudiolite.feature.editor.engine.Diagnostic>) {
-        if (id != state.value.activeTabId) return
-        val errors = diagnostics.count { it.severity == com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Error }
-        val warnings = diagnostics.count { it.severity == com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Warning }
-        val problems = errors + warnings
-        val session = sessions[id]
-        val ui = diagnostics
-            .sortedWith(compareBy({ severityOrder(it.severity) }, { it.start }))
-            .map { d ->
-                val pos = session?.document?.offsetToPosition(d.start.coerceIn(0, session.document.length))
-                DiagnosticUiModel(
-                    offset = d.start,
-                    endOffset = d.end,
-                    line = pos?.line ?: 0,
-                    column = pos?.column ?: 0,
-                    severity = d.severity,
-                    message = d.message,
-                    code = d.code,
-                )
-            }
-        updateState {
-            copy(
-                activeDiagnostics = ui,
-                bottomPanelTabs = bottomPanelTabs.map {
-                    if (it.id == "diag") it.copy(count = if (problems == 0) null else problems, error = errors > 0) else it
-                },
-            )
-        }
-    }
-    private fun severityOrder(s: com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity): Int = when (s) {
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Error -> 0
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Warning -> 1
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Info -> 2
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.DiagnosticSeverity.Hint -> 3
-    }
-    private fun jumpToDiagnostic(diagnostic: DiagnosticUiModel) {
-        val id = state.value.activeTabId ?: return
-        val session = sessions[id] ?: return
-        session.setCaret(diagnostic.offset.coerceIn(0, session.document.length))
-        val caret = session.caretPosition
-        updateState {
-            copy(
-                caretLine = caret.line,
-                caretColumn = caret.column,
-                diagnosticRevealOffset = diagnostic.offset,
-                diagnosticRevealNonce = diagnosticRevealNonce + 1,
-            )
-        }
-    }
     fun onCaretMoved(line: Int, column: Int) {
         if (state.value.caretLine == line && state.value.caretColumn == column) return
         updateState { copy(caretLine = line, caretColumn = column) }
@@ -929,14 +874,6 @@ class EditorViewModel(
                     memoryChartExpanded = false,
                 )
             }
-        }
-    }
-    private fun simulateLspReindex() {
-        if (state.value.lspUpdating) return
-        updateState { copy(lspUpdating = true) }
-        viewModelScope.launch {
-            delay(800)
-            updateState { copy(lspUpdating = false) }
         }
     }
     private fun closeTab(id: String) {
@@ -1260,8 +1197,8 @@ class EditorViewModel(
                     copy(
                         caretLine = caret.line,
                         caretColumn = caret.column,
-                        diagnosticRevealOffset = offset,
-                        diagnosticRevealNonce = diagnosticRevealNonce + 1,
+                        editorRevealOffset = offset,
+                        editorRevealNonce = editorRevealNonce + 1,
                     )
                 }
                 return@launch

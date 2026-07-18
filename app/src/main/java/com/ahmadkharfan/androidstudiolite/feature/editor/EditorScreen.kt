@@ -59,7 +59,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslMemoryCh
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.Diagnostic
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import com.ahmadkharfan.androidstudiolite.feature.editor.view.AslEditableCodeEditor
 import androidx.compose.foundation.background
@@ -140,7 +139,6 @@ fun EditorRoute(
         sessionFor = viewModel::sessionFor,
         onEdited = viewModel::onSessionEdited,
         onCaretMoved = viewModel::onCaretMoved,
-        onDiagnostics = viewModel::onDiagnostics,
         gitNavigation = GitNavigationCallbacks(
             openDiff = onOpenGitDiff,
             openFileHistory = onOpenGitHistory,
@@ -161,7 +159,6 @@ private fun EditorScreen(
     sessionFor: (String?) -> EditorSession?,
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
-    onDiagnostics: (String, List<Diagnostic>) -> Unit = { _, _ -> },
     gitNavigation: GitNavigationCallbacks,
 ) {
     val colors = AslTheme.colors
@@ -194,7 +191,6 @@ private fun EditorScreen(
                     sessionFor = sessionFor,
                     onEdited = onEdited,
                     onCaretMoved = onCaretMoved,
-                    onDiagnostics = onDiagnostics,
                     gitNavigation = gitNavigation,
                     isTablet = isTablet,
                     keyboardOpen = keyboardOpen,
@@ -319,7 +315,6 @@ private fun EditorTopBar(
                 AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Simulate build failure", icon = "octagon-alert"),
                 AslOverflowMenuEntry.Item("Simulate memory pressure", icon = "memory-stick"),
-                AslOverflowMenuEntry.Item("Simulate LSP reindex", icon = "loader"),
                 AslOverflowMenuEntry.Divider,
                 AslOverflowMenuEntry.Item("Close project", icon = "x"),
             ),
@@ -331,7 +326,6 @@ private fun EditorTopBar(
                     "Build AAB (release)" -> interactionListener.onBuildReleaseBundle()
                     "Simulate build failure" -> interactionListener.onSimulateBuildFailure()
                     "Simulate memory pressure" -> interactionListener.onToggleMemoryPressure()
-                    "Simulate LSP reindex" -> interactionListener.onSimulateLspReindex()
                 }
             },
         )
@@ -354,7 +348,6 @@ private fun EditorContentArea(
     sessionFor: (String?) -> EditorSession?,
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
-    onDiagnostics: (String, List<Diagnostic>) -> Unit,
     gitNavigation: GitNavigationCallbacks,
     isTablet: Boolean,
     keyboardOpen: Boolean,
@@ -368,14 +361,12 @@ private fun EditorContentArea(
             sessionFor = sessionFor,
             onEdited = onEdited,
             onCaretMoved = onCaretMoved,
-            onDiagnostics = onDiagnostics,
             gitNavigation = gitNavigation,
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
         if (!keyboardOpen) {
             EditorMemoryPressureBanner(uiState = uiState, interactionListener = interactionListener, colors = colors)
-            EditorLspReindexBanner(uiState = uiState, colors = colors)
             EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
             EditorFullStatusBar(uiState = uiState, onOpenBranches = gitNavigation.openBranches)
         } else {
@@ -391,7 +382,6 @@ private fun EditorEditingRow(
     sessionFor: (String?) -> EditorSession?,
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
-    onDiagnostics: (String, List<Diagnostic>) -> Unit,
     gitNavigation: GitNavigationCallbacks,
     isTablet: Boolean,
     modifier: Modifier = Modifier,
@@ -437,7 +427,6 @@ private fun EditorEditingRow(
             sessionFor = sessionFor,
             onEdited = onEdited,
             onCaretMoved = onCaretMoved,
-            onDiagnostics = onDiagnostics,
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxSize(),
         )
@@ -451,7 +440,6 @@ private fun EditorCodeSurface(
     sessionFor: (String?) -> EditorSession?,
     onEdited: (String) -> Unit,
     onCaretMoved: (Int, Int) -> Unit,
-    onDiagnostics: (String, List<Diagnostic>) -> Unit,
     isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -473,12 +461,8 @@ private fun EditorCodeSurface(
                     breakpoints = activeTab.breakpoints,
                     findQuery = if (uiState.findBarOpen) uiState.findQuery else "",
                     findCurrentMatch = uiState.findCurrentMatch,
-                    lspKotlin = uiState.kotlinLspEnabled,
-                    lspJava = uiState.javaLspEnabled,
-                    lspXml = uiState.xmlLspEnabled,
-                    onDiagnostics = { onDiagnostics(activeTab.id, it) },
-                    revealNonce = uiState.diagnosticRevealNonce,
-                    revealOffset = uiState.diagnosticRevealOffset,
+                    revealNonce = uiState.editorRevealNonce,
+                    revealOffset = uiState.editorRevealOffset,
                     projectIndex = uiState.projectIndex,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
@@ -546,27 +530,6 @@ private fun EditorMemoryPressureBanner(
 }
 
 @Composable
-private fun EditorLspReindexBanner(
-    uiState: EditorUiState,
-    colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
-) {
-    AnimatedVisibility(
-        visible = uiState.lspUpdating,
-        enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-        exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.bgElevated)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-        ) {
-            AslLinearProgress(label = "Kotlin language server updating", detail = "indexing 412 files")
-        }
-    }
-}
-
-@Composable
 private fun EditorBottomToolSection(
     uiState: EditorUiState,
     interactionListener: EditorInteractionListener,
@@ -583,11 +546,8 @@ private fun EditorBottomToolSection(
                 activeTabId = tabId,
                 buildConsole = uiState.buildConsole,
                 appLogLines = uiState.appLogLines,
-                diagnostics = uiState.activeDiagnostics,
-                activeFileName = uiState.activeTab?.name,
                 onCancelBuild = { interactionListener.onCancelBuild() },
                 onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
-                onJumpToDiagnostic = { interactionListener.onJumpToDiagnostic(it) },
             )
         }
     }
@@ -599,28 +559,18 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
         items = buildList {
             uiState.gitStatusText?.let { add(AslStatusBarEntry.Item(it, icon = "git-branch", onClick = onOpenBranches)) }
             when {
-                uiState.lspUpdating -> add(AslStatusBarEntry.Item("LSP updating", icon = "loader", spin = true))
                 uiState.running -> add(AslStatusBarEntry.Item("Building"))
                 uiState.buildFailed -> add(AslStatusBarEntry.Item("Build failed", icon = "octagon-alert", tone = AslStatusTone.Error))
                 else -> add(AslStatusBarEntry.Item("Kotlin"))
             }
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
-            if (uiState.errorCount > 0 || uiState.warningCount > 0) {
-                add(
-                    AslStatusBarEntry.Item(
-                        "${uiState.errorCount} ⨯ · ${uiState.warningCount} ⚠",
-                        icon = if (uiState.errorCount > 0) "octagon-alert" else "triangle-alert",
-                        tone = if (uiState.errorCount > 0) AslStatusTone.Error else AslStatusTone.Warning,
-                    ),
-                )
-            }
             if (uiState.memoryPressureActive) {
                 add(AslStatusBarEntry.Item("${uiState.heapUsedMb} / ${uiState.heapMaxMb} MB", icon = "memory-stick", tone = AslStatusTone.Warning))
             }
             when {
                 uiState.running -> add(AslStatusBarEntry.Item("assembleDebug", tone = AslStatusTone.Warning))
-                !uiState.lspUpdating -> add(AslStatusBarEntry.Item("Synced", icon = "check", tone = AslStatusTone.Success))
+                else -> add(AslStatusBarEntry.Item("Synced", icon = "check", tone = AslStatusTone.Success))
             }
         },
     )

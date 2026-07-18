@@ -37,11 +37,9 @@ interface EditorInteractionListener {
     fun onToggleMemoryPressure()
     fun onToggleMemoryChartExpanded()
     fun onFreeUpMemory()
-    fun onSimulateLspReindex()
     fun onToggleFindBar()
     fun onFindQueryChanged(query: String)
     fun onFindNext()
     fun onFindPrevious()
     fun onToggleAutocompleteDemo()
-    fun onJumpToDiagnostic(diagnostic: DiagnosticUiModel)
 }
