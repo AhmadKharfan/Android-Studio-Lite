@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.ai
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentProtocol
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentToolExecutor
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentTurn
+import com.ahmadkharfan.androidstudiolite.data.ai.agent.AiAgentLog
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.StreamingJsonFieldExtractor
 import com.ahmadkharfan.androidstudiolite.domain.model.AgentAction
 import com.ahmadkharfan.androidstudiolite.domain.model.AgentToolResult
@@ -176,7 +177,23 @@ class RealAiChatRepository(
         val session = sessionFor(projectId)
         val threadId = session.activeThreadId.value
         setThreadMode(projectId, threadId, ChatMode.AGENT)
-        sendMessage(AgentProtocol.BUILD_PLAN_USER_MESSAGE, projectId, activeFilePath)
+        val planText = activeMessages(session)
+            .firstOrNull { it.id == planMessageId }
+            ?.text
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: findPlanMessage(activeMessages(session))?.text?.trim()?.takeIf { it.isNotBlank() }
+        val message = if (planText != null) {
+            AgentProtocol.implementPlanPrompt(planText)
+        } else {
+            AgentProtocol.BUILD_PLAN_USER_MESSAGE
+        }
+        AiAgentLog.i(
+            "Build",
+            "buildFromPlan planMessageId=$planMessageId foundPlan=${planText != null} " +
+                "planLen=${planText?.length ?: 0} messageLen=${message.length}",
+        )
+        sendMessage(message, projectId, activeFilePath)
     }
 
     override suspend fun reviewPlan(
@@ -260,30 +277,47 @@ class RealAiChatRepository(
             }
         val turns = coalesce(historyMessages.map { LlmChatTurn(it.role, it.text) }).toMutableList()
 
-        if (mode == ChatMode.AGENT && looksLikeActionRequest(userText)) {
+        if (mode == ChatMode.AGENT && userText == AgentProtocol.BUILD_PLAN_USER_MESSAGE) {
             findPlanMessage(historyMessages)?.let { plan ->
                 turns.add(LlmChatTurn(ChatRole.USER, AgentProtocol.implementPlanPrompt(plan.text)))
             }
         }
 
+        AiAgentLog.i(
+            "Loop",
+            "start mode=$mode provider=${provider.id} model=$model turns=${turns.size} " +
+                "userPreview=${AiAgentLog.preview(userText, 120)}",
+        )
+
         var iteration = 0
         var toolsRun = 0
         var actionNudged = false
         var parseRetryCount = 0
+        var thoughtOnlyContinues = 0
         while (iteration < MAX_ITERATIONS) {
             iteration++
+            AiAgentLog.d("Loop", "iteration=$iteration toolsRun=$toolsRun parseRetries=$parseRetryCount actionNudged=$actionNudged")
             val streamResult = streamOneTurn(session, provider, apiKey, model, system, turns)
-            if (streamResult == null) return
+            if (streamResult == null) {
+                AiAgentLog.w("Loop", "streamOneTurn returned null (hard failure)")
+                return
+            }
             val (raw, thoughtId, answerId) = streamResult
             turns.add(LlmChatTurn(ChatRole.AI, raw))
 
             when (val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = mode == ChatMode.AGENT)) {
                 is AgentTurn.Final -> {
+                    AiAgentLog.i(
+                        "Turn",
+                        "Final iteration=$iteration parseFailure=${turn.text == AgentProtocol.PARSE_FAILURE_MESSAGE} " +
+                            "textLen=${turn.text.length} unparsed=${AgentProtocol.isUnparsedProtocolResponse(raw, turn.text)}",
+                    )
                     if (mode == ChatMode.AGENT &&
                         AgentProtocol.isUnparsedProtocolResponse(raw, turn.text) &&
                         parseRetryCount < MAX_PARSE_RETRIES
                     ) {
                         parseRetryCount++
+                        AiAgentLog.w("Loop", "json retry $parseRetryCount/$MAX_PARSE_RETRIES toolsRun=$toolsRun")
                         removeMessage(session, thoughtId)
                         answerId?.let { removeMessage(session, it) }
                         val prompt = if (toolsRun > 0) {
@@ -292,6 +326,24 @@ class RealAiChatRepository(
                             AgentProtocol.jsonRetryPrompt()
                         }
                         turns.add(LlmChatTurn(ChatRole.USER, prompt))
+                        continue
+                    }
+                    if (mode == ChatMode.AGENT &&
+                        turn.text == AgentProtocol.PARSE_FAILURE_MESSAGE &&
+                        toolsRun == 0 &&
+                        !actionNudged &&
+                        AgentProtocol.looksLikeActionRequest(userText)
+                    ) {
+                        actionNudged = true
+                        AiAgentLog.w("Loop", "parse failure -> implementPlanRetryPrompt")
+                        removeMessage(session, thoughtId)
+                        answerId?.let { removeMessage(session, it) }
+                        turns.add(
+                            LlmChatTurn(
+                                ChatRole.USER,
+                                AgentProtocol.implementPlanRetryPrompt(userText),
+                            ),
+                        )
                         continue
                     }
                     if (mode == ChatMode.AGENT &&
@@ -306,10 +358,42 @@ class RealAiChatRepository(
                         )
                         return
                     }
-                    reconcileFinalTurn(session, thoughtId, answerId, turn.text, mode)
-                    // Plan→Agent: if the model answered in prose without tools, nudge once to act.
-                    if (mode == ChatMode.AGENT && toolsRun == 0 && !actionNudged && looksLikeActionRequest(userText)) {
+                    val diagnostic = AgentProtocol.diagnoseParse(raw, preferActions = true)
+                    if (mode == ChatMode.AGENT &&
+                        toolsRun == 0 &&
+                        !actionNudged &&
+                        AgentProtocol.looksLikeActionRequest(userText) &&
+                        diagnostic.rootParsed &&
+                        diagnostic.actionCount == 0 &&
+                        diagnostic.salvagedCount == 0 &&
+                        diagnostic.hasFinal &&
+                        turn.text != AgentProtocol.PARSE_FAILURE_MESSAGE
+                    ) {
                         actionNudged = true
+                        AiAgentLog.w("Loop", "final-only JSON without tools -> agent nudge")
+                        removeMessage(session, thoughtId)
+                        answerId?.let { removeMessage(session, it) }
+                        turns.add(
+                            LlmChatTurn(
+                                ChatRole.USER,
+                                "You sent a JSON final answer without any file tool actions. " +
+                                    "Implement the plan now using edit_file/create_file tools in a JSON actions array.",
+                            ),
+                        )
+                        continue
+                    }
+                    if (mode == ChatMode.AGENT &&
+                        toolsRun == 0 &&
+                        !actionNudged &&
+                        AgentProtocol.looksLikeActionRequest(userText) &&
+                        turn.text != AgentProtocol.PARSE_FAILURE_MESSAGE &&
+                        !AgentProtocol.looksLikeProtocolJson(raw) &&
+                        turn.text.isNotBlank()
+                    ) {
+                        actionNudged = true
+                        AiAgentLog.w("Loop", "prose without tools -> agent nudge")
+                        removeMessage(session, thoughtId)
+                        answerId?.let { removeMessage(session, it) }
                         turns.add(
                             LlmChatTurn(
                                 ChatRole.USER,
@@ -319,10 +403,44 @@ class RealAiChatRepository(
                         )
                         continue
                     }
+                    if (mode == ChatMode.AGENT &&
+                        AgentProtocol.isThoughtOnlyTurn(raw) &&
+                        AgentProtocol.shouldAutoContinueImplementation(mode, toolsRun, userText) &&
+                        thoughtOnlyContinues < MAX_THOUGHT_ONLY_CONTINUES
+                    ) {
+                        thoughtOnlyContinues++
+                        AiAgentLog.w(
+                            "Loop",
+                            "thought-only turn -> auto-continue " +
+                                "$thoughtOnlyContinues/$MAX_THOUGHT_ONLY_CONTINUES toolsRun=$toolsRun",
+                        )
+                        removeMessage(session, thoughtId)
+                        answerId?.let { removeMessage(session, it) }
+                        turns.add(
+                            LlmChatTurn(
+                                ChatRole.USER,
+                                AgentProtocol.continueImplementationPrompt(toolsRun),
+                            ),
+                        )
+                        continue
+                    }
+                    if (turn.text == AgentProtocol.PARSE_FAILURE_MESSAGE) {
+                        AiAgentLog.e(
+                            "Loop",
+                            "showing PARSE_FAILURE to user iteration=$iteration toolsRun=$toolsRun " +
+                                "parseRetries=$parseRetryCount actionNudged=$actionNudged " +
+                                "diagnostic=${AgentProtocol.diagnoseParse(raw, mode == ChatMode.AGENT).summary}",
+                        )
+                    }
+                    reconcileFinalTurn(session, thoughtId, answerId, turn.text, mode)
                     return
                 }
 
                 is AgentTurn.Actions -> {
+                    AiAgentLog.i(
+                        "Turn",
+                        "Actions iteration=$iteration count=${turn.actions.size} tools=${turn.actions.map { it.tool }}",
+                    )
                     reconcileActionsTurn(session, thoughtId, answerId, turn.thought)
                     val results = turn.actions.map { runAction(session, it, settings.autoApply, mode) }
                     toolsRun += turn.actions.size
@@ -385,6 +503,7 @@ class RealAiChatRepository(
                 }
             }
         }.getOrElse { error ->
+            AiAgentLog.w("Stream", "chatRawStream failed: ${error.message}", error)
             removeMessage(session, thoughtId)
             answerId?.let { removeMessage(session, it) }
             val detail = (error as? AiLlmException)?.message ?: error.message ?: "Unknown error"
@@ -392,6 +511,11 @@ class RealAiChatRepository(
             return null
         }
         flush(force = true)
+        AiAgentLog.i(
+            "Stream",
+            "complete rawLen=${raw.length} thoughtLen=${thoughtBuf.length} finalLen=${finalBuf.length} " +
+                "preview=${AiAgentLog.preview(raw)} tail=${AiAgentLog.tail(raw)}",
+        )
         return Triple(raw, thoughtId, answerId)
     }
 
@@ -451,16 +575,6 @@ class RealAiChatRepository(
         } else {
             updateMessageText(session, thoughtId, text, streaming = false)
         }
-    }
-
-    private fun looksLikeActionRequest(text: String): Boolean {
-        val lower = text.lowercase()
-        val keywords = listOf(
-            "implement", "apply", "do it", "build", "create", "fix", "add", "update",
-            "edit", "refactor", "make", "write", "change", "go ahead", "proceed",
-            "execute", "start", "do this", "please", "now",
-        )
-        return keywords.any { it in lower }
     }
 
     private fun appendStreamingMessage(
@@ -695,6 +809,7 @@ class RealAiChatRepository(
         const val UNTITLED = "New chat"
         const val MAX_ITERATIONS = 12
         const val MAX_PARSE_RETRIES = 3
+        const val MAX_THOUGHT_ONLY_CONTINUES = 3
         const val MAX_CARD_OUTPUT = 4000
         const val MAX_MODEL_OUTPUT = 24000
         const val STREAM_FLUSH_MS = 40L

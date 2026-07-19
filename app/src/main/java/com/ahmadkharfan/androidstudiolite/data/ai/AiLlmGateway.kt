@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.data.ai
 
+import com.ahmadkharfan.androidstudiolite.data.ai.agent.AiAgentLog
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatCodeSnippet
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatRole
 import java.io.IOException
@@ -100,6 +101,7 @@ class AiLlmGateway(
                 else -> throw AiLlmException("Unknown provider: $providerId")
             }
         } catch (e: Exception) {
+            AiAgentLog.w("Stream", "streaming error provider=$providerId accumulated=${accumulated.length}", e)
             // If nothing streamed yet, fall back to the blocking path; otherwise surface the error.
             if (accumulated.isEmpty()) {
                 val full = chatRaw(providerId, apiKey, resolvedModel, systemPrompt, turns)

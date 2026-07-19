@@ -85,6 +85,7 @@ object AgentProtocol {
                     appendLine("- A plan may already exist earlier in this conversation — implement it now with tools.")
                     appendLine("- Put reasoning in \"thought\"; only send \"final\" after the edits are done.")
                     appendLine("- edit_file and create_file require the ENTIRE file content, never a diff or partial snippet.")
+                    appendLine("- In JSON file content strings, escape every double quote as \\\" and every newline as \\n.")
                     appendLine("- Explore with read_file/list_dir before editing so your changes fit the existing code.")
                     appendLine("- You may batch several actions in one turn; they run in order.")
                     appendLine("- After tool results come back, continue until the task is done, then send a \"final\".")
@@ -125,35 +126,137 @@ object AgentProtocol {
      * `actions` array wins over `final` so the agent actually runs tools instead of dumping JSON.
      */
     fun parseExecutionTurn(raw: String, preferActions: Boolean = false): AgentTurn {
+        val diagnostic = diagnoseParse(raw, preferActions)
+        AiAgentLog.i("Parse", diagnostic.summary)
+
         val root = parseRootObject(raw)
         if (root != null) {
             val turn = turnFromRoot(root, preferActions)
             if (turn is AgentTurn.Actions || turn is AgentTurn.Final && !isParseFailureFinal(turn.text)) {
+                AiAgentLog.i("Parse", "outcome=${diagnostic.outcome} turn=${turnSummary(turn)}")
                 return turn
             }
+            AiAgentLog.w(
+                "Parse",
+                "root parsed but unusable turn=${turnSummary(turn)}; salvaged=${diagnostic.salvagedCount}",
+            )
+        } else {
+            AiAgentLog.w(
+                "Parse",
+                "root parse failed; looksLikeProtocol=${diagnostic.looksLikeProtocol} " +
+                    "truncated=${diagnostic.truncated} salvaged=${diagnostic.salvagedCount}",
+            )
         }
 
-        val salvaged = salvageActions(raw)
+        val salvaged = salvageActions(raw).map { AgentContentSanitizer.sanitizeAction(it) }
         if (preferActions && salvaged.isNotEmpty()) {
+            logSanitizedActions(salvaged)
+            AiAgentLog.i("Parse", "using salvaged actions count=${salvaged.size}")
             return AgentTurn.Actions(extractThought(raw), salvaged)
         }
 
-        return AgentTurn.Final(sanitizeDisplayText(raw))
+        val sanitized = sanitizeDisplayText(raw)
+        AiAgentLog.w(
+            "Parse",
+            "fallback sanitize -> ${if (sanitized == PARSE_FAILURE_MESSAGE) "PARSE_FAILURE" else "text(${sanitized.length})"} " +
+                "rawPreview=${AiAgentLog.preview(raw)} rawTail=${AiAgentLog.tail(raw)}",
+        )
+        return AgentTurn.Final(sanitized)
+    }
+
+    /** Log-friendly snapshot of why a raw model reply did or did not parse. */
+    fun diagnoseParse(raw: String, preferActions: Boolean): ParseDiagnostic {
+        val trimmed = raw.trim()
+        val root = parseRootObject(raw)
+        val actions = root?.let { parseActions(it) }.orEmpty()
+        val salvaged = salvageActions(raw)
+        val final = root?.get("final")?.stringOrNull()
+        val thought = root?.get("thought")?.stringOrNull()
+        val truncated = isTruncatedProtocolJson(raw)
+        val looksLike = looksLikeProtocolJson(trimmed)
+        val outcome = when {
+            root != null && preferActions && actions.isNotEmpty() -> "actions"
+            root != null && !final.isNullOrBlank() -> "final"
+            root != null && actions.isNotEmpty() -> "actions_non_prefer"
+            salvaged.isNotEmpty() && preferActions -> "salvage"
+            truncated -> "truncated"
+            looksLike && root == null -> "invalid_protocol_json"
+            looksLike && actions.isEmpty() && salvaged.isEmpty() -> "empty_protocol_json"
+            else -> "prose_or_failure"
+        }
+        return ParseDiagnostic(
+            rawLength = trimmed.length,
+            looksLikeProtocol = looksLike,
+            rootParsed = root != null,
+            actionCount = actions.size,
+            salvagedCount = salvaged.size,
+            hasFinal = !final.isNullOrBlank(),
+            hasThought = !thought.isNullOrBlank(),
+            truncated = truncated,
+            preferActions = preferActions,
+            outcome = outcome,
+        )
+    }
+
+    data class ParseDiagnostic(
+        val rawLength: Int,
+        val looksLikeProtocol: Boolean,
+        val rootParsed: Boolean,
+        val actionCount: Int,
+        val salvagedCount: Int,
+        val hasFinal: Boolean,
+        val hasThought: Boolean,
+        val truncated: Boolean,
+        val preferActions: Boolean,
+        val outcome: String,
+    ) {
+        val summary: String
+            get() = buildString {
+                append("len=$rawLength preferActions=$preferActions outcome=$outcome ")
+                append("root=$rootParsed actions=$actionCount salvaged=$salvagedCount ")
+                append("final=$hasFinal thought=$hasThought protocol=$looksLikeProtocol truncated=$truncated")
+            }
+    }
+
+    private fun turnSummary(turn: AgentTurn): String = when (turn) {
+        is AgentTurn.Actions -> "Actions(count=${turn.actions.size}, thought=${turn.thought?.length ?: 0})"
+        is AgentTurn.Final -> "Final(len=${turn.text.length}, parseFailure=${turn.text == PARSE_FAILURE_MESSAGE})"
     }
 
     private fun turnFromRoot(root: JsonObject, preferActions: Boolean): AgentTurn {
         val thought = root["thought"]?.stringOrNull()
         val actions = parseActions(root)
+        val final = root["final"]?.stringOrNull()
 
         if (preferActions && actions.isNotEmpty()) {
-            return AgentTurn.Actions(thought, actions)
+            val sanitized = actions.map { AgentContentSanitizer.sanitizeAction(it) }
+            logSanitizedActions(sanitized)
+            return AgentTurn.Actions(thought, sanitized)
         }
 
-        val final = root["final"]?.stringOrNull()
-        if (!final.isNullOrBlank()) return AgentTurn.Final(final)
+        // Agent mode: explicit empty actions array means the model skipped tools — force retry/salvage.
+        if (preferActions && root.containsKey("actions") && actions.isEmpty() && final.isNullOrBlank()) {
+            AiAgentLog.w("Parse", "preferActions=true but actions=[] with no final")
+            return AgentTurn.Final(PARSE_FAILURE_MESSAGE)
+        }
 
-        if (actions.isNotEmpty()) return AgentTurn.Actions(thought, actions)
-        root.toActionOrNull()?.let { return AgentTurn.Actions(thought, listOf(it)) }
+        if (!final.isNullOrBlank()) {
+            if (preferActions && actions.isEmpty()) {
+                AiAgentLog.w("Parse", "preferActions=true but model sent final-only JSON (${final.length} chars)")
+            }
+            return AgentTurn.Final(final)
+        }
+
+        if (actions.isNotEmpty()) {
+            val sanitized = actions.map { AgentContentSanitizer.sanitizeAction(it) }
+            logSanitizedActions(sanitized)
+            return AgentTurn.Actions(thought, sanitized)
+        }
+        root.toActionOrNull()?.let { action ->
+            val sanitized = AgentContentSanitizer.sanitizeAction(action)
+            logSanitizedActions(listOf(sanitized))
+            return AgentTurn.Actions(thought, listOf(sanitized))
+        }
 
         return AgentTurn.Final(thought?.takeIf { it.isNotBlank() } ?: PARSE_FAILURE_MESSAGE)
     }
@@ -164,6 +267,59 @@ object AgentProtocol {
         return looksLikeProtocolJson(raw) &&
             parseRootObject(raw) == null &&
             salvageActions(raw).isEmpty()
+    }
+
+    fun isThoughtOnlyTurn(raw: String): Boolean {
+        val root = parseRootObject(raw) ?: return false
+        if (parseActions(root).isNotEmpty()) return false
+        if (salvageActions(raw).isNotEmpty()) return false
+        if (!root["final"]?.stringOrNull().isNullOrBlank()) return false
+        return !root["thought"]?.stringOrNull().isNullOrBlank()
+    }
+
+    fun shouldAutoContinueImplementation(mode: ChatMode, toolsRun: Int, userText: String): Boolean =
+        mode == ChatMode.AGENT && (toolsRun > 0 || looksLikeActionRequest(userText) || isImplementPlanMessage(userText))
+
+    fun isImplementPlanMessage(userText: String): Boolean =
+        userText.startsWith("Implement the plan below step by step")
+
+    fun continueImplementationPrompt(toolsRun: Int): String =
+        if (toolsRun > 0) {
+            "Continue implementing the remaining plan steps. You already ran $toolsRun tool(s). " +
+                "Reply with ONE JSON object containing file tool actions — do not send thought-only JSON. " +
+                "Use edit_file/create_file with escaped \\\" and \\n inside content."
+        } else {
+            "Continue implementing the plan. Reply with ONE JSON object containing file tool actions only."
+        }
+
+    private fun logSanitizedActions(actions: List<AgentAction>) {
+        actions.forEach { action ->
+            when (action) {
+                is AgentAction.CreateFile -> {
+                    val warnings = AgentContentSanitizer.validateFileContent(action.path, action.content)
+                    if (warnings.isNotEmpty()) {
+                        AiAgentLog.w("Content", "create_file ${action.path}: ${warnings.joinToString()}")
+                    }
+                }
+                is AgentAction.EditFile -> {
+                    val warnings = AgentContentSanitizer.validateFileContent(action.path, action.content)
+                    if (warnings.isNotEmpty()) {
+                        AiAgentLog.w("Content", "edit_file ${action.path}: ${warnings.joinToString()}")
+                    }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun looksLikeActionRequest(text: String): Boolean {
+        val lower = text.lowercase()
+        val keywords = listOf(
+            "implement", "apply", "do it", "build", "create", "fix", "add", "update",
+            "edit", "refactor", "make", "write", "change", "go ahead", "proceed",
+            "execute", "start", "do this", "please", "now", "continue",
+        )
+        return keywords.any { it in lower }
     }
 
     fun jsonRetryPrompt(): String =
@@ -180,6 +336,15 @@ object AgentProtocol {
         "Implement the plan below step by step using file tools. Put every new Kotlin file under " +
             "the KOTLIN SOURCE ROOT from the system prompt. Complete all checklist items, then send " +
             "a final markdown summary.\n\n$planMarkdown"
+
+    fun implementPlanRetryPrompt(userMessage: String): String =
+        if (userMessage.startsWith("Implement the plan below")) {
+            "Your last reply was not valid agent JSON, so no file edits ran. Reply with ONE JSON object " +
+                "only — use {\"thought\":\"...\",\"actions\":[{\"tool\":\"edit_file\",\"path\":\"...\",\"content\":\"...\"}]} " +
+                "to implement the plan above. Escape newlines as \\n inside file content. No markdown fences."
+        } else {
+            jsonRetryPrompt()
+        }
 
     fun reviewPlanPrompt(userInstructions: String? = null): String = buildString {
         append("Review the implementation plan above.")
@@ -245,24 +410,104 @@ object AgentProtocol {
                 index = toolIdx + 6
                 continue
             }
-            val objText = extractBalancedObject(raw, start) ?: break
-            parseJsonObject(objText)?.toActionOrNull()?.let { action ->
-                val key = when (action) {
-                    is AgentAction.Search -> "search:${action.query}"
-                    is AgentAction.ListDir -> "list_dir:${action.path}"
-                    is AgentAction.ReadFile -> "read_file:${action.path}"
-                    is AgentAction.CreateFile -> "create_file:${action.path}"
-                    is AgentAction.CreateDir -> "create_dir:${action.path}"
-                    is AgentAction.EditFile -> "edit_file:${action.path}"
-                    is AgentAction.Rename -> "rename:${action.path}:${action.newName}"
-                    is AgentAction.Move -> "move:${action.path}:${action.newParent}"
-                    is AgentAction.Delete -> "delete:${action.path}"
-                }
-                actions[key] = action
-            }
-            index = start + objText.length
+            val action = extractBalancedObject(raw, start)?.let { parseJsonObject(it)?.toActionOrNull() }
+                ?: salvageLooseFileAction(raw, start)
+            action?.let { putAction(actions, it) }
+            index = toolIdx + 6
         }
         return actions.values.toList()
+    }
+
+    /**
+     * Extracts create_file/edit_file when the JSON content string contains unescaped Kotlin quotes
+     * (e.g. Text(text = "Hi")) which breaks [extractBalancedObject].
+     */
+    internal fun salvageLooseFileAction(raw: String, objectStart: Int): AgentAction? {
+        if (objectStart < 0 || objectStart >= raw.length) return null
+        val slice = raw.substring(objectStart)
+        val toolMatch = LOOSE_FILE_TOOL.find(slice) ?: return null
+        val tool = toolMatch.groupValues[1]
+        val absoluteToolIdx = objectStart + toolMatch.range.first
+        val pathMatch = LOOSE_PATH.find(slice, toolMatch.range.last + 1) ?: return null
+        val path = unescapeJsonString(pathMatch.groupValues[1])
+        val contentKeyIdx = slice.indexOf("\"content\"", pathMatch.range.last)
+        if (contentKeyIdx < 0) return null
+        val openQuoteIdx = slice.indexOf('"', slice.indexOf(':', contentKeyIdx) + 1)
+        if (openQuoteIdx < 0) return null
+        val contentStart = objectStart + openQuoteIdx + 1
+        val searchEnd = looseContentSearchEnd(raw, absoluteToolIdx)
+        val content = extractLooseJsonStringValue(raw, contentStart, searchEnd)
+            ?.let { AgentContentSanitizer.sanitizeFileContent(path, it) }
+            ?: return null
+        AiAgentLog.i("Parse", "salvageLooseFileAction tool=$tool path=$path contentLen=${content.length}")
+        return when (tool) {
+            "create_file" -> AgentAction.CreateFile(path, content)
+            "edit_file" -> AgentAction.EditFile(path, content)
+            else -> null
+        }
+    }
+
+    private fun putAction(actions: LinkedHashMap<String, AgentAction>, action: AgentAction) {
+        val key = when (action) {
+            is AgentAction.Search -> "search:${action.query}"
+            is AgentAction.ListDir -> "list_dir:${action.path}"
+            is AgentAction.ReadFile -> "read_file:${action.path}"
+            is AgentAction.CreateFile -> "create_file:${action.path}"
+            is AgentAction.CreateDir -> "create_dir:${action.path}"
+            is AgentAction.EditFile -> "edit_file:${action.path}"
+            is AgentAction.Rename -> "rename:${action.path}:${action.newName}"
+            is AgentAction.Move -> "move:${action.path}:${action.newParent}"
+            is AgentAction.Delete -> "delete:${action.path}"
+        }
+        actions[key] = action
+    }
+
+    private val LOOSE_FILE_TOOL = Regex(""""tool"\s*:\s*"(create_file|edit_file)"""")
+    private val LOOSE_PATH = Regex(""""path"\s*:\s*"((?:\\.|[^"\\])*)"""")
+
+    /** Reads a JSON string value that may contain unescaped quotes (common in Kotlin file payloads). */
+    internal fun extractLooseJsonStringValue(
+        raw: String,
+        contentStart: Int,
+        searchEnd: Int = raw.length,
+    ): String? {
+        if (contentStart < 0 || contentStart >= raw.length) return null
+        val endBound = searchEnd.coerceIn(contentStart, raw.length)
+        val slice = raw.substring(contentStart, endBound)
+        val endPatterns = listOf("\"},", "\"}]", "\"}}]", "\"}]}", "\"}}}", "\"}}", "\"}")
+        var end = -1
+        for (pattern in endPatterns) {
+            val idx = slice.indexOf(pattern)
+            if (idx >= 0 && (end < 0 || idx < end)) {
+                end = idx
+            }
+        }
+        if (end < 0) return null
+        return unescapeJsonString(slice.substring(0, end))
+    }
+
+    private fun looseContentSearchEnd(raw: String, toolKeyIndex: Int): Int {
+        val nextTool = raw.indexOf("\"tool\"", toolKeyIndex + 6)
+        return if (nextTool > toolKeyIndex) nextTool else raw.length
+    }
+
+    internal fun unescapeJsonString(source: String): String = buildString(source.length) {
+        var i = 0
+        while (i < source.length) {
+            if (source[i] == '\\' && i + 1 < source.length) {
+                when (source[i + 1]) {
+                    'n' -> { append('\n'); i += 2 }
+                    'r' -> { append('\r'); i += 2 }
+                    't' -> { append('\t'); i += 2 }
+                    '"' -> { append('"'); i += 2 }
+                    '\\' -> { append('\\'); i += 2 }
+                    else -> { append(source[i]); i++ }
+                }
+            } else {
+                append(source[i])
+                i++
+            }
+        }
     }
 
     /** Escapes raw newlines/tabs that models often emit inside JSON string values. */

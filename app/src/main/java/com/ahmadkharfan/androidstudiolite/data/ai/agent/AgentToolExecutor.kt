@@ -88,8 +88,16 @@ class AgentToolExecutor(
         }
 
     fun normalizeAction(root: File, action: AgentAction): AgentAction = when (action) {
-        is AgentAction.CreateFile -> action.copy(path = normalizeKotlinSourcePath(root, action.path, action.content))
-        is AgentAction.EditFile -> action.copy(path = normalizeKotlinSourcePath(root, action.path, action.content))
+        is AgentAction.CreateFile -> {
+            val path = normalizeKotlinSourcePath(root, action.path, action.content)
+            val content = AgentContentSanitizer.sanitizeFileContent(path, action.content)
+            action.copy(path = path, content = content)
+        }
+        is AgentAction.EditFile -> {
+            val path = normalizeKotlinSourcePath(root, action.path, action.content)
+            val content = AgentContentSanitizer.sanitizeFileContent(path, action.content)
+            action.copy(path = path, content = content)
+        }
         else -> action
     }
 

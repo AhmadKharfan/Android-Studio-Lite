@@ -19,6 +19,88 @@ class AgentProtocolTest {
     }
 
     @Test
+    fun `salvages create_file when content contains unescaped kotlin string quotes`() {
+        val raw = """
+            {"thought":"Creating file","actions":[{"tool":"create_file","path":"app/src/Foo.kt","content":"package com.example
+
+            import androidx.compose.material.Text
+
+            @Composable
+            fun Foo() {
+                Text(text = "Hello")
+            }
+            "}}]}
+        """.trimIndent()
+        val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = true)
+        turn as AgentTurn.Actions
+        assertEquals(1, turn.actions.size)
+        val create = turn.actions.first() as AgentAction.CreateFile
+        assertEquals("app/src/Foo.kt", create.path)
+        assertTrue(create.content.contains("Text(text = \"Hello\")"))
+        assertTrue(create.content.contains("package com.example"))
+    }
+
+    @Test
+    fun `isThoughtOnlyTurn detects thought without actions or final`() {
+        val raw = """{"thought":"Next I'll create the ViewModel."}"""
+        assertTrue(AgentProtocol.isThoughtOnlyTurn(raw))
+        assertFalse(
+            AgentProtocol.isThoughtOnlyTurn(
+                """{"thought":"done","final":"All set."}""",
+            ),
+        )
+    }
+
+    @Test
+    fun `shouldAutoContinueImplementation when tools already ran`() {
+        assertTrue(
+            AgentProtocol.shouldAutoContinueImplementation(
+                ChatMode.AGENT,
+                toolsRun = 1,
+                userText = "hello",
+            ),
+        )
+    }
+
+    @Test
+    fun `salvages multiple create_file actions with unescaped kotlin quotes`() {
+        val raw = """
+            {"thought":"Creating files","actions":[
+              {"tool":"create_file","path":"app/A.kt","content":"package a
+
+            fun A() { Text(text = "A") }
+            "},
+              {"tool":"create_file","path":"app/B.kt","content":"package b
+
+            fun B() { Text(text = "B") }
+            "}
+            ]}
+        """.trimIndent()
+        val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = true)
+        turn as AgentTurn.Actions
+        assertEquals(2, turn.actions.size)
+        assertTrue(turn.actions[0].toString().contains("A.kt"))
+        assertTrue(turn.actions[1].toString().contains("B.kt"))
+    }
+
+    @Test
+    fun `extractLooseJsonStringValue respects searchEnd for multi action payloads`() {
+        val raw = """{"actions":[{"tool":"edit_file","path":"a.kt","content":"line1"},{"tool":"edit_file","path":"b.kt","content":"line2"}]}"""
+        val firstStart = raw.indexOf("line1")
+        val secondTool = raw.indexOf("\"tool\"", firstStart + 1)
+        val content = AgentProtocol.extractLooseJsonStringValue(raw, firstStart, secondTool)
+        assertEquals("line1", content)
+    }
+
+    @Test
+    fun `extractLooseJsonStringValue reads content before action close`() {
+        val raw = """{"actions":[{"tool":"edit_file","path":"a.kt","content":"line1\nline2"}]}"""
+        val start = raw.indexOf("line1")
+        val content = AgentProtocol.extractLooseJsonStringValue(raw, start)
+        assertEquals("line1\nline2", content)
+    }
+
+    @Test
     fun `parseExecutionTurn parses large edit_file payload with braces in content`() {
         val raw = """
             {"thought":"Editing","actions":[{"tool":"edit_file","path":"app/MainActivity.kt","content":"package com.example\nclass MainActivity {\n    fun onCreate() {\n        setContent { Text(\"Hello\") }\n    }\n}"}]}
