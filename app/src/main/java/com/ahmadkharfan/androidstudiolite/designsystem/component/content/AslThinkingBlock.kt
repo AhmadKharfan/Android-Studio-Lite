@@ -12,10 +12,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,9 +48,9 @@ fun AslThinkingBlock(
     modifier: Modifier = Modifier,
 ) {
     val colors = AslTheme.colors
-    var expanded by remember { mutableStateOf(streaming) }
+    var expanded by remember { mutableStateOf(true) }
     LaunchedEffect(streaming) {
-        expanded = streaming
+        if (streaming) expanded = true
     }
     val pulse = rememberInfiniteTransition(label = "thinkingPulse")
     val alpha by pulse.animateFloat(
@@ -88,7 +91,11 @@ fun AslThinkingBlock(
                     text = text,
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textSecondary,
-                    modifier = Modifier.padding(start = 22.dp, bottom = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 22.dp, bottom = 4.dp),
                 )
             }
         }
