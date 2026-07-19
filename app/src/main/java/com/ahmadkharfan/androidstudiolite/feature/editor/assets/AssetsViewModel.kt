@@ -16,7 +16,7 @@ class AssetsViewModel(
     private val projectPathResolver: ProjectPathResolver,
 ) : BaseViewModel<AssetsUiState, Nothing>(
     initialState = AssetsUiState(),
-) {
+), AssetsInteractionListener {
 
     init {
         tryToExecute(
@@ -27,6 +27,14 @@ class AssetsViewModel(
             onSuccess = { assets -> updateState { copy(loading = false, assets = assets) } },
             onError = { updateState { copy(loading = false, assets = emptyList()) } },
         )
+    }
+
+    override fun onSelectAsset(asset: AssetEntry) {
+        updateState { copy(selectedAsset = asset) }
+    }
+
+    override fun onDismissAssetDetail() {
+        updateState { copy(selectedAsset = null) }
     }
 
     private fun scanAssets(root: File): List<AssetEntry> {
@@ -40,12 +48,14 @@ class AssetsViewModel(
             .flatMap { resDir ->
                 resDir.walkTopDown()
                     .filter { it.isFile }
-                    .map { file ->
+                    .mapNotNull { file ->
+                        val folder = file.parentFile?.name ?: resDir.name
+                        if (shouldSkipFolder(folder)) return@mapNotNull null
                         AssetEntry(
                             name = file.name,
-                            subtitle = file.parentFile?.name ?: resDir.name,
-                            icon = iconFor(file.extension.lowercase()),
+                            subtitle = folder,
                             absolutePath = file.absolutePath,
+                            kind = classify(file, folder),
                         )
                     }
             }
@@ -53,11 +63,25 @@ class AssetsViewModel(
             .sortedWith(compareBy({ it.subtitle }, { it.name }))
     }
 
-    private fun iconFor(extension: String): String = when (extension) {
-        "png", "webp", "jpg", "jpeg", "gif" -> "image"
-        "svg", "xml" -> "shapes"
-        "ttf", "otf" -> "type"
-        "json" -> "braces"
-        else -> "file"
+    private fun shouldSkipFolder(folder: String): Boolean {
+        val folderLower = folder.lowercase()
+        return folderLower == "layout" || folderLower.startsWith("values")
+    }
+
+    private fun classify(file: File, folder: String): AssetKind {
+        val ext = file.extension.lowercase()
+        val folderLower = folder.lowercase()
+        return when {
+            ext in RASTER_EXTENSIONS -> AssetKind.RasterImage
+            (folderLower.startsWith("drawable") || folderLower.startsWith("mipmap")) && ext == "xml" ->
+                AssetKind.XmlDrawable
+            folderLower == "font" || ext in FONT_EXTENSIONS -> AssetKind.Font
+            else -> AssetKind.Raw
+        }
+    }
+
+    private companion object {
+        val RASTER_EXTENSIONS = setOf("png", "webp", "jpg", "jpeg", "gif")
+        val FONT_EXTENSIONS = setOf("ttf", "otf", "ttc")
     }
 }

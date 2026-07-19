@@ -6,12 +6,13 @@ import androidx.compose.runtime.Immutable
 data class AssetEntry(
     val name: String,
     val subtitle: String,
-    val icon: String,
     val absolutePath: String,
+    val kind: AssetKind,
 )
 
 @Immutable
 data class AssetsUiState(
     val loading: Boolean = true,
     val assets: List<AssetEntry> = emptyList(),
+    val selectedAsset: AssetEntry? = null,
 )
