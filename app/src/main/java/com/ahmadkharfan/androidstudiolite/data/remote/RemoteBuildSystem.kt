@@ -269,13 +269,35 @@ class RemoteBuildSystem(
             status.equals("ERROR", ignoreCase = true)
 
     private fun userFacingBuildError(t: Throwable): String {
-        val message = t.message.orEmpty()
+        // Walk the cause chain — OkHttp wraps UnknownHost/Connect under IOException.
+        val chain = generateSequence(t) { it.cause }.toList()
+        for (err in chain) {
+            when (err) {
+                is java.net.UnknownHostException ->
+                    return "You're offline or DNS failed — check your internet connection and try again."
+                is java.net.ConnectException ->
+                    return "Can't reach the build server — check your internet connection and try again."
+                is java.net.NoRouteToHostException ->
+                    return "No network route to the build server — check your internet connection."
+                is java.net.SocketTimeoutException ->
+                    return "Build server timed out — check your internet connection and try again."
+            }
+        }
+        val message = chain.mapNotNull { it.message?.takeIf(String::isNotBlank) }.firstOrNull().orEmpty()
+        val lower = message.lowercase()
         return when {
+            "unable to resolve host" in lower ||
+                "failed to connect" in lower ||
+                "network is unreachable" in lower ||
+                "software caused connection abort" in lower ||
+                "connection refused" in lower ||
+                lower == "network error" ->
+                "You're offline or can't reach the build server — check your internet connection and try again."
             message.contains("PROTOCOL_ERROR", ignoreCase = true) ||
                 message.contains("stream was reset", ignoreCase = true) ->
-                "Connection to build server lost"
+                "Connection to the build server was interrupted — check your internet and try again."
             message.isNotBlank() -> message
-            else -> t::class.simpleName ?: "Build failed"
+            else -> "Build failed — check your internet connection and try again."
         }
     }
 

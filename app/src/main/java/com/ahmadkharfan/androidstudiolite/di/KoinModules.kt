@@ -62,6 +62,7 @@ val viewModelModule = module {
             preferencesRepository = get(),
             gradleProjectReader = get(),
             buildRunCoordinator = get(),
+            networkMonitor = get(),
         )
     }
 }

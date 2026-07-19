@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
@@ -73,6 +74,8 @@ class EditorViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val gradleProjectReader: com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader,
     private val buildRunCoordinator: BuildRunCoordinator,
+    /** Null in unit tests — treated as online. Production always injects a real monitor. */
+    private val networkMonitor: NetworkMonitor? = null,
     private val gitRepository: GitRepository? = null,
     private val workspaceWriteGate: WorkspaceWriteGate? = null,
 ) : BaseViewModel<EditorUiState, EditorEffect>(
@@ -1018,6 +1021,29 @@ class EditorViewModel(
             updateState { copy(snackbarMessage = "Open a project before building") }
             return
         }
+        if (networkMonitor?.isOnline() == false) {
+            val offlineMsg = "You're offline — connect to the internet and try again."
+            updateState {
+                copy(
+                    running = false,
+                    buildFailed = true,
+                    bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
+                    activeBottomTabId = "build",
+                    buildConsole = BuildConsoleState(
+                        status = BuildStatus.Failed,
+                        problems = listOf(
+                            BuildProblem(
+                                severity = BuildEvent.ProblemSeverity.ERROR,
+                                message = offlineMsg,
+                            ),
+                        ),
+                    ),
+                    snackbarMessage = offlineMsg,
+                    bottomPanelTabs = markBuildTab(error = true, count = 1),
+                )
+            }
+            return
+        }
         runInFlight = true
         lastBuildEventAt = System.currentTimeMillis()
         updateState {
@@ -1082,10 +1108,20 @@ class EditorViewModel(
                 val console = state.value.buildConsole
                 val success = console.status == BuildStatus.Succeeded
                 buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
+                // Prefer the concrete ERROR problem (e.g. offline / can't reach server) over a
+                // generic "Build failed" snackbar so the user knows what to fix.
+                val failureMessage = console.problems
+                    .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
+                    ?.message
                 updateState {
                     copy(
                         running = false,
                         buildFailed = !success,
+                        snackbarMessage = when {
+                            success -> snackbarMessage
+                            !failureMessage.isNullOrBlank() -> failureMessage
+                            else -> "Build failed — open Build Output for details"
+                        },
                         bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
                     )
                 }
@@ -1116,12 +1152,25 @@ class EditorViewModel(
                 // Silent past the deadline. Only act while the build is still running (during the
                 // post-build install phase the console is already terminal — leave it alone).
                 if (!state.value.buildConsole.isRunning) return@launch
+                val offline = networkMonitor?.isOnline() == false
+                val timeoutMsg = if (offline) {
+                    "You're offline — connect to the internet and try again."
+                } else {
+                    "Build stopped responding — check your internet connection and tap Run to try again."
+                }
                 updateState {
                     copy(
                         running = false,
                         buildFailed = true,
-                        buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
-                        snackbarMessage = "Build stopped responding — tap Run to try again",
+                        buildConsole = buildConsole.copy(
+                            status = BuildStatus.Failed,
+                            progressMessage = null,
+                            problems = buildConsole.problems + BuildProblem(
+                                severity = BuildEvent.ProblemSeverity.ERROR,
+                                message = timeoutMsg,
+                            ),
+                        ),
+                        snackbarMessage = timeoutMsg,
                         bottomPanelTabs = markBuildTab(error = true, count = null),
                     )
                 }

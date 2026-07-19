@@ -225,7 +225,7 @@ class RemoteClient(
                 return
             } catch (e: IOException) {
                 if (attempt >= MAX_ATTEMPTS - 1) {
-                    throw RemoteException(0, null, e.message ?: "Network error")
+                    throw RemoteException(0, "NETWORK", networkErrorMessage(e))
                 }
             } catch (e: RemoteException) {
                 val transient = e.httpStatus == 0 || e.httpStatus in 500..599
@@ -252,11 +252,40 @@ class RemoteClient(
                 if (!transient || attempt >= MAX_ATTEMPTS - 1) throw ex
                 lastError = ex
             } catch (e: IOException) {
-                if (attempt >= MAX_ATTEMPTS - 1) throw RemoteException(0, null, e.message ?: "Network error")
-                lastError = RemoteException(0, null, e.message ?: "Network error")
+                val mapped = RemoteException(0, "NETWORK", networkErrorMessage(e))
+                if (attempt >= MAX_ATTEMPTS - 1) throw mapped
+                lastError = mapped
             }
             delay(BASE_BACKOFF_MS shl attempt)
             attempt++
+        }
+    }
+
+    /** Clear, user-facing copy for offline / unreachable-server IO failures. */
+    private fun networkErrorMessage(e: IOException): String {
+        val chain = generateSequence<Throwable>(e) { it.cause }.toList()
+        for (err in chain) {
+            when (err) {
+                is java.net.UnknownHostException ->
+                    return "You're offline or DNS failed — check your internet connection and try again."
+                is java.net.ConnectException ->
+                    return "Can't reach the build server — check your internet connection and try again."
+                is java.net.NoRouteToHostException ->
+                    return "No network route to the build server — check your internet connection."
+                is java.net.SocketTimeoutException ->
+                    return "Build server timed out — check your internet connection and try again."
+            }
+        }
+        val message = e.message.orEmpty().lowercase()
+        return when {
+            "unable to resolve host" in message ||
+                "failed to connect" in message ||
+                "network is unreachable" in message ||
+                "connection refused" in message ->
+                "You're offline or can't reach the build server — check your internet connection and try again."
+            e.message.isNullOrBlank() ->
+                "Network error — check your internet connection and try again."
+            else -> e.message!!
         }
     }
 
