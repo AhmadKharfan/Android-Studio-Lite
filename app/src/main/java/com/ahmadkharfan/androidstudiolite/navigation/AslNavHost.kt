@@ -223,7 +223,6 @@ fun AslNavHost(
                 onOpenBuildRun = { navController.navigate(Routes.SETTINGS_BUILD_RUN) },
                 onOpenGitAuth = { navController.navigate(Routes.SETTINGS_GIT_AUTH) },
                 onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
-                onOpenTerminal = { navController.navigate(Routes.TERMINAL) },
             )
         }
         composable(Routes.SETTINGS_GENERAL) {

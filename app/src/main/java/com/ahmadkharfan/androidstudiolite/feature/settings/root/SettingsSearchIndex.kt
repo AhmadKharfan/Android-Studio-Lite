@@ -27,14 +27,12 @@ fun buildSettingsSearchIndex(
     onOpenBuildRun: () -> Unit,
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenTerminal: () -> Unit,
 ): List<SettingsSearchEntry> {
     val general = stringResource(R.string.settings_general)
     val editor = stringResource(R.string.settings_editor)
     val aiAgent = stringResource(R.string.settings_ai_agent)
     val buildRun = stringResource(R.string.settings_build_run)
     val gitAuth = stringResource(R.string.settings_git_auth)
-    val terminal = stringResource(R.string.settings_terminal)
     val about = stringResource(R.string.settings_about)
 
     return listOf(
@@ -233,28 +231,6 @@ fun buildSettingsSearchIndex(
             keywords = "commit email identity",
             icon = "git-branch",
             onClick = onOpenGitAuth,
-        ),
-
-        SettingsSearchEntry(
-            title = terminal,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_terminal_sub),
-            icon = "terminal",
-            onClick = onOpenTerminal,
-        ),
-        SettingsSearchEntry(
-            title = "Linux userland",
-            breadcrumb = terminal,
-            keywords = "proot alpine shell install apk",
-            icon = "terminal",
-            onClick = onOpenTerminal,
-        ),
-        SettingsSearchEntry(
-            title = "Volume key cursor",
-            breadcrumb = terminal,
-            keywords = "volume up down browse scroll terminal keys",
-            icon = "terminal",
-            onClick = onOpenTerminal,
         ),
 
         SettingsSearchEntry(

@@ -47,7 +47,6 @@ fun SettingsRootRoute(
     onOpenBuildRun: () -> Unit,
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenTerminal: () -> Unit,
     viewModel: SettingsRootViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -61,7 +60,6 @@ fun SettingsRootRoute(
         onOpenBuildRun = onOpenBuildRun,
         onOpenGitAuth = onOpenGitAuth,
         onOpenAbout = onOpenAbout,
-        onOpenTerminal = onOpenTerminal,
     )
 }
 
@@ -73,7 +71,6 @@ private fun buildSettingsSections(
     onOpenBuildRun: () -> Unit,
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenTerminal: () -> Unit,
 ): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
         SettingsRow(stringResource(R.string.settings_general), stringResource(R.string.settings_general_sub), "sliders-horizontal", onOpenGeneral),
@@ -81,7 +78,6 @@ private fun buildSettingsSections(
         SettingsRow(stringResource(R.string.settings_ai_agent), stringResource(R.string.settings_ai_agent_sub), "sparkles", onOpenAiAgent),
         SettingsRow(stringResource(R.string.settings_build_run), stringResource(R.string.settings_build_run_sub), "hammer", onOpenBuildRun),
         SettingsRow(stringResource(R.string.settings_git_auth), stringResource(R.string.settings_git_auth_sub), "git-branch", onOpenGitAuth),
-        SettingsRow(stringResource(R.string.settings_terminal), stringResource(R.string.settings_terminal_sub), "terminal", onOpenTerminal),
     )
     val advancedRows = listOf(
         SettingsRow(stringResource(R.string.settings_about), null, "info", onOpenAbout),
@@ -100,7 +96,6 @@ private fun SettingsRootScreen(
     onOpenBuildRun: () -> Unit,
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenTerminal: () -> Unit,
 ) {
     val colors = AslTheme.colors
     val sections = buildSettingsSections(
@@ -110,7 +105,6 @@ private fun SettingsRootScreen(
         onOpenBuildRun = onOpenBuildRun,
         onOpenGitAuth = onOpenGitAuth,
         onOpenAbout = onOpenAbout,
-        onOpenTerminal = onOpenTerminal,
     )
     val searchIndex = buildSettingsSearchIndex(
         onOpenGeneral = onOpenGeneral,
@@ -119,7 +113,6 @@ private fun SettingsRootScreen(
         onOpenBuildRun = onOpenBuildRun,
         onOpenGitAuth = onOpenGitAuth,
         onOpenAbout = onOpenAbout,
-        onOpenTerminal = onOpenTerminal,
     )
 
     Scaffold(containerColor = colors.bgBase) { padding ->
