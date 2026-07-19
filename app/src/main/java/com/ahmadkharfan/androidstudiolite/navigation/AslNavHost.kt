@@ -31,9 +31,7 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentSettin
 import com.ahmadkharfan.androidstudiolite.feature.settings.buildrun.BuildRunSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.ideconfig.IdeConfigRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.server.ServerSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsRoute
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalRoute
 @Composable
@@ -73,9 +71,6 @@ fun AslNavHost(
                 onOpenProject = { id -> navController.navigate(Routes.editor(id)) },
                 onCreateProject = { navController.navigate(Routes.CREATE_PROJECT) },
                 onOpenPreferences = { navController.navigate(Routes.SETTINGS_ROOT) },
-                onOpenTerminal = { navController.navigate(Routes.TERMINAL) },
-                onOpenIdeConfig = { navController.navigate(Routes.SETTINGS_IDE_CONFIG) },
-                onOpenDocs = {},
                 onBrowseFolder = { navController.navigate(Routes.FOLDER_PICKER) },
                 pickedFolder = pickedFolder,
                 onPickedFolderConsumed = { backStackEntry.savedStateHandle["picked_folder"] = null },
@@ -226,7 +221,6 @@ fun AslNavHost(
                 onOpenEditor = { navController.navigate(Routes.SETTINGS_EDITOR) },
                 onOpenAiAgent = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
                 onOpenBuildRun = { navController.navigate(Routes.SETTINGS_BUILD_RUN) },
-                onOpenServer = { navController.navigate(Routes.SETTINGS_SERVER) },
                 onOpenGitAuth = { navController.navigate(Routes.SETTINGS_GIT_AUTH) },
                 onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
                 onOpenTerminal = { navController.navigate(Routes.TERMINAL) },
@@ -244,20 +238,11 @@ fun AslNavHost(
         composable(Routes.SETTINGS_BUILD_RUN) {
             BuildRunSettingsRoute(onBack = { navController.popBackStack() })
         }
-        composable(Routes.SETTINGS_SERVER) {
-            ServerSettingsRoute(onBack = { navController.popBackStack() })
-        }
         composable(Routes.SETTINGS_GIT_AUTH) {
             GitAuthSettingsRoute(onBack = { navController.popBackStack() })
         }
         composable(Routes.SETTINGS_ABOUT) {
             AboutRoute(onBack = { navController.popBackStack() })
-        }
-        composable(Routes.SETTINGS_IDE_CONFIG) {
-            IdeConfigRoute(
-                onBack = { navController.popBackStack() },
-                onOpenServerSettings = { navController.navigate(Routes.SETTINGS_SERVER) },
-            )
         }
         composable(Routes.ACS_MISSING) {
             AcsMissingRoute()

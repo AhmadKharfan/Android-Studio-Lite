@@ -47,19 +47,12 @@
     <!-- Hub -->
     <string name="hub_section_recent">Recent projects</string>
     <string name="hub_section_start">Start</string>
-    <string name="hub_section_more">More</string>
     <string name="hub_create_project">Create project</string>
     <string name="hub_create_project_sub">From a template</string>
     <string name="hub_open_project">Open project</string>
     <string name="hub_open_project_sub">Browse device storage</string>
     <string name="hub_clone_repo">Clone repository</string>
     <string name="hub_clone_repo_sub">GitHub, GitLab or any URL</string>
-    <string name="hub_terminal">Terminal</string>
-    <string name="hub_ide_config">IDE config</string>
-    <string name="hub_preferences">Preferences</string>
-    <string name="hub_docs">Docs</string>
-    <string name="hub_ide_configurations">IDE configurations</string>
-    <string name="hub_documentation">Documentation</string>
     <string name="hub_resume_banner">Resume %1$s where you left off?</string>
     <string name="hub_invalid_project_snackbar">Not a valid Android project</string>
     <string name="hub_dialog_resume_title">Open last project?</string>
@@ -88,8 +81,6 @@
     <string name="settings_build_run_sub">Signing, install options</string>
     <string name="settings_git_auth">Git &amp; GitHub</string>
     <string name="settings_git_auth_sub">Sign-in, tokens, author</string>
-    <string name="settings_server">Build server</string>
-    <string name="settings_server_sub">Server URL, device token</string>
     <string name="settings_terminal">Terminal</string>
     <string name="settings_terminal_sub">Shell, extra keys</string>
     <string name="settings_about">About</string>
