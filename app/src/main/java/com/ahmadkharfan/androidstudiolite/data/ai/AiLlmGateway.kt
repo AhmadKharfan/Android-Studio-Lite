@@ -8,6 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
@@ -67,6 +68,47 @@ class AiLlmGateway(
             "openai", "deepseek", "grok" -> openAiCompatChat(providerId, apiKey, resolvedModel, systemPrompt, turns)
             else -> throw AiLlmException("Unknown provider: $providerId")
         }
+    }
+
+    /**
+     * Streams the model reply token-by-token, invoking [onDelta] with each text chunk, and returns the
+     * full accumulated text. Falls back to the blocking [chatRaw] if streaming fails before any delta.
+     */
+    fun chatRawStream(
+        providerId: String,
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        turns: List<LlmChatTurn>,
+        onDelta: (String) -> Unit,
+    ): String {
+        require(apiKey.isNotBlank()) { "API key is empty" }
+        val resolvedModel = model.ifBlank { AiProviderCatalog.defaultModel(providerId) }
+        val accumulated = StringBuilder()
+        val emit: (String) -> Unit = { chunk ->
+            if (chunk.isNotEmpty()) {
+                accumulated.append(chunk)
+                onDelta(chunk)
+            }
+        }
+        try {
+            when (providerId) {
+                "anthropic" -> anthropicStream(apiKey, resolvedModel, systemPrompt, turns, emit)
+                "gemini" -> geminiStream(apiKey, resolvedModel, systemPrompt, turns, emit)
+                "openai", "deepseek", "grok" ->
+                    openAiCompatStream(providerId, apiKey, resolvedModel, systemPrompt, turns, emit)
+                else -> throw AiLlmException("Unknown provider: $providerId")
+            }
+        } catch (e: Exception) {
+            // If nothing streamed yet, fall back to the blocking path; otherwise surface the error.
+            if (accumulated.isEmpty()) {
+                val full = chatRaw(providerId, apiKey, resolvedModel, systemPrompt, turns)
+                if (full.isNotEmpty()) onDelta(full)
+                return full
+            }
+            if (e is AiLlmException) throw e
+        }
+        return accumulated.toString().ifBlank { throw AiLlmException("Empty response from $providerId") }
     }
 
     /** Best-effort list of available model ids for [providerId]; empty on failure. */
@@ -253,6 +295,143 @@ class AiLlmGateway(
             .ifBlank { throw AiLlmException("Empty response from $providerId") }
     }
 
+    private fun anthropicStream(
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        turns: List<LlmChatTurn>,
+        onDelta: (String) -> Unit,
+    ) {
+        val messages = turns.map { turn ->
+            when (turn.role) {
+                ChatRole.USER -> AnthropicMessage("user", turn.text)
+                ChatRole.AI -> AnthropicMessage("assistant", turn.text)
+            }
+        }
+        val body = json.encodeToString(
+            AnthropicStreamRequest.serializer(),
+            AnthropicStreamRequest(
+                model = model,
+                maxTokens = 8192,
+                system = systemPrompt.ifBlank { DEFAULT_SYSTEM },
+                messages = messages,
+                stream = true,
+            ),
+        )
+        val request = Request.Builder()
+            .url("https://api.anthropic.com/v1/messages")
+            .header("x-api-key", apiKey)
+            .header("anthropic-version", ANTHROPIC_VERSION)
+            .post(body.toRequestBody(JSON))
+            .build()
+        readSse(request) { data ->
+            val root = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
+            if (root["type"]?.jsonPrimitive?.contentOrNull != "content_block_delta") return@readSse
+            val text = root["delta"]?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+            if (!text.isNullOrEmpty()) onDelta(text)
+        }
+    }
+
+    private fun geminiStream(
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        turns: List<LlmChatTurn>,
+        onDelta: (String) -> Unit,
+    ) {
+        val contents = turns.map { turn ->
+            val role = if (turn.role == ChatRole.USER) "user" else "model"
+            GeminiContent(role, listOf(GeminiPart(turn.text)))
+        }
+        val body = json.encodeToString(
+            GeminiRequest.serializer(),
+            GeminiRequest(
+                systemInstruction = GeminiSystemInstruction(listOf(GeminiPart(systemPrompt.ifBlank { DEFAULT_SYSTEM }))),
+                contents = contents,
+            ),
+        )
+        val request = Request.Builder()
+            .url(
+                "https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent" +
+                    "?alt=sse&key=$apiKey",
+            )
+            .post(body.toRequestBody(JSON))
+            .build()
+        readSse(request) { data ->
+            val root = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
+            val text = root["candidates"]?.jsonArray
+                ?.firstOrNull()
+                ?.jsonObject
+                ?.get("content")
+                ?.jsonObject
+                ?.get("parts")
+                ?.jsonArray
+                ?.firstOrNull()
+                ?.jsonObject
+                ?.get("text")
+                ?.jsonPrimitive
+                ?.contentOrNull
+            if (!text.isNullOrEmpty()) onDelta(text)
+        }
+    }
+
+    private fun openAiCompatStream(
+        providerId: String,
+        apiKey: String,
+        model: String,
+        systemPrompt: String,
+        turns: List<LlmChatTurn>,
+        onDelta: (String) -> Unit,
+    ) {
+        val messages = buildList {
+            add(OpenAiMessage("system", systemPrompt.ifBlank { DEFAULT_SYSTEM }))
+            turns.forEach { turn ->
+                val role = if (turn.role == ChatRole.USER) "user" else "assistant"
+                add(OpenAiMessage(role, turn.text))
+            }
+        }
+        val body = json.encodeToString(
+            OpenAiStreamRequest.serializer(),
+            OpenAiStreamRequest(model = model, messages = messages, stream = true),
+        )
+        val request = Request.Builder()
+            .url("${openAiBaseUrl(providerId)}/v1/chat/completions")
+            .header("Authorization", "Bearer $apiKey")
+            .post(body.toRequestBody(JSON))
+            .build()
+        readSse(request) { data ->
+            if (data == "[DONE]") return@readSse
+            val root = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
+            val text = root["choices"]?.jsonArray
+                ?.firstOrNull()
+                ?.jsonObject
+                ?.get("delta")
+                ?.jsonObject
+                ?.get("content")
+                ?.jsonPrimitive
+                ?.contentOrNull
+            if (!text.isNullOrEmpty()) onDelta(text)
+        }
+    }
+
+    /** Reads an SSE response body, invoking [onData] for each `data:` payload. */
+    private fun readSse(request: Request, onData: (String) -> Unit) {
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val err = response.body?.string().orEmpty()
+                throw AiLlmException(parseErrorMessage(err, response.code))
+            }
+            val source = response.body?.source() ?: throw AiLlmException("Empty stream body")
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+                if (line.startsWith("data:")) {
+                    val payload = line.removePrefix("data:").trim()
+                    if (payload.isNotEmpty()) onData(payload)
+                }
+            }
+        }
+    }
+
     private fun execute(request: Request): String {
         httpClient.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
@@ -317,6 +496,15 @@ private data class AnthropicRequest(
 )
 
 @Serializable
+private data class AnthropicStreamRequest(
+    val model: String,
+    @SerialName("max_tokens") val maxTokens: Int,
+    val system: String = "",
+    val messages: List<AnthropicMessage>,
+    val stream: Boolean = true,
+)
+
+@Serializable
 private data class AnthropicMessage(val role: String, val content: String)
 
 @Serializable
@@ -348,6 +536,13 @@ private data class GeminiCandidate(val content: GeminiContent? = null)
 
 @Serializable
 private data class OpenAiChatRequest(val model: String, val messages: List<OpenAiMessage>)
+
+@Serializable
+private data class OpenAiStreamRequest(
+    val model: String,
+    val messages: List<OpenAiMessage>,
+    val stream: Boolean = true,
+)
 
 @Serializable
 private data class OpenAiMessage(val role: String, val content: String)
