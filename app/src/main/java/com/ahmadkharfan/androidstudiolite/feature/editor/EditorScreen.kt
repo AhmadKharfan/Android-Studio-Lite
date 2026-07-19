@@ -383,6 +383,7 @@ private fun EditorEditingRow(
                 onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
                 onToggleFolder = { interactionListener.onToggleFolder(it) },
                 onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
+                onRevealFileTreeNode = { interactionListener.onRevealFileTreeNode(it) },
                 onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
                 onFileTreeAction = { action, id, name, isDirectory ->
                     when (action) {
@@ -542,6 +543,7 @@ private fun EditorDrawerOverlay(
         onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
         onToggleFolder = { interactionListener.onToggleFolder(it) },
         onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
+        onRevealFileTreeNode = { interactionListener.onRevealFileTreeNode(it) },
         onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
         onFileTreeAction = { action, id, name, isDirectory ->
             when (action) {

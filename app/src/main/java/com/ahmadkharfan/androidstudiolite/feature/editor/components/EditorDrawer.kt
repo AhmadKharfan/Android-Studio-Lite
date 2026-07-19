@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +47,7 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileCreateKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreeAction
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRailTool
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.FileTreeSearchPanel
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsRoute
 
 private fun railItems(gitBadge: String?) = listOf(
@@ -97,6 +99,7 @@ fun EditorDrawer(
     onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onRevealFileTreeNode: (String) -> Unit,
     onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
     onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -170,6 +173,7 @@ fun EditorDrawer(
                     onFocusFileTreeNode = onFocusFileTreeNode,
                     onToggleFolder = onToggleFolder,
                     onSelectFile = onSelectFile,
+                    onRevealFileTreeNode = onRevealFileTreeNode,
                     onCreateFileTreeEntry = onCreateFileTreeEntry,
                     onFileTreeAction = onFileTreeAction,
                     onDismiss = onDismiss,
@@ -205,6 +209,7 @@ fun EditorDockedPanel(
     onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onRevealFileTreeNode: (String) -> Unit,
     onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
     onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -241,6 +246,7 @@ fun EditorDockedPanel(
                 onFocusFileTreeNode = onFocusFileTreeNode,
                 onToggleFolder = onToggleFolder,
                 onSelectFile = onSelectFile,
+                onRevealFileTreeNode = onRevealFileTreeNode,
                 onCreateFileTreeEntry = onCreateFileTreeEntry,
                 onFileTreeAction = onFileTreeAction,
                 onDismiss = onDismiss,
@@ -291,6 +297,7 @@ private fun EditorToolPanelContent(
     onFocusFileTreeNode: (String) -> Unit,
     onToggleFolder: (String) -> Unit,
     onSelectFile: (id: String, name: String) -> Unit,
+    onRevealFileTreeNode: (String) -> Unit,
     onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
     onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -314,31 +321,54 @@ private fun EditorToolPanelContent(
     ) { tool ->
         val toolWindowWidth = rememberAslToolWindowWidth()
         when (tool) {
-            EditorRailTool.Files -> AslToolWindowPanel(
-                title = "Project",
-                width = toolWindowWidth,
-                onClose = onDismiss,
-                actions = {
-                    FileTreeCreateMenu(onCreate = { kind -> onCreateFileTreeEntry(kind, null) })
-                },
-            ) {
-                AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
-                    if (loading) {
-                        AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
-                    } else {
-                        AslFileTree(
-                            items = fileTree.map { it.toAslNode() },
-                            expandedIds = expandedFolderIds,
-                            selectedId = selectedFileId,
-                            actionsEnabled = true,
-                            canPaste = canPasteFileTreeEntry,
-                            onFocus = { onFocusFileTreeNode(it.id) },
-                            onToggle = onToggleFolder,
-                            onSelect = { onSelectFile(it.id, it.name) },
-                            onAction = { node, action ->
-                                onFileTreeAction(action.toEditorAction(), node.id, node.name, node.children != null)
-                            },
+            EditorRailTool.Files -> {
+                var fileTreeSearchOpen by remember { mutableStateOf(false) }
+                AslToolWindowPanel(
+                    title = "Project",
+                    width = toolWindowWidth,
+                    onClose = onDismiss,
+                    scrollable = !fileTreeSearchOpen,
+                    actions = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            AslIconButton(
+                                icon = "search",
+                                contentDescription = "Search project",
+                                onClick = { fileTreeSearchOpen = !fileTreeSearchOpen },
+                                active = fileTreeSearchOpen,
+                                size = 32.dp,
+                                iconSize = 16.dp,
+                            )
+                            FileTreeCreateMenu(onCreate = { kind -> onCreateFileTreeEntry(kind, null) })
+                        }
+                    },
+                ) {
+                    if (fileTreeSearchOpen) {
+                        FileTreeSearchPanel(
+                            fileTree = fileTree,
+                            onOpenFile = onSelectFile,
+                            onRevealFolder = onRevealFileTreeNode,
+                            onClose = { fileTreeSearchOpen = false },
                         )
+                    } else {
+                        AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
+                            if (loading) {
+                                AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
+                            } else {
+                                AslFileTree(
+                                    items = fileTree.map { it.toAslNode() },
+                                    expandedIds = expandedFolderIds,
+                                    selectedId = selectedFileId,
+                                    actionsEnabled = true,
+                                    canPaste = canPasteFileTreeEntry,
+                                    onFocus = { onFocusFileTreeNode(it.id) },
+                                    onToggle = onToggleFolder,
+                                    onSelect = { onSelectFile(it.id, it.name) },
+                                    onAction = { node, action ->
+                                        onFileTreeAction(action.toEditorAction(), node.id, node.name, node.children != null)
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -363,7 +393,11 @@ private fun EditorToolPanelContent(
                 onSelectVariant = onSelectVariant,
                 onClose = onDismiss,
             )
-            EditorRailTool.Assets -> AssetsRoute(projectId = projectId, onClose = onDismiss)
+            EditorRailTool.Assets -> AssetsRoute(
+                projectId = projectId,
+                onClose = onDismiss,
+                onOpenFile = onSelectFile,
+            )
         }
     }
 }

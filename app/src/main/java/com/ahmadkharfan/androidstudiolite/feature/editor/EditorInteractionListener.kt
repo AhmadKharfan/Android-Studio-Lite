@@ -7,6 +7,7 @@ interface EditorInteractionListener {
     fun onSelectRailTool(tool: EditorRailTool)
     fun onCloseDrawer()
     fun onFocusFileTreeNode(id: String)
+    fun onRevealFileTreeNode(id: String)
     fun onToggleFolder(id: String)
     fun onOpenFile(id: String, name: String)
     fun onCreateFileTreeEntry(kind: EditorFileCreateKind, parentPath: String?)

@@ -26,8 +26,9 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.reduce
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import java.io.File
 import java.io.Closeable
@@ -390,6 +391,17 @@ class EditorViewModel(
     override fun onFocusFileTreeNode(id: String) {
         updateState { copy(selectedFileTreeId = id) }
     }
+
+    override fun onRevealFileTreeNode(id: String) {
+        val ancestors = ancestorFolderIds(state.value.fileTree, id)
+        updateState {
+            copy(
+                selectedFileTreeId = id,
+                expandedFolderIds = expandedFolderIds + ancestors,
+            )
+        }
+    }
+
     override fun onToggleFolder(id: String) {
         updateState {
             copy(
