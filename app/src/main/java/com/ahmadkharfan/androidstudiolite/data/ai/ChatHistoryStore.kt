@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.ai
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatCodeSnippet
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMessage
+import com.ahmadkharfan.androidstudiolite.domain.model.ChatMessageKind
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMode
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatRole
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatThread
@@ -81,6 +82,8 @@ private data class MessageDto(
     val code: String? = null,
     val applied: Boolean = false,
     val toolCall: ToolCallDto? = null,
+    val kind: String = "NORMAL",
+    val showPlanActions: Boolean = false,
 )
 
 @Serializable
@@ -115,6 +118,9 @@ private fun MessageDto.toDomain() = ChatMessage(
     codeSnippet = if (code != null) ChatCodeSnippet(codeLanguage ?: "text", code) else null,
     applied = applied,
     toolCall = toolCall?.toDomain(),
+    kind = runCatching { ChatMessageKind.valueOf(kind) }.getOrDefault(ChatMessageKind.NORMAL),
+    streaming = false,
+    showPlanActions = showPlanActions,
 )
 
 private fun ToolCallDto.toDomain() = ChatToolCall(
@@ -149,6 +155,8 @@ private fun ChatMessage.toDto() = MessageDto(
     code = codeSnippet?.code,
     applied = applied,
     toolCall = toolCall?.toDto(),
+    kind = kind.name,
+    showPlanActions = showPlanActions,
 )
 
 private fun ChatToolCall.toDto() = ToolCallDto(

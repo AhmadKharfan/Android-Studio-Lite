@@ -39,6 +39,17 @@ interface AiChatRepository {
     /** Sets the provider + model for a thread and remembers it as the global default. */
     suspend fun setThreadModelSelection(projectId: String, threadId: String, providerId: String, model: String)
 
+    /** Switches to Agent mode and implements the plan from [planMessageId]. */
+    suspend fun buildFromPlan(projectId: String, planMessageId: String, activeFilePath: String? = null)
+
+    /** Switches to Ask mode and requests a read-only review of the plan from [planMessageId]. */
+    suspend fun reviewPlan(
+        projectId: String,
+        planMessageId: String,
+        activeFilePath: String? = null,
+        userInstructions: String? = null,
+    )
+
     /** Approves a pending tool call, resuming the paused agent loop. */
     fun approveTool(toolCallId: String)
 

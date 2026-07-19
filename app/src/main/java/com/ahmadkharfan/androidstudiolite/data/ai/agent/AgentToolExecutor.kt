@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.ai.agent
 
+import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
 import com.ahmadkharfan.androidstudiolite.domain.model.AgentAction
 import com.ahmadkharfan.androidstudiolite.domain.model.AgentToolResult
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
@@ -20,7 +22,25 @@ class AgentToolExecutor(
     private val fileContentRepository: FileContentRepository,
     private val fileTreeRepository: FileTreeRepository,
     private val projectPathResolver: ProjectPathResolver,
+    private val gradleProjectReader: GradleProjectReader,
 ) {
+
+    /** Project-relative prefix for Kotlin sources, e.g. `app/src/main/java/com/example/app/`. */
+    suspend fun kotlinSourcePackagePrefix(projectId: String): String? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val root = projectRoot(projectId)
+                val appModule = gradleProjectReader.read(root).model.modules.firstOrNull { module ->
+                    module.type == ModuleType.ANDROID_APP || module.path == ":app"
+                } ?: return@runCatching null
+                val pkg = appModule.applicationId?.takeIf { it.isNotBlank() } ?: return@runCatching null
+                val kotlinRoot = appModule.sourceSets.firstOrNull { it.name == "main" }?.kotlinDirs?.firstOrNull()
+                    ?: appModule.sourceSets.firstOrNull()?.kotlinDirs?.firstOrNull()
+                    ?: File(appModule.moduleDir, "src/main/java")
+                val relRoot = rel(root, kotlinRoot).trimEnd('/')
+                "$relRoot/${pkg.replace('.', '/')}/"
+            }.getOrNull()
+        }
 
     suspend fun projectRoot(projectId: String): File =
         withContext(Dispatchers.IO) { projectPathResolver(projectId).canonicalFile }
@@ -59,12 +79,19 @@ class AgentToolExecutor(
     suspend fun run(projectId: String, action: AgentAction): AgentToolResult =
         withContext(Dispatchers.IO) {
             val root = projectRoot(projectId)
-            runCatching { execute(projectId, root, action) }
+            val normalized = normalizeAction(root, action)
+            runCatching { execute(projectId, root, normalized) }
                 .fold(
-                    onSuccess = { AgentToolResult(action, ok = true, output = it) },
-                    onFailure = { AgentToolResult(action, ok = false, output = it.message ?: "Error") },
+                    onSuccess = { AgentToolResult(normalized, ok = true, output = it) },
+                    onFailure = { AgentToolResult(normalized, ok = false, output = it.message ?: "Error") },
                 )
         }
+
+    fun normalizeAction(root: File, action: AgentAction): AgentAction = when (action) {
+        is AgentAction.CreateFile -> action.copy(path = normalizeKotlinSourcePath(root, action.path, action.content))
+        is AgentAction.EditFile -> action.copy(path = normalizeKotlinSourcePath(root, action.path, action.content))
+        else -> action
+    }
 
     private suspend fun execute(projectId: String, root: File, action: AgentAction): String = when (action) {
         is AgentAction.ListDir -> {
@@ -91,10 +118,11 @@ class AgentToolExecutor(
         is AgentAction.Search -> search(root, action.query)
 
         is AgentAction.CreateFile -> {
-            val file = resolve(root, action.path)
-            require(!file.exists()) { "Already exists: ${action.path} (use edit_file to overwrite)" }
+            val path = action.path
+            val file = resolve(root, path)
+            require(!file.exists()) { "Already exists: $path (use edit_file to overwrite)" }
             fileContentRepository.writeText(file.absolutePath, action.content)
-            "Created ${action.path}"
+            "Created $path"
         }
 
         is AgentAction.CreateDir -> {
@@ -102,16 +130,18 @@ class AgentToolExecutor(
             if (dir.isDirectory) {
                 "Already exists: ${action.path}"
             } else {
-                require(dir.mkdirs()) { "Could not create directory: ${action.path}" }
+                val parent = dir.parentFile ?: root
+                fileTreeRepository.createDirectory(parent.absolutePath, dir.name)
                 "Created directory ${action.path}"
             }
         }
 
         is AgentAction.EditFile -> {
-            val file = resolve(root, action.path)
-            require(file.isFile) { "No such file: ${action.path} (use create_file for new files)" }
+            val path = action.path
+            val file = resolve(root, path)
+            require(file.isFile) { "No such file: $path (use create_file for new files)" }
             fileContentRepository.writeText(file.absolutePath, action.content)
-            "Updated ${action.path}"
+            "Updated $path"
         }
 
         is AgentAction.Rename -> {
@@ -189,7 +219,32 @@ class AgentToolExecutor(
         file.canonicalFile.relativeToOrNull(root.canonicalFile)?.path?.replace('\\', '/')
             ?: file.absolutePath
 
+    /**
+     * Models often place Kotlin files directly under `app/src/main/java/`. Relocate to the package
+     * directory declared in the file content so files appear in the project tree.
+     */
+    private fun normalizeKotlinSourcePath(root: File, path: String, content: String): String {
+        val cleaned = path.trim().removePrefix("./").trimStart('/')
+        val fileName = File(cleaned).name
+        if (!fileName.endsWith(".kt")) return cleaned
+        val pkg = PACKAGE_REGEX.find(content)?.groupValues?.get(1) ?: return cleaned
+        val kotlinRoot = detectKotlinSourceRoot(root, cleaned)
+        val expected = "$kotlinRoot/${pkg.replace('.', '/')}/$fileName"
+        if (cleaned == expected) return cleaned
+        val segments = cleaned.removeSuffix(fileName).trimEnd('/').substringAfterLast('/', "")
+        if (segments.isEmpty() || !segments.contains('.')) return expected
+        return cleaned
+    }
+
+    private fun detectKotlinSourceRoot(root: File, path: String): String {
+        val marker = "src/main/java"
+        val idx = path.indexOf(marker)
+        if (idx >= 0) return path.substring(0, idx + marker.length)
+        return "app/src/main/java"
+    }
+
     private companion object {
+        val PACKAGE_REGEX = Regex("""^package\s+([\w.]+)""", RegexOption.MULTILINE)
         val IGNORED_DIRS = setOf(".git", ".gradle", ".idea", "build", ".cxx", "caches", ".kotlin")
         const val MAX_SEARCH_BYTES = 512L * 1024
         const val MAX_MATCHES = 60

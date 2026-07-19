@@ -10,6 +10,91 @@ import org.junit.Test
 class AgentProtocolTest {
 
     @Test
+    fun `parseExecutionTurn prefers actions over final in agent mode`() {
+        val raw = """{"thought":"x","final":"Done.","actions":[{"tool":"edit_file","path":"a.kt","content":"fun main(){}"}]}"""
+        val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = true)
+        turn as AgentTurn.Actions
+        assertEquals(1, turn.actions.size)
+        assertTrue(turn.actions.first() is AgentAction.EditFile)
+    }
+
+    @Test
+    fun `parseExecutionTurn parses large edit_file payload with braces in content`() {
+        val raw = """
+            {"thought":"Editing","actions":[{"tool":"edit_file","path":"app/MainActivity.kt","content":"package com.example\nclass MainActivity {\n    fun onCreate() {\n        setContent { Text(\"Hello\") }\n    }\n}"}]}
+        """.trimIndent()
+        val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = true)
+        turn as AgentTurn.Actions
+        val edit = turn.actions.first() as AgentAction.EditFile
+        assertEquals("app/MainActivity.kt", edit.path)
+        assertTrue(edit.content.contains("setContent"))
+    }
+
+    @Test
+    fun `actions as single object is accepted`() {
+        val turn = AgentProtocol.parseExecutionTurn(
+            """{"thought":"go","actions":{"tool":"edit_file","path":"x.kt","content":"// ok"}}""",
+            preferActions = true,
+        )
+        turn as AgentTurn.Actions
+        assertEquals(1, turn.actions.size)
+    }
+
+    @Test
+    fun `sanitizeDisplayText never returns raw protocol json`() {
+        val raw = """{"thought":"hi","actions":[{"tool":"read_file","path":"a.kt"}]}"""
+        val text = AgentProtocol.sanitizeDisplayText(raw)
+        assertFalse(AgentProtocol.looksLikeProtocolJson(text))
+        assertEquals("hi", text)
+    }
+
+    @Test
+    fun `repairJsonStringEscapes fixes literal newlines in strings`() {
+        val broken = """{"thought":"line1
+line2","actions":[]}"""
+        val repaired = AgentProtocol.repairJsonStringEscapes(broken)
+        val turn = AgentProtocol.parseExecutionTurn(repaired, preferActions = true)
+        assertTrue(turn is AgentTurn.Final)
+        assertEquals("line1\nline2", (turn as AgentTurn.Final).text)
+    }
+
+    @Test
+    fun `salvageActions extracts edit_file from malformed outer json`() {
+        val raw = """not json {"thought":"x","actions":[{"tool":"edit_file","path":"Main.kt","content":"fun main(){}"} extra"""
+        val salvaged = AgentProtocol.salvageActions(raw)
+        assertEquals(1, salvaged.size)
+        assertTrue(salvaged.first() is AgentAction.EditFile)
+    }
+
+    @Test
+    fun `parseExecutionTurn salvages actions when root json is invalid`() {
+        val raw = """{"thought":"edit","actions":[{"tool":"edit_file","path":"Main.kt","content":"package x
+class Y {}"}]}"""
+        val turn = AgentProtocol.parseExecutionTurn(raw, preferActions = true)
+        assertTrue(turn is AgentTurn.Actions)
+        assertEquals(1, (turn as AgentTurn.Actions).actions.size)
+    }
+
+    @Test
+    fun `isUnparsedProtocolResponse detects truncated json`() {
+        val raw = """{"thought":"x","actions":[{"tool":"edit_file","path":"a.kt","content":"partial"""
+        assertTrue(AgentProtocol.isUnparsedProtocolResponse(raw, AgentProtocol.PARSE_FAILURE_MESSAGE))
+    }
+
+    @Test
+    fun `reviewPlanPrompt includes custom user focus`() {
+        val prompt = AgentProtocol.reviewPlanPrompt("Check ViewModel lifecycle and Compose navigation")
+        assertTrue(prompt.contains("The user wants you to focus on:"))
+        assertTrue(prompt.contains("ViewModel lifecycle"))
+    }
+
+    @Test
+    fun `reviewPlanPrompt uses default focus when instructions blank`() {
+        val prompt = AgentProtocol.reviewPlanPrompt("   ")
+        assertTrue(prompt.contains("gaps, risks, missing steps"))
+    }
+
+    @Test
     fun `parses final answer`() {
         val turn = AgentProtocol.parse("""{"thought":"done","final":"All set."}""")
         assertTrue(turn is AgentTurn.Final)

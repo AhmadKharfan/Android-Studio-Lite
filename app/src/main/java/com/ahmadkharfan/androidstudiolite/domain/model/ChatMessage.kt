@@ -2,6 +2,9 @@ package com.ahmadkharfan.androidstudiolite.domain.model
 
 enum class ChatRole { USER, AI }
 
+/** NORMAL messages render as chat bubbles; THINKING messages render as a collapsible reasoning block. */
+enum class ChatMessageKind { NORMAL, THINKING }
+
 data class ChatCodeSnippet(val language: String, val code: String)
 
 /** Lifecycle of an agent tool call as shown in the chat stream. */
@@ -32,4 +35,9 @@ data class ChatMessage(
     val codeSnippet: ChatCodeSnippet? = null,
     val applied: Boolean = false,
     val toolCall: ChatToolCall? = null,
+    val kind: ChatMessageKind = ChatMessageKind.NORMAL,
+    /** True while tokens are still streaming into this message. Never persisted as true. */
+    val streaming: Boolean = false,
+    /** When true, show Build / Review actions under a completed Plan-mode reply. */
+    val showPlanActions: Boolean = false,
 )

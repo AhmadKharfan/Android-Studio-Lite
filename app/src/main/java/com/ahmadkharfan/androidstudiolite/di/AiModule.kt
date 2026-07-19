@@ -23,7 +23,7 @@ val aiModule = module {
     single { AiAgentPreferencesStore(androidContext().aiAgentDataStore) }
     single { AiLlmGateway() }
     single { ChatHistoryStore(androidContext()) }
-    single { AgentToolExecutor(get(), get(), get()) }
+    single { AgentToolExecutor(get(), get(), get(), get()) }
     single<AiAgentRepository> { RealAiAgentRepository(get(), get(), get()) }
     single<AiChatRepository> { RealAiChatRepository(get(), get(), get(), get(), get()) }
 }
