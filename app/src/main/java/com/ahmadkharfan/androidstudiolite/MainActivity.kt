@@ -1,8 +1,10 @@
 package com.ahmadkharfan.androidstudiolite
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -44,7 +46,10 @@ class MainActivity : ComponentActivity() {
             startDestination = if (onboardingComplete) Routes.HUB else Routes.ONBOARDING_WELCOME
         }
 
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+        )
         setContent {
             val destination = startDestination ?: return@setContent
             val preferences by preferencesRepository.observePreferences()

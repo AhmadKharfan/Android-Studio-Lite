@@ -66,6 +66,7 @@ fun AslAppTheme(
             typography = AslTypography,
             shapes = AslShapes,
         ) {
+            AslSystemBarStyle(darkTheme = darkTheme)
             // Paints the themed background behind the whole app *before* any screen renders, so
             // in-flight nav transitions (sliding/fading between screens) never expose the raw
             // (always-light) Android window background — without this, that flash reads as a
