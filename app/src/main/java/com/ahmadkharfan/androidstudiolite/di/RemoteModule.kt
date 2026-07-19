@@ -8,16 +8,13 @@ import com.ahmadkharfan.androidstudiolite.data.remote.ServerSettingsRepository
 import com.ahmadkharfan.androidstudiolite.data.remote.attestation.IntegrityTokenProvider
 import com.ahmadkharfan.androidstudiolite.data.remote.attestation.NoopIntegrityTokenProvider
 import com.ahmadkharfan.androidstudiolite.data.remote.attestation.PlayIntegrityTokenProvider
-import com.ahmadkharfan.androidstudiolite.feature.settings.server.ServerSettingsViewModel
 import java.io.File
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
  * Wiring for the server-side build backend (A2): settings persistence, the OkHttp transport, the
- * project packager and artifact downloader, plus the build-server settings screen's ViewModel.
- * `RemoteBuildSystem` itself is bound in [buildRunModule].
+ * project packager and artifact downloader. `RemoteBuildSystem` itself is bound in [buildRunModule].
  * Registered from [com.ahmadkharfan.androidstudiolite.AslApplication].
  */
 val remoteModule = module {
@@ -35,5 +32,4 @@ val remoteModule = module {
     single { RemoteClient(settings = get(), integrityProvider = get()) }
     single { ProjectPackager() }
     single { ArtifactDownloader(client = get(), downloadDir = File(androidContext().cacheDir, "build-artifacts")) }
-    viewModel { ServerSettingsViewModel(settings = get(), client = get()) }
 }
