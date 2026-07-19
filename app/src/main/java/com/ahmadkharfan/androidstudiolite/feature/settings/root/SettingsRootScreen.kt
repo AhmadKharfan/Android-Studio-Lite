@@ -31,6 +31,13 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootView
 
 private data class SettingsRow(val title: String, val subtitle: String?, val icon: String, val onClick: () -> Unit = {})
 
+private fun SettingsSearchEntry.toRow(): SettingsRow = SettingsRow(
+    title = title,
+    subtitle = breadcrumb,
+    icon = icon,
+    onClick = onClick,
+)
+
 @Composable
 fun SettingsRootRoute(
     onBack: () -> Unit,
@@ -105,6 +112,15 @@ private fun SettingsRootScreen(
         onOpenAbout = onOpenAbout,
         onOpenTerminal = onOpenTerminal,
     )
+    val searchIndex = buildSettingsSearchIndex(
+        onOpenGeneral = onOpenGeneral,
+        onOpenEditor = onOpenEditor,
+        onOpenAiAgent = onOpenAiAgent,
+        onOpenBuildRun = onOpenBuildRun,
+        onOpenGitAuth = onOpenGitAuth,
+        onOpenAbout = onOpenAbout,
+        onOpenTerminal = onOpenTerminal,
+    )
 
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(
@@ -113,7 +129,13 @@ private fun SettingsRootScreen(
                 .padding(padding),
         ) {
             AslTopAppBar(title = stringResource(R.string.settings_title), onBack = onBack)
-            SettingsRootContent(uiState = uiState, interactionListener = interactionListener, sections = sections, colors = colors)
+            SettingsRootContent(
+                uiState = uiState,
+                interactionListener = interactionListener,
+                sections = sections,
+                searchIndex = searchIndex,
+                colors = colors,
+            )
         }
     }
 }
@@ -123,6 +145,7 @@ private fun SettingsRootContent(
     uiState: SettingsRootUiState,
     interactionListener: SettingsRootInteractionListener,
     sections: List<Pair<String, List<SettingsRow>>>,
+    searchIndex: List<SettingsSearchEntry>,
     colors: AslColorScheme,
 ) {
     Column(
@@ -137,10 +160,19 @@ private fun SettingsRootContent(
             onValueChange = { interactionListener.onQueryChanged(it) },
             placeholder = stringResource(R.string.settings_search_placeholder),
         )
-        sections.forEach { (header, rows) ->
-            val visible = rows.filter { uiState.query.isBlank() || it.title.contains(uiState.query, ignoreCase = true) }
-            if (visible.isNotEmpty()) {
-                SettingsRowGroup(header = header, rows = visible, colors = colors)
+        if (uiState.query.isBlank()) {
+            sections.forEach { (header, rows) ->
+                SettingsRowGroup(header = header, rows = rows, colors = colors)
+            }
+        } else {
+            val results = searchIndex
+                .filter { it.matches(uiState.query) }
+                .distinctBy { "${it.title}\n${it.breadcrumb}" }
+                .map { it.toRow() }
+            if (results.isEmpty()) {
+                HubSectionHeader(stringResource(R.string.settings_search_no_results))
+            } else {
+                SettingsRowGroup(header = stringResource(R.string.settings_search_results), rows = results, colors = colors)
             }
         }
     }

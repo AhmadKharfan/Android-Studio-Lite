@@ -69,6 +69,8 @@
     <!-- Settings root -->
     <string name="settings_title">Preferences</string>
     <string name="settings_search_placeholder">Search settings</string>
+    <string name="settings_search_results">Results</string>
+    <string name="settings_search_no_results">No results</string>
     <string name="settings_section_configure">Configure</string>
     <string name="settings_section_advanced">Advanced</string>
     <string name="settings_general">General</string>
