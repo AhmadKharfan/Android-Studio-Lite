@@ -5,21 +5,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -65,7 +63,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionTile
 import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoRoute
 
@@ -74,9 +71,6 @@ fun HubRoute(
     onOpenProject: (String) -> Unit,
     onCreateProject: () -> Unit,
     onOpenPreferences: () -> Unit,
-    onOpenTerminal: () -> Unit,
-    onOpenIdeConfig: () -> Unit,
-    onOpenDocs: () -> Unit,
     onBrowseFolder: () -> Unit,
     pickedFolder: String?,
     onPickedFolderConsumed: () -> Unit,
@@ -97,9 +91,6 @@ fun HubRoute(
                 is HubEffect.NavigateToProject -> onOpenProject(effect.id)
                 HubEffect.NavigateToCreateProject -> onCreateProject()
                 HubEffect.NavigateToPreferences -> onOpenPreferences()
-                HubEffect.NavigateToTerminal -> onOpenTerminal()
-                HubEffect.NavigateToIdeConfig -> onOpenIdeConfig()
-                HubEffect.NavigateToDocs -> onOpenDocs()
             }
         }
     }
@@ -255,9 +246,9 @@ private fun HubScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                    .padding(vertical = 4.dp),
             ) {
-                HubTopBar(interactionListener = interactionListener, isTablet = isTablet, colors = colors)
+                HubTopBar(interactionListener = interactionListener, colors = colors)
                 HubGreeting(uiState = uiState, isTablet = isTablet, colors = colors)
                 HubResumeBanner(uiState = uiState, interactionListener = interactionListener)
                 if (isTablet) {
@@ -273,11 +264,12 @@ private fun HubScreen(
 @Composable
 private fun HubTopBar(
     interactionListener: HubInteractionListener,
-    isTablet: Boolean,
     colors: AslColorScheme,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = HubHorizontalPadding, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -295,10 +287,11 @@ private fun HubTopBar(
             color = colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
-        if (isTablet) {
-            AslIconButton(icon = "terminal", contentDescription = "Terminal", onClick = { interactionListener.onOpenTerminal() })
-        }
-        AslIconButton(icon = "settings", contentDescription = "Preferences", onClick = { interactionListener.onOpenPreferences() })
+        AslIconButton(
+            icon = "settings",
+            contentDescription = "Preferences",
+            onClick = { interactionListener.onOpenPreferences() },
+        )
     }
 }
 
@@ -316,7 +309,9 @@ private fun HubGreeting(
         ),
         style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
         color = colors.textPrimary,
-        modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
+        modifier = Modifier
+            .padding(horizontal = HubHorizontalPadding)
+            .padding(top = 6.dp, bottom = 12.dp),
     )
 }
 
@@ -332,6 +327,7 @@ private fun HubResumeBanner(
     if (resume != null) lastResume = resume
     AnimatedVisibility(
         visible = resume != null,
+        modifier = Modifier.padding(horizontal = HubHorizontalPadding),
         enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
         exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
     ) {
@@ -354,7 +350,10 @@ private fun HubTabletLayout(
     colors: AslColorScheme,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = HubHorizontalPadding)
+            .padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(28.dp),
     ) {
         Column(modifier = Modifier.weight(1.5f)) {
@@ -362,43 +361,11 @@ private fun HubTabletLayout(
         }
         Column(modifier = Modifier.weight(1f)) {
             StartSection(interactionListener = interactionListener)
-            HubMoreSectionTablet(interactionListener = interactionListener, colors = colors)
         }
     }
 }
 
-@Composable
-private fun HubMoreSectionTablet(
-    interactionListener: HubInteractionListener,
-    colors: AslColorScheme,
-) {
-    HubSectionHeader(stringResource(R.string.hub_section_more))
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg),
-    ) {
-        AslListItem(
-            title = stringResource(R.string.hub_ide_configurations),
-            icon = "wrench",
-            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { interactionListener.onOpenIdeConfig() },
-        )
-        AslListItem(
-            title = stringResource(R.string.hub_preferences),
-            icon = "sliders-horizontal",
-            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { interactionListener.onOpenPreferences() },
-        )
-        AslListItem(
-            title = stringResource(R.string.hub_documentation),
-            icon = "book-open",
-            divider = false,
-            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = { interactionListener.onOpenDocs() },
-        )
-    }
-}
+private val HubHorizontalPadding = 20.dp
 
 @Composable
 private fun HubPhoneLayout(
@@ -407,47 +374,42 @@ private fun HubPhoneLayout(
 ) {
     RecentProjectsRow(uiState = uiState, interactionListener = interactionListener)
     StartSection(interactionListener = interactionListener)
-    HubSectionHeader(stringResource(R.string.hub_section_more))
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(88.dp),
-    ) {
-        item { HubSectionTile(icon = "terminal", label = stringResource(R.string.hub_terminal), onClick = { interactionListener.onOpenTerminal() }) }
-        item { HubSectionTile(icon = "wrench", label = stringResource(R.string.hub_ide_config), onClick = { interactionListener.onOpenIdeConfig() }) }
-        item { HubSectionTile(icon = "sliders-horizontal", label = stringResource(R.string.hub_preferences), onClick = { interactionListener.onOpenPreferences() }) }
-        item { HubSectionTile(icon = "book-open", label = stringResource(R.string.hub_docs), onClick = { interactionListener.onOpenDocs() }) }
-    }
 }
 
 @Composable
 private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
-    HubSectionHeader(stringResource(R.string.hub_section_recent))
+    HubSectionHeader(
+        text = stringResource(R.string.hub_section_recent),
+        modifier = Modifier.padding(horizontal = HubHorizontalPadding),
+    )
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsRow") { loading ->
         if (loading) {
-            AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
+            AslSkeleton(
+                variant = AslSkeletonVariant.List,
+                rows = 2,
+                modifier = Modifier.padding(horizontal = HubHorizontalPadding),
+            )
         } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                uiState.recentProjects.forEachIndexed { index, project ->
-                    AslStaggeredAppear(index = index) {
-                        AslProjectCard(
-                            name = project.name,
-                            path = project.path,
-                            lastOpened = project.lastOpenedText,
-                            language = project.language,
-                            modifier = Modifier.width(290.dp),
-                            onClick = { interactionListener.onOpenProject(project.id) },
-                            onMenu = { interactionListener.onProjectMenu(project.id) },
-                        )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val cardWidth = minOf(290.dp, maxWidth * 0.82f)
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = HubHorizontalPadding),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    itemsIndexed(uiState.recentProjects, key = { _, project -> project.id }) { index, project ->
+                        AslStaggeredAppear(index = index) {
+                            AslProjectCard(
+                                name = project.name,
+                                path = project.path,
+                                lastOpened = project.lastOpenedText,
+                                language = project.language,
+                                modifier = Modifier.width(cardWidth),
+                                onClick = { interactionListener.onOpenProject(project.id) },
+                                onMenu = { interactionListener.onProjectMenu(project.id) },
+                            )
+                        }
                     }
                 }
             }
@@ -485,12 +447,13 @@ private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInte
 @Composable
 private fun StartSection(interactionListener: HubInteractionListener) {
     val colors = AslTheme.colors
-    HubSectionHeader(stringResource(R.string.hub_section_start))
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface, AslShape.lg),
-    ) {
+    Column(modifier = Modifier.padding(horizontal = HubHorizontalPadding)) {
+        HubSectionHeader(stringResource(R.string.hub_section_start))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, AslShape.lg),
+        ) {
         AslListItem(
             title = stringResource(R.string.hub_create_project),
             subtitle = stringResource(R.string.hub_create_project_sub),
@@ -514,5 +477,6 @@ private fun StartSection(interactionListener: HubInteractionListener) {
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = { interactionListener.onCloneRepository() },
         )
+        }
     }
 }

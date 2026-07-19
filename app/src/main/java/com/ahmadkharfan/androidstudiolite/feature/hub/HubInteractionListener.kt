@@ -9,7 +9,4 @@ interface HubInteractionListener {
     fun onOpenProjectPicker()
     fun onCloneRepository()
     fun onOpenPreferences()
-    fun onOpenTerminal()
-    fun onOpenIdeConfig()
-    fun onOpenDocs()
 }

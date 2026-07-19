@@ -108,18 +108,6 @@ class HubViewModel(
         emitEffect(HubEffect.NavigateToPreferences)
     }
 
-    override fun onOpenTerminal() {
-        emitEffect(HubEffect.NavigateToTerminal)
-    }
-
-    override fun onOpenIdeConfig() {
-        emitEffect(HubEffect.NavigateToIdeConfig)
-    }
-
-    override fun onOpenDocs() {
-        emitEffect(HubEffect.NavigateToDocs)
-    }
-
     fun dismissSheet() {
         updateState { copy(sheet = HubSheetUiState.None) }
     }
