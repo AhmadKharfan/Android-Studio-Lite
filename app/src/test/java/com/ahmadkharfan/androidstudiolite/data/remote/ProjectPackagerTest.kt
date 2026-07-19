@@ -75,6 +75,22 @@ class ProjectPackagerTest {
         assertTrue(content.contains("fun main"))
     }
 
+    @Test
+    fun `includes gradlew script in the archive`() = runBlocking {
+        // Android's ZipEntry has no public Unix-mode API, so executable bits are restored
+        // server-side (worker entrypoint `chmod +x ./gradlew`). This test just guarantees the
+        // wrapper script itself is never pruned from the upload.
+        val project = tmp.newFolder("proj-wrapper")
+        writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj-wrapper\"")
+        writeFile(project, "gradlew", "#!/bin/sh\necho hi\n")
+
+        val dest = File(tmp.root, "out-wrapper/source.zip")
+        ProjectPackager().packageProject(project, dest)
+
+        val entries = ZipFile(dest).use { zf -> zf.entries().toList().map { it.name } }
+        assertTrue(entries.contains("gradlew"))
+    }
+
     // --- packageProjectCached: reuse the archive when nothing changed -------------------------
 
     /** The zip is only rewritten when the source changed; mtime is the proxy for "was rewritten". */

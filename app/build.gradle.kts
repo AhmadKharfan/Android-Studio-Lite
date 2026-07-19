@@ -78,6 +78,14 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // Let JVM unit tests exercise code that touches android.util.Log (and other stubbed
+            // android.* APIs) without a device: unmocked android calls return defaults instead of
+            // throwing "Method ... not mocked".
+            isReturnDefaultValues = true
+        }
+    }
     packaging {
         jniLibs {
             // proot + its loader ship as native libs so they land in the exec-capable

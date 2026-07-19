@@ -1,7 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.data.local
 
+import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
-import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
@@ -29,16 +32,22 @@ class JGitGitRepositoryTest {
 
     private val credentialStore = FakeCredentialStore()
 
-    private fun repository(projectsHome: File = temp.newFolder("projects")): JGitGitRepository =
+    private fun repository(): JGitGitRepository =
         JGitGitRepository(
-            projectsHome = { projectsHome },
             credentialStore = credentialStore,
             io = Dispatchers.Unconfined,
         )
 
+    /** A path under a fresh folder that does not yet exist — a valid clone destination. */
+    private fun cloneDestination(name: String): File = File(temp.newFolder(), name)
+
     private fun writeFile(dir: File, name: String, content: String) {
         File(dir, name).apply { parentFile?.mkdirs() }.writeText(content)
     }
+
+    /** Files with a real staged/unstaged change (ignores UNCHANGED entries). */
+    private suspend fun JGitGitRepository.pendingFiles(dir: File) =
+        observeState(dir).value.files.filter { it.hasPendingChange }
 
     @Test
     fun `init commit and log`() = runTest {
@@ -58,7 +67,7 @@ class JGitGitRepositoryTest {
         assertEquals("initial commit", log.first().message)
         // Working tree is clean after committing everything.
         repo.refresh(dir)
-        assertTrue(repo.observeState(dir).value.changes.isEmpty())
+        assertTrue(repo.pendingFiles(dir).isEmpty())
     }
 
     @Test
@@ -69,18 +78,20 @@ class JGitGitRepositoryTest {
 
         writeFile(dir, "a.txt", "one\n")
         repo.refresh(dir)
-        val untracked = repo.observeState(dir).value.changes.single()
+        val untracked = repo.pendingFiles(dir).single()
         assertEquals("a.txt", untracked.path)
-        assertEquals(GitFileStatus.UNTRACKED, untracked.status)
-        assertFalse(untracked.staged)
+        assertEquals(GitWorktreeStatus.UNTRACKED, untracked.worktreeStatus)
+        // Not staged yet: nothing in the index for this path.
+        assertEquals(GitIndexStatus.UNCHANGED, untracked.indexStatus)
 
         repo.stage(dir, "a.txt")
-        val staged = repo.observeState(dir).value.changes.single()
-        assertTrue(staged.staged)
-        assertEquals(GitFileStatus.ADDED, staged.status)
+        repo.refresh(dir)
+        val staged = repo.pendingFiles(dir).single()
+        assertEquals(GitIndexStatus.ADDED, staged.indexStatus)
 
         repo.unstage(dir, "a.txt")
-        assertFalse(repo.observeState(dir).value.changes.single().staged)
+        repo.refresh(dir)
+        assertEquals(GitIndexStatus.UNCHANGED, repo.pendingFiles(dir).single().indexStatus)
     }
 
     @Test
@@ -94,11 +105,12 @@ class JGitGitRepositoryTest {
         repo.commit(dir)
 
         writeFile(dir, "code.txt", "line1\nline2 changed\nline3\n")
-        val diff = repo.getDiff(dir, "code.txt")
+        val diff = repo.diffIndexToWorktree(dir, "code.txt")
+        val lines = diff.hunks.flatMap { it.lines }
 
-        assertTrue(diff.any { it.kind.name == "REMOVED" && it.text == "line2" })
-        assertTrue(diff.any { it.kind.name == "ADDED" && it.text == "line2 changed" })
-        assertTrue(diff.any { it.kind.name == "ADDED" && it.text == "line3" })
+        assertTrue(lines.any { it.kind == GitDiffKind.REMOVED && it.text == "line2" })
+        assertTrue(lines.any { it.kind == GitDiffKind.ADDED && it.text == "line2 changed" })
+        assertTrue(lines.any { it.kind == GitDiffKind.ADDED && it.text == "line3" })
     }
 
     @Test
@@ -119,32 +131,26 @@ class JGitGitRepositoryTest {
     }
 
     @Test
-    fun `clone from a local remote creates a project`() = runTest {
+    fun `clone from a local remote populates the destination`() = runTest {
         val source = seedRepo(temp.newFolder("sample"))
-        val projectsHome = temp.newFolder("projects")
-        val repo = repository(projectsHome)
+        val repo = repository()
+        val dest = cloneDestination("sample")
 
-        val progress = repo.clone(source.toURI().toString(), branch = null, credentials = null).toList()
+        repo.clone(source.toURI().toString(), dest, CloneOptions(), credentials = null).toList()
 
-        val last = progress.last()
-        assertEquals("sample", last.clonedProjectId)
-        assertEquals(1f, last.fraction)
-        val cloned = File(projectsHome, "sample")
-        assertTrue(File(cloned, "README.md").exists())
-        assertTrue(repo.isRepository(cloned))
+        assertTrue(File(dest, "README.md").exists())
+        assertTrue(repo.isRepository(dest))
     }
 
     @Test
     fun `push and pull round trip through a bare remote`() = runTest {
         val bare = temp.newFolder("remote.git")
         Git.init().setBare(true).setDirectory(bare).call().close()
-
-        val projectsHome = temp.newFolder("projects")
-        val repo = repository(projectsHome)
+        val repo = repository()
 
         // Clone A: add a commit and push it to the bare remote.
-        repo.clone(bare.toURI().toString(), branch = null, credentials = null).toList()
-        val cloneA = File(projectsHome, "remote")
+        val cloneA = cloneDestination("remoteA")
+        repo.clone(bare.toURI().toString(), cloneA, CloneOptions(), credentials = null).toList()
         writeFile(cloneA, "hello.txt", "from A\n")
         repo.stage(cloneA, "hello.txt")
         repo.setCommitMessage(cloneA, "add hello")
@@ -152,13 +158,11 @@ class JGitGitRepositoryTest {
         val push = repo.push(cloneA)
         assertTrue(push.detail, push.success)
 
-        // Clone B (into a separate home) should see A's commit.
-        val homeB = temp.newFolder("projectsB")
-        val repoB = repository(homeB)
-        repoB.clone(bare.toURI().toString(), branch = null, credentials = null).toList()
-        val cloneB = File(homeB, "remote")
+        // Clone B should see A's commit.
+        val cloneB = cloneDestination("remoteB")
+        repo.clone(bare.toURI().toString(), cloneB, CloneOptions(), credentials = null).toList()
         assertTrue(File(cloneB, "hello.txt").exists())
-        assertEquals("add hello", repoB.log(cloneB, 5).first().message)
+        assertEquals("add hello", repo.log(cloneB, 5).first().message)
 
         // A second commit pushed from A is retrieved by B via pull.
         writeFile(cloneA, "hello.txt", "from A again\n")
@@ -167,7 +171,7 @@ class JGitGitRepositoryTest {
         repo.commit(cloneA)
         repo.push(cloneA)
 
-        val pull = repoB.pull(cloneB)
+        val pull = repo.pull(cloneB)
         assertTrue(pull.detail, pull.success)
         assertEquals("from A again\n", File(cloneB, "hello.txt").readText())
     }
@@ -182,12 +186,11 @@ class JGitGitRepositoryTest {
 
     @Test
     fun `remoteInfo returns the origin url and current branch for a clone`() = runTest {
-        val projectsHome = temp.newFolder("projects")
-        val repo = repository(projectsHome)
+        val repo = repository()
         val source = seedRepo(temp.newFolder("origin"))
+        val cloned = cloneDestination("origin-clone")
 
-        repo.clone(source.toURI().toString(), branch = null, credentials = null).toList()
-        val cloned = File(projectsHome, "origin")
+        repo.clone(source.toURI().toString(), cloned, CloneOptions(), credentials = null).toList()
 
         val info = repo.remoteInfo(cloned)
         assertNotNull(info)

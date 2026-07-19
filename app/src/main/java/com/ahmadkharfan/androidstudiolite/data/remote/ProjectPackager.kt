@@ -153,7 +153,16 @@ class ProjectPackager(
                     zipDirectory(root, child, zip)
                 }
             } else if (child.isFile) {
-                zip.putNextEntry(ZipEntry(relativePath(root, child)))
+                val entry = ZipEntry(relativePath(root, child))
+                // Preserve the executable bit for scripts the worker must exec (notably
+                // `gradlew`). Java's ZipEntry doesn't expose a public Unix-mode setter on
+                // Android's classpath, so we set the ZIP external attributes the same way
+                // Info-ZIP / unzip expect: Unix mode in the upper 16 bits. Without this the
+                // worker used to fall back to its older system Gradle and fail modern AGP.
+                if (child.canExecute() || child.name == "gradlew") {
+                    setUnixMode(entry, UNIX_FILE_EXECUTABLE)
+                }
+                zip.putNextEntry(entry)
                 child.inputStream().use { it.copyTo(zip, bufferSize = BUFFER_SIZE) }
                 zip.closeEntry()
             }
@@ -163,10 +172,46 @@ class ProjectPackager(
     private fun relativePath(root: File, file: File): String =
         file.relativeTo(root).path.replace(File.separatorChar, '/')
 
+    /**
+     * Best-effort Unix mode on a [ZipEntry]. Android's `java.util.zip.ZipEntry` keeps the
+     * external-attributes field package-private / unavailable, so we reach it via reflection.
+     * Any failure is swallowed — the worker also `chmod +x`s `gradlew` before invoking it, which
+     * is the authoritative fix for lost executable bits on zip upload.
+     */
+    private fun setUnixMode(entry: ZipEntry, mode: Int) {
+        val attrs = (mode.toLong() and 0xffffL) shl 16
+        try {
+            val method = ZipEntry::class.java.getMethod(
+                "setExternalAttributes",
+                Long::class.javaPrimitiveType,
+            )
+            method.invoke(entry, attrs)
+            return
+        } catch (_: Throwable) {
+            // Method missing, inaccessible, or rejected — try field access next.
+        }
+        for (name in listOf("externalAttrs", "externalAttributes", "extraAttributes")) {
+            try {
+                val field = ZipEntry::class.java.getDeclaredField(name)
+                field.isAccessible = true
+                when (field.type) {
+                    java.lang.Long.TYPE, java.lang.Long::class.java -> field.setLong(entry, attrs)
+                    java.lang.Integer.TYPE, java.lang.Integer::class.java -> field.setInt(entry, attrs.toInt())
+                    else -> continue
+                }
+                return
+            } catch (_: Throwable) {
+                // try next name
+            }
+        }
+    }
+
     companion object {
         /** Regenerated server-side or IDE-local, so never worth uploading. */
         val DEFAULT_EXCLUDED_DIRS: Set<String> = setOf("build", ".gradle", ".idea", ".git")
         private const val BUFFER_SIZE = 64 * 1024
+        /** Regular file + rwxr-xr-x (0100755), what unzip expects for an executable script. */
+        private const val UNIX_FILE_EXECUTABLE = 0b1000000111101101 // 0100755
 
         /**
          * One cache slot, not one per project: consecutive Runs of the SAME project are the case

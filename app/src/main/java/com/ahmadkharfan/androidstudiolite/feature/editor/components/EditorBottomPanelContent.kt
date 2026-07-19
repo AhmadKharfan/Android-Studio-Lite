@@ -14,6 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
@@ -71,32 +73,46 @@ private fun BuildTab(
         )
         return
     }
+    val clipboard = LocalClipboardManager.current
     Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
-        BuildStatusHeader(console, onCancelBuild)
-        SelectionContainer {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                if (console.problems.isNotEmpty()) {
-                    item { SectionLabel("Problems (${console.problems.size})") }
-                    items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
-                }
-                if (console.taskGroups.isNotEmpty()) {
-                    item { SectionLabel("Tasks") }
-                    console.taskGroups.forEach { group ->
-                        if (group.module.isNotEmpty()) {
-                            item { AslBuildOutputLine(text = group.module, depth = 0) }
-                        }
-                        items(group.tasks) { task ->
-                            AslBuildOutputLine(
-                                text = task.name,
-                                depth = if (group.module.isEmpty()) 0 else 1,
-                                status = task.result.toTaskStatus(),
-                            )
-                        }
+        BuildStatusHeader(
+            console = console,
+            onCancelBuild = onCancelBuild,
+            onCopyAll = { clipboard.setText(AnnotatedString(console.toClipboardText())) },
+        )
+        // NOTE: do NOT wrap this LazyColumn in a single SelectionContainer. A shared
+        // SelectionContainer over a lazy list crashes when the user selects text and then
+        // scrolls — disposed items drop their selectable ids from the selection registry, and
+        // the selection manager then looks up a missing id
+        // (java.util.NoSuchElementException: Cannot find value for key N). Instead we offer a
+        // reliable "Copy" action for the whole console and per-line SelectionContainers (each
+        // with its own registry) for granular copying.
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (console.problems.isNotEmpty()) {
+                item { SectionLabel("Problems (${console.problems.size})") }
+                items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
+            }
+            if (console.taskGroups.isNotEmpty()) {
+                item { SectionLabel("Tasks") }
+                console.taskGroups.forEach { group ->
+                    if (group.module.isNotEmpty()) {
+                        item { AslBuildOutputLine(text = group.module, depth = 0) }
+                    }
+                    items(group.tasks) { task ->
+                        AslBuildOutputLine(
+                            text = task.name,
+                            depth = if (group.module.isEmpty()) 0 else 1,
+                            status = task.result.toTaskStatus(),
+                        )
                     }
                 }
-                if (console.logs.isNotEmpty()) {
-                    item { SectionLabel("Output") }
-                    items(console.logs) { line ->
+            }
+            if (console.logs.isNotEmpty()) {
+                item { SectionLabel("Output") }
+                items(console.logs) { line ->
+                    // Per-line SelectionContainer: each has its own selection registry, so a line
+                    // scrolling out of view can never leave a dangling selectable id behind.
+                    SelectionContainer {
                         Text(
                             text = line.text,
                             style = AslCode.codeTiny,
@@ -110,8 +126,50 @@ private fun BuildTab(
     }
 }
 
+/** Flattens the whole console into plain text for the "Copy" action. */
+private fun BuildConsoleState.toClipboardText(): String = buildString {
+    val statusLabel = when (status) {
+        BuildStatus.Running -> progressMessage ?: "Building…"
+        BuildStatus.Succeeded -> "Build successful"
+        BuildStatus.Failed -> "Build failed"
+        BuildStatus.Cancelled -> "Build cancelled"
+        BuildStatus.Idle -> "Ready"
+    }
+    appendLine(statusLabel)
+    if (problems.isNotEmpty()) {
+        appendLine()
+        appendLine("Problems (${problems.size})")
+        problems.forEach { problem ->
+            append("  [").append(problem.severity.name).append("] ").append(problem.message)
+            problem.location?.let { append(" (").append(it).append(")") }
+            appendLine()
+        }
+    }
+    if (taskGroups.isNotEmpty()) {
+        appendLine()
+        appendLine("Tasks")
+        taskGroups.forEach { group ->
+            if (group.module.isNotEmpty()) appendLine(group.module)
+            group.tasks.forEach { task ->
+                append("  ").append(task.name)
+                task.result?.let { append(" — ").append(it.name) }
+                appendLine()
+            }
+        }
+    }
+    if (logs.isNotEmpty()) {
+        appendLine()
+        appendLine("Output")
+        logs.forEach { appendLine(it.text) }
+    }
+}
+
 @Composable
-private fun BuildStatusHeader(console: BuildConsoleState, onCancelBuild: () -> Unit) {
+private fun BuildStatusHeader(
+    console: BuildConsoleState,
+    onCancelBuild: () -> Unit,
+    onCopyAll: () -> Unit,
+) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
         Row(
@@ -136,6 +194,16 @@ private fun BuildStatusHeader(console: BuildConsoleState, onCancelBuild: () -> U
             )
             console.durationMillis?.let {
                 Text(text = String.format("%.1fs", it / 1000.0), style = AslCode.codeTiny, color = colors.textTertiary)
+            }
+            val hasContent = console.problems.isNotEmpty() || console.taskGroups.isNotEmpty() || console.logs.isNotEmpty()
+            if (hasContent) {
+                AslButton(
+                    label = "Copy",
+                    onClick = onCopyAll,
+                    variant = AslButtonVariant.Secondary,
+                    size = AslButtonSize.Md,
+                    icon = "copy",
+                )
             }
             if (console.isRunning) {
                 AslButton(
