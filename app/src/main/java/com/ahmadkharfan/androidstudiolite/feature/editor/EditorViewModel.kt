@@ -60,13 +60,7 @@ private fun expandedBottomPanelHeight(current: Float): Float =
  * it, so it only trips on genuine silence (dead worker, dropped stream). Generous enough to never
  * trip on a normal build's quiet configuration phase, but bounded so a stuck build can't spin forever.
  */
-/**
- * Fail a run that produces no [BuildEvent]s for this long. Remote prepare (package/upload/start)
- * and cold Gradle distribution downloads can legitimately take minutes on mobile — progress
- * heartbeats in [com.ahmadkharfan.androidstudiolite.data.remote.RemoteBuildSystem] keep this
- * from firing during healthy work; 5 minutes is the backstop for a truly dead worker/stream.
- */
-private const val BUILD_INACTIVITY_TIMEOUT_MS = 300_000L
+private const val BUILD_INACTIVITY_TIMEOUT_MS = 120_000L
 
 /** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)

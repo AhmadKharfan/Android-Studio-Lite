@@ -88,11 +88,6 @@ class RemoteBuildSystem(
         val startedAt = System.currentTimeMillis()
         var socket: WebSocket? = null
         try {
-            // Emit immediately so the console leaves "Preparing…" and the inactivity watchdog
-            // (EditorViewModel) sees activity. Without this, zip+upload+start can take >2 minutes
-            // with zero events and the watchdog cancels a healthy build as "stopped responding".
-            send(BuildEvent.Started(request))
-
             // 1. Resolve the source: Git remote (no upload) when the user opted in and the project has
             //    one, else zip-upload (A2's default, and always for local-only projects).
             val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
@@ -106,17 +101,10 @@ class RemoteBuildSystem(
             //    archive when nothing in the project changed, which is the common Run-again case.
             //    The zip is owned by the packager's cache, so it deliberately outlives this build
             //    and is not deleted in `finally`.
-            val zip = if (gitSource == null) {
-                send(BuildEvent.Progress("Packaging project…"))
-                packager.packageProjectCached(projectRoot, sourceDir)
-            } else {
-                send(BuildEvent.Progress("Using Git remote ${gitSource.url}…"))
-                null
-            }
+            val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
 
             // 3. Create the build. The hash lets the server say "already have that exact tree";
             //    the project key names its configuration-cache slot server-side.
-            send(BuildEvent.Progress("Creating remote build…"))
             val created = client.createBuild(
                 RemoteBuildRequestFactory.create(
                     request = request,
@@ -130,37 +118,18 @@ class RemoteBuildSystem(
 
             // 4. Upload — unless the server already has this exact source. Zipping was already
             //    skipped for an unchanged project; this skips the transfer too, which is the part
-            //    the user actually waits on over mobile data. Heartbeat progress so a slow mobile
-            //    upload can't trip the inactivity watchdog.
+            //    the user actually waits on over mobile data.
             if (zip != null && created.sourceUploadRequired) {
                 val uploadUrl = created.uploadUrl
                     ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
-                send(BuildEvent.Progress("Uploading source…"))
-                val uploadHeartbeat = launch {
-                    var elapsed = 0
-                    while (true) {
-                        delay(UPLOAD_HEARTBEAT_MS)
-                        elapsed += (UPLOAD_HEARTBEAT_MS / 1000).toInt()
-                        send(BuildEvent.Progress("Uploading source… (${elapsed}s)"))
-                    }
-                }
-                try {
-                    client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
-                } finally {
-                    uploadHeartbeat.cancel()
-                }
-                send(BuildEvent.Progress("Source uploaded"))
-            } else if (zip != null) {
-                send(BuildEvent.Progress("Source already on server — skipping upload"))
+                client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
             }
 
             // 5. Start the build.
-            send(BuildEvent.Progress("Starting build on server…"))
             client.startBuild(created.buildId)
 
             // 6. Stream BuildEvents over the WebSocket. Reconnect on transient drops and fall back
             //    to status polling when the build has already finished server-side.
-            send(BuildEvent.Progress("Waiting for build worker…"))
             var finishedSeen = false
             var reconnectAttempt = 0
             while (!finishedSeen && reconnectAttempt <= MAX_STREAM_RECONNECTS) {
@@ -380,7 +349,5 @@ class RemoteBuildSystem(
     private companion object {
         private const val MAX_STREAM_RECONNECTS = 3
         private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
-        /** Progress tick while a source zip upload is in flight (keeps the UI watchdog alive). */
-        private const val UPLOAD_HEARTBEAT_MS = 20_000L
     }
 }
