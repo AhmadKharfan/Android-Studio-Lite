@@ -102,6 +102,8 @@
     <string name="ai_chat_input_hint">Ask the AI agent…</string>
     <string name="ai_chat_send">Send</string>
     <string name="ai_chat_typing">AI is working…</string>
+    <string name="ai_chat_thinking">Thinking</string>
+    <string name="ai_chat_thought">Thought</string>
     <string name="ai_chat_no_provider_title">No AI provider configured</string>
     <string name="ai_chat_no_provider_sub">Add and validate an API key in Settings to start chatting.</string>
     <string name="ai_chat_open_settings">Open AI Agent settings</string>
@@ -127,6 +129,15 @@
     <string name="ai_chat_custom_model">Custom model id</string>
     <string name="ai_chat_set_model">Set</string>
     <string name="ai_chat_refresh_models">Refresh models</string>
+    <string name="ai_plan_build">Build</string>
+    <string name="ai_plan_review">Review</string>
+    <string name="ai_plan_build_desc">Switch to Agent mode and implement this plan</string>
+    <string name="ai_plan_review_desc">Switch to Ask mode and review this plan for gaps</string>
+    <string name="ai_plan_review_sheet_title">Review plan</string>
+    <string name="ai_plan_review_sheet_subtitle">Tell the AI what to look for. Leave blank for a general review.</string>
+    <string name="ai_plan_review_sheet_placeholder">e.g. Check navigation setup, ViewModel scope, and test coverage…</string>
+    <string name="ai_plan_review_sheet_hint">Review runs in Ask mode — read-only, no file edits.</string>
+    <string name="ai_plan_review_submit">Start review</string>
 
     <!-- General settings -->
     <string name="general_title">General</string>

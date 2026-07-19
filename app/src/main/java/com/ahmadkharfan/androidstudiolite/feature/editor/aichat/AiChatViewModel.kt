@@ -165,6 +165,40 @@ class AiChatViewModel(
         viewModelScope.launch { aiAgentRepository.refreshModels(providerId) }
     }
 
+    override fun onPlanBuild(planMessageId: String) {
+        if (state.value.sending) return
+        updateState { copy(sending = true) }
+        tryToExecute(
+            block = { aiChatRepository.buildFromPlan(projectId, planMessageId, activeFilePath) },
+            onSuccess = { updateState { copy(sending = false) } },
+            onError = { updateState { copy(sending = false) } },
+        )
+    }
+
+    override fun onPlanReview(planMessageId: String) {
+        updateState { copy(planReviewMessageId = planMessageId, planReviewInput = "") }
+    }
+
+    override fun onPlanReviewInputChanged(value: String) {
+        updateState { copy(planReviewInput = value) }
+    }
+
+    override fun onDismissPlanReview() {
+        updateState { copy(planReviewMessageId = null, planReviewInput = "") }
+    }
+
+    override fun onSubmitPlanReview() {
+        val planMessageId = state.value.planReviewMessageId ?: return
+        if (state.value.sending) return
+        val instructions = state.value.planReviewInput.trim().takeIf { it.isNotBlank() }
+        updateState { copy(planReviewMessageId = null, planReviewInput = "", sending = true) }
+        tryToExecute(
+            block = { aiChatRepository.reviewPlan(projectId, planMessageId, activeFilePath, instructions) },
+            onSuccess = { updateState { copy(sending = false) } },
+            onError = { updateState { copy(sending = false) } },
+        )
+    }
+
     private fun ChatThreadSummary.toUiModel(activeId: String) = ChatThreadUiModel(
         id = id,
         title = title,
@@ -207,5 +241,8 @@ class AiChatViewModel(
                 mutating = it.mutating,
             )
         },
+        kind = kind,
+        streaming = streaming,
+        showPlanActions = showPlanActions,
     )
 }

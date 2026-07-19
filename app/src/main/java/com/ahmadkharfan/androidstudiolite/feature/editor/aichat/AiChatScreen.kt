@@ -39,8 +39,11 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslChat
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslChatCodeBlock
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslChatRole
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslMarkdownText
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslThinkingBlock
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslToolCallCard
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslToolCallState
+import com.ahmadkharfan.androidstudiolite.domain.model.ChatMessageKind
 import com.ahmadkharfan.androidstudiolite.domain.model.ToolCallStatus
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChip
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipKind
@@ -115,6 +118,9 @@ private fun AiChatScreen(
         if (uiState.showControls) {
             ChatControlsSheet(uiState = uiState, interactionListener = interactionListener)
         }
+        if (uiState.planReviewMessageId != null) {
+            PlanReviewSheet(uiState = uiState, interactionListener = interactionListener)
+        }
         AslStateCrossfade(
             targetState = uiState.hasConfiguredProvider,
             modifier = Modifier.fillMaxSize(),
@@ -142,6 +148,48 @@ private fun AiChatScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlanReviewSheet(
+    uiState: AiChatUiState,
+    interactionListener: AiChatInteractionListener,
+) {
+    val colors = AslTheme.colors
+    AslBottomSheet(
+        onDismiss = { interactionListener.onDismissPlanReview() },
+        title = stringResource(R.string.ai_plan_review_sheet_title),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.ai_plan_review_sheet_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
+            AslTextField(
+                value = uiState.planReviewInput,
+                onValueChange = { interactionListener.onPlanReviewInputChanged(it) },
+                placeholder = stringResource(R.string.ai_plan_review_sheet_placeholder),
+            )
+            Text(
+                text = stringResource(R.string.ai_plan_review_sheet_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.textTertiary,
+            )
+            AslButton(
+                label = stringResource(R.string.ai_plan_review_submit),
+                icon = "search",
+                onClick = { interactionListener.onSubmitPlanReview() },
+                disabled = uiState.sending,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -350,9 +398,12 @@ private fun ChatMessageList(
 ) {
     val colors = AslTheme.colors
     val scrollState = rememberScrollState()
-    LaunchedEffect(uiState.messages.size) {
+    // Scroll on new messages and while streaming tokens into the last one.
+    val streamTick = uiState.messages.lastOrNull()?.let { "${it.id}:${it.text.length}:${it.streaming}" }
+    LaunchedEffect(uiState.messages.size, streamTick) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
+    val hasLiveContent = uiState.messages.any { it.streaming || it.kind == ChatMessageKind.THINKING }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -361,16 +412,23 @@ private fun ChatMessageList(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         uiState.messages.forEach { message ->
-            // Each newly-appended message fades + lifts in rather than popping into the list.
             AslStaggeredAppear {
-                if (message.toolCall != null) {
-                    ToolCallMessage(toolCall = message.toolCall, interactionListener = interactionListener)
-                } else {
-                    ChatMessageBubble(message = message, interactionListener = interactionListener)
+                when {
+                    message.toolCall != null ->
+                        ToolCallMessage(toolCall = message.toolCall, interactionListener = interactionListener)
+                    message.kind == ChatMessageKind.THINKING ->
+                        AslThinkingBlock(
+                            text = message.text,
+                            streaming = message.streaming,
+                            thinkingLabel = stringResource(R.string.ai_chat_thinking),
+                            thoughtLabel = stringResource(R.string.ai_chat_thought),
+                        )
+                    else -> ChatMessageBubble(message = message, interactionListener = interactionListener)
                 }
             }
         }
-        if (uiState.sending) {
+        // Only show the static working indicator until the first streamed delta arrives.
+        if (uiState.sending && !hasLiveContent) {
             Text(
                 text = stringResource(R.string.ai_chat_typing),
                 style = MaterialTheme.typography.labelSmall,
@@ -460,20 +518,65 @@ private fun ChatMode.descriptionRes(): Int = when (this) {
 private fun ChatMessageBubble(message: ChatMessageUiModel, interactionListener: AiChatInteractionListener) {
     val clipboard = LocalClipboardManager.current
     val colors = AslTheme.colors
-    AslChatBubble(
-        role = if (message.isUser) AslChatRole.User else AslChatRole.Ai,
-        timestamp = message.timestamp,
-    ) {
-        Text(text = message.text, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
-        if (message.code != null) {
-            AslChatCodeBlock(
-                code = message.code,
-                language = message.codeLanguage ?: "text",
-                applied = message.applied,
-                onCopy = { clipboard.setText(AnnotatedString(message.code)) },
-                onApply = { interactionListener.onMarkApplied(message.id) },
-                modifier = Modifier.padding(top = 8.dp),
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AslChatBubble(
+            role = if (message.isUser) AslChatRole.User else AslChatRole.Ai,
+            timestamp = message.timestamp,
+        ) {
+            if (message.isUser) {
+                Text(text = message.text, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
+            } else {
+                AslMarkdownText(
+                    markdown = message.text,
+                    onCopyCode = { clipboard.setText(AnnotatedString(it)) },
+                )
+            }
+            if (message.code != null) {
+                AslChatCodeBlock(
+                    code = message.code,
+                    language = message.codeLanguage ?: "text",
+                    applied = message.applied,
+                    onCopy = { clipboard.setText(AnnotatedString(message.code)) },
+                    onApply = { interactionListener.onMarkApplied(message.id) },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+        if (message.showPlanActions && !message.isUser) {
+            PlanActionRow(
+                enabled = !message.streaming,
+                onReview = { interactionListener.onPlanReview(message.id) },
+                onBuild = { interactionListener.onPlanBuild(message.id) },
             )
         }
+    }
+}
+
+@Composable
+private fun PlanActionRow(
+    enabled: Boolean,
+    onReview: () -> Unit,
+    onBuild: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AslButton(
+            label = stringResource(R.string.ai_plan_review),
+            variant = AslButtonVariant.Secondary,
+            icon = "search",
+            onClick = onReview,
+            disabled = !enabled,
+            modifier = Modifier.weight(1f),
+        )
+        AslButton(
+            label = stringResource(R.string.ai_plan_build),
+            variant = AslButtonVariant.Primary,
+            icon = "hammer",
+            onClick = onBuild,
+            disabled = !enabled,
+            modifier = Modifier.weight(1f),
+        )
     }
 }

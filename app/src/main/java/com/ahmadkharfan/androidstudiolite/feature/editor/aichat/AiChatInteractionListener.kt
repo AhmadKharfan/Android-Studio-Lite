@@ -19,4 +19,9 @@ interface AiChatInteractionListener {
     fun onProviderSelected(providerId: String)
     fun onModelSelected(model: String)
     fun onRefreshModels()
+    fun onPlanBuild(planMessageId: String)
+    fun onPlanReview(planMessageId: String)
+    fun onPlanReviewInputChanged(value: String)
+    fun onDismissPlanReview()
+    fun onSubmitPlanReview()
 }

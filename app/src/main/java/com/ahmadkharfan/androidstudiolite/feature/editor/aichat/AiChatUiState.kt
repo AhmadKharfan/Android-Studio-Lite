@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.aichat
 import androidx.compose.runtime.Immutable
+import com.ahmadkharfan.androidstudiolite.domain.model.ChatMessageKind
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMode
 import com.ahmadkharfan.androidstudiolite.domain.model.ToolCallStatus
 
@@ -26,6 +27,9 @@ data class ChatMessageUiModel(
     val code: String? = null,
     val applied: Boolean = false,
     val toolCall: ChatToolCallUiModel? = null,
+    val kind: ChatMessageKind = ChatMessageKind.NORMAL,
+    val streaming: Boolean = false,
+    val showPlanActions: Boolean = false,
 )
 
 @Immutable
@@ -61,6 +65,9 @@ data class AiChatUiState(
     /** Validated providers the user can switch between, each with its selectable models. */
     val providers: List<ChatProviderUiModel> = emptyList(),
     val showControls: Boolean = false,
+    /** When set, the plan review sheet is open for this plan message id. */
+    val planReviewMessageId: String? = null,
+    val planReviewInput: String = "",
 ) {
     /** Models offered for the currently selected provider. */
     val availableModels: List<String>
