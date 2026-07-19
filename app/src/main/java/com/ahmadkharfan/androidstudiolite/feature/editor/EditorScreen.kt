@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -334,7 +335,7 @@ private fun EditorContentArea(
     colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
     modifier: Modifier = Modifier,
 ) {
-    val terminalPanelActive = uiState.activeBottomTabId == "term" && uiState.bottomPanelExpanded
+    val terminalPanelActive = uiState.activeBottomTabId == "term" && uiState.bottomPanelHeightDp > 0f
     Column(modifier = modifier) {
         EditorEditingRow(
             uiState = uiState,
@@ -481,7 +482,8 @@ private fun EditorBottomToolSection(
     AslBottomToolPanel(
         tabs = uiState.bottomPanelTabs.map { AslBottomPanelTab(it.id, it.label, it.icon, it.count, it.error) },
         activeId = uiState.activeBottomTabId,
-        expanded = uiState.bottomPanelExpanded,
+        contentHeight = uiState.bottomPanelHeightDp.dp,
+        onContentHeightChange = { interactionListener.onBottomPanelHeightChanged(it.value) },
         onSelect = { interactionListener.onSelectBottomTab(it) },
         onToggle = { interactionListener.onToggleBottomPanel() },
     ) {

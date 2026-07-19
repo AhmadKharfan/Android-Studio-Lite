@@ -23,6 +23,7 @@ interface EditorInteractionListener {
     fun onJumpToBuildProblem(problem: com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem)
     fun onSelectBottomTab(id: String)
     fun onToggleBottomPanel()
+    fun onBottomPanelHeightChanged(heightDp: Float)
     fun onCloseProject()
     fun onOpenSettings()
     fun onOpenAiAgentSettings()

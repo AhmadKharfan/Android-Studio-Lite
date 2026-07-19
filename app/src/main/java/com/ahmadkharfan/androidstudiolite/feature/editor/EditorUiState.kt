@@ -109,7 +109,7 @@ data class EditorUiState(
     val fileTree: List<EditorFileNodeUiModel> = emptyList(),
     val expandedFolderIds: Set<String> = emptySet(),
     val selectedFileTreeId: String? = null,
-    val bottomPanelExpanded: Boolean = false,
+    val bottomPanelHeightDp: Float = 0f,
     val bottomPanelTabs: List<BottomPanelTabUiModel> = emptyList(),
     val activeBottomTabId: String = "build",
     val buildProgressPercent: Int? = null,

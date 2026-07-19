@@ -1,16 +1,16 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,13 +25,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -41,6 +46,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import kotlin.math.min
 
 data class AslBottomPanelTab(
     val id: String,
@@ -50,51 +56,111 @@ data class AslBottomPanelTab(
     val error: Boolean = false,
 )
 
-/** BottomToolPanel.jsx — JetBrains docked panel: drag handle + tab row + content, peek/expanded. */
+private val PanelOpenGestureThreshold = 14.dp
+private val PanelCollapseThreshold = 72.dp
+private val PanelFreeZoneMargin = 36.dp
+
+/** BottomToolPanel.jsx — JetBrains docked panel: drag handle + tab row + resizable content. */
 @Composable
 fun AslBottomToolPanel(
     tabs: List<AslBottomPanelTab>,
     activeId: String?,
     modifier: Modifier = Modifier,
-    expanded: Boolean = true,
-    height: Dp = 260.dp,
+    contentHeight: Dp = 0.dp,
+    defaultContentHeight: Dp = 260.dp,
+    onContentHeightChange: (Dp) -> Unit = {},
     onSelect: (String) -> Unit = {},
     onToggle: () -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
     val colors = AslTheme.colors
+    val density = LocalDensity.current
+    val maxContentHeight = (LocalConfiguration.current.screenHeightDp * 0.92f).dp
+    var dragging by remember { mutableStateOf(false) }
+    var dragHeightPx by remember { mutableFloatStateOf(0f) }
+    var dragStartHeightPx by remember { mutableFloatStateOf(0f) }
+    var upwardDragPx by remember { mutableFloatStateOf(0f) }
+    val contentHeightState = rememberUpdatedState(contentHeight)
+    val onHeightChangeState = rememberUpdatedState(onContentHeightChange)
+    val onToggleState = rememberUpdatedState(onToggle)
+    val defaultHeightState = rememberUpdatedState(defaultContentHeight)
+    val maxHeightState = rememberUpdatedState(maxContentHeight)
+
+    LaunchedEffect(contentHeight) {
+        if (!dragging) {
+            dragHeightPx = with(density) { contentHeight.toPx() }
+        }
+    }
+
+    fun settleAndCommit() {
+        val settledPx = settleBottomPanelHeightPx(
+            currentHeightPx = dragHeightPx,
+            dragStartHeightPx = dragStartHeightPx,
+            upwardDragPx = upwardDragPx,
+            defaultHeightPx = with(density) { defaultHeightState.value.toPx() },
+            maxHeightPx = with(density) { maxHeightState.value.toPx() },
+            collapseThresholdPx = with(density) { PanelCollapseThreshold.toPx() },
+            openGestureThresholdPx = with(density) { PanelOpenGestureThreshold.toPx() },
+            freeZoneMarginPx = with(density) { PanelFreeZoneMargin.toPx() },
+        )
+        dragHeightPx = settledPx
+        onHeightChangeState.value(with(density) { settledPx.toDp() })
+    }
+
+    val settleSpring = spring<Dp>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium,
+    )
+    val visualTarget = if (dragging) with(density) { dragHeightPx.toDp() } else contentHeight
+    val animatedHeight by animateDpAsState(
+        targetValue = visualTarget,
+        animationSpec = if (dragging) tween(durationMillis = AslMotion.instant) else settleSpring,
+        label = "bottomPanelHeight",
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.bgElevated),
     ) {
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
-        // A real drag gesture on a generously-sized handle bar, not just a tap on a 4dp-tall pill:
-        // drag up past the threshold to expand, drag down past it to collapse. Tap still toggles too.
-        val density = LocalDensity.current
-        val toggleThresholdPx = with(density) { 28.dp.toPx() }
-        val dragAccumulator = remember { mutableFloatStateOf(0f) }
-        val expandedState = rememberUpdatedState(expanded)
-        val onToggleState = rememberUpdatedState(onToggle)
-        val draggableState = rememberDraggableState { delta -> dragAccumulator.floatValue += delta }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggle)
-                .draggable(
-                    state = draggableState,
-                    orientation = Orientation.Vertical,
-                    onDragStarted = { dragAccumulator.floatValue = 0f },
-                    onDragStopped = {
-                        val dragged = dragAccumulator.floatValue
-                        if (!expandedState.value && dragged < -toggleThresholdPx) {
-                            onToggleState.value()
-                        } else if (expandedState.value && dragged > toggleThresholdPx) {
-                            onToggleState.value()
+                .pointerInput(contentHeight, defaultContentHeight, maxContentHeight) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        upwardDragPx = 0f
+                        dragStartHeightPx = with(density) { contentHeightState.value.toPx() }
+                        dragHeightPx = dragStartHeightPx
+
+                        val dragAfterSlop = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                            dragging = true
+                            change.consume()
                         }
-                        dragAccumulator.floatValue = 0f
-                    },
-                )
+
+                        if (dragAfterSlop == null) {
+                            onToggleState.value()
+                            return@awaitEachGesture
+                        }
+
+                        dragging = true
+                        val maxPx = with(density) { maxHeightState.value.toPx() }
+                        try {
+                            drag(dragAfterSlop.id) { change ->
+                                val deltaPx = change.previousPosition.y - change.position.y
+                                if (deltaPx > 0f) {
+                                    upwardDragPx += deltaPx
+                                }
+                                dragHeightPx = (dragHeightPx + deltaPx).coerceIn(0f, maxPx)
+                                change.consume()
+                            }
+                        } finally {
+                            dragging = false
+                            settleAndCommit()
+                        }
+                    }
+                }
                 .padding(top = 12.dp, bottom = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -163,25 +229,49 @@ fun AslBottomToolPanel(
                 }
             }
         }
-        // The docked panel body slides open/closed instead of appearing/vanishing instantly.
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-            exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-        ) {
+        if (animatedHeight > 0.dp) {
             Column {
                 HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-                // Fixed height only — NO verticalScroll here. The content fills this bounded height and
-                // does its own scrolling (the Build/Diagnostics tabs are LazyColumns); wrapping a
-                // same-orientation LazyColumn in a verticalScroll gives it infinite height and crashes.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(height),
+                        .height(animatedHeight),
                 ) {
                     content()
                 }
             }
         }
     }
+}
+
+/**
+ * State 1 = collapsed (0). State 2 = [defaultHeightPx]. Above state 2 = free resize.
+ * A small upward swipe from collapsed opens straight to state 2.
+ */
+private fun settleBottomPanelHeightPx(
+    currentHeightPx: Float,
+    dragStartHeightPx: Float,
+    upwardDragPx: Float,
+    defaultHeightPx: Float,
+    maxHeightPx: Float,
+    collapseThresholdPx: Float,
+    openGestureThresholdPx: Float,
+    freeZoneMarginPx: Float,
+): Float {
+    val freeThresholdPx = defaultHeightPx + freeZoneMarginPx
+    val collapseThreshold = min(collapseThresholdPx, defaultHeightPx * 0.28f)
+
+    if (dragStartHeightPx <= 0f && upwardDragPx >= openGestureThresholdPx) {
+        return defaultHeightPx
+    }
+
+    if (currentHeightPx <= collapseThreshold) {
+        return 0f
+    }
+
+    if (currentHeightPx >= freeThresholdPx) {
+        return currentHeightPx.coerceAtMost(maxHeightPx)
+    }
+
+    return defaultHeightPx
 }

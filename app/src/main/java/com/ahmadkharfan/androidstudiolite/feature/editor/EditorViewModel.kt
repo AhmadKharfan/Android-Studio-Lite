@@ -50,6 +50,10 @@ private val BOTTOM_PANEL_TABS = listOf(
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val GUTTER_DEBOUNCE_MS = 300L
 private const val APP_MODULE_PATH = ":app"
+private const val DEFAULT_BOTTOM_PANEL_HEIGHT_DP = 260f
+
+private fun expandedBottomPanelHeight(current: Float): Float =
+    if (current > 0f) current else DEFAULT_BOTTOM_PANEL_HEIGHT_DP
 
 /**
  * How long a run may go with NO [BuildEvent] before it's declared failed. Rolling: each event resets
@@ -535,10 +539,22 @@ class EditorViewModel(
     }
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
     override fun onSelectBottomTab(id: String) {
-        updateState { copy(activeBottomTabId = id, bottomPanelExpanded = true) }
+        updateState {
+            copy(
+                activeBottomTabId = id,
+                bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
+            )
+        }
     }
     override fun onToggleBottomPanel() {
-        updateState { copy(bottomPanelExpanded = !bottomPanelExpanded) }
+        updateState {
+            copy(
+                bottomPanelHeightDp = if (bottomPanelHeightDp > 0f) 0f else DEFAULT_BOTTOM_PANEL_HEIGHT_DP,
+            )
+        }
+    }
+    override fun onBottomPanelHeightChanged(heightDp: Float) {
+        updateState { copy(bottomPanelHeightDp = heightDp.coerceAtLeast(0f)) }
     }
     override fun onSave() = saveActiveTab()
     override fun onUndo() = undoRedoActive { it.undo() }
@@ -1008,7 +1024,7 @@ class EditorViewModel(
             copy(
                 running = true,
                 buildFailed = false,
-                bottomPanelExpanded = true,
+                bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
                 activeBottomTabId = "build",
                 buildConsole = BuildConsoleState(status = BuildStatus.Running, progressMessage = "Preparing…"),
             )
