@@ -4,6 +4,7 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildEventParser
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildRequest
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ProjectModelMapper
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStatusResponse
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -18,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ProducerScope
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
@@ -125,30 +128,48 @@ class RemoteBuildSystem(
             // 5. Start the build.
             client.startBuild(created.buildId)
 
-            // 6. Stream BuildEvents over the WebSocket. Frames are drained off the OkHttp callback
-            //    thread into this channel so they're processed sequentially — an artifact download
-            //    (and its ArtifactProduced) then completes before Finished terminates the flow.
-            val frames = Channel<Frame>(Channel.UNLIMITED)
-            socket = client.openStream(created.buildId, FrameListener(frames))
-
+            // 6. Stream BuildEvents over the WebSocket. Reconnect on transient drops and fall back
+            //    to status polling when the build has already finished server-side.
             var finishedSeen = false
-            for (frame in frames) {
-                when (frame) {
-                    is Frame.Text -> {
-                        val event = parser.parse(frame.text, projectRoot) ?: continue
-                        if (event is BuildEvent.ArtifactProduced) {
-                            emitDownloadedArtifact(created.buildId, event)
-                        } else {
-                            send(event)
-                        }
-                        if (event is BuildEvent.Finished) {
-                            finishedSeen = true
-                            break
-                        }
-                    }
-                    is Frame.Closed -> break
-                    is Frame.Failure -> throw frame.error
+            var reconnectAttempt = 0
+            while (!finishedSeen && reconnectAttempt <= MAX_STREAM_RECONNECTS) {
+                val frames = Channel<Frame>(Channel.UNLIMITED)
+                socket?.cancel()
+                socket = client.openStream(created.buildId, FrameListener(frames))
+
+                finishedSeen = consumeBuildStream(
+                    buildId = created.buildId,
+                    projectRoot = projectRoot,
+                    parser = parser,
+                    frames = frames,
+                )
+                frames.close()
+
+                if (finishedSeen) break
+
+                val terminal = runCatching { client.buildStatus(created.buildId) }
+                    .getOrNull()
+                    ?.takeIf { isTerminalBuildStatus(it.status) }
+                if (terminal != null) {
+                    emitTerminalFromStatus(
+                        buildId = created.buildId,
+                        status = terminal,
+                        startedAt = startedAt,
+                    )
+                    finishedSeen = true
+                    break
                 }
+
+                if (reconnectAttempt >= MAX_STREAM_RECONNECTS) break
+
+                send(
+                    BuildEvent.Problem(
+                        severity = BuildEvent.ProblemSeverity.INFO,
+                        message = "Connection to build server lost (retrying…)",
+                    ),
+                )
+                delay(STREAM_RECONNECT_BACKOFF_MS shl reconnectAttempt)
+                reconnectAttempt++
             }
 
             // The stream can end (server closed the socket, or the frame channel drained) WITHOUT ever
@@ -175,13 +196,86 @@ class RemoteBuildSystem(
             send(
                 BuildEvent.Problem(
                     severity = BuildEvent.ProblemSeverity.ERROR,
-                    message = t.message ?: t::class.simpleName ?: "Build failed",
+                    message = userFacingBuildError(t),
                 ),
             )
             send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
         } finally {
             socket?.cancel()
             currentBuildId = null
+        }
+    }
+
+    /** Drains WebSocket frames until a terminal event or the stream ends. */
+    private suspend fun ProducerScope<BuildEvent>.consumeBuildStream(
+        buildId: String,
+        projectRoot: File,
+        parser: BuildEventParser,
+        frames: ReceiveChannel<Frame>,
+    ): Boolean {
+        for (frame in frames) {
+            when (frame) {
+                is Frame.Text -> {
+                    val event = parser.parse(frame.text, projectRoot) ?: continue
+                    if (event is BuildEvent.ArtifactProduced) {
+                        emitDownloadedArtifact(buildId, event)
+                    } else {
+                        send(event)
+                    }
+                    if (event is BuildEvent.Finished) return true
+                }
+                is Frame.Closed, is Frame.Failure -> return false
+            }
+        }
+        return false
+    }
+
+    /** Synthesizes console events when polling finds a terminal build status. */
+    private suspend fun ProducerScope<BuildEvent>.emitTerminalFromStatus(
+        buildId: String,
+        status: BuildStatusResponse,
+        startedAt: Long,
+    ) {
+        val success = status.status.equals("SUCCEEDED", ignoreCase = true)
+        if (success) {
+            val downloaded = runCatching {
+                artifactDownloader.download(buildId, fallbackName = null)
+            }.getOrNull()
+            if (downloaded != null) {
+                send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
+            }
+        } else {
+            val message = status.error?.message ?: "Build ${status.status.lowercase()}"
+            send(
+                BuildEvent.Problem(
+                    severity = BuildEvent.ProblemSeverity.ERROR,
+                    message = message,
+                ),
+            )
+        }
+        send(
+            BuildEvent.Finished(
+                success = success,
+                durationMillis = status.durationMillis ?: (System.currentTimeMillis() - startedAt),
+            ),
+        )
+    }
+
+    private fun isTerminalBuildStatus(status: String): Boolean =
+        status.equals("SUCCEEDED", ignoreCase = true) ||
+            status.equals("FAILED", ignoreCase = true) ||
+            status.equals("TIMED_OUT", ignoreCase = true) ||
+            status.equals("CANCELED", ignoreCase = true) ||
+            status.equals("ERROR", ignoreCase = true)
+
+    private fun userFacingBuildError(t: Throwable): String {
+        val message = t.message.orEmpty()
+        return when {
+            message.contains("PROTOCOL_ERROR", ignoreCase = true) ||
+                message.contains("stream was reset", ignoreCase = true) ->
+                "Connection to build server lost"
+            message.isNotBlank() -> message
+            else -> t::class.simpleName ?: "Build failed"
         }
     }
 
@@ -250,5 +344,10 @@ class RemoteBuildSystem(
         private companion object {
             const val NORMAL_CLOSURE = 1000
         }
+    }
+
+    private companion object {
+        private const val MAX_STREAM_RECONNECTS = 3
+        private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
     }
 }

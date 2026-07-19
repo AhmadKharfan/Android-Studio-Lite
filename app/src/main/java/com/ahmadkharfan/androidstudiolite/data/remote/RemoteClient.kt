@@ -23,6 +23,7 @@ import kotlinx.serialization.encodeToString
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -44,6 +45,7 @@ import okhttp3.WebSocketListener
 class RemoteClient(
     private val settings: ServerSettingsRepository,
     private val httpClient: OkHttpClient = defaultClient(),
+    private val transferClient: OkHttpClient = defaultTransferClient(),
     private val integrityProvider: IntegrityTokenProvider = NoopIntegrityTokenProvider,
 ) {
 
@@ -110,29 +112,45 @@ class RemoteClient(
     // ---------------------------------------------------------------- transfer
 
     /** Streams [file] to a presigned upload URL (default `PUT`). No auth header — the URL is signed. */
-    suspend fun uploadSource(uploadUrl: String, file: File, method: String = "PUT") = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url(uploadUrl)
-            .method(method.uppercase(), file.asRequestBody("application/zip".toMediaType()))
-            .build()
-        httpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw RemoteException(response.code, null, "Source upload failed (HTTP ${response.code})")
+    suspend fun uploadSource(uploadUrl: String, file: File, method: String = "PUT") {
+        executeTransferWithRetry {
+            val request = Request.Builder()
+                .url(uploadUrl)
+                .method(method.uppercase(), file.asRequestBody("application/zip".toMediaType()))
+                .build()
+            transferClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw RemoteException(response.code, null, "Source upload failed (HTTP ${response.code})")
+                }
             }
         }
     }
 
     /** Downloads a presigned GET URL to [dest], streaming to disk. No auth header — the URL is signed. */
-    suspend fun download(downloadUrl: String, dest: File) = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url(downloadUrl).get().build()
-        httpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw RemoteException(response.code, null, "Artifact download failed (HTTP ${response.code})")
+    suspend fun download(downloadUrl: String, dest: File) {
+        executeTransferWithRetry {
+            val request = Request.Builder().url(downloadUrl).get().build()
+            val parent = dest.parentFile ?: error("Download destination has no parent: $dest")
+            val temp = File(parent, "${dest.name}.part")
+            parent.mkdirs()
+            try {
+                transferClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw RemoteException(response.code, null, "Artifact download failed (HTTP ${response.code})")
+                    }
+                    val bodyStream = response.body?.byteStream()
+                        ?: throw RemoteException(response.code, null, "Empty artifact response")
+                    bodyStream.use { input -> temp.outputStream().use { output -> input.copyTo(output) } }
+                }
+                if (dest.exists()) dest.delete()
+                if (!temp.renameTo(dest)) {
+                    temp.inputStream().use { input -> dest.outputStream().use { output -> input.copyTo(output) } }
+                    temp.delete()
+                }
+            } catch (t: Throwable) {
+                temp.delete()
+                throw t
             }
-            val bodyStream = response.body?.byteStream()
-                ?: throw RemoteException(response.code, null, "Empty artifact response")
-            dest.parentFile?.mkdirs()
-            bodyStream.use { input -> dest.outputStream().use { output -> input.copyTo(output) } }
         }
     }
 
@@ -198,6 +216,26 @@ class RemoteClient(
             .method(method, body)
             .build()
 
+    /** Retries presigned Spaces transfers on transient IO / 5xx failures. */
+    private suspend fun executeTransferWithRetry(block: suspend () -> Unit) {
+        var attempt = 0
+        while (true) {
+            try {
+                withContext(Dispatchers.IO) { block() }
+                return
+            } catch (e: IOException) {
+                if (attempt >= MAX_ATTEMPTS - 1) {
+                    throw RemoteException(0, null, e.message ?: "Network error")
+                }
+            } catch (e: RemoteException) {
+                val transient = e.httpStatus == 0 || e.httpStatus in 500..599
+                if (!transient || attempt >= MAX_ATTEMPTS - 1) throw e
+            }
+            delay(BASE_BACKOFF_MS shl attempt)
+            attempt++
+        }
+    }
+
     /** Executes with exponential backoff on transient IO / 5xx failures. */
     private suspend fun executeWithRetry(request: Request, allowUnauthorizedThrow: Boolean): ResponseSnapshot {
         var attempt = 0
@@ -252,6 +290,17 @@ class RemoteClient(
             .readTimeout(0, TimeUnit.SECONDS) // no read timeout — build streams run for minutes
             .writeTimeout(0, TimeUnit.SECONDS) // large source uploads
             .pingInterval(20, TimeUnit.SECONDS) // keep the build-event WS alive
+            .build()
+
+        /**
+         * Presigned Spaces uploads/downloads only. HTTP/1.1 avoids HTTP/2 stream-reset failures
+         * (`stream was reset: PROTOCOL_ERROR`) that show up intermittently on large transfers.
+         */
+        fun defaultTransferClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .writeTimeout(0, TimeUnit.SECONDS)
+            .protocols(listOf(Protocol.HTTP_1_1))
             .build()
     }
 }
