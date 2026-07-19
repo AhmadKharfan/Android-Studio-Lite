@@ -12,8 +12,9 @@ import java.io.File
 /**
  * Real [FileContentRepository] over [java.io.File]. Reads and writes UTF-8 by absolute path, refuses to
  * load files above [LocalFsSupport.MAX_TEXT_FILE_BYTES] (throwing [FileTooLargeException]), creates
- * parent directories on write, and publishes a [FileChangeType.MODIFIED] event on the shared bus after
- * every successful write so the editor can distinguish its own saves from external edits.
+ * parent directories on write, and publishes a [FileChangeType.CREATED] or [FileChangeType.MODIFIED]
+ * event on the shared bus after every successful write so the editor can refresh open tabs and the
+ * project tree live.
  */
 class LocalFileContentRepository(
     private val changeBus: FileChangeBus,
@@ -31,8 +32,9 @@ class LocalFileContentRepository(
     override suspend fun writeText(path: String, text: String): Unit = withContext(Dispatchers.IO) {
         val file = File(path)
         file.parentFile?.let { if (!it.exists()) it.mkdirs() }
+        val existed = file.exists()
         file.writeText(text, Charsets.UTF_8)
-        changeBus.emit(FileChangeType.MODIFIED, file.absolutePath)
+        changeBus.emit(if (existed) FileChangeType.MODIFIED else FileChangeType.CREATED, file.absolutePath)
     }
 
     override suspend fun lastModifiedMillis(path: String): Long = withContext(Dispatchers.IO) {

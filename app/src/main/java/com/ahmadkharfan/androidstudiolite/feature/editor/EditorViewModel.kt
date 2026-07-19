@@ -257,17 +257,56 @@ class EditorViewModel(
     }
 
     private suspend fun onExternalPathChanged(event: FileChangeEvent.PathChanged) {
-        if (event.type != FileChangeType.MODIFIED) return
-        val tab = state.value.tabs.firstOrNull { it.id == event.path } ?: return
-        val session = sessions[event.path] ?: return
-        val onDisk = try {
-            fileContentRepository.readText(event.path)
-        } catch (_: Throwable) {
-            return
+        val projectRoot = projectRootPath?.let(::canonicalPath) ?: return
+        if (!isUnderProject(event.path, projectRoot)) return
+
+        when (event.type) {
+            FileChangeType.MODIFIED -> reloadOpenTabFromDisk(event.path)
+            FileChangeType.CREATED -> {
+                refreshFileTree(expandIds = setOf(File(event.path).parentFile?.absolutePath.orEmpty()))
+                reloadOpenTabFromDisk(event.path)
+            }
+            FileChangeType.DELETED -> {
+                refreshFileTree()
+                closeTabsUnder(event.path)
+            }
+            FileChangeType.MOVED -> {
+                refreshFileTree()
+                val oldPath = event.oldPath ?: return
+                if (isUnderProject(oldPath, projectRoot)) {
+                    remapOpenTabs(oldPath, event.path)
+                }
+                reloadOpenTabFromDisk(event.path)
+            }
         }
-        // Equal means it was our own save (or a no-op write) — nothing to warn about.
+    }
+
+    private suspend fun reloadOpenTabFromDisk(path: String) {
+        val canonical = canonicalPath(path)
+        val tab = state.value.tabs.firstOrNull { canonicalPath(it.id) == canonical } ?: return
+        val onDisk = runCatching { fileContentRepository.readText(tab.id) }.getOrNull() ?: return
+        val session = sessions[tab.id] ?: return
         if (onDisk == session.text) return
-        updateState { copy(snackbarMessage = "‘${tab.name}’ changed on disk outside the editor") }
+        val hadLocalEdits = tab.modified
+        sessions[tab.id] = EditorSession(onDisk, tab.language, filePath = tab.id)
+        updateState {
+            copy(
+                tabs = tabs.map { if (it.id == tab.id) it.copy(text = onDisk, modified = false) else it },
+                snackbarMessage = when {
+                    hadLocalEdits -> "‘${tab.name}’ was updated outside the editor; local unsaved edits were replaced"
+                    else -> snackbarMessage
+                },
+            )
+        }
+        if (state.value.activeTabId == tab.id) {
+            requestGutter(tab.id, immediate = true)
+        }
+    }
+
+    private fun isUnderProject(path: String, projectRoot: String): Boolean {
+        val canonical = canonicalPath(path)
+        val root = canonicalPath(projectRoot)
+        return canonical == root || canonical.startsWith("$root/")
     }
 
     private suspend fun reconcileLatestRootGeneration() {

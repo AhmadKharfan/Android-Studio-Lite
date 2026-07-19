@@ -73,13 +73,16 @@ class LocalFileContentRepositoryTest {
     }
 
     @Test
-    fun `write emits a MODIFIED change event`() = runBlocking {
+    fun `write emits CREATED for a new file and MODIFIED for an existing file`() = runBlocking {
         val path = File(tmp.root, "watched.txt").absolutePath
 
-        val event = awaitFirst(repo.observeChanges()) { repo.writeText(path, "hi") }
+        val created = awaitFirst(repo.observeChanges()) { repo.writeText(path, "hi") }
+        assertEquals(FileChangeType.CREATED, created.type)
+        assertEquals(path, created.path)
 
-        assertEquals(FileChangeType.MODIFIED, event.type)
-        assertEquals(path, event.path)
+        val modified = awaitFirst(repo.observeChanges()) { repo.writeText(path, "updated") }
+        assertEquals(FileChangeType.MODIFIED, modified.type)
+        assertEquals(path, modified.path)
     }
 }
 
