@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.aichat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -523,23 +524,26 @@ private fun ChatMessageBubble(message: ChatMessageUiModel, interactionListener: 
             role = if (message.isUser) AslChatRole.User else AslChatRole.Ai,
             timestamp = message.timestamp,
         ) {
-            if (message.isUser) {
-                Text(text = message.text, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
-            } else {
-                AslMarkdownText(
-                    markdown = message.text,
-                    onCopyCode = { clipboard.setText(AnnotatedString(it)) },
-                )
-            }
-            if (message.code != null) {
-                AslChatCodeBlock(
-                    code = message.code,
-                    language = message.codeLanguage ?: "text",
-                    applied = message.applied,
-                    onCopy = { clipboard.setText(AnnotatedString(message.code)) },
-                    onApply = { interactionListener.onMarkApplied(message.id) },
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+            SelectionContainer {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (message.isUser) {
+                        Text(text = message.text, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
+                    } else {
+                        AslMarkdownText(
+                            markdown = message.text,
+                            onCopyCode = { clipboard.setText(AnnotatedString(it)) },
+                        )
+                    }
+                    if (message.code != null) {
+                        AslChatCodeBlock(
+                            code = message.code,
+                            language = message.codeLanguage ?: "text",
+                            applied = message.applied,
+                            onCopy = { clipboard.setText(AnnotatedString(message.code)) },
+                            onApply = { interactionListener.onMarkApplied(message.id) },
+                        )
+                    }
+                }
             }
         }
         if (message.showPlanActions && !message.isUser) {

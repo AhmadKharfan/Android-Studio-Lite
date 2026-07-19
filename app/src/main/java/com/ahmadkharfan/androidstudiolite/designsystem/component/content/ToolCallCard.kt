@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -75,15 +76,17 @@ fun AslToolCallCard(
         }
 
         if (!result.isNullOrBlank() && state != AslToolCallState.Pending) {
-            Text(
-                text = result.trim(),
-                style = AslCode.codeTiny,
-                color = colors.textTertiary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 120.dp)
-                    .verticalScroll(rememberScrollState()),
-            )
+            SelectionContainer {
+                Text(
+                    text = result.trim(),
+                    style = AslCode.codeTiny,
+                    color = colors.textTertiary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 120.dp)
+                        .verticalScroll(rememberScrollState()),
+                )
+            }
         }
 
         if (state == AslToolCallState.Pending) {
@@ -135,30 +138,32 @@ private fun ToolStatusChip(state: AslToolCallState) {
 private fun DiffPreview(diffOld: String?, diffNew: String) {
     val colors = AslTheme.colors
     val lines = remember(diffOld, diffNew) { computeLineDiff(diffOld, diffNew) }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(AslShape.sm)
-            .background(colors.editorCanvas, AslShape.sm)
-            .border(1.dp, colors.borderSubtle, AslShape.sm)
-            .heightIn(max = 240.dp)
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = 6.dp),
-    ) {
-        val horizontal = rememberScrollState()
-        Column(modifier = Modifier.horizontalScroll(horizontal)) {
-            lines.forEach { line ->
-                val color = when (line.kind) {
-                    DiffKind.Added -> colors.success
-                    DiffKind.Removed -> colors.error
-                    DiffKind.Context -> colors.textSecondary
+    SelectionContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(AslShape.sm)
+                .background(colors.editorCanvas, AslShape.sm)
+                .border(1.dp, colors.borderSubtle, AslShape.sm)
+                .heightIn(max = 240.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 6.dp),
+        ) {
+            val horizontal = rememberScrollState()
+            Column(modifier = Modifier.horizontalScroll(horizontal)) {
+                lines.forEach { line ->
+                    val color = when (line.kind) {
+                        DiffKind.Added -> colors.success
+                        DiffKind.Removed -> colors.error
+                        DiffKind.Context -> colors.textSecondary
+                    }
+                    Text(
+                        text = "${line.kind.marker}${line.text}",
+                        style = AslCode.codeTiny,
+                        color = color,
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                    )
                 }
-                Text(
-                    text = "${line.kind.marker}${line.text}",
-                    style = AslCode.codeTiny,
-                    color = color,
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                )
             }
         }
     }
