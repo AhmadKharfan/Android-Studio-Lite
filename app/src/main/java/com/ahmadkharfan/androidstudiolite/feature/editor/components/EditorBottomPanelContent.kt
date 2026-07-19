@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,37 +73,37 @@ private fun BuildTab(
     }
     Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
         BuildStatusHeader(console, onCancelBuild)
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            if (console.problems.isNotEmpty()) {
-                item { SectionLabel("Problems (${console.problems.size})") }
-                items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
-            }
-            if (console.taskGroups.isNotEmpty()) {
-                item { SectionLabel("Tasks") }
-                console.taskGroups.forEach { group ->
-                    if (group.module.isNotEmpty()) {
-                        item { AslBuildOutputLine(text = group.module, depth = 0) }
-                    }
-                    items(group.tasks) { task ->
-                        AslBuildOutputLine(
-                            text = task.name,
-                            depth = if (group.module.isEmpty()) 0 else 1,
-                            status = task.result.toTaskStatus(),
-                        )
+        SelectionContainer {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                if (console.problems.isNotEmpty()) {
+                    item { SectionLabel("Problems (${console.problems.size})") }
+                    items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
+                }
+                if (console.taskGroups.isNotEmpty()) {
+                    item { SectionLabel("Tasks") }
+                    console.taskGroups.forEach { group ->
+                        if (group.module.isNotEmpty()) {
+                            item { AslBuildOutputLine(text = group.module, depth = 0) }
+                        }
+                        items(group.tasks) { task ->
+                            AslBuildOutputLine(
+                                text = task.name,
+                                depth = if (group.module.isEmpty()) 0 else 1,
+                                status = task.result.toTaskStatus(),
+                            )
+                        }
                     }
                 }
-            }
-            if (console.logs.isNotEmpty()) {
-                item { SectionLabel("Output") }
-                items(console.logs) { line ->
-                    Text(
-                        text = line.text,
-                        style = AslCode.codeTiny,
-                        color = if (line.isError) colors.error else colors.textSecondary,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 1.dp),
-                    )
+                if (console.logs.isNotEmpty()) {
+                    item { SectionLabel("Output") }
+                    items(console.logs) { line ->
+                        Text(
+                            text = line.text,
+                            style = AslCode.codeTiny,
+                            color = if (line.isError) colors.error else colors.textSecondary,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 1.dp),
+                        )
+                    }
                 }
             }
         }
