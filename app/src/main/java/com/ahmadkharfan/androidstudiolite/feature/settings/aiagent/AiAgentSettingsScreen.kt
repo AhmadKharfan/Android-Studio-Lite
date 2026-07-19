@@ -92,6 +92,9 @@ private fun AiAgentSettingsScreen(
     Scaffold(
         containerColor = colors.bgBase,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            AslTopAppBar(title = "AI Agent", onBack = onBack, applyStatusBarInset = true)
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -99,7 +102,6 @@ private fun AiAgentSettingsScreen(
                 .padding(padding)
                 .aslImePadding(),
         ) {
-            AslTopAppBar(title = "AI Agent", onBack = onBack)
             Column(
                 modifier = Modifier
                     .weight(1f)
