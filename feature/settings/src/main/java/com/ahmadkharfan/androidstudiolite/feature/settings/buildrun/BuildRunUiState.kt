@@ -5,15 +5,12 @@ import androidx.compose.runtime.Immutable
 data class BuildRunUiState(
     val launchAfterInstall: Boolean = true,
     val buildOutputAab: Boolean = false,
-    val preferGitSource: Boolean = false,
-    val buildServerUrl: String = "",
     val debugKeystorePath: String = "",
     val releaseKeystoreSummary: String? = null,
     val suggestedReleaseKeystorePath: String = "",
     val keystoreDialog: KeystoreDialogMode? = null,
     val keystoreBusy: Boolean = false,
     val keystoreError: String? = null,
-    val serverError: String? = null,
     val message: String? = null,
 ) {
     val hasReleaseKeystore: Boolean get() = releaseKeystoreSummary != null

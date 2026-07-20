@@ -78,9 +78,6 @@ private fun BuildRunSettingsScreen(
                     .aslImePadding()
                     .padding(16.dp),
             ) {
-
-
-                BuildServerSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -106,36 +103,6 @@ private fun BuildRunSettingsScreen(
 }
 
 @Composable
-private fun BuildServerSection(
-    uiState: BuildRunUiState,
-    interactionListener: BuildRunInteractionListener,
-    colors: AslColorScheme,
-) {
-    var url by remember(uiState.buildServerUrl) { mutableStateOf(uiState.buildServerUrl) }
-    HubSectionHeader("Build server")
-    SectionCard(colors) {
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            AslTextField(value = url, onValueChange = { url = it }, label = "Server URL")
-            AslButton(
-                label = "Save server",
-                onClick = { interactionListener.onSaveBuildServerUrl(url) },
-                variant = AslButtonVariant.Secondary,
-            )
-            uiState.serverError?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = colors.error)
-            }
-        }
-    }
-    Text(
-        text = "Release keys are transmitted only to an HTTPS server. HTTP remains available for debug builds.",
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.textTertiary,
-        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
-    )
-    Spacer(Modifier.height(20.dp))
-}
-
-@Composable
 private fun BuildRunOutputSection(
     uiState: BuildRunUiState,
     interactionListener: BuildRunInteractionListener,
@@ -156,25 +123,7 @@ private fun BuildRunOutputSection(
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
     )
-
     Spacer(Modifier.height(20.dp))
-    HubSectionHeader("Build source")
-    SectionCard(colors) {
-        AslSwitch(
-            label = "Build from Git remote when available",
-            checked = uiState.preferGitSource,
-            onCheckedChange = { interactionListener.onTogglePreferGitSource(it) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-    Text(
-        text = "Cloned projects build by sending their Git URL + current branch to the server — no " +
-            "upload. Uncommitted changes are NOT included; commit and push first. Off (default): the " +
-            "local project is zipped and uploaded. Local-only projects always upload.",
-        style = MaterialTheme.typography.bodySmall,
-        color = colors.textTertiary,
-        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
-    )
 }
 
 @Composable
@@ -192,7 +141,7 @@ private fun BuildRunSigningSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text("Release keystore", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
             if (uiState.hasReleaseKeystore) {
                 Text(
@@ -200,7 +149,7 @@ private fun BuildRunSigningSection(
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textPrimary,
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 AslButton(
                     label = "Remove",
                     onClick = { interactionListener.onRemoveReleaseKeystore() },
@@ -212,7 +161,7 @@ private fun BuildRunSigningSection(
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AslButton(
                         label = "Create…",

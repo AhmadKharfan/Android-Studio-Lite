@@ -3,9 +3,6 @@ package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 interface BuildRunInteractionListener {
     fun onToggleLaunchAfterInstall(enabled: Boolean)
     fun onToggleAabOutput(enabled: Boolean)
-    fun onTogglePreferGitSource(enabled: Boolean)
-    fun onSaveBuildServerUrl(url: String)
-
 
     fun onOpenKeystoreDialog(mode: KeystoreDialogMode)
     fun onDismissKeystoreDialog()
