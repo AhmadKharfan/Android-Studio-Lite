@@ -12,6 +12,7 @@ data class RegisterDeviceResponse(val deviceToken: String, val createdAt: Long? 
 
 @Serializable
 data class CreateBuildRequest(
+    val clientRequestId: String? = null,
     val sourceType: String = "zip",
     val gitUrl: String? = null,
     val ref: String? = null,

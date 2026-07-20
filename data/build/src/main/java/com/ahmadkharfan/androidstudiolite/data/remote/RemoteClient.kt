@@ -65,7 +65,7 @@ class RemoteClient(
 
     suspend fun createBuild(request: CreateBuildRequest): CreateBuildResponse {
         val body = RemoteJson.encodeToString(request).toRequestBody(jsonMediaType)
-        return authedPost("/v1/builds", body)
+        return authedPost("/v1/builds", body, idempotencyKey = request.clientRequestId)
     }
 
     suspend fun startBuild(buildId: String) =
@@ -144,34 +144,53 @@ class RemoteClient(
 
     private suspend inline fun <reified T> authedGet(path: String): T = executeAuthed(path, "GET", null)
 
-    private suspend inline fun <reified T> authedPost(path: String, body: RequestBody): T =
-        executeAuthed(path, "POST", body)
+    private suspend inline fun <reified T> authedPost(
+        path: String,
+        body: RequestBody,
+        idempotencyKey: String? = null,
+    ): T = executeAuthed(path, "POST", body, idempotencyKey)
 
     private suspend fun authedPostUnit(path: String, body: RequestBody) {
         executeAuthedRaw(path, "POST", body)
     }
 
-    private suspend inline fun <reified T> executeAuthed(path: String, method: String, body: RequestBody?): T =
-        decode(executeAuthedRaw(path, method, body))
+    private suspend inline fun <reified T> executeAuthed(
+        path: String,
+        method: String,
+        body: RequestBody?,
+        idempotencyKey: String? = null,
+    ): T = decode(executeAuthedRaw(path, method, body, idempotencyKey))
 
     @PublishedApi
-    internal suspend fun executeAuthedRaw(path: String, method: String, body: RequestBody?): ResponseSnapshot {
+    internal suspend fun executeAuthedRaw(
+        path: String,
+        method: String,
+        body: RequestBody?,
+        idempotencyKey: String? = null,
+    ): ResponseSnapshot {
         val base = baseUrl()
         val token = ensureDeviceToken()
         return try {
-            executeWithRetry(request(base, path, method, body, token), allowUnauthorizedThrow = true)
+            executeWithRetry(request(base, path, method, body, token, idempotencyKey), allowUnauthorizedThrow = true)
         } catch (e: RemoteException) {
             if (!e.isUnauthorized) throw e
             settings.clearDeviceToken()
             val fresh = registerDevice()
-            executeWithRetry(request(base, path, method, body, fresh), allowUnauthorizedThrow = false)
+            executeWithRetry(request(base, path, method, body, fresh, idempotencyKey), allowUnauthorizedThrow = false)
         }
     }
 
-    private fun request(base: String, path: String, method: String, body: RequestBody?, token: String): Request =
-        Request.Builder()
+    private fun request(
+        base: String,
+        path: String,
+        method: String,
+        body: RequestBody?,
+        token: String,
+        idempotencyKey: String? = null,
+    ): Request = Request.Builder()
             .url("$base$path")
             .header("Authorization", "Bearer $token")
+            .apply { if (!idempotencyKey.isNullOrBlank()) header("Idempotency-Key", idempotencyKey) }
             .method(method, body)
             .build()
 

@@ -181,6 +181,7 @@ class RemoteBuildSystem(
     ) {
         var finishedSeen = false
         var reconnectAttempt = 0
+        var processedTextFrames = 0
         val followDeadline = startedAt + BUILD_FOLLOW_TIMEOUT_MS
 
         while (!finishedSeen) {
@@ -191,14 +192,17 @@ class RemoteBuildSystem(
             val socket = client.openStream(buildId, FrameListener(frames))
             socketHolder(socket)
 
-            finishedSeen = consumeBuildStream(
+            val consumed = consumeBuildStream(
                 buildId = buildId,
                 projectRoot = projectRoot,
                 parser = parser,
                 frames = frames,
                 startedAt = startedAt,
                 followDeadline = followDeadline,
+                replayPrefixToSkip = processedTextFrames,
             )
+            finishedSeen = consumed.finished
+            processedTextFrames = maxOf(processedTextFrames, consumed.textFramesSeen)
             frames.close()
             socket.cancel()
             socketHolder(null)
@@ -245,6 +249,7 @@ class RemoteBuildSystem(
                 )
             } else {
                 val timedOut = System.currentTimeMillis() >= followDeadline
+                if (timedOut) runCatching { client.cancelBuild(buildId) }
                 send(
                     BuildEvent.Problem(
                         severity = BuildEvent.ProblemSeverity.ERROR,
@@ -270,9 +275,13 @@ class RemoteBuildSystem(
         frames: ReceiveChannel<Frame>,
         startedAt: Long,
         followDeadline: Long,
-    ): Boolean {
+        replayPrefixToSkip: Int,
+    ): StreamConsumeResult {
+        var textFramesSeen = 0
         while (true) {
-            if (System.currentTimeMillis() >= followDeadline) return false
+            if (System.currentTimeMillis() >= followDeadline) {
+                return StreamConsumeResult(false, textFramesSeen)
+            }
 
             val result = withTimeoutOrNull(STATUS_POLL_INTERVAL_MS) {
                 frames.receiveCatching()
@@ -281,23 +290,25 @@ class RemoteBuildSystem(
                 val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
                 if (polled != null && isTerminalBuildStatus(polled.status)) {
                     emitTerminalFromStatus(buildId, polled, startedAt)
-                    return true
+                    return StreamConsumeResult(true, textFramesSeen)
                 }
                 send(BuildEvent.Progress(statusProgressLabel(polled?.status)))
                 continue
             }
-            if (result.isClosed) return false
-            when (val frame = result.getOrNull() ?: return false) {
+            if (result.isClosed) return StreamConsumeResult(false, textFramesSeen)
+            when (val frame = result.getOrNull() ?: return StreamConsumeResult(false, textFramesSeen)) {
                 is Frame.Text -> {
+                    textFramesSeen++
+                    if (textFramesSeen <= replayPrefixToSkip) continue
                     val event = parser.parse(frame.text, projectRoot) ?: continue
                     if (event is BuildEvent.ArtifactProduced) {
                         emitDownloadedArtifact(buildId, event)
                     } else {
                         send(event)
                     }
-                    if (event is BuildEvent.Finished) return true
+                    if (event is BuildEvent.Finished) return StreamConsumeResult(true, textFramesSeen)
                 }
-                is Frame.Closed, is Frame.Failure -> return false
+                is Frame.Closed, is Frame.Failure -> return StreamConsumeResult(false, textFramesSeen)
             }
         }
     }
@@ -447,6 +458,8 @@ class RemoteBuildSystem(
         data class Failure(val error: Throwable) : Frame
     }
 
+    private data class StreamConsumeResult(val finished: Boolean, val textFramesSeen: Int)
+
     private class FrameListener(private val frames: Channel<Frame>) : WebSocketListener() {
         override fun onMessage(webSocket: WebSocket, text: String) {
             frames.trySend(Frame.Text(text))
@@ -471,7 +484,7 @@ class RemoteBuildSystem(
     }
 
     private companion object {
-        private const val BUILD_FOLLOW_TIMEOUT_MS = 900_000L
+        private const val BUILD_FOLLOW_TIMEOUT_MS = 1_800_000L
         private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
         private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
         private const val STATUS_POLL_INTERVAL_MS = 5_000L

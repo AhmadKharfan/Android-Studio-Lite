@@ -21,6 +21,7 @@ internal object RemoteBuildRequestFactory {
     ): CreateBuildRequest {
         val eligibleGit = eligibleGitSource(gitSource)
         return CreateBuildRequest(
+            clientRequestId = request.operationId,
             sourceType = if (eligibleGit != null) "git" else "zip",
             gitUrl = eligibleGit?.url,
             ref = eligibleGit?.ref,
