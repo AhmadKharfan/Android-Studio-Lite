@@ -14,6 +14,7 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildNotifier
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import java.io.File
 import kotlinx.coroutines.flow.first
@@ -52,7 +53,7 @@ val buildRunModule = module {
     single<KeystoreManager> { AndroidKeystoreManager(androidContext()) }
     single { ApkInstaller(androidContext()) }
     single { BuildNotifier(androidContext()) }
-    single {
+    single<BuildRunCoordinator> {
         BuildRunCoordinator(
             context = androidContext(),
             buildSystem = get(),
@@ -63,4 +64,5 @@ val buildRunModule = module {
             activeBuildStore = get(),
         )
     }
+    single<BuildRunApi> { get<BuildRunCoordinator>() }
 }
