@@ -106,6 +106,28 @@ class KeystoreFilesTest {
     }
 
     @Test
+    fun `create refuses to overwrite an existing keystore`() {
+        val file = File(tmp.root, "existing.p12").apply { writeText("keep me") }
+        try {
+            KeystoreFiles.create(params(file))
+            fail("expected KeystoreException")
+        } catch (e: KeystoreException) {
+            assertTrue(e.error is KeystoreError.InvalidParams)
+            assertEquals("keep me", file.readText())
+        }
+    }
+
+    @Test
+    fun `create rejects an invalid country code`() {
+        try {
+            KeystoreFiles.create(params(File(tmp.root, "country.p12")).copy(country = "USA"))
+            fail("expected KeystoreException")
+        } catch (e: KeystoreException) {
+            assertTrue(e.error is KeystoreError.InvalidParams)
+        }
+    }
+
+    @Test
     fun `distinguished name is built from non-blank fields in order`() {
         val dn = params(File(tmp.root, "x.jks")).distinguishedName()
         assertEquals("CN=Ahmad Kharfan,O=ASL,C=US", dn)

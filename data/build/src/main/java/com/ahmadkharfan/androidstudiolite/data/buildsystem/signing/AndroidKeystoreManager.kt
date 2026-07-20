@@ -51,7 +51,12 @@ class AndroidKeystoreManager(private val context: Context) : KeystoreManager {
                 isDebug = true,
             )
         } else {
-            SigningConfig(file, DEBUG_PASSWORD, DEBUG_ALIAS, DEBUG_PASSWORD, isDebug = true)
+            runCatching { KeystoreFiles.import(file, DEBUG_PASSWORD, DEBUG_ALIAS, DEBUG_PASSWORD) }
+                .getOrElse {
+                    if (!file.delete()) throw it
+                    return@withContext debugSigningConfig()
+                }
+                .copy(isDebug = true)
         }
     }
 
@@ -66,23 +71,34 @@ class AndroidKeystoreManager(private val context: Context) : KeystoreManager {
         keyAlias: String,
         keyPassword: String,
     ): SigningConfig = withContext(Dispatchers.IO) {
-        KeystoreFiles.import(storeFile, storePassword, keyAlias, keyPassword).also { persistRelease(it) }
+        val validated = KeystoreFiles.import(storeFile, storePassword, keyAlias, keyPassword)
+        val extension = storeFile.extension.takeIf { it.equals("jks", true) || it.equals("p12", true) || it.equals("pfx", true) }
+            ?.lowercase() ?: "keystore"
+        val managed = File(androidDir, "release-imported.$extension")
+        if (storeFile.canonicalFile != managed.canonicalFile) {
+            storeFile.inputStream().use { input ->
+                managed.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        validated.copy(storeFile = managed).also { persistRelease(it) }
     }
 
     override suspend fun releaseSigningConfig(): SigningConfig? = withContext(Dispatchers.IO) {
         val path = securePrefs.getString(KEY_STORE_FILE, null) ?: return@withContext null
         val file = File(path)
         if (!file.isFile) return@withContext null
-        SigningConfig(
-            storeFile = file,
-            storePassword = securePrefs.getString(KEY_STORE_PASSWORD, "").orEmpty(),
-            keyAlias = securePrefs.getString(KEY_ALIAS, "").orEmpty(),
-            keyPassword = securePrefs.getString(KEY_KEY_PASSWORD, "").orEmpty(),
-            isDebug = false,
+        KeystoreFiles.import(
+            file,
+            securePrefs.getString(KEY_STORE_PASSWORD, "").orEmpty(),
+            securePrefs.getString(KEY_ALIAS, "").orEmpty(),
+            securePrefs.getString(KEY_KEY_PASSWORD, "").orEmpty(),
         )
     }
 
     override suspend fun clearReleaseKeystore() = withContext(Dispatchers.IO) {
+        securePrefs.getString(KEY_STORE_FILE, null)?.let(::File)?.takeIf { file ->
+            runCatching { file.canonicalFile.parentFile == androidDir.canonicalFile }.getOrDefault(false)
+        }?.delete()
         securePrefs.edit()
             .remove(KEY_STORE_FILE).remove(KEY_STORE_PASSWORD).remove(KEY_ALIAS).remove(KEY_KEY_PASSWORD)
             .apply()

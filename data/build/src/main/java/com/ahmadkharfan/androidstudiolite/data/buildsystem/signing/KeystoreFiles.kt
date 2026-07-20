@@ -18,6 +18,9 @@ internal object KeystoreFiles {
 
     fun create(params: ReleaseKeystoreParams, isDebug: Boolean = false): SigningConfig {
         validate(params)
+        if (params.storeFile.exists()) {
+            throw KeystoreException(KeystoreError.InvalidParams("Keystore already exists: ${params.storeFile.name}"))
+        }
         val keyPair = KeyPairGenerator.getInstance("RSA").apply { initialize(KEY_SIZE) }.generateKeyPair()
         val cert = SelfSignedCertGenerator.generate(
             keyPair = keyPair,
@@ -48,18 +51,25 @@ internal object KeystoreFiles {
 
     fun import(storeFile: File, storePassword: String, keyAlias: String, keyPassword: String): SigningConfig {
         if (!storeFile.isFile) throw KeystoreException(KeystoreError.FileNotFound)
-        val keyStore = KeyStore.getInstance(KEYSTORE_TYPE)
-        try {
-            storeFile.inputStream().use { keyStore.load(it, storePassword.toCharArray()) }
-        } catch (e: java.io.IOException) {
-
-            throw KeystoreException(KeystoreError.WrongStorePassword)
-        }
+        val bytes = runCatching { storeFile.readBytes() }
+            .getOrElse { throw KeystoreException(KeystoreError.Io(it.message ?: "Could not read keystore")) }
+        val keyStore = listOf(KEYSTORE_TYPE, "JKS")
+            .distinct()
+            .firstNotNullOfOrNull { type ->
+                runCatching {
+                    KeyStore.getInstance(type).apply {
+                        bytes.inputStream().use { load(it, storePassword.toCharArray()) }
+                    }
+                }.getOrNull()
+            } ?: throw KeystoreException(KeystoreError.WrongStorePassword)
         if (!keyStore.containsAlias(keyAlias)) {
             throw KeystoreException(KeystoreError.AliasNotFound(keyStore.aliases().toList()))
         }
         try {
-            keyStore.getKey(keyAlias, keyPassword.toCharArray())
+            val key = keyStore.getKey(keyAlias, keyPassword.toCharArray())
+            if (key == null || !keyStore.isKeyEntry(keyAlias)) {
+                throw KeystoreException(KeystoreError.InvalidParams("Alias '$keyAlias' is not a private-key entry"))
+            }
         } catch (e: UnrecoverableKeyException) {
             throw KeystoreException(KeystoreError.WrongKeyPassword)
         }
@@ -72,6 +82,9 @@ internal object KeystoreFiles {
             if (params.storePassword.length < MIN_PASSWORD_LENGTH) add("Store password must be at least $MIN_PASSWORD_LENGTH characters")
             if (params.keyPassword.length < MIN_PASSWORD_LENGTH) add("Key password must be at least $MIN_PASSWORD_LENGTH characters")
             if (params.validityYears < 1) add("Validity must be at least 1 year")
+            if (params.country.isNotBlank() && !params.country.matches(Regex("[A-Za-z]{2}"))) {
+                add("Country must be a two-letter code")
+            }
             if (params.distinguishedName().isBlank()) add("At least one certificate field is required")
         }
         if (problems.isNotEmpty()) throw KeystoreException(KeystoreError.InvalidParams(problems.joinToString("; ")))
