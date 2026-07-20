@@ -4,17 +4,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 
-/**
- * Wire form of [com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent], as emitted by the
- * server control plane over `WS /v1/builds/{id}/stream`. One JSON object per frame, tagged by a
- * lowerCamelCase `"type"` discriminator (the server is the source of truth — see the app's
- * `PROTOCOL.md` and the server's `control-plane/PROTOCOL.md`).
- *
- * The domain model holds `java.io.File`; on the wire paths are project-relative POSIX strings and
- * enums are their Kotlin constant names. Mapping back to the domain (and reattaching the local
- * project root) is [BuildEventMapper.toDomain]. Unknown `type` values and unknown fields are
- * tolerated by [BuildEventParser] so the schema can grow additively.
- */
 @Serializable
 @JsonClassDiscriminator("type")
 sealed interface WireBuildEvent {
@@ -58,7 +47,6 @@ sealed interface WireBuildEvent {
     data class Finished(val success: Boolean, val durationMillis: Long) : WireBuildEvent
 }
 
-/** Wire form of a build request as echoed back inside a `started` event. */
 @Serializable
 data class WireBuildRequest(
     val buildId: String? = null,

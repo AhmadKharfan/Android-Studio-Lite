@@ -8,27 +8,15 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
 
-/**
- * Pure builder for the `POST /v1/builds` body — the source-selection and release-signing policy in one
- * testable place, separate from [RemoteBuildSystem]'s I/O orchestration.
- *
- * - **Source:** a non-null [GitRemoteInfo] selects the `git` path (URL + ref, no upload); null falls
- *   back to `zip` (A2's default). [shouldUseGit] decides whether to even resolve a git source.
- * - **Signing:** [releaseSigningMaterial] turns the user's release keystore into the wire payload,
- *   skipping the auto-managed debug keystore.
- */
 internal object RemoteBuildRequestFactory {
 
-    /** Private remotes stay on-device and use zip upload; app credentials never reach the server. */
     fun eligibleGitSource(source: GitRemoteInfo?): GitRemoteInfo? = source?.takeUnless { it.requiresAuth }
 
     fun create(
         request: BuildRequest,
         gitSource: GitRemoteInfo?,
         signing: SigningMaterial?,
-        /** sha256 of the source zip, for server-side upload dedup; null for a git build. */
         sourceHash: String? = null,
-        /** Stable project id naming the server's configuration-cache slot for this project. */
         projectKey: String? = null,
     ): CreateBuildRequest {
         val eligibleGit = eligibleGitSource(gitSource)
@@ -46,10 +34,6 @@ internal object RemoteBuildRequestFactory {
         )
     }
 
-    /**
-     * Gradle tasks for a request: module-scoped `:<module>:assemble<Variant>` when [BuildRequest.modulePath]
-     * is set (so KMP / non-`:app` projects build the real application module), else root-level tasks.
-     */
     fun defaultTasks(request: BuildRequest): List<String> {
         val variant = request.variantName.replaceFirstChar { it.uppercase() }
         val taskName = when (request.kind) {
@@ -63,29 +47,15 @@ internal object RemoteBuildRequestFactory {
         return listOf(if (module != null) "$module:$taskName" else taskName)
     }
 
-    /**
-     * Whether to attempt a git-source build for [request] given the user's [preferGit] setting. A
-     * `clean` never uses git (nothing to clone-build); a resolved remote may still be absent, in which
-     * case the caller falls back to zip.
-     */
     fun shouldUseGit(preferGit: Boolean, request: BuildRequest): Boolean =
         preferGit && request.kind != BuildKind.CLEAN
 
-    /**
-     * True when a variant name denotes a release build that needs the user's release keystore.
-     * Covers bare `release` and flavored names like `developmentRelease` / `paidRelease`.
-     */
     fun isReleaseVariant(variantName: String): Boolean =
         variantName.trim().let { name ->
             name.equals("release", ignoreCase = true) ||
                 (!name.contains("debug", ignoreCase = true) && name.endsWith("release", ignoreCase = true))
         }
 
-    /**
-     * The release-signing payload for [config], or null when there's no usable release keystore (the
-     * debug keystore, a missing file, or null config — release builds then fall back to unsigned/debug
-     * signing server-side). [readBytes] and [encodeBase64] are injected so this stays JVM-testable.
-     */
     fun releaseSigningMaterial(
         config: SigningConfig?,
         readBytes: (File) -> ByteArray? = { it.takeIf(File::isFile)?.readBytes() },

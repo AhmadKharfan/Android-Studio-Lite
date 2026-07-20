@@ -3,39 +3,24 @@ package com.ahmadkharfan.androidstudiolite.data.gradle.deps
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDsl
 import java.io.File
 
-/**
- * The dependency-management backend for the add/remove-dependency flow. Ties the pure text editors
- * ([VersionCatalogEditor], [DependenciesBlockEditor]) to files on disk and picks between the two
- * placement strategies. Returns structured outcomes so the UI can report precise success/failure.
- *
- * This is the write side of Phase 2; [MavenDependencySearch] is the discovery side.
- */
 class DependencyManager {
 
-    /** Where to declare the coordinate. */
     enum class Strategy {
-        /** Add to `libs.versions.toml` and reference it via `libs.<alias>` in the build file. */
         VERSION_CATALOG,
 
-        /** Write the raw coordinate straight into the `dependencies {}` block. */
         DIRECT,
     }
 
     data class AddRequest(
-        /** The module's `build.gradle(.kts)` to edit. */
         val buildFile: File,
-        /** Maven coordinate `group:name:version` (version optional). */
         val coordinate: String,
         val configuration: String = "implementation",
         val strategy: Strategy = Strategy.VERSION_CATALOG,
-        /** Catalog file; required for [Strategy.VERSION_CATALOG]. */
         val catalogFile: File? = null,
-        /** Catalog alias to use; derived from the artifact id when null. */
         val alias: String? = null,
     )
 
     sealed interface Outcome {
-        /** Lists the files actually written. */
         data class Success(val changedFiles: List<File>, val message: String) : Outcome
         data class NoOp(val reason: String) : Outcome
         data class Failure(val reason: String) : Outcome
@@ -53,7 +38,6 @@ class DependencyManager {
         }
     }
 
-    /** Removes the coordinate (or catalog accessor) from a build file; leaves the catalog intact. */
     fun removeFromBuildFile(buildFile: File, notation: String): Outcome {
         if (!buildFile.isFile) return Outcome.Failure("Build file not found: $buildFile")
         return when (val r = DependenciesBlockEditor.remove(buildFile.readText(), notation)) {
@@ -95,7 +79,7 @@ class DependencyManager {
 
         val newCatalogText = when (catalogEdit) {
             is VersionCatalogEditor.Result.Changed -> catalogEdit.text
-            is VersionCatalogEditor.Result.Unchanged -> catalogText // alias already present; reuse it
+            is VersionCatalogEditor.Result.Unchanged -> catalogText
             is VersionCatalogEditor.Result.Failure -> return Outcome.Failure(catalogEdit.reason)
         }
 
@@ -130,7 +114,6 @@ class DependencyManager {
     private fun dslOf(buildFile: File): GradleDsl =
         if (buildFile.name.endsWith(".kts")) GradleDsl.KOTLIN else GradleDsl.GROOVY
 
-    /** A parsed Maven coordinate. */
     data class Coordinate(val group: String, val name: String, val version: String?) {
         val full: String get() = if (version.isNullOrBlank()) "$group:$name" else "$group:$name:$version"
 

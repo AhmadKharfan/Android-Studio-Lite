@@ -12,12 +12,6 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * On-device [KeystoreManager]. The debug keystore lives at `$HOME/.android/debug.keystore` and mirrors
- * the credentials Android Studio's own debug keystore uses, so an ASL debug build is signed
- * identically. The chosen release keystore's location + passwords are persisted in
- * [EncryptedSharedPreferences] (passwords must be kept but never in plaintext prefs).
- */
 class AndroidKeystoreManager(private val context: Context) : KeystoreManager {
 
     private val androidDir: File
@@ -111,7 +105,7 @@ class AndroidKeystoreManager(private val context: Context) : KeystoreManager {
     }
 
     companion object {
-        // Matches Android Studio's debug keystore so ASL debug builds share the debug identity.
+
         const val DEBUG_ALIAS = "androiddebugkey"
         const val DEBUG_PASSWORD = "android"
         private const val DEBUG_VALIDITY_YEARS = 30

@@ -17,13 +17,6 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/**
- * [GitHubDeviceAuthenticator] over GitHub's public device-flow endpoints. Requires a GitHub OAuth
- * App client id (public) with "Device Flow" enabled; when [clientId] is blank the flow is disabled.
- *
- * On success the minted access token is saved to [credentialStore] for host `github.com` with the
- * conventional `x-access-token` username, so it is reused for every repo's push/pull/fetch.
- */
 class GitHubDeviceFlowAuthenticator(
     private val clientId: String,
     private val credentialStore: GitCredentialStore,
@@ -50,8 +43,8 @@ class GitHubDeviceFlowAuthenticator(
 
         var intervalSeconds = code.interval.coerceAtLeast(MIN_POLL_SECONDS)
         val deadline = System.currentTimeMillis() + code.expiresIn * 1000L
-        // A transient network blip (e.g. a momentary DNS failure on device) shouldn't abort the whole
-        // sign-in — keep polling until the code expires, only giving up after many failures in a row.
+
+
         var consecutiveErrors = 0
         while (System.currentTimeMillis() < deadline) {
             delay(intervalSeconds * 1000L)

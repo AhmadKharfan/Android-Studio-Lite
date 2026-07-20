@@ -4,20 +4,13 @@ import com.ahmadkharfan.androidstudiolite.core.xml.XmlNode
 import com.ahmadkharfan.androidstudiolite.core.xml.XmlNodeType
 import com.ahmadkharfan.androidstudiolite.core.xml.XmlParser
 
-/** The bits of an `AndroidManifest.xml` that matter for static project understanding. */
 data class ManifestInfo(
-    /** Legacy `package="…"` attribute (pre-AGP-7 namespace source); null on modern manifests. */
     val packageName: String? = null,
     val minSdkVersion: String? = null,
     val targetSdkVersion: String? = null,
-    /** Whether a launcher `<activity>` with a MAIN/LAUNCHER intent-filter is present. */
     val hasLauncherActivity: Boolean = false,
 )
 
-/**
- * Reads an Android manifest by reusing the editor engine's tolerant [XmlParser] (its public
- * `parse()` entry point only).
- */
 object ManifestReader {
 
     fun read(text: CharSequence): ManifestInfo {

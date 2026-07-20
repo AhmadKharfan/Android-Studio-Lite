@@ -14,12 +14,6 @@ private val Context.buildServerDataStore by preferencesDataStore(name = "build_s
 private val KEY_BASE_URL = stringPreferencesKey("base_url")
 private val KEY_DEVICE_TOKEN = stringPreferencesKey("device_token")
 
-/**
- * Persists the build-server [ServerSettings] (base URL + minted device token) across process death,
- * reusing the onboarding DataStore pattern. The base URL defaults to [BuildConfig.DEFAULT_BUILD_SERVER_URL]
- * until the user overrides it in Settings → Build server. The device token is minted once
- * (`POST /v1/devices`) and cached here so registration doesn't repeat every launch.
- */
 class ServerSettingsRepository(private val context: Context) {
 
     fun observe(): Flow<ServerSettings> =
@@ -40,7 +34,6 @@ class ServerSettingsRepository(private val context: Context) {
         context.buildServerDataStore.edit { it[KEY_DEVICE_TOKEN] = token }
     }
 
-    /** Clears the cached token so the next request re-registers the device. */
     suspend fun clearDeviceToken() {
         context.buildServerDataStore.edit { it.remove(KEY_DEVICE_TOKEN) }
     }

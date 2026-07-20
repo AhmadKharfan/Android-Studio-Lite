@@ -9,11 +9,6 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.SourceSetModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.VariantModel
 import java.io.File
 
-/**
- * Maps the wire [WireProjectModel] (from `POST /v1/sync`) to the domain [ProjectModel]. Wire paths
- * are project-relative POSIX strings resolved under [projectRoot]; a null/`"."` path is the root
- * itself. Enum parsing is tolerant so a newer server can add members without breaking older clients.
- */
 object ProjectModelMapper {
 
     fun toDomain(wire: WireProjectModel, projectRoot: File): ProjectModel = ProjectModel(

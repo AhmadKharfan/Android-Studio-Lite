@@ -3,13 +3,6 @@ package com.ahmadkharfan.androidstudiolite.data.buildsystem.signing
 import java.io.ByteArrayOutputStream
 import java.math.BigInteger
 
-/**
- * Minimal DER (Distinguished Encoding Rules) writer — just enough ASN.1 to hand-build a self-signed
- * X.509 certificate without any third-party crypto library (BouncyCastle etc.), keeping the app
- * license-clean and dependency-light. Pure `java.*`, so it runs identically on the JVM and Android.
- *
- * Every helper returns a fully-encoded TLV (tag + length + value) byte array.
- */
 internal object DerWriter {
 
     const val TAG_INTEGER: Int = 0x02
@@ -21,9 +14,8 @@ internal object DerWriter {
     const val TAG_UTC_TIME: Int = 0x17
     const val TAG_SEQUENCE: Int = 0x30
     const val TAG_SET: Int = 0x31
-    const val TAG_CONTEXT_0: Int = 0xA0 // [0] EXPLICIT, constructed
+    const val TAG_CONTEXT_0: Int = 0xA0
 
-    /** Wraps [content] in a TLV with the given [tag] and a DER-encoded length. */
     fun tlv(tag: Int, content: ByteArray): ByteArray {
         val out = ByteArrayOutputStream()
         out.write(tag)
@@ -40,17 +32,15 @@ internal object DerWriter {
 
     fun integer(value: Long): ByteArray = integer(BigInteger.valueOf(value))
 
-    /** Raw pre-encoded bytes (used to embed an already-DER SubjectPublicKeyInfo). */
     fun raw(bytes: ByteArray): ByteArray = bytes
 
     fun oid(dotted: String): ByteArray = tlv(TAG_OID, encodeOid(dotted))
 
     fun nullValue(): ByteArray = tlv(TAG_NULL, ByteArray(0))
 
-    /** BIT STRING with 0 unused bits, e.g. the certificate signature. */
     fun bitString(bytes: ByteArray): ByteArray {
         val body = ByteArray(bytes.size + 1)
-        body[0] = 0 // unused bits
+        body[0] = 0
         System.arraycopy(bytes, 0, body, 1, bytes.size)
         return tlv(TAG_BIT_STRING, body)
     }
@@ -61,7 +51,6 @@ internal object DerWriter {
 
     fun utcTime(value: String): ByteArray = tlv(TAG_UTC_TIME, value.toByteArray(Charsets.US_ASCII))
 
-    /** [0] EXPLICIT wrapper, used for the certificate version field. */
     fun explicitContext0(content: ByteArray): ByteArray = tlv(TAG_CONTEXT_0, content)
 
     private fun encodeLength(length: Int): ByteArray {
@@ -99,7 +88,7 @@ internal object DerWriter {
         }
         val bytes = ByteArray(stack.size)
         for (i in stack.indices) {
-            // High bit set on all but the final byte.
+
             bytes[i] = (stack[i] or if (i < stack.size - 1) 0x80 else 0x00).toByte()
         }
         return bytes

@@ -10,15 +10,8 @@ import java.security.cert.X509Certificate
 import java.util.Date
 import java.util.TimeZone
 
-/**
- * Builds a self-signed X.509 v3 certificate for a freshly generated key pair, using only `java.*`
- * crypto + hand-rolled DER ([DerWriter]) — no BouncyCastle, so nothing GPL/extra is pulled in. This
- * is exactly what `keytool -genkeypair` produces, and the result is accepted by apksigner and
- * `PackageInstaller`.
- */
 internal object SelfSignedCertGenerator {
 
-    /** OID for sha256WithRSAEncryption. */
     private const val OID_SHA256_RSA = "1.2.840.113549.1.1.11"
 
     private const val TAG_GENERALIZED_TIME = 0x18
@@ -36,27 +29,23 @@ internal object SelfSignedCertGenerator {
         "UID" to "0.9.2342.19200300.100.1.1",
     )
 
-    /**
-     * @param dname distinguished name, e.g. "CN=Android Debug,O=Android,C=US".
-     * @param validityDays certificate lifetime from now.
-     */
     fun generate(keyPair: KeyPair, dname: String, validityDays: Int): X509Certificate {
         val name = encodeName(dname)
         val algId = DerWriter.sequence(DerWriter.oid(OID_SHA256_RSA), DerWriter.nullValue())
 
         val now = System.currentTimeMillis()
-        val notBefore = Date(now - 60_000L) // 1 min of clock-skew slack
+        val notBefore = Date(now - 60_000L)
         val notAfter = Date(now + validityDays.toLong() * 24 * 60 * 60 * 1000)
 
         val serial = BigInteger(64, SecureRandom()).abs().let { if (it.signum() == 0) BigInteger.ONE else it }
         val tbs = DerWriter.sequence(
-            DerWriter.explicitContext0(DerWriter.integer(2)), // version v3
+            DerWriter.explicitContext0(DerWriter.integer(2)),
             DerWriter.integer(serial),
             algId,
-            name, // issuer
+            name,
             DerWriter.sequence(encodeTime(notBefore), encodeTime(notAfter)),
-            name, // subject == issuer for self-signed
-            DerWriter.raw(keyPair.public.encoded), // SubjectPublicKeyInfo (already DER)
+            name,
+            DerWriter.raw(keyPair.public.encoded),
         )
 
         val signature = Signature.getInstance("SHA256withRSA").run {
@@ -70,7 +59,6 @@ internal object SelfSignedCertGenerator {
             .generateCertificate(ByteArrayInputStream(certDer)) as X509Certificate
     }
 
-    /** Parses "CN=…,O=…,C=…" into an ordered DER Name (SEQUENCE OF RDN). */
     private fun encodeName(dname: String): ByteArray {
         val rdns = splitDname(dname).map { (key, value) ->
             val oid = ATTRIBUTE_OIDS[key.uppercase()]
@@ -80,7 +68,6 @@ internal object SelfSignedCertGenerator {
         return DerWriter.tlv(DerWriter.TAG_SEQUENCE, rdns.fold(ByteArray(0)) { acc, e -> acc + e })
     }
 
-    /** Splits a DN string on unescaped commas into key/value pairs, preserving order. */
     private fun splitDname(dname: String): List<Pair<String, String>> {
         val pairs = mutableListOf<Pair<String, String>>()
         val current = StringBuilder()
@@ -108,7 +95,6 @@ internal object SelfSignedCertGenerator {
         add(trimmed.substring(0, eq).trim() to trimmed.substring(eq + 1).trim())
     }
 
-    /** UTCTime for years 1950–2049, GeneralizedTime otherwise (RFC 5280 §4.1.2.5). */
     private fun encodeTime(date: Date): ByteArray {
         val utc = TimeZone.getTimeZone("UTC")
         val year = java.util.Calendar.getInstance(utc).apply { time = date }.get(java.util.Calendar.YEAR)

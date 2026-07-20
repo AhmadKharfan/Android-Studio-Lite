@@ -1,13 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.gradle.parse
 
-/**
- * A tiny, tolerant lexer for Gradle build scripts, shared by the Groovy and Kotlin-DSL parsers.
- *
- * It is deliberately *not* a real Groovy/Kotlin parser — build scripts are Turing complete and we
- * only need to recover the declarative shape (blocks, calls, string literals). The scanner strips
- * comments, understands the three string flavors, and tracks brace/paren nesting via a flat token
- * stream so the higher-level parsers can locate `android { … }`, `dependencies { … }`, etc.
- */
 enum class GTokenType {
     IDENT, STRING, NUMBER,
     LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET,
@@ -16,12 +8,10 @@ enum class GTokenType {
 
 data class GToken(
     val type: GTokenType,
-    /** Raw source text. For [GTokenType.STRING] this includes the surrounding quotes. */
     val text: String,
     val start: Int,
     val end: Int,
 ) {
-    /** For a STRING token, the content with quotes stripped (best effort, no unescaping). */
     fun stringValue(): String {
         if (type != GTokenType.STRING) return text
         var s = text
@@ -71,7 +61,7 @@ object GradleScriptScanner {
                     while (j < len && isIdentPart(text[j])) j++
                     out += GToken(GTokenType.IDENT, text.substring(i, j), i, j); i = j
                 }
-                c == '`' -> { // Kotlin backtick-escaped identifier
+                c == '`' -> {
                     var j = i + 1
                     while (j < len && text[j] != '`') j++
                     out += GToken(GTokenType.IDENT, text.substring(i + 1, j.coerceAtMost(len)), i, (j + 1).coerceAtMost(len))
@@ -90,7 +80,7 @@ object GradleScriptScanner {
                         '=' -> if (i + 1 < len && text[i + 1] == '=') GTokenType.OTHER else GTokenType.EQ
                         else -> GTokenType.OTHER
                     }
-                    // `==` collapses to a single OTHER token spanning both chars.
+
                     val end = if (type == GTokenType.OTHER && c == '=') i + 2 else i + 1
                     out += GToken(type, text.substring(i, end), i, end); i = end
                 }
@@ -113,7 +103,7 @@ object GradleScriptScanner {
             val ch = text[j]
             if (ch == '\\') { j += 2; continue }
             if (ch == quote) { j++; break }
-            if (ch == '\n') break // unterminated single-line string; stop tolerantly
+            if (ch == '\n') break
             j++
         }
         val end = j.coerceAtMost(len)
@@ -123,15 +113,7 @@ object GradleScriptScanner {
     private fun isIdentStart(c: Char) = c.isLetter() || c == '_' || c == '$'
     private fun isIdentPart(c: Char) = c.isLetterOrDigit() || c == '_' || c == '$'
 
-    // ------------------------------------------------------------------------------------------
-    // Block / call helpers over a token list.
-    // ------------------------------------------------------------------------------------------
 
-    /**
-     * Finds the body of the first block named [name] whose opening brace lies within
-     * [from, until). Returns the index range of the tokens *strictly inside* the braces, or null.
-     * Matches both `name { … }` and `name(args) { … }` (the trailing-lambda form).
-     */
     fun findBlockBody(tokens: List<GToken>, name: String, from: Int = 0, until: Int = tokens.size): IntRange? {
         var i = from
         while (i < until) {
@@ -148,10 +130,9 @@ object GradleScriptScanner {
         return null
     }
 
-    /** From [start], skip over an optional `( … )` argument list and return the index of the next `{`. */
     private fun indexOfOpeningBrace(tokens: List<GToken>, start: Int, until: Int): Int? {
         var i = start
-        // Allow a parenthesised argument list before the trailing lambda.
+
         if (i < until && tokens[i].type == GTokenType.LPAREN) {
             val close = matchParen(tokens, i, until) ?: return null
             i = close + 1
@@ -160,7 +141,6 @@ object GradleScriptScanner {
         return if (i < until && tokens[i].type == GTokenType.LBRACE) i else null
     }
 
-    /** Index of the matching `}` for the `{` at [open], or null if unbalanced. */
     fun matchBrace(tokens: List<GToken>, open: Int, until: Int = tokens.size): Int? {
         var depth = 0
         var i = open
@@ -175,7 +155,6 @@ object GradleScriptScanner {
         return null
     }
 
-    /** Index of the matching `)` for the `(` at [open], or null if unbalanced. */
     fun matchParen(tokens: List<GToken>, open: Int, until: Int = tokens.size): Int? {
         var depth = 0
         var i = open
@@ -190,7 +169,6 @@ object GradleScriptScanner {
         return null
     }
 
-    /** Immediate child block names declared inside [range] (e.g. build-type / flavor names). */
     fun childBlockNames(tokens: List<GToken>, range: IntRange): List<String> {
         val names = ArrayList<String>()
         var i = range.first
@@ -198,14 +176,14 @@ object GradleScriptScanner {
         while (i < end) {
             val t = tokens[i]
             if (t.type == GTokenType.LBRACE) {
-                // Skip nested blocks so we only pick up direct children.
+
                 val close = matchBrace(tokens, i, end) ?: break
-                // The name is the last IDENT before this brace on the same statement.
+
                 var k = i - 1
                 while (k >= range.first && tokens[k].type == GTokenType.NEWLINE) k--
-                // Skip a `create("x")` / `register("x")`-style call's parens if present.
+
                 if (k >= range.first && tokens[k].type == GTokenType.RPAREN) {
-                    // Named via create("debug"): grab the string inside.
+
                     val openP = matchParenBackwards(tokens, k, range.first)
                     if (openP != null) {
                         val str = tokens.subList(openP + 1, k).firstOrNull { it.type == GTokenType.STRING }

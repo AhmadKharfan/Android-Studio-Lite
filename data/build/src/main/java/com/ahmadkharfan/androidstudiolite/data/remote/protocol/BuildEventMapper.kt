@@ -5,13 +5,6 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import java.io.File
 
-/**
- * Maps [WireBuildEvent]s to the domain [BuildEvent] the UI consumes. The wire carries
- * project-relative POSIX path strings and enum constant names; here they become `File`s under
- * [projectRoot] and the corresponding domain enums. Enum parsing is tolerant — an unrecognised
- * value falls back to a safe default rather than throwing, so a newer server can add enum members
- * without breaking older clients.
- */
 object BuildEventMapper {
 
     fun toDomain(wire: WireBuildEvent, projectRoot: File): BuildEvent = when (wire) {
@@ -40,9 +33,7 @@ object BuildEventMapper {
             column = wire.column,
         )
 
-        // The client downloads the real bytes (ArtifactDownloader) and re-emits an ArtifactProduced
-        // pointing at the local file; this mapping is a project-relative placeholder used when no
-        // download is wired (and in tests).
+
         is WireBuildEvent.ArtifactProduced -> BuildEvent.ArtifactProduced(
             file = File(wire.name),
             kind = artifactKind(wire.kind),

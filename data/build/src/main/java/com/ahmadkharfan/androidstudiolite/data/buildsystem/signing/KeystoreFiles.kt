@@ -10,19 +10,12 @@ import java.security.KeyStore
 import java.security.UnrecoverableKeyException
 import java.security.cert.Certificate
 
-/**
- * Context-free keystore file operations: generate a PKCS12 keystore holding a self-signed RSA key,
- * and validate/import an existing one. PKCS12 is used (not JKS) because it is the one file keystore
- * format available on both Android and the desktop JVM, and apksigner reads it directly — which also
- * means this whole path is unit-testable off-device.
- */
 internal object KeystoreFiles {
 
     const val KEYSTORE_TYPE = "PKCS12"
     private const val KEY_SIZE = 2048
     private const val MIN_PASSWORD_LENGTH = 6
 
-    /** Generates a new keystore file per [params] and returns the resulting [SigningConfig]. */
     fun create(params: ReleaseKeystoreParams, isDebug: Boolean = false): SigningConfig {
         validate(params)
         val keyPair = KeyPairGenerator.getInstance("RSA").apply { initialize(KEY_SIZE) }.generateKeyPair()
@@ -53,18 +46,13 @@ internal object KeystoreFiles {
         )
     }
 
-    /**
-     * Loads [storeFile], verifies [storePassword], that [keyAlias] exists, and that its key is
-     * recoverable with [keyPassword]; throws [KeystoreException] with a specific [KeystoreError]
-     * otherwise. Returns the validated [SigningConfig] on success.
-     */
     fun import(storeFile: File, storePassword: String, keyAlias: String, keyPassword: String): SigningConfig {
         if (!storeFile.isFile) throw KeystoreException(KeystoreError.FileNotFound)
         val keyStore = KeyStore.getInstance(KEYSTORE_TYPE)
         try {
             storeFile.inputStream().use { keyStore.load(it, storePassword.toCharArray()) }
         } catch (e: java.io.IOException) {
-            // PKCS12 surfaces a bad store password as an IOException with a wrapped cause.
+
             throw KeystoreException(KeystoreError.WrongStorePassword)
         }
         if (!keyStore.containsAlias(keyAlias)) {

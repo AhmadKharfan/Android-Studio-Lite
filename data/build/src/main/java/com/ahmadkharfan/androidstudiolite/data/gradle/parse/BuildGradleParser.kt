@@ -7,15 +7,8 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedPlugin
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependency
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependencyKind
 
-/**
- * Tolerant reader for `build.gradle(.kts)`. Recovers the declarative shape needed for the shared
- * `ProjectModel`: applied plugins, the `android {}` block's SDK/namespace/variant info, and the
- * `dependencies {}` block. Unrecognised constructs are simply not reported here — the orchestrator
- * turns "no android block", "unresolved catalog ref", etc. into structured diagnostics.
- */
 object BuildGradleParser {
 
-    /** Configuration names we treat as dependency declarations, plus any `*Implementation`/`*Api` etc. */
     private val KNOWN_CONFIGS = setOf(
         "implementation", "api", "compileOnly", "runtimeOnly", "annotationProcessor",
         "kapt", "ksp", "testImplementation", "testApi", "testCompileOnly", "testRuntimeOnly",
@@ -37,19 +30,18 @@ object BuildGradleParser {
     private fun looksLikeConfig(name: String): Boolean =
         name in KNOWN_CONFIGS || CONFIG_SUFFIXES.any { name.endsWith(it) && name.length > it.length }
 
-    // ------------------------------------------------------------------ plugins
 
     private fun parsePlugins(tokens: List<GToken>): List<ParsedPlugin> {
         val plugins = ArrayList<ParsedPlugin>()
         GradleScriptScanner.findBlockBody(tokens, "plugins")?.let { range ->
             plugins += parsePluginsBlock(tokens, range)
         }
-        // Legacy top-level: apply plugin: 'com.android.application'
+
         var i = 0
         while (i < tokens.size) {
             val t = tokens[i]
             if (t.type == GTokenType.IDENT && t.text == "apply") {
-                // apply plugin: "x"  (Groovy)   /   apply(plugin = "x")
+
                 val str = (i + 1 until minOf(i + 8, tokens.size))
                     .firstNotNullOfOrNull { tokens[it].takeIf { tk -> tk.type == GTokenType.STRING } }
                 val isPlugin = (i + 1 until minOf(i + 6, tokens.size))
@@ -74,12 +66,12 @@ object BuildGradleParser {
                         if (id != null) out += ParsedPlugin(id, versionAfter(tokens, i + 1, end))
                     }
                     "kotlin" -> {
-                        // kotlin("android") -> org.jetbrains.kotlin.android
+
                         val arg = firstStringArg(tokens, i + 1, end)
                         if (arg != null) out += ParsedPlugin("org.jetbrains.kotlin.$arg", versionAfter(tokens, i + 1, end))
                     }
                     "alias" -> {
-                        // alias(libs.plugins.android.application)
+
                         val accessor = catalogAccessorAfter(tokens, i + 1, end)
                         if (accessor != null && accessor.startsWith("plugins.")) {
                             out += ParsedPlugin(accessor.removePrefix("plugins."), fromCatalog = true)
@@ -92,7 +84,6 @@ object BuildGradleParser {
         return out
     }
 
-    /** Reads `version "x"` / `version("x")` / `version = "x"` immediately following a plugin call. */
     private fun versionAfter(tokens: List<GToken>, from: Int, end: Int): String? {
         var i = from
         while (i < end && tokens[i].type != GTokenType.NEWLINE) {
@@ -104,7 +95,6 @@ object BuildGradleParser {
         return null
     }
 
-    // ------------------------------------------------------------------ android
 
     private fun parseAndroid(tokens: List<GToken>): ParsedAndroidBlock? {
         val range = GradleScriptScanner.findBlockBody(tokens, "android") ?: return null
@@ -136,10 +126,6 @@ object BuildGradleParser {
         )
     }
 
-    /**
-     * AGP 9 DSL: `compileSdk { version = release(37) }` (or `version = 37`). Reads the first number
-     * inside a `compileSdk { … }` block when the plain scalar form is absent.
-     */
     private fun compileSdkFromBlock(tokens: List<GToken>, range: IntRange): String? {
         val body = GradleScriptScanner.findBlockBody(tokens, "compileSdk", range.first, range.last + 1) ?: return null
         return (body.first..body.last).firstNotNullOfOrNull {
@@ -147,7 +133,6 @@ object BuildGradleParser {
         }
     }
 
-    /** `flavorDimensions "a", "b"` / `flavorDimensions += "a"` — collect string args. */
     private fun flavorDimensionCallArgs(tokens: List<GToken>, range: IntRange): List<String> {
         var i = range.first
         val end = range.last + 1
@@ -165,10 +150,6 @@ object BuildGradleParser {
         return result.distinct()
     }
 
-    /**
-     * Reads simple scalar assignments at the top level of [range]: `key = value`, `key value`,
-     * `key("value")`, `key(123)`. Nested blocks are skipped so we don't pick up child scalars.
-     */
     private fun readAssignments(tokens: List<GToken>, range: IntRange): Map<String, String> {
         val map = LinkedHashMap<String, String>()
         var i = range.first
@@ -188,7 +169,7 @@ object BuildGradleParser {
                         GTokenType.EQ -> valueToken(tokens, next + 1, end)?.let { map.putIfAbsent(t.text, it) }
                         GTokenType.LPAREN -> valueToken(tokens, next + 1, end)?.let { map.putIfAbsent(t.text, it) }
                         GTokenType.STRING, GTokenType.NUMBER ->
-                            map.putIfAbsent(t.text, scalarText(nt)) // groovy: `compileSdk 34`
+                            map.putIfAbsent(t.text, scalarText(nt))
                         else -> {}
                     }
                 }
@@ -209,7 +190,6 @@ object BuildGradleParser {
 
     private fun scalarText(t: GToken): String = if (t.type == GTokenType.STRING) t.stringValue() else t.text
 
-    // ------------------------------------------------------------------ dependencies
 
     private fun parseDependencies(tokens: List<GToken>): List<RawDependency> {
         val range = GradleScriptScanner.findBlockBody(tokens, "dependencies") ?: return emptyList()
@@ -219,7 +199,7 @@ object BuildGradleParser {
         while (i < end) {
             val t = tokens[i]
             if (t.type == GTokenType.LBRACE) {
-                // Skip nested closures (e.g. an implementation(...) { exclude ... } config block).
+
                 val close = GradleScriptScanner.matchBrace(tokens, i, end) ?: break
                 i = close + 1
                 continue
@@ -235,7 +215,7 @@ object BuildGradleParser {
 
     private fun parseDependencyLine(tokens: List<GToken>, config: String, from: Int, end: Int): RawDependency? {
         val first = nextSignificant(tokens, from, end) ?: return null
-        // Determine the argument region (paren-delimited in KTS, up to newline in Groovy).
+
         val (argStart, argEnd) = if (tokens[first].type == GTokenType.LPAREN) {
             val close = GradleScriptScanner.matchParen(tokens, first, end) ?: return null
             (first + 1) to close
@@ -244,7 +224,7 @@ object BuildGradleParser {
         }
         if (argStart >= argEnd) return null
 
-        // Detect wrappers: platform(...) / project(...) / kotlin(...) as the first ident.
+
         var isPlatform = false
         var innerStart = argStart
         val head = tokens[nextSignificant(tokens, argStart, argEnd) ?: argStart]
@@ -268,14 +248,14 @@ object BuildGradleParser {
             }
         }
 
-        // Catalog accessor: libs.foo(.bar)…  (possibly libs.bundles.x / libs.plugins.x)
+
         val accessor = catalogAccessorAtLibs(tokens, innerStart, argEnd)
         if (accessor != null) {
             val kind = if (accessor.startsWith("bundles.")) RawDependencyKind.CATALOG_BUNDLE else RawDependencyKind.CATALOG
             return RawDependency(config, kind, catalogAccessor = "libs.$accessor", isPlatform = isPlatform)
         }
 
-        // Plain coordinate string.
+
         val coord = firstStringArg(tokens, innerStart, argEnd)
         return when {
             coord != null -> RawDependency(config, RawDependencyKind.MODULE, coordinate = coord, isPlatform = isPlatform)
@@ -283,14 +263,12 @@ object BuildGradleParser {
         }
     }
 
-    /** After a wrapper ident like `platform`, return the index just inside its `(`. */
     private fun unwrapCall(tokens: List<GToken>, from: Int, end: Int): Int? {
         val id = nextSignificant(tokens, from, end) ?: return null
         val paren = nextSignificant(tokens, id + 1, end) ?: return null
         return if (tokens[paren].type == GTokenType.LPAREN) paren + 1 else null
     }
 
-    // ------------------------------------------------------------------ shared token helpers
 
     private fun statementEnd(tokens: List<GToken>, from: Int, end: Int): Int {
         var i = from
@@ -323,7 +301,6 @@ object BuildGradleParser {
         return null
     }
 
-    /** Reads a `libs.a.b.c` accessor chain starting at [from]; returns the part after `libs.`. */
     private fun catalogAccessorAtLibs(tokens: List<GToken>, from: Int, end: Int): String? {
         val start = nextSignificant(tokens, from, end) ?: return null
         val head = tokens[start]
@@ -331,7 +308,6 @@ object BuildGradleParser {
         return readAccessorChain(tokens, start + 1, end)
     }
 
-    /** Like [catalogAccessorAtLibs] but tolerant of a leading `(`. Returns part after `libs.`. */
     private fun catalogAccessorAfter(tokens: List<GToken>, from: Int, end: Int): String? {
         var i = nextSignificant(tokens, from, end) ?: return null
         if (tokens[i].type == GTokenType.LPAREN) i = nextSignificant(tokens, i + 1, end) ?: return null
@@ -339,7 +315,6 @@ object BuildGradleParser {
         return readAccessorChain(tokens, i + 1, end)
     }
 
-    /** From just after `libs`, read `.seg.seg…` into a dotted string. */
     private fun readAccessorChain(tokens: List<GToken>, from: Int, end: Int): String? {
         val segs = ArrayList<String>()
         var i = from

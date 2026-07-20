@@ -13,15 +13,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/**
- * Play Integrity [IntegrityTokenProvider] using the **Standard** API for low latency: the token
- * provider is warmed up once (`prepareIntegrityToken`) and reused for every registration. Bound only
- * when `BuildConfig.PLAY_INTEGRITY_ENABLED` is true and a real cloud project number is configured.
- *
- * Fails soft: any Play Services / network / configuration error is swallowed and returns `null`, so a
- * device without Play Integrity can still register (the server accepts unattested tokens while
- * attestation is not required). See the server repo's `docs/attestation.md`.
- */
 class PlayIntegrityTokenProvider(
     context: Context,
     private val cloudProjectNumber: Long,
@@ -30,7 +21,6 @@ class PlayIntegrityTokenProvider(
     private val manager: StandardIntegrityManager =
         IntegrityManagerFactory.createStandard(context.applicationContext)
 
-    /** Warmed-up token provider, prepared lazily on first use and reused thereafter. */
     @Volatile private var tokenProvider: StandardIntegrityTokenProvider? = null
 
     override suspend fun requestToken(nonce: String): String? = try {
@@ -40,8 +30,8 @@ class PlayIntegrityTokenProvider(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {
-        // Best-effort: a missing/old Play Services, an unlinked project, or no network must not block
-        // registration. Reset the warmed provider so the next attempt re-prepares.
+
+
         tokenProvider = null
         Log.w(TAG, "Play Integrity token request failed; registering without attestation", e)
         null
@@ -59,7 +49,6 @@ class PlayIntegrityTokenProvider(
     }
 }
 
-/** Suspends until a Play Services [Task] completes, mapping success/failure/cancellation to coroutines. */
 private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
     addOnSuccessListener { result -> cont.resume(result) }
     addOnFailureListener { error -> cont.resumeWithException(error) }

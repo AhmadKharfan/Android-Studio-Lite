@@ -22,11 +22,6 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.SourceSetModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.VariantModel
 import java.io.File
 
-/**
- * The full result of a static read: the shared [ProjectModel] plus everything the parse surfaced
- * that doesn't fit the model — diagnostics, the resolved version catalog, and the wrapper Gradle
- * version. This is what the editor's symbol index and the build preflight consume.
- */
 data class GradleProjectReadResult(
     val model: ProjectModel,
     val diagnostics: List<GradleDiagnostic>,
@@ -35,15 +30,8 @@ data class GradleProjectReadResult(
     val gradleProperties: Map<String, String>,
 )
 
-/**
- * Reads a Gradle project's declarative metadata straight off disk — no Gradle execution — and maps
- * it into the shared [ProjectModel]. Tolerant throughout: any file it can't fully understand yields
- * a [GradleDiagnostic] rather than an exception, and a single unreadable module never sinks the
- * whole sync.
- */
 class GradleProjectReader {
 
-    /** True if [dir] is the root of a Gradle project (has a settings script). */
     fun isGradleProject(dir: File): Boolean =
         File(dir, "settings.gradle.kts").isFile || File(dir, "settings.gradle").isFile
 
@@ -65,14 +53,14 @@ class GradleProjectReader {
 
         val rootName = settings?.rootProjectName ?: projectRoot.name
 
-        // Module path -> directory. A root build.gradle with no `include` still yields a `:` module.
+
         val moduleDirs = LinkedHashMap<String, File>()
         if (settings != null) {
             for (path in settings.modulePaths) {
                 moduleDirs[path] = resolveModuleDir(projectRoot, path, settings.projectDirOverrides)
             }
         }
-        // Include the root itself if it carries a build script (common for single-module projects).
+
         if (firstExisting(projectRoot, "build.gradle.kts", "build.gradle") != null) {
             moduleDirs.putIfAbsent(":", projectRoot)
         }
@@ -96,7 +84,6 @@ class GradleProjectReader {
         )
     }
 
-    // ------------------------------------------------------------------ modules
 
     private fun readModule(
         path: String,
@@ -142,11 +129,6 @@ class GradleProjectReader {
         )
     }
 
-    /**
-     * The package an app module installs as. AGP defaults `applicationId` to `namespace` when the
-     * former isn't declared, so fall back the same way. Only app modules install, so libraries return
-     * null even though they carry a namespace.
-     */
     private fun applicationIdOf(type: ModuleType, android: ParsedAndroidBlock?): String? {
         if (type != ModuleType.ANDROID_APP || android == null) return null
         return (android.applicationId ?: android.namespace)?.takeIf { it.isNotBlank() }
@@ -154,8 +136,8 @@ class GradleProjectReader {
 
     private fun moduleType(script: ParsedBuildScript, catalog: VersionCatalog?): ModuleType {
         val ids = script.plugins.map { plugin ->
-            // Catalog-alias plugins carry the accessor (e.g. "android.application") as their id;
-            // resolve it to the real plugin id ("com.android.application") before classifying.
+
+
             if (plugin.fromCatalog) catalog?.findPlugin(plugin.id)?.id ?: plugin.id else plugin.id
         }
         return when {
@@ -221,13 +203,11 @@ class GradleProjectReader {
         else -> DependencyScope.UNKNOWN
     }
 
-    // ------------------------------------------------------------------ variants & source sets
 
     private fun variantsOf(android: ParsedAndroidBlock?): List<VariantModel> {
         if (android == null) return emptyList()
-        // AGP always provides debug + release. Scripts often only customize one via
-        // `getByName("release") { … }`, which must not hide the implicit debug type —
-        // otherwise the IDE "Run" default collapses onto a release variant.
+
+
         val buildTypes = effectiveBuildTypes(android.buildTypes)
         val flavors = android.productFlavors
         if (flavors.isEmpty()) {
@@ -240,14 +220,10 @@ class GradleProjectReader {
         }
     }
 
-    /**
-     * Merge script-declared build types with AGP defaults. [declared] may be only `release` when the
-     * project uses `getByName("release")` / `create("benchmark")` without naming `debug`.
-     */
     internal fun effectiveBuildTypes(declared: List<String>): List<String> {
         val skip = setOf("getbyname", "maybecreate", "create", "named", "register", "matching", "configureeach")
         val extras = declared.map { it.trim() }.filter { it.isNotEmpty() && it.lowercase() !in skip }
-        // LinkedHashSet keeps debug → release first (Android Studio Run default), then custom types.
+
         return LinkedHashSet<String>().apply {
             add("debug")
             add("release")
@@ -266,7 +242,7 @@ class GradleProjectReader {
         val srcRoot = File(moduleDir, "src")
         return names.mapNotNull { name ->
             val base = File(srcRoot, name)
-            // "main" is always meaningful; other source sets only when their directory exists.
+
             if (name != "main" && !base.exists()) return@mapNotNull null
             val manifest = File(base, "AndroidManifest.xml").takeIf { it.isFile }
             SourceSetModel(
@@ -280,7 +256,6 @@ class GradleProjectReader {
         }
     }
 
-    // ------------------------------------------------------------------ shared files
 
     private fun readCatalog(projectRoot: File, diagnostics: MutableList<GradleDiagnostic>): VersionCatalog? {
         val toml = File(projectRoot, "gradle/libs.versions.toml")
@@ -313,7 +288,7 @@ class GradleProjectReader {
 
     private fun resolveModuleDir(projectRoot: File, path: String, overrides: Map<String, String>): File {
         overrides[path]?.let { return resolveRelative(projectRoot, it) }
-        // ":build:common" -> "build/common"
+
         val rel = path.trimStart(':').replace(':', '/')
         return File(projectRoot, rel)
     }

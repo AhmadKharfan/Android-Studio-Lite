@@ -4,24 +4,13 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.model.CatalogLibrary
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.CatalogPlugin
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.VersionCatalog
 
-/**
- * Tolerant reader for a Gradle version catalog (`gradle/libs.versions.toml`). Understands only the
- * subset a catalog uses: the `[versions]`, `[libraries]`, `[plugins]`, and `[bundles]` tables with
- * flat keys and single-level inline tables / arrays. Anything unusual is skipped rather than fatal.
- *
- * Supported library forms:
- *  - `foo = "group:name:version"`
- *  - `foo = { module = "group:name", version = "1.0" }`
- *  - `foo = { group = "g", name = "a", version.ref = "coreKtx" }`
- *  - `foo = { group = "g", name = "a" }` (versionless)
- */
 object VersionCatalogParser {
 
     private enum class Section { NONE, VERSIONS, LIBRARIES, PLUGINS, BUNDLES }
 
     fun parse(text: CharSequence): VersionCatalog {
         val versions = LinkedHashMap<String, String>()
-        val rawLibraries = ArrayList<Pair<String, String>>()   // alias to inline value
+        val rawLibraries = ArrayList<Pair<String, String>>()
         val rawPlugins = ArrayList<Pair<String, String>>()
         val bundles = LinkedHashMap<String, List<String>>()
 
@@ -59,7 +48,7 @@ object VersionCatalogParser {
 
     private fun resolveLibrary(alias: String, value: String, versions: Map<String, String>): CatalogLibrary {
         if (value.startsWith("\"") || value.startsWith("'")) {
-            // Shorthand "group:name:version".
+
             val parts = unquote(value).split(':')
             return CatalogLibrary(
                 alias = alias,
@@ -95,7 +84,6 @@ object VersionCatalogParser {
         return null
     }
 
-    /** Parse a single-level inline table `{ a = "x", version.ref = "y" }` into a flat map. */
     private fun parseInlineTable(value: String): Map<String, String> {
         val inner = value.trim().removePrefix("{").removeSuffix("}").trim()
         if (inner.isEmpty()) return emptyMap()
@@ -115,7 +103,6 @@ object VersionCatalogParser {
         return splitTopLevel(inner, ',').map { unquote(it.trim()) }.filter { it.isNotEmpty() }
     }
 
-    /** Split on [sep] while respecting quoted strings and nested brackets/braces. */
     private fun splitTopLevel(s: String, sep: Char): List<String> {
         val out = ArrayList<String>()
         val sb = StringBuilder()

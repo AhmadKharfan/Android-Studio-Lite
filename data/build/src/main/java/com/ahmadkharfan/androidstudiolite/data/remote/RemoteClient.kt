@@ -32,16 +32,6 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 
-/**
- * OkHttp transport for the control-plane build API (`/v1`) plus the build-event WebSocket. Every
- * authenticated call carries `Authorization: Bearer <deviceToken>`; the token is minted lazily via
- * [ensureDeviceToken] (`POST /v1/devices`) and cached in [ServerSettingsRepository]. Idempotent REST
- * calls retry with exponential backoff on transient network/5xx failures; a 401 clears the cached
- * token and re-registers once. The base URL is read from settings on every call, so a change in the
- * server-settings screen takes effect immediately.
- *
- * This is a thin, stateless transport: [RemoteBuildSystem] orchestrates the build lifecycle on it.
- */
 class RemoteClient(
     private val settings: ServerSettingsRepository,
     private val httpClient: OkHttpClient = defaultClient(),
@@ -54,17 +44,10 @@ class RemoteClient(
 
     private suspend fun baseUrl(): String = settings.current().baseUrl.trimEnd('/')
 
-    // ---------------------------------------------------------------- devices
 
-    /** Returns a cached device token, minting one via [registerDevice] on first use. */
     suspend fun ensureDeviceToken(): String =
         settings.current().deviceToken?.takeIf { it.isNotBlank() } ?: registerDevice()
 
-    /**
-     * Registers this device (`POST /v1/devices`), persists and returns the minted token. Attaches a
-     * best-effort Play Integrity token (null when attestation is disabled/unavailable — see
-     * [IntegrityTokenProvider]); the request never fails just because attestation couldn't be produced.
-     */
     suspend fun registerDevice(): String {
         val integrityToken = integrityProvider.requestToken(newNonce())
         val body = RemoteJson.encodeToString(RegisterDeviceRequest(integrityToken)).toRequestBody(jsonMediaType)
@@ -78,23 +61,15 @@ class RemoteClient(
         return token
     }
 
-    // ---------------------------------------------------------------- builds
 
     suspend fun createBuild(request: CreateBuildRequest): CreateBuildResponse {
         val body = RemoteJson.encodeToString(request).toRequestBody(jsonMediaType)
         return authedPost("/v1/builds", body)
     }
 
-    /**
-     * Enqueue an already-uploaded build. The response body is deliberately NOT parsed: the control
-     * plane answers `202 {"status":"queued"}` with no `buildId` (the caller already has it), so
-     * decoding it as [BuildStateResponse] threw MissingFieldException('buildId') and killed the
-     * build. Success is the 2xx itself — [authedPostUnit] still raises RemoteException on 4xx/5xx.
-     */
     suspend fun startBuild(buildId: String) =
         authedPostUnit("/v1/builds/$buildId/start", EMPTY_BODY)
 
-    /** Same contract as [startBuild]: the control plane returns a bare status object. */
     suspend fun cancelBuild(buildId: String) =
         authedPostUnit("/v1/builds/$buildId/cancel", EMPTY_BODY)
 
@@ -109,9 +84,7 @@ class RemoteClient(
         return authedPost("/v1/sync", body)
     }
 
-    // ---------------------------------------------------------------- transfer
 
-    /** Streams [file] to a presigned upload URL (default `PUT`). No auth header — the URL is signed. */
     suspend fun uploadSource(uploadUrl: String, file: File, method: String = "PUT") {
         executeTransferWithRetry {
             val request = Request.Builder()
@@ -126,7 +99,6 @@ class RemoteClient(
         }
     }
 
-    /** Downloads a presigned GET URL to [dest], streaming to disk. No auth header — the URL is signed. */
     suspend fun download(downloadUrl: String, dest: File) {
         executeTransferWithRetry {
             val request = Request.Builder().url(downloadUrl).get().build()
@@ -154,13 +126,7 @@ class RemoteClient(
         }
     }
 
-    // ---------------------------------------------------------------- websocket
 
-    /**
-     * Opens `WS /v1/builds/{id}/stream`. The token is passed both as an `Authorization` header and a
-     * `?token=` query param (some proxies strip WS upgrade headers). The caller owns the returned
-     * socket and must close it. Reconnection/backoff is the caller's concern.
-     */
     suspend fun openStream(buildId: String, listener: WebSocketListener): WebSocket {
         val token = ensureDeviceToken()
         val streamUrl = baseUrl().toHttpUrl().newBuilder()
@@ -174,27 +140,19 @@ class RemoteClient(
         return httpClient.newWebSocket(request, listener)
     }
 
-    // ---------------------------------------------------------------- internals
 
     private suspend inline fun <reified T> authedGet(path: String): T = executeAuthed(path, "GET", null)
 
     private suspend inline fun <reified T> authedPost(path: String, body: RequestBody): T =
         executeAuthed(path, "POST", body)
 
-    /**
-     * POST where only the status code matters. Use for endpoints whose body is an unmodelled
-     * acknowledgement (e.g. `{"status":"queued"}`) — decoding those into a DTO with required
-     * fields throws MissingFieldException even though the call succeeded.
-     */
     private suspend fun authedPostUnit(path: String, body: RequestBody) {
         executeAuthedRaw(path, "POST", body)
     }
 
-    /** Executes an authed call, retrying once with a fresh token on 401. */
     private suspend inline fun <reified T> executeAuthed(path: String, method: String, body: RequestBody?): T =
         decode(executeAuthedRaw(path, method, body))
 
-    /** [executeAuthed] without the decode step — for callers that ignore the body. */
     @PublishedApi
     internal suspend fun executeAuthedRaw(path: String, method: String, body: RequestBody?): ResponseSnapshot {
         val base = baseUrl()
@@ -216,7 +174,6 @@ class RemoteClient(
             .method(method, body)
             .build()
 
-    /** Retries presigned Spaces transfers on transient IO / 5xx failures. */
     private suspend fun executeTransferWithRetry(block: suspend () -> Unit) {
         var attempt = 0
         while (true) {
@@ -236,7 +193,6 @@ class RemoteClient(
         }
     }
 
-    /** Executes with exponential backoff on transient IO / 5xx failures. */
     private suspend fun executeWithRetry(request: Request, allowUnauthorizedThrow: Boolean): ResponseSnapshot {
         var attempt = 0
         var lastError: RemoteException? = null
@@ -261,7 +217,6 @@ class RemoteClient(
         }
     }
 
-    /** Clear, user-facing copy for offline / unreachable-server IO failures. */
     private fun networkErrorMessage(e: IOException): String {
         val chain = generateSequence<Throwable>(e) { it.cause }.toList()
         for (err in chain) {
@@ -289,7 +244,6 @@ class RemoteClient(
         }
     }
 
-    /** A fresh random request-hash/nonce for Play Integrity, lowercase hex (URL/JSON-safe). */
     private fun newNonce(): String {
         val bytes = ByteArray(16).also(nonceRandom::nextBytes)
         return bytes.joinToString("") { "%02x".format(it) }
@@ -316,15 +270,11 @@ class RemoteClient(
 
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(0, TimeUnit.SECONDS) // no read timeout — build streams run for minutes
-            .writeTimeout(0, TimeUnit.SECONDS) // large source uploads
-            .pingInterval(20, TimeUnit.SECONDS) // keep the build-event WS alive
+            .readTimeout(0, TimeUnit.SECONDS)
+            .writeTimeout(0, TimeUnit.SECONDS)
+            .pingInterval(20, TimeUnit.SECONDS)
             .build()
 
-        /**
-         * Presigned Spaces uploads/downloads only. HTTP/1.1 avoids HTTP/2 stream-reset failures
-         * (`stream was reset: PROTOCOL_ERROR`) that show up intermittently on large transfers.
-         */
         fun defaultTransferClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.SECONDS)

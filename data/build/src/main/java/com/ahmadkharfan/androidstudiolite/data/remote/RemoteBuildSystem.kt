@@ -30,45 +30,24 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 
-/**
- * The production [BuildSystem]: runs builds on the server-side backend and streams the results into
- * the existing build console. A `build()` selects the source — a Git remote (A3, no upload) when the
- * user opted in and the project has one, else zip-upload (A2's default) — starts the build, and relays
- * the control-plane WebSocket's [BuildEvent] stream, downloading the produced artifact so the unchanged
- * install/run flow finds a real APK on disk. Release builds attach the user's keystore material
- * (over TLS) via [resolveSigning]. `cancel()` posts to the cancel endpoint; `sync()` calls the server
- * sync (falling back to the on-device static parser until it ships).
- *
- * Bound as the single `BuildSystem` in the Koin graph.
- */
 class RemoteBuildSystem(
     private val client: RemoteClient,
     private val packager: ProjectPackager,
     private val artifactDownloader: ArtifactDownloader,
     private val gradleReader: GradleProjectReader,
-    /**
-     * Cache dir for source zips (e.g. `context.cacheDir/build-sources`). Holds one archive, reused
-     * across builds of an unchanged project; safe to purge (it is rebuilt on the next Run).
-     */
     private val sourceDir: File,
-    /** Whether the user opted to build from the project's Git remote when one exists (A3). */
     private val preferGitSource: suspend () -> Boolean = { false },
-    /** Resolves the project's Git remote URL + current ref, or null for local-only projects. */
     private val gitSourceResolver: suspend (File) -> GitRemoteInfo? = { null },
-    /** The user's remembered release keystore, or null when none is configured. */
     private val releaseSigningResolver: suspend () -> SigningConfig? = { null },
-    /** Base64 encoder for the release keystore bytes (Android's by default; overridden in tests). */
     private val encodeBase64: (ByteArray) -> String = { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) },
 ) : BuildSystem {
 
-    /** Fire-and-forget scope for the cancel POST, whose lifetime is independent of the build flow. */
     private val cancelScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /** The id of the in-flight build, so [cancel] knows what to cancel. */
     @Volatile private var currentBuildId: String? = null
 
     override suspend fun sync(projectRoot: File): ProjectModel {
-        // Server-side sync (Phase 3). Until /v1/sync ships, fall back to the on-device static parse.
+
         return runCatching {
             val wire = client.sync(
                 CreateBuildRequest(
@@ -92,8 +71,7 @@ class RemoteBuildSystem(
         try {
             send(BuildEvent.Started(request))
 
-            // 1. Resolve the source: Git remote (no upload) when the user opted in and the project has
-            //    one, else zip-upload (A2's default, and always for local-only projects).
+
             val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
                 gitSourceResolver(projectRoot)
             } else {
@@ -101,14 +79,10 @@ class RemoteBuildSystem(
             }
             val signing = resolveSigning(request)
 
-            // 2. Package first, so the create can carry the source's hash. Reuses the previous
-            //    archive when nothing in the project changed, which is the common Run-again case.
-            //    The zip is owned by the packager's cache, so it deliberately outlives this build
-            //    and is not deleted in `finally`.
+
             val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
 
-            // 3. Create the build. The hash lets the server say "already have that exact tree";
-            //    the project key names its configuration-cache slot server-side.
+
             val created = client.createBuild(
                 RemoteBuildRequestFactory.create(
                     request = request,
@@ -121,19 +95,17 @@ class RemoteBuildSystem(
             currentBuildId = created.buildId
             send(BuildEvent.RemoteBuildBound(created.buildId))
 
-            // 4. Upload — unless the server already has this exact source. Zipping was already
-            //    skipped for an unchanged project; this skips the transfer too, which is the part
-            //    the user actually waits on over mobile data.
+
             if (zip != null && created.sourceUploadRequired) {
                 val uploadUrl = created.uploadUrl
                     ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
                 client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
             }
 
-            // 5. Start the build.
+
             client.startBuild(created.buildId)
 
-            // 6. Stream until REST says terminal (LB idle-drops are not failures — see template_build_check.py).
+
             followBuildStream(
                 buildId = created.buildId,
                 projectRoot = projectRoot,
@@ -142,13 +114,11 @@ class RemoteBuildSystem(
                 socketHolder = { socket = it },
             )
         } catch (e: CancellationException) {
-            // cancel() / collector scope death — not a failure, and must stay cooperative.
+
             throw e
         } catch (t: Throwable) {
-            // Anything else (network down, 4xx/5xx, a wire-shape change) is a FAILED BUILD, not a
-            // dead IDE. Previously this escaped the flow and crashed the app: a MissingFieldException
-            // from decoding /start's `{"status":"queued"}` took the whole process down. Surface it in
-            // the build console the same way a compile error arrives.
+
+
             send(
                 BuildEvent.Problem(
                     severity = BuildEvent.ProblemSeverity.ERROR,
@@ -170,7 +140,7 @@ class RemoteBuildSystem(
             currentBuildId = buildId
             send(BuildEvent.RemoteBuildBound(buildId))
 
-            // Already terminal? Finish from REST without opening a socket.
+
             val existing = runCatching { client.buildStatus(buildId) }.getOrNull()
             if (existing != null && isTerminalBuildStatus(existing.status)) {
                 send(BuildEvent.Progress("Build finished — collecting results…"))
@@ -202,14 +172,6 @@ class RemoteBuildSystem(
         }
     }
 
-    /**
-     * Follows an in-flight build: WebSocket for logs, REST for the verdict. Reconnects for as long as
-     * the build is non-terminal (or until [BUILD_FOLLOW_TIMEOUT_MS]), matching `template_build_check.py`.
-     * A dropped stream is not a failed build — only a terminal REST status (or overall timeout) ends it.
-     *
-     * While the socket is open we also poll REST on a timer: after process death the stream has no
-     * replay, so [BuildEvent.Finished] may never arrive even though the build already completed.
-     */
     private suspend fun ProducerScope<BuildEvent>.followBuildStream(
         buildId: String,
         projectRoot: File,
@@ -272,8 +234,7 @@ class RemoteBuildSystem(
             reconnectAttempt++
         }
 
-        // Stream ended without Finished and REST was never terminal (timeout / unreachable).
-        // Never leave the console spinning — synthesize a failure with accurate copy (not "worker memory").
+
         if (!finishedSeen) {
             val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
             if (polled != null && isTerminalBuildStatus(polled.status)) {
@@ -302,10 +263,6 @@ class RemoteBuildSystem(
         }
     }
 
-    /**
-     * Drains WebSocket frames until a terminal event or the stream ends. Periodically polls REST so a
-     * quiet/reconnected socket (no event replay) still finishes when the server build is done.
-     */
     private suspend fun ProducerScope<BuildEvent>.consumeBuildStream(
         buildId: String,
         projectRoot: File,
@@ -354,7 +311,6 @@ class RemoteBuildSystem(
         else -> "Build status: ${status.lowercase()}…"
     }
 
-    /** Synthesizes console events when polling finds a terminal build status. */
     private suspend fun ProducerScope<BuildEvent>.emitTerminalFromStatus(
         buildId: String,
         status: BuildStatusResponse,
@@ -401,7 +357,7 @@ class RemoteBuildSystem(
             status.equals("ERROR", ignoreCase = true)
 
     private fun userFacingBuildError(t: Throwable): String {
-        // Walk the cause chain — OkHttp wraps UnknownHost/Connect under IOException.
+
         val chain = generateSequence(t) { it.cause }.toList()
         for (err in chain) {
             when (err) {
@@ -433,7 +389,6 @@ class RemoteBuildSystem(
         }
     }
 
-    /** Downloads the produced artifact and emits an [BuildEvent.ArtifactProduced] with the local file. */
     private suspend fun ProducerScope<BuildEvent>.emitDownloadedArtifact(
         buildId: String,
         wireEvent: BuildEvent.ArtifactProduced,
@@ -452,8 +407,8 @@ class RemoteBuildSystem(
         if (downloaded != null) {
             send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
         }
-        // Do NOT fall back to the wire placeholder File(name) — that path does not exist on the
-        // device and produces the misleading "install skipped (no APK on disk)" snackbar.
+
+
     }
 
     override fun cancel() {
@@ -461,12 +416,6 @@ class RemoteBuildSystem(
         cancelScope.launch { runCatching { client.cancelBuild(id) } }
     }
 
-    /**
-     * The release-signing payload for a release build, or null for debug builds / when no release
-     * keystore is set up. The keystore file + passwords are collected here and transmitted (over TLS)
-     * in the build request; the local copy stays in [com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager]'s
-     * EncryptedSharedPreferences.
-     */
     private suspend fun resolveSigning(request: BuildRequest) =
         if (RemoteBuildRequestFactory.isReleaseVariant(request.variantName)) {
             RemoteBuildRequestFactory.releaseSigningMaterial(
@@ -477,7 +426,6 @@ class RemoteBuildSystem(
             null
         }
 
-    /** Frames forwarded off the OkHttp WebSocket thread into the sequential build-flow consumer. */
     private sealed interface Frame {
         data class Text(val text: String) : Frame
         data object Closed : Frame
@@ -508,11 +456,9 @@ class RemoteBuildSystem(
     }
 
     private companion object {
-        /** Overall budget to follow one build (matches tools/template_build_check.py default). */
         private const val BUILD_FOLLOW_TIMEOUT_MS = 900_000L
         private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
         private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
-        /** How often to poll REST while a quiet WebSocket is open (no event replay on reconnect). */
         private const val STATUS_POLL_INTERVAL_MS = 5_000L
     }
 }

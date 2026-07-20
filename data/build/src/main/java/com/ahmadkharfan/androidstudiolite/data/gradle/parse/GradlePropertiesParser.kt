@@ -1,11 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.gradle.parse
 
-/**
- * Minimal reader for `.properties` files (`gradle.properties`, `gradle-wrapper.properties`).
- * Java `.properties` semantics: `key=value` or `key : value`, `#`/`!` comments, `\` line
- * continuation. We keep it small and tolerant rather than pulling in `java.util.Properties`
- * (which is JVM-only and mangles some escapes we'd rather preserve verbatim).
- */
 object GradlePropertiesParser {
 
     fun parse(text: CharSequence): Map<String, String> {
@@ -26,7 +20,6 @@ object GradlePropertiesParser {
         return result
     }
 
-    /** Extracts the Gradle version from a wrapper's `distributionUrl`, e.g. `gradle-8.7-bin.zip` → `8.7`. */
     fun gradleVersionFromWrapper(properties: Map<String, String>): String? {
         val url = properties["distributionUrl"] ?: return null
         return Regex("""gradle-([0-9]+(?:\.[0-9]+)*(?:-[A-Za-z0-9]+)?)-(?:all|bin)\.zip""")

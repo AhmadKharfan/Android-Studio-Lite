@@ -11,11 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-/**
- * One in-flight remote build the client should be able to reattach to after process death.
- * Cleared when the client sees a terminal [com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.Finished]
- * or the user cancels.
- */
 data class ActiveBuild(
     val buildId: String,
     val projectId: String,
@@ -32,10 +27,6 @@ interface ActiveBuildRepository {
     suspend fun clear(buildId: String? = null)
 }
 
-/**
- * Persists the active remote [ActiveBuild] so the editor can reattach after the process is killed
- * while a long build is still running server-side.
- */
 class ActiveBuildStore(
     private val dataStore: DataStore<Preferences>,
 ) : ActiveBuildRepository {
@@ -55,7 +46,6 @@ class ActiveBuildStore(
         }
     }
 
-    /** Clears the stored build when [buildId] is null or matches the stored id. */
     override suspend fun clear(buildId: String?) {
         dataStore.edit { prefs ->
             val current = prefs[BUILD_ID]
@@ -95,7 +85,6 @@ class ActiveBuildStore(
     }
 }
 
-/** In-memory [ActiveBuildRepository] for unit tests. */
 class InMemoryActiveBuildStore : ActiveBuildRepository {
     private val state = MutableStateFlow<ActiveBuild?>(null)
     override fun observe(): Flow<ActiveBuild?> = state
