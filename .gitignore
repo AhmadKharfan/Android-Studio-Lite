@@ -4,9 +4,27 @@
 local.properties
 .DS_Store
 # Gradle/AGP build output — anchored to module roots so the rule never swallows a `build`
-# *package* directory in source (the :build:* modules live under com/.../androidstudiolite/build/).
+# *package* directory in source (the :data:build module lives at data/build/, so use
+# data/build/build/ for its AGP output — not data/build/, which would hide the whole module).
 /build/
 /app/build/
+/build-logic/build/
+/build-logic/conventions/build/
+/domain/build/
+/core/common/build/
+/designsystem/build/
+/data/templates/build/
+/data/local/build/
+/data/git/build/
+/data/build/build/
+/data/ai/build/
+/feature/onboarding/build/
+/feature/terminal/build/
+/feature/projects/build/
+/feature/settings/build/
+/feature/buildrun/build/
+/feature/git/build/
+/feature/editor/build/
 /buildsystem/*/build/
 /tooling/*/build/
 /captures
