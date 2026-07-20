@@ -46,14 +46,21 @@ internal object RemoteBuildRequestFactory {
         )
     }
 
-    /** Gradle tasks for a request: `assemble<Variant>` / `bundle<Variant>` / `clean`. */
+    /**
+     * Gradle tasks for a request: module-scoped `:<module>:assemble<Variant>` when [BuildRequest.modulePath]
+     * is set (so KMP / non-`:app` projects build the real application module), else root-level tasks.
+     */
     fun defaultTasks(request: BuildRequest): List<String> {
         val variant = request.variantName.replaceFirstChar { it.uppercase() }
-        return when (request.kind) {
-            BuildKind.ASSEMBLE -> listOf("assemble$variant")
-            BuildKind.BUNDLE -> listOf("bundle$variant")
-            BuildKind.CLEAN -> listOf("clean")
+        val taskName = when (request.kind) {
+            BuildKind.ASSEMBLE -> "assemble$variant"
+            BuildKind.BUNDLE -> "bundle$variant"
+            BuildKind.CLEAN -> return listOf("clean")
         }
+        val module = request.modulePath.trim()
+            .takeIf { it.isNotEmpty() && it != ":" }
+            ?.let { if (it.startsWith(":")) it else ":$it" }
+        return listOf(if (module != null) "$module:$taskName" else taskName)
     }
 
     /**
@@ -64,8 +71,12 @@ internal object RemoteBuildRequestFactory {
     fun shouldUseGit(preferGit: Boolean, request: BuildRequest): Boolean =
         preferGit && request.kind != BuildKind.CLEAN
 
-    /** True when a variant name denotes a release build that needs the user's release keystore. */
-    fun isReleaseVariant(variantName: String): Boolean = variantName.equals("release", ignoreCase = true)
+    /**
+     * True when a variant name denotes a release build that needs the user's release keystore.
+     * Covers bare `release` and flavored names like `developmentRelease` / `paidRelease`.
+     */
+    fun isReleaseVariant(variantName: String): Boolean =
+        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.isReleaseVariant(variantName)
 
     /**
      * The release-signing payload for [config], or null when there's no usable release keystore (the

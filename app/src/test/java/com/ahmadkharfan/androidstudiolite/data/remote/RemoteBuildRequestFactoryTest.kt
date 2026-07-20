@@ -29,7 +29,7 @@ class RemoteBuildRequestFactoryTest {
         assertNull(req.ref)
         assertEquals(":app", req.modulePath)
         assertEquals("debug", req.variant)
-        assertEquals(listOf("assembleDebug"), req.tasks)
+        assertEquals(listOf(":app:assembleDebug"), req.tasks)
     }
 
     @Test
@@ -65,11 +65,24 @@ class RemoteBuildRequestFactoryTest {
 
     @Test
     fun `tasks map bundle and clean kinds`() {
-        assertEquals(listOf("bundleRelease"), RemoteBuildRequestFactory.defaultTasks(request("release", BuildKind.BUNDLE)))
+        assertEquals(listOf(":app:bundleRelease"), RemoteBuildRequestFactory.defaultTasks(request("release", BuildKind.BUNDLE)))
         assertEquals(listOf("clean"), RemoteBuildRequestFactory.defaultTasks(request("debug", BuildKind.CLEAN)))
+        assertEquals(
+            listOf(":composeApp:assembleDevelopmentDebug"),
+            RemoteBuildRequestFactory.defaultTasks(
+                BuildRequest(root, ":composeApp", "developmentDebug", BuildKind.ASSEMBLE),
+            ),
+        )
     }
 
     // --- release signing payload -------------------------------------------------------
+
+    @Test
+    fun `flavored release names are detected as release variants`() {
+        assertTrue(RemoteBuildRequestFactory.isReleaseVariant("release"))
+        assertTrue(RemoteBuildRequestFactory.isReleaseVariant("developmentRelease"))
+        assertEquals(false, RemoteBuildRequestFactory.isReleaseVariant("developmentDebug"))
+    }
 
     @Test
     fun `release variant with a user keystore yields a signing payload over the wire`() {
@@ -95,7 +108,7 @@ class RemoteBuildRequestFactoryTest {
         // And it rides in the create request.
         val req = RemoteBuildRequestFactory.create(request("release"), gitSource = null, signing = signing)
         assertEquals("release", req.variant)
-        assertEquals(listOf("assembleRelease"), req.tasks)
+        assertEquals(listOf(":app:assembleRelease"), req.tasks)
         assertEquals(signing, req.signing)
     }
 
