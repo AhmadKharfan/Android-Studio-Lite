@@ -28,6 +28,7 @@ fun ConfigureStep(
     location: String,
     minSdk: String,
     language: String,
+    supportsJava: Boolean,
     nameError: String?,
     packageError: String?,
     onNameChanged: (String) -> Unit,
@@ -70,9 +71,16 @@ fun ConfigureStep(
             onValueChange = onLanguageChanged,
             options = listOf(
                 AslSegmentedOption("Kotlin", LANG_KOTLIN),
-                AslSegmentedOption("Java", LANG_JAVA),
+                AslSegmentedOption("Java", LANG_JAVA, enabled = supportsJava),
             ),
         )
+        if (!supportsJava) {
+            Text(
+                text = "This template requires Kotlin.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AslTheme.colors.textSecondary,
+            )
+        }
         AslDropdown(
             label = "Minimum SDK",
             value = minSdk,

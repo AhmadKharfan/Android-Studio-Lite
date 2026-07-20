@@ -113,6 +113,7 @@ private fun CreateProjectStepContent(
                     location = uiState.location,
                     minSdk = uiState.minSdk,
                     language = uiState.language,
+                    supportsJava = uiState.selectedTemplateSupportsJava,
                     nameError = uiState.nameError,
                     packageError = uiState.packageError,
                     onNameChanged = { interactionListener.onNameChanged(it) },
