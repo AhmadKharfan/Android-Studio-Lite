@@ -1,25 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  DEBUG-ONLY network policy.
-
-  targetSdk >= 28 blocks cleartext HTTP by default, so the app cannot reach the build
-  control plane while it is served over plain http:// — every request fails with
-  "CLEARTEXT communication not permitted".
-
-  Rather than a blanket android:usesCleartextTraffic="true" (which would allow cleartext to
-  ANY host), this permits it for exactly the two dev endpoints, and only in debug builds:
-    - 129.212.152.5 : the deployed DOKS control plane (no TLS on the LB yet)
-    - 10.0.2.2      : the emulator's alias for the host, for a local docker-compose control plane
-
-  The release build has no networkSecurityConfig, so it keeps the platform default
-  (cleartext denied) and can only talk to an https:// server. Once TLS is terminated on the
-  LoadBalancer, point DEFAULT_BUILD_SERVER_URL at https://<domain> and delete this file —
-  the app sends device tokens and (for release builds) keystore material over this channel.
--->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">129.212.152.5</domain>
         <domain includeSubdomains="false">10.0.2.2</domain>
     </domain-config>
 </network-security-config>
