@@ -20,9 +20,11 @@ data class ActiveBuild(
     val installAfterSuccess: Boolean,
     val autoLaunchAfterInstall: Boolean = true,
     val startedAtEpochMs: Long,
-    val modulePath: String = ":app",
-    val variantName: String = "debug",
+    val modulePath: String = "",
+    val variantName: String = "",
     val kind: String = "ASSEMBLE",
+    val taskPath: String? = null,
+    val buildType: String? = null,
 )
 
 interface ActiveBuildRepository {
@@ -53,6 +55,8 @@ class ActiveBuildStore(
             prefs[MODULE_PATH] = build.modulePath
             prefs[VARIANT] = build.variantName
             prefs[KIND] = build.kind
+            build.taskPath?.let { prefs[TASK_PATH] = it } ?: prefs.remove(TASK_PATH)
+            build.buildType?.let { prefs[BUILD_TYPE] = it } ?: prefs.remove(BUILD_TYPE)
         }
     }
 
@@ -71,6 +75,8 @@ class ActiveBuildStore(
                 prefs.remove(MODULE_PATH)
                 prefs.remove(VARIANT)
                 prefs.remove(KIND)
+                prefs.remove(TASK_PATH)
+                prefs.remove(BUILD_TYPE)
             }
         }
     }
@@ -89,9 +95,11 @@ class ActiveBuildStore(
             installAfterSuccess = this[INSTALL] ?: false,
             autoLaunchAfterInstall = this[AUTO_LAUNCH] ?: true,
             startedAtEpochMs = this[STARTED_AT] ?: 0L,
-            modulePath = this[MODULE_PATH] ?: ":app",
-            variantName = this[VARIANT] ?: "debug",
+            modulePath = this[MODULE_PATH].orEmpty(),
+            variantName = this[VARIANT].orEmpty(),
             kind = this[KIND] ?: "ASSEMBLE",
+            taskPath = this[TASK_PATH],
+            buildType = this[BUILD_TYPE],
         )
     }
 
@@ -107,6 +115,8 @@ class ActiveBuildStore(
         val MODULE_PATH = stringPreferencesKey("active_build_module_path")
         val VARIANT = stringPreferencesKey("active_build_variant")
         val KIND = stringPreferencesKey("active_build_kind")
+        val TASK_PATH = stringPreferencesKey("active_build_task_path")
+        val BUILD_TYPE = stringPreferencesKey("active_build_build_type")
     }
 }
 

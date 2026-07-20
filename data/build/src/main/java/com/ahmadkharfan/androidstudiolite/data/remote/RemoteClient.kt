@@ -45,6 +45,17 @@ class RemoteClient(
 
     private suspend fun baseUrl(): String = settings.current().baseUrl.trimEnd('/')
 
+    suspend fun requireSecureSigningTransport() {
+        val url = baseUrl().toHttpUrl()
+        if (!url.isHttps) {
+            throw RemoteException(
+                httpStatus = 0,
+                code = "insecure_signing_transport",
+                message = "Release signing requires an HTTPS build server. Configure a trusted HTTPS URL in Settings.",
+            )
+        }
+    }
+
 
     suspend fun ensureDeviceToken(): String =
         settings.current().deviceToken?.takeIf { it.isNotBlank() } ?: registerDevice()

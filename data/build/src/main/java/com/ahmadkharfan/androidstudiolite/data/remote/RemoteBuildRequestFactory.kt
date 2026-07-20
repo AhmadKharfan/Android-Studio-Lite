@@ -36,11 +36,13 @@ internal object RemoteBuildRequestFactory {
     }
 
     fun defaultTasks(request: BuildRequest): List<String> {
+        request.taskPath?.trim()?.takeIf { it.isNotEmpty() }?.let { return listOf(it) }
         val variant = request.variantName.replaceFirstChar { it.uppercase() }
         val taskName = when (request.kind) {
             BuildKind.ASSEMBLE -> "assemble$variant"
             BuildKind.BUNDLE -> "bundle$variant"
             BuildKind.CLEAN -> return listOf("clean")
+            BuildKind.MODEL -> return listOf("aslModel")
         }
         val module = request.modulePath.trim()
             .takeIf { it.isNotEmpty() && it != ":" }

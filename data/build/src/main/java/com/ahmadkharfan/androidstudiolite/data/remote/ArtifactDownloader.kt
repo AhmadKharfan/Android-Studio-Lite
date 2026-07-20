@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.data.remote
 
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import java.io.File
+import java.security.MessageDigest
 import kotlinx.coroutines.delay
 
 class ArtifactDownloader(
@@ -11,7 +12,12 @@ class ArtifactDownloader(
 
     data class DownloadedArtifact(val file: File, val kind: BuildEvent.ArtifactKind)
 
-    suspend fun download(buildId: String, fallbackName: String? = null): DownloadedArtifact? {
+    suspend fun download(
+        buildId: String,
+        fallbackName: String? = null,
+        expectedSizeBytes: Long? = null,
+        expectedSha256: String? = null,
+    ): DownloadedArtifact? {
         var lastError: Throwable? = null
         repeat(MAX_ATTEMPTS) { attempt ->
             try {
@@ -27,6 +33,14 @@ class ArtifactDownloader(
                 if (!dest.isFile || dest.length() == 0L) {
                     dest.delete()
                     throw RemoteException(0, "NETWORK", "Downloaded APK was empty — retrying…")
+                }
+                if (expectedSizeBytes != null && dest.length() != expectedSizeBytes) {
+                    dest.delete()
+                    throw RemoteException(0, "ARTIFACT_SIZE_MISMATCH", "Downloaded artifact size did not match the build result")
+                }
+                if (expectedSha256 != null && !sha256(dest).equals(expectedSha256, ignoreCase = true)) {
+                    dest.delete()
+                    throw RemoteException(0, "ARTIFACT_CHECKSUM_MISMATCH", "Downloaded artifact failed checksum verification")
                 }
                 return DownloadedArtifact(file = dest, kind = kindFromName(name))
             } catch (e: RemoteException) {
@@ -46,6 +60,19 @@ class ArtifactDownloader(
         name.endsWith(".apk", ignoreCase = true) -> BuildEvent.ArtifactKind.APK
         name.endsWith(".aab", ignoreCase = true) -> BuildEvent.ArtifactKind.AAB
         else -> BuildEvent.ArtifactKind.OTHER
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private companion object {

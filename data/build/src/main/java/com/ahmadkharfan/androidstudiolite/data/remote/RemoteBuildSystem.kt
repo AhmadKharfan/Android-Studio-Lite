@@ -4,6 +4,8 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildEventParser
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildRequest
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ProjectModelMapper
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RemoteJson
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.WireProjectModel
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStatusResponse
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
@@ -13,6 +15,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
+import java.util.UUID
 import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +27,8 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.serialization.decodeFromString
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Response
@@ -47,20 +52,32 @@ class RemoteBuildSystem(
     @Volatile private var currentBuildId: String? = null
 
     override suspend fun sync(projectRoot: File): ProjectModel {
-
         return runCatching {
-            val wire = client.sync(
-                CreateBuildRequest(
-                    sourceType = "zip",
-                    modulePath = ":app",
-                    variant = "debug",
-                    kind = BuildKind.ASSEMBLE.name,
+            var artifact: File? = null
+            var failure: String? = null
+            build(
+                BuildRequest(
+                    projectRoot = projectRoot,
+                    modulePath = ":",
+                    variantName = "model",
+                    kind = BuildKind.MODEL,
+                    operationId = "model-${UUID.randomUUID()}",
+                    taskPath = "aslModel",
                 ),
+            ).collect { event ->
+                when (event) {
+                    is BuildEvent.ArtifactProduced -> artifact = event.file
+                    is BuildEvent.Problem -> if (event.severity == BuildEvent.ProblemSeverity.ERROR) failure = event.message
+                    is BuildEvent.Finished -> if (!event.success) error(failure ?: "Gradle model sync failed")
+                    else -> Unit
+                }
+            }
+            val modelFile = artifact ?: error("Gradle model sync produced no model")
+            ProjectModelMapper.toDomain(
+                RemoteJson.decodeFromString<WireProjectModel>(modelFile.readText()),
+                projectRoot,
             )
-            ProjectModelMapper.toDomain(wire, projectRoot)
-        }.getOrElse {
-            gradleReader.read(projectRoot).model
-        }
+        }.getOrElse { gradleReader.read(projectRoot).model }
     }
 
     override fun build(request: BuildRequest): Flow<BuildEvent> = channelFlow {
@@ -78,6 +95,7 @@ class RemoteBuildSystem(
                 null
             }
             val signing = resolveSigning(request)
+            if (signing != null) client.requireSecureSigningTransport()
 
 
             val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
@@ -302,7 +320,10 @@ class RemoteBuildSystem(
                     if (textFramesSeen <= replayPrefixToSkip) continue
                     val event = parser.parse(frame.text, projectRoot) ?: continue
                     if (event is BuildEvent.ArtifactProduced) {
-                        emitDownloadedArtifact(buildId, event)
+                        if (!emitDownloadedArtifact(buildId, event)) {
+                            send(BuildEvent.Finished(false, System.currentTimeMillis() - startedAt))
+                            return StreamConsumeResult(true, textFramesSeen)
+                        }
                     } else {
                         send(event)
                     }
@@ -318,6 +339,7 @@ class RemoteBuildSystem(
         "QUEUED" -> "Build queued…"
         "STARTING", "PREPARING" -> "Starting build…"
         "RUNNING" -> "Building…"
+        "SIGNING" -> "Signing and verifying release artifact…"
         "UPLOADING" -> "Uploading…"
         else -> "Build status: ${status.lowercase()}…"
     }
@@ -336,7 +358,7 @@ class RemoteBuildSystem(
                 send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
             }
         } else {
-            val raw = status.error?.message ?: "Build ${status.status.lowercase()}"
+            val raw = status.errorMessage ?: "Build ${status.status.lowercase()}"
             val message = when {
                 raw.contains("OOM", ignoreCase = true) ||
                     raw.contains("evict", ignoreCase = true) ||
@@ -418,10 +440,15 @@ class RemoteBuildSystem(
     private suspend fun ProducerScope<BuildEvent>.emitDownloadedArtifact(
         buildId: String,
         wireEvent: BuildEvent.ArtifactProduced,
-    ) {
+    ): Boolean {
         send(BuildEvent.Progress("Downloading ${wireEvent.file.name}…"))
         val downloaded = runCatching {
-            artifactDownloader.download(buildId, fallbackName = wireEvent.file.name)
+            artifactDownloader.download(
+                buildId,
+                fallbackName = wireEvent.file.name,
+                expectedSizeBytes = wireEvent.sizeBytes,
+                expectedSha256 = wireEvent.sha256,
+            )
         }.onFailure { err ->
             send(
                 BuildEvent.Problem(
@@ -431,10 +458,18 @@ class RemoteBuildSystem(
             )
         }.getOrNull()
         if (downloaded != null) {
-            send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
+            send(
+                BuildEvent.ArtifactProduced(
+                    downloaded.file,
+                    downloaded.kind,
+                    downloaded.file.length(),
+                    wireEvent.sha256,
+                    wireEvent.signed,
+                    wireEvent.certificateSha256,
+                ),
+            )
         }
-
-
+        return downloaded != null
     }
 
     override fun cancel() {
@@ -443,11 +478,12 @@ class RemoteBuildSystem(
     }
 
     private suspend fun resolveSigning(request: BuildRequest) =
-        if (RemoteBuildRequestFactory.isReleaseVariant(request.variantName)) {
-            RemoteBuildRequestFactory.releaseSigningMaterial(
-                config = releaseSigningResolver(),
-                encodeBase64 = encodeBase64,
-            )
+        if (request.buildType.equals("release", ignoreCase = true) ||
+            (request.buildType == null && RemoteBuildRequestFactory.isReleaseVariant(request.variantName))) {
+            val config = releaseSigningResolver()
+                ?: throw IllegalStateException("Configure a release keystore in Settings before building a release artifact.")
+            RemoteBuildRequestFactory.releaseSigningMaterial(config, encodeBase64 = encodeBase64)
+                ?: throw IllegalStateException("The configured release keystore is missing or unreadable.")
         } else {
             null
         }
