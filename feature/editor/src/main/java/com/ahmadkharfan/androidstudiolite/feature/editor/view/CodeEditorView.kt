@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
@@ -21,6 +22,7 @@ import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import com.ahmadkharfan.androidstudiolite.core.selection.SelectionActionModeController
 import com.ahmadkharfan.androidstudiolite.designsystem.editor.EditorPalette
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
@@ -45,6 +47,7 @@ data class SignatureHelpOverlay(
     val anchorXpx: Float,
     val anchorYpx: Float,
 )
+
 class CodeEditorView(context: Context) : View(context) {
     init {
         clipToOutline = true
@@ -57,6 +60,7 @@ class CodeEditorView(context: Context) : View(context) {
     private var onCaretMoved: ((line: Int, column: Int) -> Unit)? = null
     var onCompletionOverlay: ((CompletionOverlay?) -> Unit)? = null
     var onSignatureHelpOverlay: ((SignatureHelpOverlay?) -> Unit)? = null
+    private var selectionActionModeController: SelectionActionModeController? = null
     private var palette: EditorPalette? = null
     private var textSizePx: Float = 0f
     private var tabSize: Int = 4
@@ -379,14 +383,15 @@ class CodeEditorView(context: Context) : View(context) {
     private enum class DragMode { NONE, SCROLL, SELECT }
     private var dragMode = DragMode.NONE
     private var handlesVisible = false
-    private var draggingStartHandle = false
-    private var draggingEndHandle = false
+    private var showPasteOnly = false
+    private var selectionDragAnchor: Int = -1
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val handled = gestureDetector.onTouchEvent(event)
         if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            val wasSelecting = dragMode == DragMode.SELECT
             dragMode = DragMode.NONE
-            draggingStartHandle = false
-            draggingEndHandle = false
+            selectionDragAnchor = -1
+            if (wasSelecting) syncSelectionActionMode()
         }
         return handled || super.onTouchEvent(event)
     }
@@ -395,12 +400,19 @@ class CodeEditorView(context: Context) : View(context) {
             val session = session
             if (handlesVisible && session != null && !session.selection.isCollapsed) {
                 val codeLeft = gutterWidthPx + dp(CODE_PADDING_DP)
-                val (startX, startY) = selectionHandleCenter(session, session.selection.start, codeLeft)
-                val (endX, endY) = selectionHandleCenter(session, session.selection.end, codeLeft)
-                val touchR = dp(HANDLE_RADIUS_DP) * 2.4f
+                val sel = session.selection
+                val (startX, startY) = selectionHandleCenter(session, sel.start, codeLeft)
+                val (endX, endY) = selectionHandleCenter(session, sel.end, codeLeft)
+                val touchR = dp(HANDLE_RADIUS_DP) * 3.2f
                 when {
-                    dist(e.x, e.y, startX, startY) <= touchR -> { draggingStartHandle = true; dragMode = DragMode.SELECT }
-                    dist(e.x, e.y, endX, endY) <= touchR -> { draggingEndHandle = true; dragMode = DragMode.SELECT }
+                    dist(e.x, e.y, startX, startY) <= touchR -> {
+                        selectionDragAnchor = sel.end
+                        dragMode = DragMode.SELECT
+                    }
+                    dist(e.x, e.y, endX, endY) <= touchR -> {
+                        selectionDragAnchor = sel.start
+                        dragMode = DragMode.SELECT
+                    }
                 }
             }
             return true
@@ -408,6 +420,8 @@ class CodeEditorView(context: Context) : View(context) {
         override fun onSingleTapUp(e: MotionEvent): Boolean {
             val session = session ?: return false
             handlesVisible = false
+            showPasteOnly = false
+            selectionDragAnchor = -1
             dismissCompletion()
             session.setCaret(offsetAt(e.x, e.y))
             afterCaretChange()
@@ -415,24 +429,35 @@ class CodeEditorView(context: Context) : View(context) {
             return true
         }
         override fun onDoubleTap(e: MotionEvent): Boolean {
+            showPasteOnly = false
             selectWordAt(e.x, e.y)
-            focusAndShowKeyboard()
+            hideKeyboard()
+            syncSelectionActionMode()
             return true
         }
         override fun onLongPress(e: MotionEvent) {
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             selectWordAt(e.x, e.y)
-            dragMode = DragMode.SELECT
-            draggingEndHandle = true
-            focusAndShowKeyboard()
+            hideKeyboard()
+            val session = session ?: return
+            if (session.selection.isCollapsed) {
+                handlesVisible = false
+                showPasteOnly = clipboardHasText()
+                dragMode = DragMode.NONE
+                selectionDragAnchor = -1
+            } else {
+                showPasteOnly = false
+                dragMode = DragMode.SELECT
+                selectionDragAnchor = session.selection.start
+            }
+            syncSelectionActionMode()
         }
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             val session = session ?: return false
-            if (dragMode == DragMode.SELECT) {
+            if (dragMode == DragMode.SELECT && selectionDragAnchor >= 0) {
                 val offset = offsetAt(e2.x, e2.y)
-                val sel = session.selection
-                if (draggingStartHandle) session.setSelection(anchor = sel.end, caret = offset)
-                else session.setSelection(anchor = sel.start, caret = offset)
+                session.setSelection(anchor = selectionDragAnchor, caret = offset)
+                handlesVisible = !session.selection.isCollapsed
                 afterCaretChange()
                 return true
             }
@@ -543,6 +568,8 @@ class CodeEditorView(context: Context) : View(context) {
             KeyEvent.KEYCODE_DPAD_RIGHT -> { moveCaret(1, event.isShiftPressed); return true }
             KeyEvent.KEYCODE_DPAD_UP -> { moveCaretVertical(-1, event.isShiftPressed); return true }
             KeyEvent.KEYCODE_DPAD_DOWN -> { moveCaretVertical(1, event.isShiftPressed); return true }
+            KeyEvent.KEYCODE_VOLUME_UP -> { moveCaretByVolume(volumeUp = true); return true }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> { moveCaretByVolume(volumeUp = false); return true }
         }
         val ch = event.unicodeChar
         if (ch != 0 && !event.isCtrlPressed) {
@@ -553,12 +580,15 @@ class CodeEditorView(context: Context) : View(context) {
         }
         return super.onKeyDown(keyCode, event)
     }
+    fun moveCaretByVolume(volumeUp: Boolean) {
+        moveCaret(if (volumeUp) -1 else 1, extend = false)
+    }
     private fun moveCaret(delta: Int, extend: Boolean) {
         val session = session ?: return
         val sel = session.selection
         val target = (sel.caret + delta).coerceIn(0, session.document.length)
         session.setSelection(anchor = if (extend) sel.anchor else target, caret = target)
-        handlesVisible = false
+        handlesVisible = extend && !session.selection.isCollapsed
         dismissCompletion()
         afterCaretChange()
     }
@@ -771,26 +801,105 @@ class CodeEditorView(context: Context) : View(context) {
     }
     private fun clipboard(): ClipboardManager =
         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    private fun copySelection() {
+    private fun clipboardHasText(): Boolean {
+        val clip = clipboard().primaryClip ?: return false
+        if (clip.itemCount == 0) return false
+        return !clip.getItemAt(0).coerceToText(context).isNullOrEmpty()
+    }
+    fun copySelection() {
         val session = session ?: return
         val sel = session.selection
         if (sel.isCollapsed) return
         clipboard().setPrimaryClip(ClipData.newPlainText("code", session.document.substring(sel.start, sel.end)))
+        syncSelectionActionMode()
     }
-    private fun cutSelection() {
+    fun cutSelection() {
         val session = session ?: return
         val sel = session.selection
         if (sel.isCollapsed) return
         clipboard().setPrimaryClip(ClipData.newPlainText("code", session.document.substring(sel.start, sel.end)))
         edit { session.replaceRange(sel.start, sel.end, "", caret = sel.start) }
+        handlesVisible = false
+        showPasteOnly = false
+        finishSelectionActionMode()
     }
-    private fun pasteClipboard() {
+    fun pasteClipboard() {
         val session = session ?: return
         val clip = clipboard().primaryClip ?: return
         if (clip.itemCount == 0) return
         val text = clip.getItemAt(0).coerceToText(context)?.toString() ?: return
         val sel = session.selection
         edit { session.replaceRange(sel.start, sel.end, text, caret = sel.start + text.length) }
+        handlesVisible = false
+        showPasteOnly = false
+        finishSelectionActionMode()
+    }
+    fun selectAllText() {
+        val session = session ?: return
+        session.selectAll()
+        handlesVisible = true
+        showPasteOnly = false
+        dismissCompletion()
+        afterCaretChange()
+        syncSelectionActionMode()
+    }
+    private fun selectionActionMode(): SelectionActionModeController {
+        return selectionActionModeController ?: SelectionActionModeController(
+            host = this,
+            callbacks = object : SelectionActionModeController.Callbacks {
+                override fun contentRect(outRect: Rect) = selectionContentRect(outRect)
+                override fun canCut(): Boolean {
+                    val session = session ?: return false
+                    return handlesVisible && !session.selection.isCollapsed
+                }
+                override fun canCopy(): Boolean = canCut()
+                override fun canPaste(): Boolean = clipboardHasText()
+                override fun onCut() = cutSelection()
+                override fun onCopy() = copySelection()
+                override fun onPaste() = pasteClipboard()
+                override fun onSelectAll() = selectAllText()
+                override fun onDestroyed() {
+                    showPasteOnly = false
+                }
+            },
+        ).also { selectionActionModeController = it }
+    }
+    private fun syncSelectionActionMode() {
+        val session = session
+        val showSelection = session != null && handlesVisible && !session.selection.isCollapsed
+        val showPaste = showPasteOnly && clipboardHasText()
+        selectionActionMode().sync(showSelection || showPaste)
+    }
+    private fun finishSelectionActionMode() {
+        selectionActionModeController?.finish()
+    }
+    private fun selectionContentRect(outRect: Rect) {
+        val session = session ?: run {
+            outRect.setEmpty()
+            return
+        }
+        val codeLeft = gutterWidthPx + dp(CODE_PADDING_DP)
+        val sel = session.selection
+        if (!sel.isCollapsed && handlesVisible) {
+            val start = session.document.offsetToPosition(sel.start)
+            val end = session.document.offsetToPosition(sel.end)
+            val left = codeLeft + minOf(start.column, end.column) * charWidthPx - scrollXpx
+            val right = codeLeft + maxOf(start.column, end.column) * charWidthPx - scrollXpx + charWidthPx
+            val top = minOf(start.line, end.line) * lineHeightPx - scrollYpx
+            val bottom = (maxOf(start.line, end.line) + 1) * lineHeightPx - scrollYpx
+            outRect.set(
+                left.toInt().coerceAtLeast(0),
+                top.toInt().coerceAtLeast(0),
+                right.toInt().coerceAtMost(width),
+                bottom.toInt().coerceAtMost(height),
+            )
+        } else {
+            val caret = session.caretPosition
+            val x = (codeLeft + caret.column * charWidthPx - scrollXpx).toInt()
+            val top = (caret.line * lineHeightPx - scrollYpx).toInt()
+            val bottom = (top + lineHeightPx).toInt()
+            outRect.set(x, top, (x + charWidthPx).toInt(), bottom)
+        }
     }
     private inline fun edit(block: () -> Unit) {
         val session = session ?: return
@@ -811,6 +920,12 @@ class CodeEditorView(context: Context) : View(context) {
         invalidate()
         session?.caretPosition?.let { onCaretMoved?.invoke(it.line, it.column) }
         syncSignatureHelpNow()
+        syncImeSelection()
+        when {
+            handlesVisible && session?.selection?.isCollapsed == false -> syncSelectionActionMode()
+            showPasteOnly -> syncSelectionActionMode()
+            dragMode != DragMode.SELECT -> finishSelectionActionMode()
+        }
     }
     private fun recomputeFindMatches() {
         val session = session
@@ -910,6 +1025,11 @@ class CodeEditorView(context: Context) : View(context) {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(this, 0)
     }
+    private fun hideKeyboard() {
+        if (!isFocused) requestFocus()
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(windowToken, 0)
+    }
     private var activeInputConnection: CodeInputConnection? = null
     private fun syncImeSelection() {
         val session = session ?: return
@@ -998,14 +1118,29 @@ class CodeEditorView(context: Context) : View(context) {
             if (event.action == KeyEvent.ACTION_DOWN) return onKeyDown(event.keyCode, event)
             return super.sendKeyEvent(event)
         }
-        override fun getTextBeforeCursor(length: Int, flags: Int): CharSequence = ""
-        override fun getTextAfterCursor(length: Int, flags: Int): CharSequence = ""
-        override fun getSelectedText(flags: Int): CharSequence? = null
+        override fun getTextBeforeCursor(length: Int, flags: Int): CharSequence {
+            val session = session ?: return ""
+            val caret = session.selection.start
+            val start = (caret - length).coerceAtLeast(0)
+            return session.document.substring(start, caret)
+        }
+        override fun getTextAfterCursor(length: Int, flags: Int): CharSequence {
+            val session = session ?: return ""
+            val caret = session.selection.end
+            val end = (caret + length).coerceAtMost(session.document.length)
+            return session.document.substring(caret, end)
+        }
+        override fun getSelectedText(flags: Int): CharSequence? {
+            val session = session ?: return null
+            val sel = session.selection
+            if (sel.isCollapsed) return null
+            return session.document.substring(sel.start, sel.end)
+        }
         override fun getExtractedText(request: ExtractedTextRequest?, flags: Int): ExtractedText {
             val session = session ?: return ExtractedText()
             val sel = session.selection
             return ExtractedText().apply {
-                text = ""
+                text = session.document.text
                 startOffset = 0
                 selectionStart = sel.start
                 selectionEnd = sel.end
@@ -1026,7 +1161,7 @@ class CodeEditorView(context: Context) : View(context) {
         const val GIT_BAR_W_DP = 3f
         const val GIT_BAR_H_DP = 16f
         const val CARET_W_DP = 2f
-        const val HANDLE_RADIUS_DP = 6f
+        const val HANDLE_RADIUS_DP = 10f
         fun isWordChar(c: Char): Boolean = c.isLetterOrDigit() || c == '_'
         fun dist(x1: Float, y1: Float, x2: Float, y2: Float): Float = abs(x1 - x2) + abs(y1 - y2)
         fun lerp(a: Float, b: Float, f: Float): Float = a + (b - a) * f

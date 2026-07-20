@@ -1,4 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.view
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +33,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
+
 @Composable
 fun AslEditableCodeEditor(
     session: EditorSession,
@@ -47,6 +50,7 @@ fun AslEditableCodeEditor(
     findCurrentMatch: Int = 0,
     revealNonce: Int = 0,
     revealOffset: Int = 0,
+    enableVolumeKeys: Boolean = true,
     projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
         com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
 ) {
@@ -76,6 +80,9 @@ fun AslEditableCodeEditor(
     var editorView by remember { mutableStateOf<CodeEditorView?>(null) }
     LaunchedEffect(revealNonce) {
         if (revealNonce > 0) editorView?.revealOffset(revealOffset)
+    }
+    EditorVolumeScrollEffect(enabled = enableVolumeKeys) { volumeUp ->
+        editorView?.moveCaretByVolume(volumeUp)
     }
     BoxWithConstraints(modifier = modifier) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
@@ -153,6 +160,35 @@ fun AslEditableCodeEditor(
         }
     }
 }
+
+@Composable
+fun EditorVolumeScrollEffect(
+    enabled: Boolean,
+    onVolumeKey: (volumeUp: Boolean) -> Unit,
+) {
+    DisposableEffect(enabled) {
+        if (!enabled) return@DisposableEffect onDispose {}
+        EditorVolumeKeyDispatcher.handler = { event ->
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    onVolumeKey(false)
+                    true
+                }
+                android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
+                    onVolumeKey(true)
+                    true
+                }
+                else -> false
+            }
+        }
+        onDispose {
+            if (EditorVolumeKeyDispatcher.handler != null) {
+                EditorVolumeKeyDispatcher.handler = null
+            }
+        }
+    }
+}
+
 private fun CompletionItem.toSuggestion(): AslSuggestion = AslSuggestion(
     label = label,
     detail = detail,

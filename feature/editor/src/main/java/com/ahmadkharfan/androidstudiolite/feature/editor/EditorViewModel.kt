@@ -587,7 +587,6 @@ class EditorViewModel(
     }
     override fun onCloseProject() {
         viewModelScope.launch {
-
             autoSaveJob?.cancel()
             if (flushDirtyFiles()) {
                 emitEffect(EditorEffect.CloseProject)

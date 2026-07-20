@@ -104,16 +104,20 @@ private fun BuildTab(
             }
             if (console.logs.isNotEmpty()) {
                 item { SectionLabel("Output") }
-                items(console.logs) { line ->
-
-
+                item {
                     SelectionContainer {
-                        Text(
-                            text = line.text,
-                            style = AslCode.codeTiny,
-                            color = if (line.isError) colors.error else colors.textSecondary,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 1.dp),
-                        )
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            console.logs.forEach { line ->
+                                Text(
+                                    text = line.text,
+                                    style = AslCode.codeTiny,
+                                    color = if (line.isError) colors.error else colors.textSecondary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 1.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
