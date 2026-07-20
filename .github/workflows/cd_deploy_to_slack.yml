@@ -1,0 +1,100 @@
+name: CD - Build Release & Deploy to Slack
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-slack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build signed APK and upload to Slack
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(toLower(github.event.head_commit.message || ''), 'deploy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager --install "ndk;27.1.12297006" "cmake;3.22.1"
+          yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE secret is missing. Add the base64-encoded .jks/.keystore in repo Settings → Secrets."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/asl-release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/asl-release.jks" >> "$GITHUB_ENV"
+
+      - name: Compute version for this run
+        run: |
+          echo "CI_VERSION_CODE=${{ github.run_number }}" >> "$GITHUB_ENV"
+          echo "CI_VERSION_NAME=1.0.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          ASL_RELEASE_STORE_FILE: ${{ env.KEYSTORE_PATH }}
+          ASL_RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ASL_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ASL_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Locate release APK
+        id: apk
+        run: |
+          APK_PATH=$(ls app/build/outputs/apk/release/*-release*.apk | head -n 1)
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            echo "::error::Release APK not found under app/build/outputs/apk/release/"
+            ls -la app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "Found APK: $APK_PATH ($(du -h "$APK_PATH" | cut -f1))"
+
+      - name: Upload APK as GitHub artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.run_number }}
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 14
+
+      - name: Upload APK to Slack
+        uses: MeilCli/slack-upload-file@v4.0.20
+        with:
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: ${{ steps.apk.outputs.path }}
+          file_name: "AndroidStudioLite-release-${{ github.run_number }}.apk"
+          thread_ts: ${{ secrets.SLACK_APK_MESSAGE_TS }}
+          initial_comment: |
+            *Android Studio Lite — new release APK*
+            *Version:* `1.0.${{ github.run_number }}`
+            *Commit:* `${{ github.sha }}`
+            *Message:* `${{ github.event.head_commit.message || 'manual run' }}`
+            *Branch:* `${{ github.ref_name }}`
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run #${{ github.run_number }}>
