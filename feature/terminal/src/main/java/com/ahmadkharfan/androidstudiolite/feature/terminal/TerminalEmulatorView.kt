@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -43,8 +42,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.res.ResourcesCompat
 import com.ahmadkharfan.androidstudiolite.designsystem.R
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.DEFAULT_COLOR
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalCell
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalScreen
@@ -55,6 +57,7 @@ import kotlin.math.roundToInt
 private const val FONT_SP = 13f
 private const val LINE_HEIGHT_RATIO = 1.30f
 private const val AUTOSCROLL_INTERVAL_MS = 40L
+private const val TYPING_PLACE_SLACK_COLS = 2
 
 private data class TerminalSelection(
     val anchorRow: Int,
@@ -89,6 +92,15 @@ fun TerminalEmulatorView(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val colors = AslTheme.colors
+    val lightTerminal = remember(background) {
+        val r = background.red
+        val g = background.green
+        val b = background.blue
+        0.2126f * r + 0.7152f * g + 0.0722f * b > 0.5f
+    }
+    val toolbarBg = colors.surfaceContainerHigh
+    val toolbarFg = colors.textPrimary
     val typeface = remember { ResourcesCompat.getFont(context, R.font.jetbrains_mono) ?: Typeface.MONOSPACE }
 
     val textSizePx = with(density) { FONT_SP.sp.toPx() }
@@ -105,19 +117,14 @@ fun TerminalEmulatorView(
     val glyphBuilder = remember { StringBuilder(256) }
     val handleRadiusPx = with(density) { 7.dp.toPx() }
     val handleTouchRadiusPx = with(density) { 24.dp.toPx() }
-
-
     val screenState = rememberUpdatedState(screen)
 
-
     var scrollOffset by remember { mutableFloatStateOf(0f) }
-
     var indicatorRow by remember { mutableIntStateOf(0) }
     var indicatorCol by remember { mutableIntStateOf(0) }
     var isBrowsing by remember { mutableStateOf(false) }
     var selection by remember { mutableStateOf<TerminalSelection?>(null) }
     var selecting by remember { mutableStateOf(false) }
-
     var selAnchorPx by remember { mutableStateOf<Offset?>(null) }
     var pastePos by remember { mutableStateOf<Offset?>(null) }
     var inputHost by remember { mutableStateOf<TerminalInputEditText?>(null) }
@@ -126,7 +133,6 @@ fun TerminalEmulatorView(
     LaunchedEffect(maxOffset) {
         if (scrollOffset > maxOffset) scrollOffset = maxOffset.toFloat()
     }
-
 
     LaunchedEffect(screen.cursorRow, screen.cursorCol, scrollOffset, isBrowsing) {
         if (!isBrowsing && scrollOffset == 0f) {
@@ -222,6 +228,28 @@ fun TerminalEmulatorView(
         return clip.getItemAt(0).coerceToText(context)?.toString() ?: ""
     }
 
+    fun isNearTypingPlace(absRow: Int, col: Int): Boolean {
+        if (offNow() != 0) return false
+        val s = screenState.value
+        val liveCursorAbs = s.scrollback.size + s.cursorRow
+        if (absRow != liveCursorAbs) return false
+        val minCol = (s.cursorCol - TYPING_PLACE_SLACK_COLS).coerceAtLeast(0)
+        return col >= minCol
+    }
+
+    fun showCursorMenuAt(pos: Offset) {
+        selection = null
+        pastePos = pos
+    }
+
+    fun cursorMenuAnchor(): Offset {
+        val s = screenState.value
+        return Offset(
+            s.cursorCol * charWidthPx,
+            s.cursorRow * lineHeightPx,
+        )
+    }
+
     fun selectAll() {
         val s = screenState.value
         val total = s.scrollback.size + s.rows
@@ -262,6 +290,17 @@ fun TerminalEmulatorView(
         { selection = null; resetToLive(); onSpecialRef.value(it) }
     }
 
+    fun pasteFromClipboard() {
+        val text = clipboardText()
+        pastePos = null
+        selection = null
+        if (text.isEmpty()) {
+            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+        emitKey(text)
+    }
+
     TerminalVolumeScrollEffect(enabled = enableVolumeKeys, onVolumeKey = ::moveIndicator)
 
     var lastEmittedRows by remember { mutableIntStateOf(-1) }
@@ -276,7 +315,6 @@ fun TerminalEmulatorView(
         val rows = (constraints.maxHeight / lineHeightPx).toInt().coerceIn(1, 400)
         val viewportWidthPx = constraints.maxWidth.toFloat()
         val viewportHeightPx = constraints.maxHeight.toFloat()
-
 
         fun autoScrollForSelection(y: Float): Boolean {
             val edge = lineHeightPx * 1.2f
@@ -367,6 +405,7 @@ fun TerminalEmulatorView(
                             background = background,
                             cursorColor = cursorColor,
                             cursorCol = cursorCol,
+                            lightBackground = lightTerminal,
                         )
                     }
 
@@ -420,7 +459,6 @@ fun TerminalEmulatorView(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
-
                             suspend fun AwaitPointerEventScope.runSelectionDrag(
                                 pointerId: PointerId,
                                 anchorRow: Int,
@@ -458,8 +496,6 @@ fun TerminalEmulatorView(
                                 val down = awaitFirstDown(requireUnconsumed = true)
                                 val startPos = down.position
                                 val activeSel = selection
-
-
                                 val grabbed = if (activeSel != null) {
                                     handleAt(startPos.x, startPos.y, activeSel)
                                 } else 0
@@ -470,7 +506,6 @@ fun TerminalEmulatorView(
                                     runSelectionDrag(down.id, anchorRow, anchorCol, startPos)
                                     continue
                                 }
-
 
                                 val decision = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
                                     var d = "tap"
@@ -489,17 +524,12 @@ fun TerminalEmulatorView(
                                 when (decision) {
                                     null -> {
                                         val (aRow, aCol) = touchToCell(startPos.x, startPos.y)
-                                        val s = screenState.value
-                                        val liveCursorAbs = s.scrollback.size + s.cursorRow
-                                        val inTypingPlace = aRow == liveCursorAbs && aCol >= s.cursorCol
-                                        if (inTypingPlace && clipboardText().isNotEmpty()) {
-
-                                            selection = null
-                                            pastePos = startPos
+                                        if (isNearTypingPlace(aRow, aCol)) {
+                                            showCursorMenuAt(cursorMenuAnchor())
+                                            inputHost?.showKeyboard()
                                         } else {
-
                                             pastePos = null
-                                            val cells = lineCellsAbs(s, aRow)
+                                            val cells = lineCellsAbs(screenState.value, aRow)
                                             val word = if (cells != null) wordRange(cells, aCol) else aCol..aCol
                                             selection = TerminalSelection(aRow, word.first, aRow, word.last)
                                             inputHost?.hideKeyboard()
@@ -522,9 +552,18 @@ fun TerminalEmulatorView(
                                     }
                                     "tap" -> {
                                         when {
-                                            selection != null -> selection = null
+                                            selection != null -> {
+                                                selection = null
+                                                pastePos = null
+                                            }
                                             pastePos != null -> pastePos = null
-                                            else -> inputHost?.showKeyboard()
+                                            else -> {
+                                                val (aRow, aCol) = touchToCell(startPos.x, startPos.y)
+                                                if (isNearTypingPlace(aRow, aCol)) {
+                                                    showCursorMenuAt(cursorMenuAnchor())
+                                                }
+                                                inputHost?.showKeyboard()
+                                            }
                                         }
                                     }
                                     else -> Unit
@@ -533,7 +572,6 @@ fun TerminalEmulatorView(
                         }
                     },
             )
-
 
             val sel = selection
             if (sel != null && !selecting) {
@@ -544,33 +582,38 @@ fun TerminalEmulatorView(
                 var toolbarWidthPx by remember { mutableIntStateOf(0) }
                 var toolbarHeightPx by remember { mutableIntStateOf(0) }
                 val margin = lineHeightPx * 0.3f
-
-
                 val anchor = selAnchorPx ?: Offset(b.startCol * charWidthPx, startVp * lineHeightPx)
                 val aboveY = anchor.y - toolbarHeightPx - margin
                 val belowY = anchor.y + lineHeightPx + margin
                 val preferredY = if (aboveY >= 0f) aboveY else belowY
                 val maxY = (viewportHeightPx - toolbarHeightPx - margin).coerceAtLeast(0f)
                 val yPx = preferredY.coerceIn(0f, maxY)
-                val xPx = anchor.x
-                    .coerceIn(0f, (viewportWidthPx - toolbarWidthPx).coerceAtLeast(0f))
-
-                Row(
-                    modifier = Modifier
-                        .offset { IntOffset(xPx.roundToInt(), yPx.roundToInt()) }
-                        .background(Color(0xFF2B2D30), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .onGloballyPositioned {
-                            toolbarWidthPx = it.size.width
-                            toolbarHeightPx = it.size.height
-                        },
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                val xPx = anchor.x.coerceIn(0f, (viewportWidthPx - toolbarWidthPx).coerceAtLeast(0f))
+                Popup(
+                    offset = IntOffset(xPx.roundToInt(), yPx.roundToInt()),
+                    properties = PopupProperties(
+                        focusable = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                        clippingEnabled = false,
+                    ),
                 ) {
-                    ToolbarButton("Copy") { copySelection() }
-                    ToolbarButton("Select all") { selectAll() }
+                    Row(
+                        modifier = Modifier
+                            .background(toolbarBg, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .onGloballyPositioned {
+                                toolbarWidthPx = it.size.width
+                                toolbarHeightPx = it.size.height
+                            },
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        ToolbarButton("Copy", toolbarFg) { copySelection() }
+                        ToolbarButton("Paste", toolbarFg) { pasteFromClipboard() }
+                        ToolbarButton("Select all", toolbarFg) { selectAll() }
+                    }
                 }
             }
-
 
             val pp = pastePos
             if (pp != null) {
@@ -579,21 +622,30 @@ fun TerminalEmulatorView(
                 val aboveY = pp.y - pasteHeightPx - lineHeightPx * 0.5f
                 val yPx = if (aboveY >= 0f) aboveY else pp.y + lineHeightPx * 0.5f
                 val xPx = pp.x.coerceIn(0f, (viewportWidthPx - pasteWidthPx).coerceAtLeast(0f))
-
-                Row(
-                    modifier = Modifier
-                        .offset { IntOffset(xPx.roundToInt(), yPx.roundToInt()) }
-                        .background(Color(0xFF2B2D30), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .onGloballyPositioned {
-                            pasteWidthPx = it.size.width
-                            pasteHeightPx = it.size.height
-                        },
+                Popup(
+                    offset = IntOffset(xPx.roundToInt(), yPx.roundToInt()),
+                    properties = PopupProperties(
+                        focusable = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                        clippingEnabled = false,
+                    ),
                 ) {
-                    ToolbarButton("Paste") {
-                        val text = clipboardText()
-                        pastePos = null
-                        if (text.isNotEmpty()) emitKey(text)
+                    Row(
+                        modifier = Modifier
+                            .background(toolbarBg, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .onGloballyPositioned {
+                                pasteWidthPx = it.size.width
+                                pasteHeightPx = it.size.height
+                            },
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        ToolbarButton("Paste", toolbarFg) { pasteFromClipboard() }
+                        ToolbarButton("Select all", toolbarFg) {
+                            pastePos = null
+                            selectAll()
+                        }
                     }
                 }
             }
@@ -602,10 +654,10 @@ fun TerminalEmulatorView(
 }
 
 @Composable
-private fun ToolbarButton(label: String, onClick: () -> Unit) {
+private fun ToolbarButton(label: String, color: Color, onClick: () -> Unit) {
     Text(
         text = label,
-        color = Color(0xFFE6E6E6),
+        color = color,
         fontWeight = FontWeight.Medium,
         fontSize = 13.sp,
         modifier = Modifier
@@ -713,6 +765,7 @@ private fun drawRow(
     background: Color,
     cursorColor: Color,
     cursorCol: Int,
+    lightBackground: Boolean,
 ) {
     val n = cells.size
     var c = 0
@@ -721,8 +774,12 @@ private fun drawRow(
         var end = c + 1
         while (end < n && sameStyle(cells[end], style)) end++
 
-        var fgArgb = ansiColor(style.fg, foreground).toArgb()
-        var bgArgb = if (style.bg == DEFAULT_COLOR) null else ansiColor(style.bg, background).toArgb()
+        var fgArgb = ansiColor(style.fg, foreground, lightBackground).toArgb()
+        var bgArgb = if (style.bg == DEFAULT_COLOR) {
+            null
+        } else {
+            ansiColor(style.bg, background, lightBackground).toArgb()
+        }
         if (style.inverse) {
             val tmp = fgArgb
             fgArgb = bgArgb ?: background.toArgb()
@@ -771,13 +828,21 @@ private fun drawRow(
 private fun sameStyle(a: TerminalCell, b: TerminalCell): Boolean =
     a.fg == b.fg && a.bg == b.bg && a.bold == b.bold && a.underline == b.underline && a.inverse == b.inverse
 
-fun ansiColor(index: Int, default: Color): Color {
+fun ansiColor(index: Int, default: Color, lightBackground: Boolean = false): Color {
     if (index == DEFAULT_COLOR) return default
     if (index >= 256) {
         val rgb = index - 256
         return Color(0xFF000000.toInt() or (rgb and 0xFFFFFF))
     }
-    if (index < 16) return ANSI_16[index]
+    if (index < 16) {
+        val base = ANSI_16[index]
+        if (!lightBackground) return base
+        return when (index) {
+            7 -> Color(0xFF6B7280)
+            15 -> Color(0xFF1F2937)
+            else -> base
+        }
+    }
     if (index < 232) {
         val n = index - 16
         val r = n / 36

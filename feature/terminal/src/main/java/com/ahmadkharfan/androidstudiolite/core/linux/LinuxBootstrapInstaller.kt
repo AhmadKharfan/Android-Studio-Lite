@@ -49,6 +49,10 @@ class LinuxBootstrapInstaller(
             current is LinuxInstallState.Extracting ||
             current is LinuxInstallState.BootstrappingPackages
         ) return
+        if (current is LinuxInstallState.Failed &&
+            proot.isInstalled() &&
+            !proot.areBootstrapPackagesInstalled()
+        ) return
 
         _state.value = disk
     }
@@ -67,7 +71,6 @@ class LinuxBootstrapInstaller(
     suspend fun install() {
         if (proot.isInstalled()) {
             ensureBootstrapPackages()
-            _state.value = LinuxInstallState.Installed
             return
         }
         when (_state.value) {
@@ -112,14 +115,31 @@ class LinuxBootstrapInstaller(
     }
 
     suspend fun ensureBootstrapPackages() {
-        if (!proot.isInstalled() || proot.areBootstrapPackagesInstalled()) return
-        withContext(ioDispatcher) { bootstrapPackages() }
+        if (!proot.isInstalled()) return
+        if (proot.areBootstrapPackagesInstalled()) {
+            _state.value = LinuxInstallState.Installed
+            return
+        }
+        withContext(ioDispatcher) {
+            try {
+                bootstrapPackages()
+                _state.value = LinuxInstallState.Installed
+            } catch (t: Throwable) {
+                _state.value = LinuxInstallState.Failed(
+                    t.message ?: "Couldn't install terminal tools — check your internet and retry.",
+                )
+            }
+        }
     }
 
     private fun bootstrapPackages() {
         _state.value = LinuxInstallState.BootstrappingPackages
         val exit = proot.runGuestCommand(LinuxBootstrapPackages.apkInstallScript())
-        if (exit != 0) throw IllegalStateException("tool bootstrap failed (exit $exit)")
+        if (exit != 0) {
+            throw IllegalStateException(
+                "Couldn't install terminal tools (exit $exit). Check your internet and try again.",
+            )
+        }
         proot.packagesBootstrappedMarker.writeText("ok")
     }
 

@@ -187,8 +187,8 @@ private fun TerminalLinuxBanner(
     onInstall: () -> Unit,
     colors: AslColorScheme,
 ) {
-
-    if (linux.installed || !linux.supported) return
+    if (!linux.supported) return
+    if (linux.installed && linux.error == null) return
     Column(modifier = Modifier.background(colors.bgElevated)) {
         Row(
             modifier = Modifier
@@ -199,13 +199,16 @@ private fun TerminalLinuxBanner(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (linux.isBusy) (linux.phase ?: "Installing Linux…")
-                    else "Enable full Linux — apk, python, git, gcc and more",
+                    text = when {
+                        linux.isBusy -> linux.phase ?: "Installing Linux…"
+                        linux.error != null -> "Linux tools install failed"
+                        else -> "Enable full Linux — apk, python, git, gcc and more"
+                    },
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,
                 )
                 linux.error?.let {
-                    Text(text = "Failed: $it", style = AslCode.codeTiny, color = colors.textSecondary)
+                    Text(text = it, style = AslCode.codeTiny, color = colors.error)
                 }
             }
             if (!linux.isBusy) {

@@ -103,10 +103,10 @@ val AslLightColors = AslColorScheme(
     syntaxVariable = Color(0xFF24292F),
     syntaxNumber = Color(0xFF0550AE),
 
-    terminalBg = Color(0xFF1E1E1E),
-    terminalStdout = Color(0xFFD4D4D4),
-    terminalStderr = Color(0xFFF87171),
-    terminalPrompt = Color(0xFF34D399),
+    terminalBg = Color(0xFFF5F6F8),
+    terminalStdout = Color(0xFF1E1E2E),
+    terminalStderr = Color(0xFFDC2626),
+    terminalPrompt = Color(0xFF059669),
 )
 
 val AslDarkColors = AslColorScheme(

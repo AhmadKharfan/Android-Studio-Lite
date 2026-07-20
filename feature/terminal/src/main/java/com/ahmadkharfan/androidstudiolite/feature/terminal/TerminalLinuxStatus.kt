@@ -24,7 +24,7 @@ fun LinuxInstallState.toLinuxStatus(proot: ProotEnvironment): LinuxStatus {
         LinuxInstallState.Installed -> LinuxStatus(installed = true)
         is LinuxInstallState.Failed -> LinuxStatus(
             installed = installed,
-            error = if (installed) null else message,
+            error = message,
         )
     }
 }

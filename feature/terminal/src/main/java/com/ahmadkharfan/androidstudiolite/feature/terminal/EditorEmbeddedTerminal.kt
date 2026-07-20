@@ -48,7 +48,7 @@ fun EditorEmbeddedTerminal(
 
     LaunchedEffect(projectRootPath) {
         linuxInstaller.refreshState()
-        linuxInstaller.ensureBootstrapPackages()
+        runCatching { linuxInstaller.ensureBootstrapPackages() }
         installedOnDisk = proot.isInstalled()
         if (projectRootPath.isNotBlank()) {
             sessionManager.ensureProjectTerminal(projectRootPath, PANEL_ROWS, PANEL_COLS)
@@ -141,7 +141,8 @@ private fun EmbeddedLinuxBanner(
     linux: LinuxStatus,
     onInstall: () -> Unit,
 ) {
-    if (linux.installed || !linux.supported) return
+    if (!linux.supported) return
+    if (linux.installed && linux.error == null) return
     val colors = AslTheme.colors
     Column(modifier = Modifier.background(colors.bgElevated)) {
         Row(
@@ -152,10 +153,13 @@ private fun EmbeddedLinuxBanner(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = if (linux.isBusy) (linux.phase ?: "Installing Linux…")
-                else "Install Linux for apk, git, and more",
+                text = when {
+                    linux.isBusy -> linux.phase ?: "Installing Linux…"
+                    linux.error != null -> linux.error
+                    else -> "Install Linux for apk, git, and more"
+                },
                 style = AslCode.codeTiny,
-                color = colors.textSecondary,
+                color = if (linux.error != null) colors.error else colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
             if (!linux.isBusy) {

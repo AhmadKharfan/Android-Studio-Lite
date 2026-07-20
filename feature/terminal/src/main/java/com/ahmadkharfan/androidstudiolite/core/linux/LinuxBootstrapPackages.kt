@@ -10,5 +10,6 @@ object LinuxBootstrapPackages {
         "build-base",
     )
 
-    fun apkInstallScript(): String = "apk add --no-cache ${packages.joinToString(" ")}"
+    fun apkInstallScript(): String =
+        "apk update && apk add --no-cache ${packages.joinToString(" ")}"
 }

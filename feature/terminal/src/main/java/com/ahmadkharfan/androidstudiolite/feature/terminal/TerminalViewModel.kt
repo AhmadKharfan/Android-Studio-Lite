@@ -29,7 +29,9 @@ class TerminalViewModel(
 
     init {
         linuxInstaller.refreshState()
-        viewModelScope.launch { linuxInstaller.ensureBootstrapPackages() }
+        viewModelScope.launch {
+            runCatching { linuxInstaller.ensureBootstrapPackages() }
+        }
         sessionManager.ensureSession(measuredRows, measuredCols)
         viewModelScope.launch {
             derivedState().collect { newState ->
@@ -90,13 +92,11 @@ class TerminalViewModel(
 
     override fun onSelectTab(id: String) {
         sessionManager.select(id)
-
         sessionManager.session(id)?.resize(measuredRows, measuredCols)
     }
 
     override fun onCloseTab(id: String) {
         sessionManager.close(id)
-
         sessionManager.ensureSession(measuredRows, measuredCols)
     }
 
