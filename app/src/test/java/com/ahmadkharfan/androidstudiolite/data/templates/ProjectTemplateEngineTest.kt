@@ -204,14 +204,46 @@ class ProjectTemplateEngineTest {
 
     @Test
     fun `java option generates java sources and no kotlin plugin`() {
-        val dir = generate(
-            NewProjectSpec("Javaish", "com.example.javaish", "empty-views", language = TemplateLanguage.JAVA),
-        )
+        for (template in TemplateRegistry.DEFAULT.filter { it.supportsJava }) {
+            val dir = generate(
+                NewProjectSpec(
+                    "Javaish${template.metadata.id}",
+                    "com.example.javaish",
+                    template.metadata.id,
+                    language = TemplateLanguage.JAVA,
+                ),
+            )
 
-        assertTrue(File(dir, "app/src/main/java/com/example/javaish/MainActivity.java").isFile)
-        val appBuild = File(dir, "app/build.gradle.kts").readText()
-        assertTrue("no kotlin plugin", !appBuild.contains("kotlin.android"))
-        assertEquals(ModuleType.ANDROID_APP, appModule(dir).type)
+            val sources = File(dir, "app/src/main").walkTopDown().filter(File::isFile).toList()
+            assertFalse("${template.metadata.id}: no Kotlin sources", sources.any { it.extension == "kt" })
+            if (template.metadata.id != "no-activity") {
+                assertTrue(
+                    "${template.metadata.id}: Java activity",
+                    File(dir, "app/src/main/java/com/example/javaish/MainActivity.java").isFile,
+                )
+            }
+            val appBuild = File(dir, "app/build.gradle.kts").readText()
+            assertFalse("${template.metadata.id}: no Kotlin plugin", appBuild.contains("kotlin.android"))
+            assertFalse("${template.metadata.id}: no kotlinOptions", appBuild.contains("kotlinOptions"))
+            assertEquals(ModuleType.ANDROID_APP, appModule(dir).type)
+        }
+    }
+
+    @Test
+    fun `Kotlin-only template rejects Java instead of silently changing language`() {
+        val error = runCatching {
+            generate(
+                NewProjectSpec(
+                    "NotComposeJava",
+                    "com.example.notcomposejava",
+                    "empty-compose",
+                    language = TemplateLanguage.JAVA,
+                ),
+            )
+        }.exceptionOrNull()
+
+        assertTrue(error is IllegalArgumentException)
+        assertTrue(error?.message.orEmpty().contains("requires Kotlin"))
     }
 
     @Test

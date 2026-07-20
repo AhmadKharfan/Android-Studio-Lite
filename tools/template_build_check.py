@@ -12,7 +12,7 @@ finished. So the stream reconnects for the log, and REST decides pass/fail.
 
 Usage:
     tools/template_build_check.py                    # every template
-    tools/template_build_check.py empty-compose bottom-nav
+    tools/template_build_check.py empty-compose-kotlin bottom-nav-java
     tools/template_build_check.py --keep-logs        # write full logs to .template-check/logs
 
     SERVER=http://host   override the build server (default: the deployed LB)
@@ -154,7 +154,7 @@ async def check(template: str, token: str, keep_logs: bool) -> tuple[str, str, f
     subprocess.run(["zip", "-qr", str(zip_path), "."], cwd=src, check=True)
 
     created = http("POST", "/v1/builds", token, {
-        "sourceType": "zip", "modulePath": ":app", "variantName": "debug",
+        "sourceType": "zip", "modulePath": ":app", "variant": "debug",
         "kind": "ASSEMBLE", "tasks": ["assembleDebug"],
     })
     build_id = created["buildId"]
