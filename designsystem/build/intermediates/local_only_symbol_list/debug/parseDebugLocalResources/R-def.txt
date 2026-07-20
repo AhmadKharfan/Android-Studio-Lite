@@ -1,5 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-font inter
-font jetbrains_mono
-font jetbrains_mono_italic

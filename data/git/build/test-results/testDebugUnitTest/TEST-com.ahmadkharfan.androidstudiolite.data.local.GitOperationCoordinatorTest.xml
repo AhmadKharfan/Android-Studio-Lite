@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.data.local.GitOperationCoordinatorTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-20T10:56:06.753Z" hostname="pop-os" time="0.254">
-  <properties/>
-  <testcase name="mutations queue and active operation follows the exclusive owner" classname="com.ahmadkharfan.androidstudiolite.data.local.GitOperationCoordinatorTest" time="0.229"/>
-  <testcase name="cancellable operation can publish progress and be cancelled" classname="com.ahmadkharfan.androidstudiolite.data.local.GitOperationCoordinatorTest" time="0.009"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

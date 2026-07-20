@@ -1,9 +1,0 @@
-com.ahmadkharfan.androidstudiolite.feature.terminal-pngs-0 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/generated/res/pngs/debug
-com.ahmadkharfan.androidstudiolite.feature.terminal-updated_navigation_xml-1 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/generated/updated_navigation_xml/debug
-com.ahmadkharfan.androidstudiolite.feature.terminal-mergeDebugResources-2 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-com.ahmadkharfan.androidstudiolite.feature.terminal-mergeDebugResources-3 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-com.ahmadkharfan.androidstudiolite.feature.terminal-debug-4 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/intermediates/merged_res/debug/mergeDebugResources
-com.ahmadkharfan.androidstudiolite.feature.terminal-debug-5 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/build/intermediates/packaged_res/debug/packageDebugResources
-com.ahmadkharfan.androidstudiolite.feature.terminal-debug-6 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/src/debug/res
-com.ahmadkharfan.androidstudiolite.feature.terminal-main-7 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/src/main/res
-gradleHome-0 /home/null/.gradle

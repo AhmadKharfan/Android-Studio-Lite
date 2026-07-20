@@ -1,9 +1,0 @@
-com.ahmadkharfan.androidstudiolite.data.git-pngs-0 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/generated/res/pngs/debug
-com.ahmadkharfan.androidstudiolite.data.git-updated_navigation_xml-1 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/generated/updated_navigation_xml/debug
-com.ahmadkharfan.androidstudiolite.data.git-mergeDebugResources-2 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-com.ahmadkharfan.androidstudiolite.data.git-mergeDebugResources-3 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-com.ahmadkharfan.androidstudiolite.data.git-debug-4 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/intermediates/merged_res/debug/mergeDebugResources
-com.ahmadkharfan.androidstudiolite.data.git-debug-5 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/build/intermediates/packaged_res/debug/packageDebugResources
-com.ahmadkharfan.androidstudiolite.data.git-debug-6 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/src/debug/res
-com.ahmadkharfan.androidstudiolite.data.git-main-7 /home/null/AndroidStudioProjects/AndroidStudioLite/data/git/src/main/res
-gradleHome-0 /home/null/.gradle

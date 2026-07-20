@@ -1,3 +1,0 @@
-int font inter 0x0
-int font jetbrains_mono 0x0
-int font jetbrains_mono_italic 0x0

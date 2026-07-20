@@ -1,9 +1,0 @@
-com.ahmadkharfan.androidstudiolite.data.templates-pngs-0 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/generated/res/pngs/debug
-com.ahmadkharfan.androidstudiolite.data.templates-updated_navigation_xml-1 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/generated/updated_navigation_xml/debug
-com.ahmadkharfan.androidstudiolite.data.templates-mergeDebugResources-2 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-com.ahmadkharfan.androidstudiolite.data.templates-mergeDebugResources-3 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-com.ahmadkharfan.androidstudiolite.data.templates-debug-4 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/intermediates/merged_res/debug/mergeDebugResources
-com.ahmadkharfan.androidstudiolite.data.templates-debug-5 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/build/intermediates/packaged_res/debug/packageDebugResources
-com.ahmadkharfan.androidstudiolite.data.templates-debug-6 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/src/debug/res
-com.ahmadkharfan.androidstudiolite.data.templates-main-7 /home/null/AndroidStudioProjects/AndroidStudioLite/data/templates/src/main/res
-gradleHome-0 /home/null/.gradle
