@@ -6,7 +6,6 @@ import com.ahmadkharfan.androidstudiolite.data.templates.impl.EmptyComposeTempla
 import com.ahmadkharfan.androidstudiolite.data.templates.impl.EmptyViewsTemplate
 import com.ahmadkharfan.androidstudiolite.data.templates.impl.NavDrawerTemplate
 import com.ahmadkharfan.androidstudiolite.data.templates.impl.NoActivityTemplate
-import com.ahmadkharfan.androidstudiolite.data.templates.impl.ResponsiveTemplate
 
 class TemplateRegistry(
     val templates: List<Template> = DEFAULT,
@@ -23,7 +22,6 @@ class TemplateRegistry(
             EmptyComposeTemplate,
             BottomNavigationTemplate,
             NavDrawerTemplate,
-            ResponsiveTemplate,
         )
     }
 }
