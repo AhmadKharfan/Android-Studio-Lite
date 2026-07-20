@@ -6,28 +6,32 @@ import com.ahmadkharfan.androidstudiolite.data.templates.Template
 import com.ahmadkharfan.androidstudiolite.data.templates.TemplateContent
 import com.ahmadkharfan.androidstudiolite.data.templates.TemplateMetadata
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
+import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 
 internal object NavSupport {
 
-    fun applyBase(recipe: ProjectRecipe) {
+    fun applyBase(spec: NewProjectSpec, recipe: ProjectRecipe) {
         recipe.plugin(Catalog.androidApplication)
-        recipe.plugin(Catalog.kotlinAndroid)
         recipe.enableViewBinding = true
-        recipe.implementation(Catalog.coreKtx)
+        if (spec.language == TemplateLanguage.KOTLIN) {
+            recipe.plugin(Catalog.kotlinAndroid)
+            recipe.implementation(Catalog.coreKtx)
+        }
         recipe.implementation(Catalog.appcompat)
         recipe.implementation(Catalog.material)
         recipe.implementation(Catalog.constraintLayout)
-        recipe.implementation(Catalog.lifecycleViewModel)
-        recipe.implementation(Catalog.lifecycleLiveData)
-        recipe.implementation(Catalog.navigationFragment)
-        recipe.implementation(Catalog.navigationUi)
+        recipe.implementation(if (recipe.isKotlin) Catalog.lifecycleViewModel else Catalog.lifecycleViewModelJava)
+        recipe.implementation(if (recipe.isKotlin) Catalog.lifecycleLiveData else Catalog.lifecycleLiveDataJava)
+        recipe.implementation(if (recipe.isKotlin) Catalog.navigationFragment else Catalog.navigationFragmentJava)
+        recipe.implementation(if (recipe.isKotlin) Catalog.navigationUi else Catalog.navigationUiJava)
         TemplateContent.addStandardTestDeps(recipe)
     }
 
     fun placeholderFragment(spec: NewProjectSpec, recipe: ProjectRecipe, className: String, layout: String, label: String) {
         val pkg = spec.packageName
-        recipe.sourceFileIn(
-            "ui", "$className.kt",
+        if (spec.language == TemplateLanguage.KOTLIN) {
+            recipe.sourceFileIn(
+                "ui", "$className.kt",
             """
             package $pkg.ui
 
@@ -46,7 +50,35 @@ internal object NavSupport {
                 ): View = inflater.inflate(R.layout.$layout, container, false)
             }
             """.trimIndent(),
-        )
+            )
+        } else {
+            recipe.sourceFileIn(
+                "ui", "$className.java",
+                """
+                package $pkg.ui;
+
+                import android.os.Bundle;
+                import android.view.LayoutInflater;
+                import android.view.View;
+                import android.view.ViewGroup;
+                import androidx.annotation.NonNull;
+                import androidx.annotation.Nullable;
+                import androidx.fragment.app.Fragment;
+                import $pkg.R;
+
+                public class $className extends Fragment {
+                    @Nullable
+                    @Override
+                    public View onCreateView(
+                            @NonNull LayoutInflater inflater,
+                            @Nullable ViewGroup container,
+                            @Nullable Bundle savedInstanceState) {
+                        return inflater.inflate(R.layout.$layout, container, false);
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
         recipe.file("app/src/main/res/layout/$layout.xml", centeredTextLayout(label))
     }
 
@@ -80,19 +112,18 @@ object BottomNavigationTemplate : Template {
         name = "Bottom Navigation",
         description = "Three destinations behind a bottom navigation bar.",
         thumbnail = "template_bottom_nav",
-        tags = listOf("Kotlin", "Views", "Navigation"),
+        tags = listOf("Views", "Navigation"),
     )
 
-    override val supportsJava = false
-
     override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe) {
-        NavSupport.applyBase(recipe)
+        NavSupport.applyBase(spec, recipe)
         val pkg = spec.packageName
         recipe.file("app/src/main/AndroidManifest.xml", TemplateContent.manifest(spec, "MainActivity"))
         ViewsSupport.commonResources(spec, recipe)
 
-        recipe.sourceFile(
-            "MainActivity.kt",
+        if (spec.language == TemplateLanguage.KOTLIN) {
+            recipe.sourceFile(
+                "MainActivity.kt",
             """
             package $pkg
 
@@ -117,7 +148,35 @@ object BottomNavigationTemplate : Template {
                 }
             }
             """.trimIndent(),
-        )
+            )
+        } else {
+            recipe.sourceFile(
+                "MainActivity.java",
+                """
+                package $pkg;
+
+                import android.os.Bundle;
+                import androidx.appcompat.app.AppCompatActivity;
+                import androidx.navigation.fragment.NavHostFragment;
+                import androidx.navigation.ui.NavigationUI;
+                import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+                public class MainActivity extends AppCompatActivity {
+                    @Override
+                    protected void onCreate(Bundle savedInstanceState) {
+                        super.onCreate(savedInstanceState);
+                        setContentView(R.layout.activity_main);
+                        BottomNavigationView navView = findViewById(R.id.nav_view);
+                        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                                .findFragmentById(R.id.nav_host_fragment);
+                        if (navHostFragment != null) {
+                            NavigationUI.setupWithNavController(navView, navHostFragment.getNavController());
+                        }
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
 
         NavSupport.placeholderFragment(spec, recipe, "HomeFragment", "fragment_home", "Home")
         NavSupport.placeholderFragment(spec, recipe, "DashboardFragment", "fragment_dashboard", "Dashboard")
@@ -195,19 +254,18 @@ object NavDrawerTemplate : Template {
         name = "Navigation drawer",
         description = "A side drawer with three destinations via the Navigation component.",
         thumbnail = "template_nav_drawer",
-        tags = listOf("Kotlin", "Views", "Navigation"),
+        tags = listOf("Views", "Navigation"),
     )
 
-    override val supportsJava = false
-
     override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe) {
-        NavSupport.applyBase(recipe)
+        NavSupport.applyBase(spec, recipe)
         val pkg = spec.packageName
         recipe.file("app/src/main/AndroidManifest.xml", TemplateContent.manifest(spec, "MainActivity"))
         ViewsSupport.commonResources(spec, recipe)
 
-        recipe.sourceFile(
-            "MainActivity.kt",
+        if (spec.language == TemplateLanguage.KOTLIN) {
+            recipe.sourceFile(
+                "MainActivity.kt",
             """
             package $pkg
 
@@ -256,7 +314,62 @@ object NavDrawerTemplate : Template {
                     navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
             }
             """.trimIndent(),
-        )
+            )
+        } else {
+            recipe.sourceFile(
+                "MainActivity.java",
+                """
+                package $pkg;
+
+                import android.os.Bundle;
+                import androidx.appcompat.app.AppCompatActivity;
+                import androidx.appcompat.widget.Toolbar;
+                import androidx.drawerlayout.widget.DrawerLayout;
+                import androidx.navigation.NavController;
+                import androidx.navigation.fragment.NavHostFragment;
+                import androidx.navigation.ui.AppBarConfiguration;
+                import androidx.navigation.ui.NavigationUI;
+                import com.google.android.material.navigation.NavigationView;
+                import java.util.HashSet;
+                import java.util.Set;
+
+                public class MainActivity extends AppCompatActivity {
+                    private AppBarConfiguration appBarConfiguration;
+                    private NavController navController;
+
+                    @Override
+                    protected void onCreate(Bundle savedInstanceState) {
+                        super.onCreate(savedInstanceState);
+                        setContentView(R.layout.activity_main);
+                        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
+
+                        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+                        NavigationView navView = findViewById(R.id.nav_view);
+                        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                                .findFragmentById(R.id.nav_host_fragment);
+                        if (navHostFragment == null) return;
+                        navController = navHostFragment.getNavController();
+
+                        Set<Integer> topLevelDestinations = new HashSet<>();
+                        topLevelDestinations.add(R.id.nav_home);
+                        topLevelDestinations.add(R.id.nav_dashboard);
+                        topLevelDestinations.add(R.id.nav_notifications);
+                        appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations)
+                                .setOpenableLayout(drawerLayout)
+                                .build();
+                        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+                        NavigationUI.setupWithNavController(navView, navController);
+                    }
+
+                    @Override
+                    public boolean onSupportNavigateUp() {
+                        return navController != null &&
+                                (NavigationUI.navigateUp(navController, appBarConfiguration) || super.onSupportNavigateUp());
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
 
         NavSupport.placeholderFragment(spec, recipe, "HomeFragment", "fragment_home", "Home")
         NavSupport.placeholderFragment(spec, recipe, "DashboardFragment", "fragment_dashboard", "Dashboard")
