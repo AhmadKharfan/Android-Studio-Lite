@@ -6,7 +6,7 @@ android {
     namespace = "com.ahmadkharfan.androidstudiolite.data.build"
     buildFeatures { buildConfig = true }
     defaultConfig {
-        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"http://129.212.152.5\"")
+        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"https://build.androidstudiolite.me\"")
     }
 }
 dependencies {
