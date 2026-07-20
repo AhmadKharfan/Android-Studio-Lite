@@ -1,0 +1,3 @@
+/home/null/AndroidStudioProjects/AndroidStudioLite/domain/src/test/java/com/ahmadkharfan/androidstudiolite/domain/usecase/CloneProjectUseCaseTest.kt
+/home/null/AndroidStudioProjects/AndroidStudioLite/domain/src/test/java/com/ahmadkharfan/androidstudiolite/domain/model/ProjectNameValidationTest.kt
+/home/null/AndroidStudioProjects/AndroidStudioLite/domain/src/test/java/com/ahmadkharfan/androidstudiolite/domain/usecase/ProjectPathResolverTest.kt
