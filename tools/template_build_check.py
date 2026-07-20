@@ -33,10 +33,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-SERVER = os.environ.get("SERVER", "http://129.212.152.5")
+SERVER = os.environ.get("SERVER", "https://build.androidstudiolite.me")
 ROOT = Path(__file__).resolve().parent.parent
-# Deliberately not under app/build: Gradle owns that tree and deleted this out from under a run in
-# progress when another build ran alongside it.
 OUT = ROOT / ".template-check"
 LOG_DIR = OUT / "logs"
 BUILD_TIMEOUT_SECONDS = int(os.environ.get("BUILD_TIMEOUT_SECONDS", "900"))

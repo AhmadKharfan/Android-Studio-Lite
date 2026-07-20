@@ -43,13 +43,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Default base URL of the server-side build backend (control plane). Overridable at runtime
-        // from Settings → Build server; this is only the initial value shown there.
-        // Points at the deployed DOKS control plane (LoadBalancer svc asl-control-public).
-        // NOTE: plain HTTP — only reachable because src/debug ships a host-scoped cleartext
-        // exception (network_security_config.xml). Release builds are HTTPS-only, so this MUST
-        // become https://<domain> once TLS is terminated on the LB.
-        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"http://129.212.152.5\"")
+        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"https://build.androidstudiolite.me\"")
 
         // Gates Play Integrity attestation on device registration (POST /v1/devices). Off by default
         // so dev builds without Play Services (emulators, sideloaded) still register; the server also

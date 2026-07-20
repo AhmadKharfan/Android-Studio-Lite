@@ -146,10 +146,10 @@ than concrete coordinators or panels. Shared Gradle configuration lives in inclu
 
 - **DOKS cluster:** `asl-build-cluster` (Kubernetes 1.34). Node pools: 1× `s-2vcpu-4gb` control node,
   1× **`c-4` warm build node** (min=1 — see gotcha below).
-- **Public API:** `http://129.212.152.5` (LoadBalancer `asl-control-public`). The app's
-  `DEFAULT_BUILD_SERVER_URL` points here.
+- **Public API:** `https://build.androidstudiolite.me` (LoadBalancer `asl-control-public`, managed
+  Let's Encrypt certificate, automatic HTTP → HTTPS redirect). The app's default points here.
 - **Container registry:** `registry.digitalocean.com/asl-build-registry` — images
-  `asl-control-plane` and `asl-build-worker` (worker currently `0.2.0`).
+  `asl-control-plane` (`0.2.15`) and `asl-build-worker` (`0.2.13`).
 - **Object storage:** DO Spaces bucket `asl-build-nyc3-202a96` (source zips, APK artifacts, logs).
 - **Managed Postgres:** database `aslbuild` (devices, builds, quotas).
 - **Redis:** in-cluster (queue / rate-limit / WebSocket pub-sub).
@@ -162,9 +162,8 @@ than concrete coordinators or panels. Shared Gradle configuration lives in inclu
 ### App
 - Build/test: `cd ~/AndroidStudioProjects/AndroidStudioLite && ./gradlew :app:assembleDebug :app:testDebugUnitTest`
 - Install on device: `adb install -r -g app/build/outputs/apk/debug/app-debug.apk`
-- The **debug** build has a host-scoped cleartext-HTTP exception (`app/src/debug/network_security_config.xml`)
-  so it can reach the plain-HTTP server. **Release builds are HTTPS-only** and cannot talk to the
-  server until TLS is added.
+- The **debug** build permits cleartext only to emulator host alias `10.0.2.2` for local development.
+  The deployed build server and all release traffic use HTTPS.
 
 ### Backend (this host has kubectl / doctl / docker / terraform, all authed)
 - Deploy guide: `~/AndroidStudioProjects/asl-build-server/DEPLOY.md`.
@@ -202,20 +201,16 @@ executed" every run). Fix (server `master` + app `main`):
 **Must-do before any public / real use:**
 1. **Rotate the DigitalOcean credentials.** A DO API token and Spaces keys were pasted into a chat
    transcript during deployment. They have full account access — rotate them (DO console → API).
-2. **Add TLS to the LoadBalancer.** The API is plain HTTP; the app sends device tokens and (for
-   release) keystore material over it. Needs a domain + cert; annotation stubs are in
-   `control-plane/k8s/service-public.yaml`. Then set `DEFAULT_BUILD_SERVER_URL` to `https://…` and
-   delete the debug cleartext exception.
-3. **Run the security fixtures.** `asl-build-server/security/fixtures/` (fork-bomb, disk-fill,
+2. **Run the security fixtures.** `asl-build-server/security/fixtures/` (fork-bomb, disk-fill,
    metadata-probe, network-egress, long-runner) prove the sandbox contains a malicious build. They
    were written but **not yet executed** end-to-end. Mandatory before exposing the service.
 
 **Architectural trades / limitations:**
-4. **Shared Gradle cache weakens isolation.** The cache is writable by every (untrusted) build, so a
+3. **Shared Gradle cache weakens isolation.** The cache is writable by every (untrusted) build, so a
    malicious build could try to poison it (Gradle checksum-verification limits this). Accepted for
    single-user. The multi-tenant-safe replacement is a **read-through Maven mirror** (builds
    read-only) — do this before public. RWO also **serializes concurrent builds on a node**.
-5. **Never scale the build pool to zero.** The warm cache is a `local` PV on the build node's disk;
+4. **Never scale the build pool to zero.** The warm cache is a `local` PV on the build node's disk;
    scaling to zero deletes the node *and the cache*. `build_pool_min_nodes = 1` is pinned in
    `infra/terraform.tfvars` for this reason.
 6. **The worker has no NDK/CMake**, so **native (C++) templates can't build** — that's why ASL ships
