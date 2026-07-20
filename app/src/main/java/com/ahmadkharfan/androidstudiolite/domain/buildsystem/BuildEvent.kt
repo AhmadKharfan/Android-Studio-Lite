@@ -7,6 +7,12 @@ sealed interface BuildEvent {
 
     data class Started(val request: BuildRequest) : BuildEvent
 
+    /**
+     * The remote control-plane build id is known. Emitted once after create (or when attaching to an
+     * in-flight build) so the client can persist and reattach if the process dies mid-stream.
+     */
+    data class RemoteBuildBound(val buildId: String) : BuildEvent
+
     /** Coarse progress, e.g. ":app:compileDebugKotlin" or "Resolving dependencies". */
     data class Progress(val message: String) : BuildEvent
 

@@ -18,6 +18,12 @@ interface BuildSystem {
     /** Runs a build, emitting progress, logs, structured problems, and produced artifacts. */
     fun build(request: BuildRequest): Flow<BuildEvent>
 
+    /**
+     * Reattaches to an already-started remote build (e.g. after process death). Streams events until
+     * the build reaches a terminal status; downloads the artifact on success.
+     */
+    fun attach(buildId: String, projectRoot: File): Flow<BuildEvent>
+
     /** Cancels the in-flight sync or build, if any. */
     fun cancel()
 }
