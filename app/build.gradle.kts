@@ -3,6 +3,30 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+fun releaseCredential(property: String, environment: String): String? =
+    providers.gradleProperty(property).orElse(providers.environmentVariable(environment)).orNull
+
+val releaseStorePath = releaseCredential("asl.release.storeFile", "ASL_RELEASE_STORE_FILE")
+val releaseStorePassword = releaseCredential("asl.release.storePassword", "ASL_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = releaseCredential("asl.release.keyAlias", "ASL_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = releaseCredential("asl.release.keyPassword", "ASL_RELEASE_KEY_PASSWORD")
+val releaseValues = listOf(releaseStorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
+val releaseSigningComplete = releaseValues.all { !it.isNullOrBlank() }
+val releaseSigningPartial = releaseValues.any { !it.isNullOrBlank() } && !releaseSigningComplete
+if (releaseSigningPartial) {
+    throw GradleException("Release signing is incomplete; provide storeFile, storePassword, keyAlias, and keyPassword")
+}
+val releaseTaskRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true) &&
+        (it.contains("assemble", ignoreCase = true) || it.contains("bundle", ignoreCase = true) ||
+            it.contains("package", ignoreCase = true))
+}
+if (releaseTaskRequested && !releaseSigningComplete) {
+    throw GradleException(
+        "Release signing is required. Set asl.release.* Gradle properties or ASL_RELEASE_* environment variables.",
+    )
+}
+
 android {
     namespace = "com.ahmadkharfan.androidstudiolite"
     compileSdk {
@@ -59,8 +83,19 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseSigningComplete) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStorePath))
+                storePassword = requireNotNull(releaseStorePassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                 enable = false
             }
