@@ -33,7 +33,7 @@
     <!-- Remote build keep-alive: elevates the process while the client streams a long server build
          so switching away is less likely to kill the WebSocket session. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Android 11+ package visibility: to auto-launch an app we just built + installed we must be
          able to resolve its MAIN/LAUNCHER activity. Without this, getLaunchIntentForPackage() is
@@ -78,17 +78,17 @@
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <receiver
+            android:name="com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallStatusReceiver"
+            android:exported="false" />
+
         <!-- Elevates process priority while a remote build stream is active so backgrounding the
              IDE is less likely to kill the client mid-build. specialUse: long-running user-initiated
              build follow that fits no other FGS category. -->
         <service
             android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Following a user-initiated remote project build so progress and completion survive when the user leaves the IDE." />
-        </service>
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>

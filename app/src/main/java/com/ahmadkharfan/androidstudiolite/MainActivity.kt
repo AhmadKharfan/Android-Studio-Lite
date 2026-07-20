@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.PendingInstallPrompt
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.PendingInstallConfirmation
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
@@ -97,18 +97,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        val confirm = PendingInstallPrompt.claimForLaunch() ?: return
-        runCatching {
-            startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }
-    }
-
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         openProjectId = intent.projectIdExtra()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val confirmation = PendingInstallConfirmation.claimNext() ?: return
+        runCatching { startActivity(confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
