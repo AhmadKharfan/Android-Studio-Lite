@@ -26,7 +26,9 @@ class AndroidProjectRepository(
 ) : ProjectRepository {
 
     override fun observeRecentProjects(): Flow<List<Project>> =
-        dataStore.data.map { decode(it[KEY].orEmpty()) }
+        dataStore.data.map { prefs ->
+            decode(prefs[KEY].orEmpty()).filter { File(it.path).isDirectory }
+        }
 
     override suspend fun createProject(spec: NewProjectSpec): Project =
         withContext(Dispatchers.IO) {
