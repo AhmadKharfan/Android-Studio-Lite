@@ -1,11 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight
 
-/**
- * Pre-build reliability checks from docs/build-run/10 §3 (Gap 6): version-compatibility and
- * storage-pressure. Pure and unit-testable; the Android layer feeds in real device values (free bytes
- * from `StatFs`, versions from the T8 Gradle parse) and surfaces the resulting [PreflightWarning]s
- * before kicking off [com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem.build].
- */
 
 enum class PreflightSeverity { INFO, WARNING, BLOCKER }
 
@@ -18,22 +12,15 @@ data class PreflightWarning(
 data class BuildPreflightResult(val warnings: List<PreflightWarning>) {
     val hasBlocker: Boolean get() = warnings.any { it.severity == PreflightSeverity.BLOCKER }
 
-    /** A build may proceed unless something is an outright blocker (e.g. no storage at all). */
     val canProceed: Boolean get() = !hasBlocker
 }
 
-/** Versions read from the project (gradle-wrapper.properties, AGP plugin) and the installed JDK. */
 data class ToolchainVersions(
     val gradle: String? = null,
     val agp: String? = null,
     val jdkMajor: Int? = null,
 )
 
-/**
- * Checks the classic Gradle ↔ AGP ↔ JDK triple — doc 10 calls a mismatch here "the single biggest
- * real-world failure". Rules are a conservative subset of the AGP compatibility matrix; anything we
- * can't determine is reported as INFO, never a false blocker.
- */
 object CompatibilityChecker {
 
     fun check(versions: ToolchainVersions): List<PreflightWarning> {
@@ -90,18 +77,9 @@ object CompatibilityChecker {
     }
 }
 
-/**
- * Warns when the device is too full to stage a build.
- *
- * These thresholds used to assume the multi-gigabyte on-device `.gradle` cache and build outputs, and
- * blocked the build below 250 MB. The build now runs on the remote worker: the device only needs room
- * for the source zip going up and the APK coming back, tens of megabytes. So this never blocks — a
- * full device gets a warning it can build through, and a genuinely fatal write failure surfaces from
- * the packager with a real error instead of a guess made up-front.
- */
 object StorageChecker {
 
-    const val LOW_SPACE_BYTES: Long = 250L * 1024 * 1024 // 250 MB
+    const val LOW_SPACE_BYTES: Long = 250L * 1024 * 1024
 
     fun check(availableBytes: Long): PreflightWarning? = when {
         availableBytes < LOW_SPACE_BYTES -> PreflightWarning(
@@ -116,7 +94,6 @@ object StorageChecker {
     private fun Long.toMb(): Long = this / (1024 * 1024)
 }
 
-/** Runs every pre-build check and aggregates the warnings. */
 object BuildPreflight {
 
     fun run(versions: ToolchainVersions, availableBytes: Long): BuildPreflightResult {
@@ -128,13 +105,8 @@ object BuildPreflight {
     }
 }
 
-/** Leading integer of a version string, e.g. "8.2.1" -> 8; null if not parseable. */
 private fun String.majorVersion(): Int? = trim().substringBefore('.').toIntOrNull()
 
-/**
- * Compares dotted numeric version strings. Returns <0, 0, >0 like [Comparable]. Non-numeric trailing
- * qualifiers (e.g. "8.0-rc-1") are ignored beyond the numeric prefix of each segment.
- */
 internal fun compareVersions(a: String, b: String): Int {
     val pa = a.split('.', '-')
     val pb = b.split('.', '-')

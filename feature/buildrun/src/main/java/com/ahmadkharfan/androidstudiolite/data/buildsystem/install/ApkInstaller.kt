@@ -15,24 +15,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
-/**
- * Own implementation of on-device APK installation on public Android APIs (no reference to
- * android-code-studio's GPL `ApkInstaller`). Streams an APK into a [PackageInstaller.Session], commits
- * it, drives the system user-confirmation prompt, and — on success — can auto-launch the freshly
- * installed app's MAIN/LAUNCHER activity.
- *
- * Requires `REQUEST_INSTALL_PACKAGES` (declared) and the user having granted "install unknown apps".
- */
 class ApkInstaller(private val context: Context) {
 
-    /**
-     * Installs [apk] and emits progress. When [autoLaunch] is true and the install succeeds, the
-     * installed app is launched. The flow completes after a terminal [InstallEvent].
-     *
-     * [applicationId] is the package the APK declares, used only to name the conflicting package in
-     * [InstallEvent.Conflict] when the system doesn't report one — the caller needs it to offer an
-     * uninstall-and-retry. Pass null when it isn't known.
-     */
     fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> = callbackFlow {
         if (!apk.isFile || apk.length() == 0L) {
             trySend(InstallEvent.Failed("APK not found: ${apk.name}"))
@@ -58,9 +42,8 @@ class ApkInstaller(private val context: Context) {
                 terminalReached = true
                 PendingInstallPrompt.clear()
                 InstallPromptNotifier(context).cancel()
-                // Launch off the broadcast thread with a short retry: right after commit the package's
-                // MAIN/LAUNCHER activity is often not yet queryable, so getLaunchIntentForPackage would
-                // return null on the first try and auto-launch would silently no-op.
+
+
                 launch {
                     val launched = if (autoLaunch) launchAppWithRetry(pkg ?: applicationId) else false
                     trySend(InstallEvent.Installed(pkg ?: applicationId, launched))
@@ -86,9 +69,8 @@ class ApkInstaller(private val context: Context) {
 
         try {
             trySend(InstallEvent.Preparing)
-            // Drop stale sessions from a previous Run that left "pending user action" / abandoned mid-way.
-            // Confirming those while creating a new session causes INSTALL_FAILED_INTERNAL_ERROR:
-            // "Session files in use".
+
+
             abandonStaleSessions(installer)
             sessionId = createAndCommitSession(installer, apk, applicationId, action)
             committed = true
@@ -100,9 +82,8 @@ class ApkInstaller(private val context: Context) {
 
         awaitClose {
             runCatching { context.unregisterReceiver(receiver) }
-            // Never abandon a committed session that already finished — and don't abandon while the
-            // system install UI is still using the session (that yields "Session files in use").
-            // Only abandon if we never committed, or the user cancelled before a terminal status.
+
+
             if (sessionId >= 0 && (!committed || !terminalReached)) {
                 runCatching { installer.abandonSession(sessionId) }
             }
@@ -113,11 +94,6 @@ class ApkInstaller(private val context: Context) {
         }
     }
 
-    /**
-     * Uninstalls [packageName], driving the system's confirmation prompt the same way [install] does.
-     * Used to clear a package whose signature conflicts with a new build ([InstallEvent.Conflict]);
-     * it destroys that app's data, so only call it once the user has agreed.
-     */
     fun uninstall(packageName: String): Flow<UninstallEvent> = callbackFlow {
         val action = "${context.packageName}.UNINSTALL_STATUS.${SESSION_COUNTER.incrementAndGet()}"
         val installer = context.packageManager.packageInstaller
@@ -126,7 +102,7 @@ class ApkInstaller(private val context: Context) {
             onNeedsUserAction = { trySend(UninstallEvent.AwaitingConfirmation) },
             onNoPrompt = { trySend(UninstallEvent.Failed("System did not provide a confirmation prompt")); close() },
             onSuccess = { trySend(UninstallEvent.Uninstalled); close() },
-            // The uninstall path never reports CONFLICT; fold it in with the other failures.
+
             onConflict = { _, message -> trySend(UninstallEvent.Failed(message)); close() },
             onFailure = { message -> trySend(UninstallEvent.Failed(message)); close() },
         )
@@ -143,11 +119,6 @@ class ApkInstaller(private val context: Context) {
         awaitClose { runCatching { context.unregisterReceiver(receiver) } }
     }
 
-    /**
-     * The shared status-broadcast plumbing behind [install] and [uninstall]: maps the broadcast to an
-     * outcome and, for the user-action case, launches the system prompt (or a heads-up notification
-     * when background activity launch is blocked).
-     */
     private fun statusReceiver(
         apkLabel: String = "app",
         onNeedsUserAction: () -> Unit,
@@ -167,8 +138,8 @@ class ApkInstaller(private val context: Context) {
                     if (confirm != null) {
                         val labeled = confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         PendingInstallPrompt.hold(labeled, apkLabel)
-                        // Single path: foreground → show the system sheet once; background → one
-                        // heads-up notification. Doing both caused two popups / two notifications.
+
+
                         if (isAppInForeground()) {
                             val confirmToShow = PendingInstallPrompt.claimForLaunch()
                             if (confirmToShow != null) {
@@ -189,10 +160,6 @@ class ApkInstaller(private val context: Context) {
         }
     }
 
-    /**
-     * Writes the APK and commits in one open session (Android's recommended pattern). Split
-     * open-write-close then re-open-commit left some OEMs with "Session files in use" on confirm.
-     */
     private fun createAndCommitSession(
         installer: PackageInstaller,
         apk: File,
@@ -234,11 +201,6 @@ class ApkInstaller(private val context: Context) {
         return PendingIntent.getBroadcast(context, requestCode, intent, flags)
     }
 
-    /**
-     * Launches [packageName]'s MAIN/LAUNCHER activity, retrying briefly because the launcher entry is
-     * frequently not resolvable for a few hundred ms after the install commits. Returns true once the
-     * app is started, false if it never became launchable within the window.
-     */
     private suspend fun launchAppWithRetry(packageName: String?): Boolean {
         if (packageName == null) return false
         repeat(LAUNCH_RETRIES) { attempt ->
@@ -264,7 +226,6 @@ class ApkInstaller(private val context: Context) {
         }
     }
 
-    /** True when this app is in the foreground — used to avoid dual install UI / notifications. */
     private fun isAppInForeground(): Boolean {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
             ?: return false
@@ -278,7 +239,6 @@ class ApkInstaller(private val context: Context) {
     private companion object {
         val SESSION_COUNTER = AtomicInteger(0)
 
-        /** ~2s total (10 × 200ms) to cover the post-commit window before the launcher entry resolves. */
         const val LAUNCH_RETRIES = 10
         const val LAUNCH_RETRY_DELAY_MS = 200L
     }

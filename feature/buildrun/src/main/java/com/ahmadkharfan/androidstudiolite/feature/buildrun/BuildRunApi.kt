@@ -9,14 +9,6 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPrefli
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Editor-facing build/run contract.
- *
- * The contract is deliberately introduced before the Gradle split so the editor no longer knows
- * the concrete orchestrator that owns remote builds, installation, foreground service lifecycle,
- * and notifications. Its referenced transport types are moved to the buildrun API module in the
- * later extraction step.
- */
 interface BuildRunApi {
     suspend fun preflight(projectRoot: File): BuildPreflightResult
     suspend fun ensureDebugKeystore()

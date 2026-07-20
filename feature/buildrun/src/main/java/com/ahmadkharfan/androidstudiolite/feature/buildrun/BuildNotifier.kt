@@ -13,11 +13,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
 
-/**
- * Posts a heads-up "build finished" notification so a long build that the user has switched away
- * from still reports its result. Uses `POST_NOTIFICATIONS` and no-ops when it hasn't been granted.
- * Tap opens the project editor via [MainActivity].
- */
 class BuildNotifier(private val context: Context) {
 
     fun notifyFinished(
@@ -25,12 +20,11 @@ class BuildNotifier(private val context: Context) {
         success: Boolean,
         durationMillis: Long?,
         projectId: String = "",
-        /** When true, copy nudges the user that install is next / in progress. */
         installFollows: Boolean = false,
     ) {
         if (!canPost()) return
         ensureChannel()
-        // Drop the ongoing progress notification unless install still needs the keep-alive.
+
         if (!installFollows) {
             NotificationManagerCompat.from(context).cancel(RemoteBuildKeepAliveService.ONGOING_NOTIFICATION_ID)
         }
@@ -45,8 +39,8 @@ class BuildNotifier(private val context: Context) {
             append(projectName)
             if (seconds != null) append(" · ").append(String.format("%.1fs", seconds))
         }
-        // When install follows, route the tap through InstallConfirmActivity so the system install
-        // sheet appears; otherwise route to the application launcher activity.
+
+
         val contentIntent = if (success && installFollows) {
             PendingIntent.getActivity(
                 context,
@@ -91,7 +85,7 @@ class BuildNotifier(private val context: Context) {
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        // New channel id: IMPORTANCE can't be raised on an already-created DEFAULT channel.
+
         if (manager.getNotificationChannel(CHANNEL_ID) == null) {
             manager.createNotificationChannel(
                 NotificationChannel(
@@ -105,7 +99,7 @@ class BuildNotifier(private val context: Context) {
                 },
             )
         }
-        // Clean up the old quiet channel from earlier builds of the app.
+
         runCatching { manager.deleteNotificationChannel(LEGACY_CHANNEL_ID) }
     }
 

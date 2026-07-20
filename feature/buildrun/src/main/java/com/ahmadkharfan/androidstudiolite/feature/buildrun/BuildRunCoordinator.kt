@@ -25,21 +25,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Client-side context for a build/run so the coordinator can persist, keep the process alive, and
- * notify with a tap target back to the editor.
- */
 data class BuildClientMeta(
     val projectId: String,
     val projectName: String,
     val installAfterSuccess: Boolean,
 )
 
-/**
- * The single entry point the UI uses to build → install → run. It composes the bound [BuildSystem]
- * (the remote build backend) with the reliability preflight, keystore management, APK installation,
- * active-build persistence, foreground keep-alive, and finish-notification.
- */
 class BuildRunCoordinator(
     private val context: Context,
     private val buildSystem: BuildSystem,
@@ -52,7 +43,6 @@ class BuildRunCoordinator(
 
     private val clearScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /** Runs the pre-build reliability checks (doc 10 §3): storage pressure + version compatibility. */
     override suspend fun preflight(projectRoot: File): BuildPreflightResult = withContext(Dispatchers.IO) {
         val versions = runCatching {
             val read = gradleReader.read(projectRoot)
@@ -65,7 +55,6 @@ class BuildRunCoordinator(
         BuildPreflight.run(versions, DeviceStorage.availableBytes(projectRoot))
     }
 
-    /** Ensures the debug keystore exists so debug builds are signable before the build starts. */
     override suspend fun ensureDebugKeystore() {
         runCatching { keystoreManager.debugSigningConfig() }
     }
@@ -74,16 +63,13 @@ class BuildRunCoordinator(
         RemoteBuildKeepAliveService.startBuilding(context, meta.projectId, meta.projectName, "Preparing…")
         return buildSystem.build(request)
             .onEach { event -> onBuildEvent(event, meta, request.projectRoot) }
-        // Keep FGS up through install — demote via [endKeepAlive] after install finishes.
+
     }
 
-    /**
-     * Reattaches to a persisted in-flight remote build for [meta.projectId], or null when none matches.
-     */
     override suspend fun attachIfActive(projectId: String, projectRoot: File, projectName: String): Flow<BuildEvent>? {
         val active = activeBuildStore.get() ?: return null
         if (active.projectId != projectId) return null
-        // Stale entry older than the follow budget — drop it.
+
         if (System.currentTimeMillis() - active.startedAtEpochMs > ACTIVE_BUILD_MAX_AGE_MS) {
             activeBuildStore.clear(active.buildId)
             return null
@@ -103,12 +89,10 @@ class BuildRunCoordinator(
             .onEach { event -> onBuildEvent(event, meta, projectRoot) }
     }
 
-    /** Updates the ongoing keep-alive notification (e.g. while installing). */
     override fun updateKeepAliveProgress(projectId: String, projectName: String, progress: String) {
         RemoteBuildKeepAliveService.updateProgress(context, projectId, projectName, progress)
     }
 
-    /** Drops the foreground keep-alive after build + optional install complete. */
     override fun endKeepAlive() = demoteKeepAlive()
 
     override suspend fun activeBuildFor(projectId: String): ActiveBuild? {
@@ -127,12 +111,6 @@ class BuildRunCoordinator(
         clearScope.launch { activeBuildStore.clear() }
     }
 
-    /**
-     * The applicationId [modulePath] installs as, read straight off the build script, or null when the
-     * project can't be parsed / declares none. The build backend reports the APK's path but not its
-     * package, so this is what lets the install flow name — and, on a signature conflict, uninstall —
-     * the app being replaced.
-     */
     override suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -146,7 +124,6 @@ class BuildRunCoordinator(
     override fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> =
         apkInstaller.install(apk, applicationId, autoLaunch)
 
-    /** Removes [applicationId] (and its data) so a differently-signed rebuild can install. */
     override fun uninstall(applicationId: String): Flow<UninstallEvent> = apkInstaller.uninstall(applicationId)
 
     override fun notifyFinished(
@@ -197,10 +174,8 @@ class BuildRunCoordinator(
     }
 
     private companion object {
-        /** The remote build worker ships OpenJDK 17; preflight checks compatibility against it. */
         const val TOOLCHAIN_JDK_MAJOR = 17
         val AGP_VERSION_KEYS = listOf("agp", "androidGradlePlugin", "android-gradle-plugin", "android")
-        /** Align with RemoteBuildSystem follow budget (15 min) plus a little slack. */
         const val ACTIVE_BUILD_MAX_AGE_MS = 1_000_000L
     }
 }

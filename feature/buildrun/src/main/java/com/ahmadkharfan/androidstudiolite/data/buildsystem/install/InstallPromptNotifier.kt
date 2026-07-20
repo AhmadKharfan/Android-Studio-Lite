@@ -12,15 +12,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 
-/**
- * Holds a PackageInstaller confirmation [Intent] until the user actually confirms (or the install
- * fails/cancels). Android often lets `startActivity` from a background receiver return without
- * showing UI — so we never trust that path alone; a heads-up notification / foreground trampoline
- * is the reliable way to present the install sheet.
- *
- * [claimForLaunch] ensures only one caller can open the system sheet (notification trampoline and
- * MainActivity.onResume used to race and show two dialogs).
- */
 object PendingInstallPrompt {
     @Volatile
     private var confirmation: Intent? = null
@@ -41,7 +32,6 @@ object PendingInstallPrompt {
         }
     }
 
-    /** Snapshot without claiming — for has-pending checks only. */
     fun peek(): Intent? = synchronized(lock) { confirmation?.let { Intent(it) } }
 
     fun hasPending(): Boolean = synchronized(lock) { confirmation != null }
@@ -55,10 +45,6 @@ object PendingInstallPrompt {
         }
     }
 
-    /**
-     * Atomically claims the right to show the system install sheet. Returns null if another caller
-     * already launched it recently (or there is nothing pending).
-     */
     fun claimForLaunch(nowMs: Long = System.currentTimeMillis()): Intent? = synchronized(lock) {
         val intent = confirmation ?: return null
         if (nowMs - lastLaunchAttemptAtMs < LAUNCH_DEBOUNCE_MS) return null
@@ -69,9 +55,6 @@ object PendingInstallPrompt {
     private const val LAUNCH_DEBOUNCE_MS = 8_000L
 }
 
-/**
- * Heads-up "tap to install" notification — the reliable path when the IDE was backgrounded.
- */
 class InstallPromptNotifier(private val context: Context) {
 
     fun notifyReady(apkLabel: String, projectId: String = "") {

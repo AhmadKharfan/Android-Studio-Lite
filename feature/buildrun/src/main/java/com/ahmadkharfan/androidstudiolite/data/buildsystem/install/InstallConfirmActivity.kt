@@ -4,18 +4,11 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 
-/**
- * Transparent trampoline launched from a notification tap (user gesture → allowed to start
- * activities). Shows the PackageInstaller confirmation sheet over other apps.
- *
- * Uses [PendingInstallPrompt.claimForLaunch] so a racing MainActivity.onResume cannot open a
- * second copy of the same system install dialog.
- */
 class InstallConfirmActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Avoid re-running after rotation / process restore of this transparent activity.
+
         if (savedInstanceState != null) {
             finish()
             return
@@ -29,13 +22,13 @@ class InstallConfirmActivity : Activity() {
                 InstallPromptNotifier(applicationContext).cancel()
             }
         } else if (!PendingInstallPrompt.hasPending()) {
-            // Nothing to install — open the project editor instead.
+
             val projectId = intent.getStringExtra(EXTRA_PROJECT_ID).orEmpty()
             packageManager.getLaunchIntentForPackage(packageName)?.let { launcherIntent ->
                 startActivity(launcherIntent.putExtra("open_project_id", projectId))
             }
         }
-        // If hasPending but claim failed, another launcher already showed the sheet — do nothing.
+
         finish()
     }
 

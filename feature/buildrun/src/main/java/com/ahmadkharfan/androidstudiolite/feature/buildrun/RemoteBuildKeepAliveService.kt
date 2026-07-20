@@ -12,14 +12,6 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
-/**
- * Foreground keep-alive while a remote build stream is active. The Gradle work runs on the server;
- * this service only elevates process priority so Android is less likely to kill the IDE mid-stream
- * when the user switches away (CodeAssist promote/demote pattern, adapted for remote builds).
- *
- * Promoted via [startBuilding] / demoted via [stopBuilding]. The ongoing notification is updated in
- * place; completion is posted separately by [BuildNotifier].
- */
 class RemoteBuildKeepAliveService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -58,8 +50,8 @@ class RemoteBuildKeepAliveService : Service() {
                         startForeground(ONGOING_NOTIFICATION_ID, notification)
                     }
                 } catch (_: Exception) {
-                    // Background start denied / OEM quirk — keep the service alive without FGS;
-                    // the build coroutine still runs while the process lives.
+
+
                     runCatching {
                         getSystemService(NotificationManager::class.java)
                             ?.notify(ONGOING_NOTIFICATION_ID, notification)
