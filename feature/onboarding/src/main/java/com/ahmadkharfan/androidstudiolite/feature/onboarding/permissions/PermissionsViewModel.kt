@@ -21,8 +21,8 @@ class PermissionsViewModel(
 ), PermissionsInteractionListener {
 
     init {
-        // The repository starts with a stale (never-checked) permission list; force one live read
-        // immediately so the screen doesn't briefly show everything as "not granted".
+
+
         viewModelScope.launch { onboardingRepository.refreshPermissions() }
 
         tryToCollect(
@@ -60,7 +60,6 @@ class PermissionsViewModel(
         }
     }
 
-    /** Called by the screen after a permission dialog or Settings screen returns (or on resume). */
     fun onPermissionsUpdated() {
         viewModelScope.launch { onboardingRepository.refreshPermissions() }
     }

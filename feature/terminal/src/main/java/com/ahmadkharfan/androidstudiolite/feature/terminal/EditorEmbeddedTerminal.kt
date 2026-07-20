@@ -34,9 +34,6 @@ import org.koin.compose.koinInject
 private const val PANEL_ROWS = 16
 private const val PANEL_COLS = 80
 
-/**
- * Compact terminal for the editor bottom panel: multi-tab, project cwd, scroll + long-press copy.
- */
 @Composable
 fun EditorEmbeddedTerminal(
     projectRootPath: String,
@@ -155,13 +152,13 @@ private fun EmbeddedLinuxBanner(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = if (linux.busy) (linux.phase ?: "Installing Linux…")
+                text = if (linux.isBusy) (linux.phase ?: "Installing Linux…")
                 else "Install Linux for apk, git, and more",
                 style = AslCode.codeTiny,
                 color = colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
-            if (!linux.busy) {
+            if (!linux.isBusy) {
                 Text(
                     text = if (linux.error != null) "Retry" else "Install",
                     style = AslCode.codeSmall,

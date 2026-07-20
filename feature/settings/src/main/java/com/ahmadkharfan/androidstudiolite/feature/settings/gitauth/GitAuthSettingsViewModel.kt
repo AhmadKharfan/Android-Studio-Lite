@@ -10,11 +10,6 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
 import kotlinx.coroutines.launch
 
-/**
- * Manages global GitHub authentication (device-flow sign-in or a personal access token, stored per
- * host for `github.com`) and the app-wide Git commit author identity. Credentials are shared across
- * every project, so signing in here unlocks push/pull everywhere.
- */
 class GitAuthSettingsViewModel(
     private val credentialStore: GitCredentialStore,
     private val authenticator: GitHubDeviceAuthenticator,
@@ -90,7 +85,7 @@ class GitAuthSettingsViewModel(
 
     override fun onStatusMessageShown() = updateState { copy(statusMessage = null) }
 
-    // Shared auth dialog callbacks.
+
     override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
     override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
     override fun onSubmitAuthToken() = authController.onSubmitAuthToken()

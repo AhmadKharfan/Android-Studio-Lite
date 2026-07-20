@@ -104,7 +104,6 @@ class BuildRunViewModel(
         updateState { copy(message = null) }
     }
 
-    /** Runs a keystore create/import op, mapping success/failure into UI state. */
     private fun runKeystoreOp(op: suspend () -> SigningConfig) {
         updateState { copy(keystoreBusy = true, keystoreError = null) }
         viewModelScope.launch {

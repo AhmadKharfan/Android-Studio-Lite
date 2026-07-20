@@ -17,15 +17,8 @@ private val Context.onboardingDataStore by preferencesDataStore(name = "onboardi
 private val KEY_SETUP_COMPLETE = booleanPreferencesKey("setup_complete")
 private val KEY_ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 
-/**
- * Real [OnboardingRepository]: permission state is read live from the OS on every [refreshPermissions]
- * call (never cached — the user can flip a permission off from Settings mid-session), and the
- * setup/onboarding-complete flags persist across process death via DataStore so onboarding doesn't
- * re-run every launch once finished.
- */
 class AndroidOnboardingRepository(private val context: Context) : OnboardingRepository {
 
-    /** Bumped by [refreshPermissions] to force a re-read of live OS permission state. */
     private val refreshTrigger = MutableStateFlow(0)
 
     override fun observeState(): Flow<OnboardingState> =

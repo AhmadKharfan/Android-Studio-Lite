@@ -45,7 +45,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 private const val REPO_URL = "https://github.com/AhmadKharfan/Android-Studio-Lite"
 
-/** Opens [uri] in an external handler (browser, email client, …), ignoring "no app can handle it". */
 private fun Context.openExternal(uri: String) {
     runCatching {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

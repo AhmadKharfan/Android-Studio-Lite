@@ -20,16 +20,6 @@ import java.io.IOException
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 
-/**
- * A full pseudo-terminal session (T12), the PTY successor to [ShellTerminalRepository][
- * com.ahmadkharfan.androidstudiolite.data.local.ShellTerminalRepository]. It forks a real shell behind
- * a master PTY so interactive and curses programs work, streams the child's raw output as
- * [TerminalEvent.Bytes] (control sequences intact, for a terminal emulator to interpret), forwards
- * keystrokes verbatim via [writeInput], and propagates window resizes ([resize] → SIGWINCH).
- *
- * The PTY itself is obtained through a [PtySessionFactory] so the read loop and plumbing are unit
- * testable without the native library. Holds no Android types.
- */
 class PtyTerminalRepository(
     private val shellCommandProvider: () -> List<String>,
     private val environmentProvider: () -> Map<String, String>,
@@ -42,13 +32,12 @@ class PtyTerminalRepository(
     override val events: SharedFlow<TerminalEvent> = _events.asSharedFlow()
 
     private val lifecycle = Mutex()
-    // Read off the keystroke hot path without taking [lifecycle]; hence @Volatile for visibility.
+
     @Volatile
     private var session: PtySession? = null
     @Volatile
     private var writer: OutputStream? = null
     private var scope: CoroutineScope? = null
-    /** Serializes PTY writes on one IO coroutine so fast typing never piles up suspended callers. */
     private var inputChannel = Channel<ByteArray>(Channel.UNLIMITED)
     private var lastRows = 24
     private var lastCols = 80
@@ -82,14 +71,14 @@ class PtyTerminalRepository(
                 stream.write(bytes)
                 stream.flush()
             } catch (_: IOException) {
-                // Shell died; SessionEnded will follow from the read loop.
+
             }
         }
     }
 
     private suspend fun drainOutput(target: PtySession) {
-        // Decode straight from the byte stream as UTF-8 so multi-byte glyphs and box-drawing survive;
-        // the emulator downstream works on the decoded characters.
+
+
         val reader = target.output.reader(StandardCharsets.UTF_8)
         val buffer = CharArray(4096)
         try {
@@ -99,7 +88,7 @@ class PtyTerminalRepository(
                 if (n > 0) _events.emit(TerminalEvent.Bytes(String(buffer, 0, n)))
             }
         } catch (_: IOException) {
-            // Master closed underneath us (stop() destroyed the session) — fall through to teardown.
+
         }
         val code = runCatching { target.waitFor() }.getOrDefault(-1)
         _events.emit(TerminalEvent.CommandFinished(code))
@@ -107,7 +96,7 @@ class PtyTerminalRepository(
     }
 
     override suspend fun send(command: String) {
-        // A PTY has no command framing; "send a command" is just typing it followed by Enter.
+
         writeInput(command + "\n")
     }
 

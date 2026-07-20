@@ -2,14 +2,6 @@ package com.ahmadkharfan.androidstudiolite.feature.createproject.components
 
 import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
-/**
- * Resolves a template's [com.ahmadkharfan.androidstudiolite.domain.model.ProjectTemplate.thumbnail]
- * key to its artwork. The mapping lives here, in the UI layer, so the template registry stays free of
- * Android resource ids.
- *
- * Returns null for an unknown key; the card then falls back to a generic glyph rather than crashing
- * or showing an empty tile.
- */
 internal fun templateThumbnailRes(key: String): Int? = when (key) {
     "template_no_activity" -> R.drawable.template_no_activity
     "template_empty_activity" -> R.drawable.template_empty_activity

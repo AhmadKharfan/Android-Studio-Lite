@@ -5,7 +5,7 @@ interface BuildRunInteractionListener {
     fun onToggleAabOutput(enabled: Boolean)
     fun onTogglePreferGitSource(enabled: Boolean)
 
-    // Release keystore management.
+
     fun onOpenKeystoreDialog(mode: KeystoreDialogMode)
     fun onDismissKeystoreDialog()
     fun onCreateReleaseKeystore(form: KeystoreForm)
@@ -15,7 +15,6 @@ interface BuildRunInteractionListener {
     fun onMessageShown()
 }
 
-/** Fields the create/import keystore dialog collects; only the relevant subset is used per mode. */
 data class KeystoreForm(
     val storePath: String,
     val storePassword: String,

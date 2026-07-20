@@ -15,12 +15,6 @@ import kotlinx.coroutines.launch
 private const val DEFAULT_ROWS = 24
 private const val DEFAULT_COLS = 80
 
-/**
- * Binds the terminal UI to the process-scoped [TerminalSessionManager]. The ViewModel is disposable:
- * it mirrors the manager's tabs + the active tab's screen into [TerminalUiState], forwards user input
- * to the active session, and drives the optional Linux-userland install via [LinuxBootstrapInstaller].
- * Sessions live in the manager, so navigating away and back does not restart any shell.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TerminalViewModel(
     private val sessionManager: TerminalSessionManager,
@@ -44,11 +38,6 @@ class TerminalViewModel(
         }
     }
 
-    /**
-     * Flattens the manager's tab list, active id, the active tab's screen, every tab's running flag
-     * and the Linux install state into a single [TerminalUiState] stream. [flatMapLatest] re-subscribes
-     * whenever the set of tabs or the active tab changes.
-     */
     private fun derivedState(): Flow<TerminalUiState> {
         val tabsState = combine(sessionManager.sessions, sessionManager.activeId) { sessions, activeId ->
             sessions to activeId
@@ -101,13 +90,13 @@ class TerminalViewModel(
 
     override fun onSelectTab(id: String) {
         sessionManager.select(id)
-        // The newly shown tab may have been created/last sized while hidden; match the current view.
+
         sessionManager.session(id)?.resize(measuredRows, measuredCols)
     }
 
     override fun onCloseTab(id: String) {
         sessionManager.close(id)
-        // Never leave the user with zero tabs.
+
         sessionManager.ensureSession(measuredRows, measuredCols)
     }
 

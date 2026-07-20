@@ -1,19 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal.emulator
 
-/**
- * A small, clean-room VT100/xterm-style terminal emulator: it consumes the raw character stream a PTY
- * produces and maintains a character grid with cursor and SGR (color/attribute) state, so interactive
- * and curses programs (`top`, `vi`, progress bars that rewrite a line) render correctly instead of
- * scrolling garbage.
- *
- * This is ASL's own implementation — written from the public ECMA-48 / xterm control-sequence
- * specifications, with no code taken from any GPL terminal emulator (Termux included). It is pure
- * Kotlin with no Android dependencies, so it runs and is unit-tested on the JVM.
- *
- * Scope is deliberately the common subset real TUIs use: CSI cursor motion, erase, insert/delete of
- * lines and characters, scrolling regions, SGR colors/attributes, and the handful of ESC and DEC
- * private-mode sequences those depend on. Anything unrecognised is swallowed rather than printed.
- */
 class TerminalEmulator(rows: Int, cols: Int) {
 
     var rows = rows.coerceAtLeast(1)
@@ -30,32 +16,29 @@ class TerminalEmulator(rows: Int, cols: Int) {
     var cursorVisible = true
         private set
 
-    // Current SGR attributes applied to newly written cells.
+
     private var curFg = DEFAULT_COLOR
     private var curBg = DEFAULT_COLOR
     private var bold = false
     private var underline = false
     private var inverse = false
 
-    // Scrolling region (inclusive), reset to the full screen. Curses apps use this heavily.
+
     private var scrollTop = 0
     private var scrollBottom = this.rows - 1
 
-    // Saved cursor (DECSC / ESC 7).
+
     private var savedRow = 0
     private var savedCol = 0
 
-    // "Wrap pending" latch: after writing the last column we stay put until the next glyph, matching
-    // xterm — this is what stops a full-width line from eating a blank line.
+
     private var wrapPending = false
 
-    // Per-row "changed since last snapshot" flags. snapshot() reuses the previous row list for rows
-    // that stayed clean so the UI sees referential equality and can skip work.
+
     private var dirtyRows = BooleanArray(this.rows) { true }
     private var snapshotCache: Array<List<TerminalCell>>? = null
 
-    // Lines that have scrolled off the top of the screen (oldest first), capped at [scrollbackLimit].
-    // Populated only for whole-screen scrolls in the normal buffer; alt-screen apps never contribute.
+
     private val scrollback = ArrayDeque<List<TerminalCell>>()
     private var scrollbackLimit = DEFAULT_SCROLLBACK
     private var scrollbackCache: List<List<TerminalCell>> = emptyList()
@@ -67,9 +50,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
     private var state = State.GROUND
     private val paramBuf = StringBuilder()
 
-    // ---------------------------------------------------------------- public API
 
-    /** Feed a decoded chunk of output. Callers decode PTY bytes as UTF-8 before handing them here. */
     fun feed(text: CharSequence) {
         for (c in text) feed(c)
     }
@@ -80,15 +61,10 @@ class TerminalEmulator(rows: Int, cols: Int) {
             State.ESC -> esc(c)
             State.CSI -> csi(c)
             State.OSC -> osc(c)
-            State.CHARSET -> state = State.GROUND // consume the single charset-designator byte
+            State.CHARSET -> state = State.GROUND
         }
     }
 
-    /**
-     * Immutable snapshot for rendering. Rows unchanged since the previous snapshot keep their old
-     * list instance (referential equality) so the renderer can cheaply detect what changed; the
-     * scrollback list is likewise only rebuilt when it actually changed.
-     */
     fun snapshot(): TerminalScreen {
         val prev = snapshotCache
         val canReuse = prev != null && prev.size == rows
@@ -126,10 +102,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
 
     private fun markAllDirty() = dirtyRows.fill(true)
 
-    /**
-     * Resize the grid to [newRows] × [newCols], preserving the top-left content and clamping the cursor
-     * and scrolling region. Sent to the PTY via TIOCSWINSZ separately; this keeps the model consistent.
-     */
     fun resize(newRows: Int, newCols: Int) {
         val r = newRows.coerceAtLeast(1)
         val c = newCols.coerceAtLeast(1)
@@ -152,7 +124,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         snapshotCache = null
     }
 
-    // ---------------------------------------------------------------- ground state
 
     private fun ground(c: Char) {
         when (c) {
@@ -161,7 +132,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
             '\r' -> { cursorCol = 0; wrapPending = false }
             '\b' -> { if (cursorCol > 0) cursorCol--; wrapPending = false }
             '\t' -> tab()
-            '\u0007' -> Unit // bell
+            '\u0007' -> Unit
             else -> if (c >= ' ') putChar(c)
         }
     }
@@ -196,7 +167,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         wrapPending = false
     }
 
-    // ---------------------------------------------------------------- ESC state
 
     private fun esc(c: Char) {
         when (c) {
@@ -216,18 +186,16 @@ class TerminalEmulator(rows: Int, cols: Int) {
         wrapPending = false
     }
 
-    // ---------------------------------------------------------------- OSC (window title etc.)
 
     private fun osc(c: Char) {
-        // Terminated by BEL or ST (ESC \). We don't render titles, so just consume to the terminator.
+
         if (c == '\u0007') {
             state = State.GROUND
         } else if (c == '\u001B') {
-            state = State.ESC // the trailing '\' will drop us back to GROUND via esc()'s else branch
+            state = State.ESC
         }
     }
 
-    // ---------------------------------------------------------------- CSI state
 
     private fun csi(c: Char) {
         if (c in '0'..'9' || c == ';' || c == '?' || c == ':') {
@@ -235,7 +203,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
             return
         }
         if (c in ' '..'/') {
-            // Intermediate bytes (e.g. space) — keep collecting; rarely used, safe to ignore.
+
             return
         }
         dispatchCsi(c)
@@ -281,15 +249,14 @@ class TerminalEmulator(rows: Int, cols: Int) {
     private fun setPrivateMode(params: List<Int?>, enable: Boolean) {
         for (mode in params) {
             when (mode) {
-                25 -> cursorVisible = enable // DECTCEM show/hide cursor
-                // Enter/leave alt screen: track it (so scroll-back isn't polluted by TUIs) and give
-                // the app a clean slate either way.
+                25 -> cursorVisible = enable
+
+
                 1049, 47, 1047 -> { altScreen = enable; clearAll() }
             }
         }
     }
 
-    // ---------------------------------------------------------------- cursor motion
 
     private fun moveCursor(dRow: Int, dCol: Int) {
         cursorRow = (cursorRow + dRow).coerceIn(0, rows - 1)
@@ -303,7 +270,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         wrapPending = false
     }
 
-    // ---------------------------------------------------------------- erase / edit
 
     private fun eraseDisplay(mode: Int) {
         when (mode) {
@@ -366,11 +332,10 @@ class TerminalEmulator(rows: Int, cols: Int) {
         markRegionDirty(cursorRow, scrollBottom)
     }
 
-    // ---------------------------------------------------------------- scrolling
 
     private fun scrollUp(n: Int) {
         repeat(n.coerceAtLeast(0)) {
-            // A whole-screen scroll in the normal buffer pushes the top line into scroll-back history.
+
             if (scrollTop == 0 && !altScreen) pushScrollback(grid[0].toList())
             for (r in scrollTop until scrollBottom) grid[r] = grid[r + 1]
             grid[scrollBottom] = blankRowArray()
@@ -403,13 +368,12 @@ class TerminalEmulator(rows: Int, cols: Int) {
             scrollTop = 0
             scrollBottom = rows - 1
         }
-        // DECSTBM homes the cursor.
+
         cursorRow = scrollTop
         cursorCol = 0
         wrapPending = false
     }
 
-    // ---------------------------------------------------------------- SGR
 
     private fun applySgr(params: List<Int?>) {
         var i = 0
@@ -436,12 +400,11 @@ class TerminalEmulator(rows: Int, cols: Int) {
         }
     }
 
-    /** Handle `38;5;n` (256-color) / `38;2;r;g;b` (truecolor) starting at [start]; returns the index consumed to. */
     private inline fun extendedColor(list: List<Int>, start: Int, set: (Int) -> Unit): Int {
         return when (list.getOrNull(start + 1)) {
             5 -> { list.getOrNull(start + 2)?.let(set); start + 2 }
             2 -> {
-                // Pack r,g,b into a palette index space above 255 so the renderer can recover the RGB.
+
                 val r = list.getOrNull(start + 2) ?: 0
                 val g = list.getOrNull(start + 3) ?: 0
                 val b = list.getOrNull(start + 4) ?: 0
@@ -460,7 +423,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         inverse = false
     }
 
-    // ---------------------------------------------------------------- helpers
 
     private fun reset() {
         resetAttributes()
@@ -494,7 +456,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         if (curBg == DEFAULT_COLOR) TerminalCell.BLANK else TerminalCell(' ', DEFAULT_COLOR, curBg)
 
     private companion object {
-        /** Default number of scrolled-off lines to retain for scroll-back history. */
         const val DEFAULT_SCROLLBACK = 2000
 
         fun blankGrid(rows: Int, cols: Int): Array<Array<TerminalCell>> =

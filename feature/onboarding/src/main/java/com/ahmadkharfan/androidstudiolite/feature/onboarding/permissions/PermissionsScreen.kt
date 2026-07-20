@@ -70,8 +70,7 @@ fun PermissionsRoute(
         }
     }
 
-    // Safety net: some OEMs return from a Settings screen without always firing the
-    // StartActivityForResult callback promptly, so re-check on every resume too.
+
     val currentOnResume = rememberUpdatedState(viewModel::onPermissionsUpdated)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {

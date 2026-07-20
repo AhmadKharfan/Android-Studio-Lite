@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.feature.terminal
 import com.ahmadkharfan.androidstudiolite.core.linux.LinuxInstallState
 import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
 
-/** Maps installer flow state to UI, always honoring what is actually on disk. */
 fun LinuxInstallState.toLinuxStatus(proot: ProotEnvironment): LinuxStatus {
     val onDisk = proot.isInstalled()
     val installed = onDisk || this is LinuxInstallState.Installed
@@ -12,14 +11,14 @@ fun LinuxInstallState.toLinuxStatus(proot: ProotEnvironment): LinuxStatus {
         LinuxInstallState.NotInstalled -> LinuxStatus(installed = installed)
         is LinuxInstallState.Downloading -> LinuxStatus(
             installed = installed,
-            busy = true,
+            isBusy = true,
             progressPercent = (progress * 100).toInt(),
             phase = "Downloading ${(progress * 100).toInt()}%",
         )
-        LinuxInstallState.Extracting -> LinuxStatus(installed = installed, busy = true, phase = "Extracting…")
+        LinuxInstallState.Extracting -> LinuxStatus(installed = installed, isBusy = true, phase = "Extracting…")
         LinuxInstallState.BootstrappingPackages -> LinuxStatus(
             installed = installed,
-            busy = true,
+            isBusy = true,
             phase = "Installing git, python3, curl…",
         )
         LinuxInstallState.Installed -> LinuxStatus(installed = true)

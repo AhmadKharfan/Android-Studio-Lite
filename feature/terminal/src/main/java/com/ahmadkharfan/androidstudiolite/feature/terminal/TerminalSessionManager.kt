@@ -6,11 +6,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
-/**
- * Process-scoped owner of the open terminal tabs. Each tab is an independent [TerminalSession] with
- * its own PTY and emulator. Project-scoped tabs (editor bottom panel) use ids
- * `project:<path>:<n>` and are independent from the full-screen terminal tabs (`term-<n>`).
- */
 class TerminalSessionManager(
     private val repositoryFactory: (hostWorkingDir: String?) -> TerminalRepository,
 ) {

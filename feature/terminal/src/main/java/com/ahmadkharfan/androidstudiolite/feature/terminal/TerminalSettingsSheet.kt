@@ -50,7 +50,7 @@ fun TerminalSettingsSheet(
                 Text(
                     text = when {
                         linux.installed -> "Linux userland: installed (Alpine via proot)"
-                        linux.busy -> linux.phase ?: "Installing Linux userland…"
+                        linux.isBusy -> linux.phase ?: "Installing Linux userland…"
                         else -> "Linux userland: not installed — install to run apk, git, python, gcc, etc."
                     },
                     style = AslCode.codeSmall,
@@ -59,7 +59,7 @@ fun TerminalSettingsSheet(
                 linux.error?.let {
                     Text(text = "Last install error: $it", style = AslCode.codeTiny, color = colors.error)
                 }
-                if (!linux.installed && !linux.busy) {
+                if (!linux.installed && !linux.isBusy) {
                     AslButton(
                         label = if (linux.error != null) "Retry install" else "Install Linux userland",
                         onClick = onInstallLinux,
@@ -69,7 +69,7 @@ fun TerminalSettingsSheet(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (linux.installed && !linux.busy) {
+                if (linux.installed && !linux.isBusy) {
                     Text(
                         text = "Install tools inside the shell, e.g. apk add git. Projects are at /root/projects.",
                         style = AslCode.codeTiny,

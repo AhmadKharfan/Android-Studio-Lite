@@ -17,9 +17,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-/** Progress of downloading + extracting the Linux userland. */
 sealed interface LinuxInstallState {
-    /** The device architecture has no published rootfs; the full userland is unavailable. */
     data object Unsupported : LinuxInstallState
     data object NotInstalled : LinuxInstallState
     data class Downloading(val progress: Float) : LinuxInstallState
@@ -29,11 +27,6 @@ sealed interface LinuxInstallState {
     data class Failed(val message: String) : LinuxInstallState
 }
 
-/**
- * Downloads the [LinuxDistro] rootfs on demand and extracts it into app-private storage, keeping the
- * APK small (nothing is bundled). Extraction goes to a staging directory that is atomically renamed
- * into place, so a crash mid-install never leaves a half-populated rootfs that looks "installed".
- */
 class LinuxBootstrapInstaller(
     private val context: Context,
     private val proot: ProotEnvironment,
@@ -49,7 +42,6 @@ class LinuxBootstrapInstaller(
 
     private fun initialState(): LinuxInstallState = diskState()
 
-    /** Re-read the on-disk rootfs so UI state survives process restarts and partial failures. */
     fun refreshState() {
         val disk = diskState()
         val current = _state.value
@@ -57,11 +49,10 @@ class LinuxBootstrapInstaller(
             current is LinuxInstallState.Extracting ||
             current is LinuxInstallState.BootstrappingPackages
         ) return
-        // Installed on disk always wins over Failed/NotInstalled in memory.
+
         _state.value = disk
     }
 
-    /** Remove the installed userland so [install] can run again. */
     fun uninstall() {
         proot.rootfsDir.deleteRecursively()
         _state.value = diskState()
@@ -73,7 +64,6 @@ class LinuxBootstrapInstaller(
         else -> LinuxInstallState.NotInstalled
     }
 
-    /** Idempotent: a no-op if already installed or currently installing. */
     suspend fun install() {
         if (proot.isInstalled()) {
             ensureBootstrapPackages()
@@ -121,7 +111,6 @@ class LinuxBootstrapInstaller(
         }
     }
 
-    /** Installs git, python3, curl, etc. into the guest — downloaded at runtime, not bundled in the APK. */
     suspend fun ensureBootstrapPackages() {
         if (!proot.isInstalled() || proot.areBootstrapPackagesInstalled()) return
         withContext(ioDispatcher) { bootstrapPackages() }
@@ -163,7 +152,6 @@ class LinuxBootstrapInstaller(
         }
     }
 
-    /** Extract the xz-tar, stripping the leading `alpine-<arch>/` path component. */
     private fun extract(archive: File, into: File) {
         val canonicalInto = into.canonicalPath
         TarArchiveInputStream(XZCompressorInputStream(archive.inputStream().buffered())).use { tar ->
@@ -175,7 +163,7 @@ class LinuxBootstrapInstaller(
                     continue
                 }
                 val out = File(into, relative)
-                // Guard against path traversal from a malformed archive.
+
                 if (!out.canonicalPath.startsWith(canonicalInto + File.separator) && out.canonicalPath != canonicalInto) {
                     throw IllegalStateException("unsafe path in archive: ${entry.name}")
                 }
@@ -186,7 +174,7 @@ class LinuxBootstrapInstaller(
                         if (out.exists()) out.delete()
                         Os.symlink(entry.linkName, out.absolutePath)
                     }
-                    entry.isLink -> { // hard link -> materialize the target's bytes
+                    entry.isLink -> {
                         out.parentFile?.mkdirs()
                         val linkTarget = File(into, stripLeadingComponent(entry.linkName))
                         if (linkTarget.exists()) linkTarget.copyTo(out, overwrite = true)

@@ -16,24 +16,17 @@ import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
 
-/** Callbacks from [TerminalInputEditText] — text and special keys forwarded to the PTY. */
 interface TerminalInputListener {
     fun onText(text: String)
     fun onSpecialKey(key: TerminalKey)
 }
 
-/**
- * Invisible text editor that owns the IME for the terminal. Touch gestures (scroll, long-press copy)
- * are handled by a Compose overlay in [TerminalEmulatorView]; this view only receives focus for
- * keyboard input.
- */
 class TerminalInputEditText @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : AppCompatEditText(context, attrs) {
 
     var listener: TerminalInputListener? = null
-    /** Backup path for volume keys when the focused view receives them before the Activity. */
     var volumeKeyHandler: ((volumeUp: Boolean) -> Boolean)? = null
 
     init {
@@ -47,7 +40,7 @@ class TerminalInputEditText @JvmOverloads constructor(
         isLongClickable = false
         setTextIsSelectable(false)
         customSelectionActionModeCallback = DisabledActionMode
-        // When focus moves elsewhere (tapping the editor, another view), drop the soft keyboard.
+
         onFocusChangeListener = android.view.View.OnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) hideKeyboard()
         }
@@ -104,7 +97,6 @@ class TerminalInputEditText @JvmOverloads constructor(
         return super.dispatchKeyEvent(event)
     }
 
-    /** Request focus and show the soft keyboard. */
     fun showKeyboard() {
         requestFocus()
         post {
@@ -113,7 +105,6 @@ class TerminalInputEditText @JvmOverloads constructor(
         }
     }
 
-    /** Hide the soft keyboard (used when entering text-selection mode). */
     fun hideKeyboard() {
         val imm = ContextCompat.getSystemService(context, InputMethodManager::class.java)
         imm?.hideSoftInputFromWindow(windowToken, 0)

@@ -23,9 +23,8 @@ fun TemplateStep(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
-    // The default template ("Jetpack Compose") sits last in the list, so on open the selection would
-    // be below the fold and the grid would look like nothing was chosen. Scroll to it once, when the
-    // templates first arrive -- not on every selection change, which would fight the user's scrolling.
+
+
     val scrolled = remember { AtomicBoolean(false) }
     LaunchedEffect(templates, selectedId) {
         if (templates.isNotEmpty() && scrolled.compareAndSet(false, true)) {

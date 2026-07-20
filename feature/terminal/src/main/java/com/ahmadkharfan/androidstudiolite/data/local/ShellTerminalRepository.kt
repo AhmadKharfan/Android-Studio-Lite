@@ -20,23 +20,6 @@ import java.io.BufferedWriter
 import java.io.File
 import java.io.IOException
 
-/**
- * Real, ProcessBuilder-based shell session — ASL's own implementation (no GPL terminal-emulator code
- * was consulted or copied). It launches one long-lived `sh` reading commands from its stdin, injects
- * the IDE toolchain environment, and streams merged stdout/stderr back out as [TerminalEvent]s.
- *
- * ### Command boundaries without a PTY
- * A pipe-fed `sh` prints no prompt, so there is no natural "command done" signal. After every user
- * command we write a second line — `echo "<sentinel>$?"` — and the reader treats a line containing
- * [SENTINEL] as the boundary: it is swallowed (never shown) and turned into
- * [TerminalEvent.CommandFinished] carrying the preceding command's exit code. The trade-off is the
- * documented [TerminalRepository] limitation: a command that itself consumes stdin (e.g. `cat`) will
- * swallow the sentinel, so interactive programs are unsupported until the Phase 6 PTY lands.
- *
- * Dependencies are passed as providers so the session re-reads them on each [start] — the toolchain
- * shell at `$PREFIX/bin/sh` may only appear after the user installs it. The class holds no Android
- * types, which keeps it a plain JVM unit under test.
- */
 class ShellTerminalRepository(
     private val shellPathProvider: () -> String,
     private val environmentProvider: () -> Map<String, String>,
@@ -47,7 +30,6 @@ class ShellTerminalRepository(
     private val _events = MutableSharedFlow<TerminalEvent>(extraBufferCapacity = 256)
     override val events: SharedFlow<TerminalEvent> = _events.asSharedFlow()
 
-    /** Guards [process]/[writer]/[scope] against concurrent start/send/stop. */
     private val lifecycle = Mutex()
     private var process: Process? = null
     private var writer: BufferedWriter? = null
@@ -58,13 +40,13 @@ class ShellTerminalRepository(
         val dir = workingDirectory?.let(::File) ?: defaultWorkingDirectory()
         val sessionScope = CoroutineScope(ioDispatcher + SupervisorJob())
         val launched = withContext(ioDispatcher) {
-            // Plain (non-interactive) sh reading commands from the piped stdin: no prompt, no
-            // job-control warnings, and cd/exports persist across sends for the session's lifetime.
+
+
             ProcessBuilder(shellPathProvider())
                 .directory(dir?.takeIf { it.exists() })
                 .redirectErrorStream(true)
                 .apply {
-                    // Start from the toolchain environment; ProcessBuilder seeds a minimal PATH itself.
+
                     environment().putAll(environmentProvider())
                 }
                 .start()
@@ -82,7 +64,7 @@ class ShellTerminalRepository(
                 val line = reader.readLine() ?: break
                 val sentinelAt = line.indexOf(SENTINEL)
                 if (sentinelAt >= 0) {
-                    // Any real output printed on the same line as the sentinel still counts.
+
                     if (sentinelAt > 0) emitOutput(line.substring(0, sentinelAt))
                     val exit = line.substring(sentinelAt + SENTINEL.length).trim().toIntOrNull() ?: 0
                     _events.emit(TerminalEvent.CommandFinished(exit))
@@ -91,7 +73,7 @@ class ShellTerminalRepository(
                 }
             }
         } catch (_: IOException) {
-            // Stream closed underneath us (stop() destroyed the process) — fall through to teardown.
+
         }
         _events.emit(TerminalEvent.SessionEnded)
     }
@@ -106,11 +88,11 @@ class ShellTerminalRepository(
         withContext(ioDispatcher) {
             try {
                 target.appendLine(command)
-                // Print the exit status of the command above, tagged so the reader can bracket it.
+
                 target.appendLine("echo \"$SENTINEL\$?\"")
                 target.flush()
             } catch (_: IOException) {
-                // The shell died between checks; a SessionEnded event will already be in flight.
+
             }
         }
     }
@@ -121,7 +103,7 @@ class ShellTerminalRepository(
             try {
                 writer?.close()
             } catch (_: IOException) {
-                // Already closed; nothing to flush.
+
             }
             doomed?.destroy()
         }
@@ -132,7 +114,6 @@ class ShellTerminalRepository(
     }
 
     private companion object {
-        /** Unlikely-to-collide marker prefixing the exit code that ends each command's output. */
         const val SENTINEL = "__ASL_CMD_DONE_9f3c1a__"
     }
 }

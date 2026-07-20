@@ -12,16 +12,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-/**
- * Drives the create-project wizard: template → configure (name, package, save location, language,
- * minimum SDK) → summary.
- *
- * The option set mirrors Android Studio's dialog. Everything else the generated project needs
- * (compileSdk/targetSdk, KTS, the Gradle version) is pinned in the template layer rather than asked,
- * because those were cosmetic choices the remote build server doesn't honor per-project.
- *
- * @param defaultLocation absolute on-device projects root; the default parent for new projects.
- */
 class CreateProjectViewModel(
     private val templateRepository: TemplateRepository,
     private val projectRepository: ProjectRepository,
@@ -32,14 +22,8 @@ class CreateProjectViewModel(
     defaultDispatcher = dispatcher,
 ), CreateProjectInteractionListener {
 
-    /**
-     * Whether the user has typed in the package field. Until they do, the package tracks the project
-     * name; afterwards their edit is left alone (the old code re-derived it on every name keystroke,
-     * silently discarding what they'd typed).
-     */
     private var packageEdited = false
 
-    /** Snapshot of registered projects, for the duplicate name/package check. */
     private var existingProjects: List<Project> = emptyList()
 
     init {
@@ -59,7 +43,7 @@ class CreateProjectViewModel(
             block = { projectRepository.existing() },
             onSuccess = { projects ->
                 existingProjects = projects
-                // The defaults ("MyApplication") can themselves collide, so re-validate once loaded.
+
                 revalidate()
             },
         )
@@ -109,17 +93,11 @@ class CreateProjectViewModel(
         startCreate()
     }
 
-    /** `com.example.<slug>`, matching Android Studio's suggestion for a fresh project. */
     private fun derivePackage(name: String): String {
         val slug = name.lowercase().filter { it.isLetterOrDigit() }.ifBlank { "myapplication" }
         return "com.example.$slug"
     }
 
-    /**
-     * Recomputes both field errors. Duplicates are rejected here rather than left to
-     * `uniqueProjectDir`'s numeric suffix, which silently produced "myapplication-2" for what the
-     * user thought was a rename.
-     */
     private fun revalidate() {
         val s = state.value
         val nameError = (validateProjectName(s.projectName) as? ProjectNameValidation.Invalid)?.reason
@@ -153,7 +131,7 @@ class CreateProjectViewModel(
             onSuccess = { project ->
                 updateState { copy(creating = false, createdProjectId = project.id) }
             },
-            // Without this the button stays in its loading state forever on a failed generate.
+
             onError = { error ->
                 updateState {
                     copy(creating = false, nameError = error.message ?: "Couldn't create the project")

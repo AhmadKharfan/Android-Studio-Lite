@@ -2,25 +2,15 @@ package com.ahmadkharfan.androidstudiolite.core.linux
 
 import android.os.Build
 
-/**
- * The downloadable Linux userland that the terminal runs under proot. We use Alpine Linux built by
- * the proot-distro project: it is tiny (~3.4 MB compressed), ships the `apk` package manager, and its
- * binaries are 64 KB-page aligned so they load on 4 KB / 16 KB / 64 KB-page Android kernels (i.e. it
- * works on Android 15's 16 KB devices). Nothing is bundled in the APK — the tarball is downloaded on
- * first use and extracted into app-private storage, so the APK size is unaffected.
- */
 object LinuxDistro {
 
     const val DISPLAY_NAME = "Alpine Linux"
 
-    /** A per-ABI root filesystem tarball (xz-compressed tar) plus its expected SHA-256. */
     data class Rootfs(val url: String, val sha256: String)
 
-    // proot-distro release v4.30.1 rootfs artifacts (Alpine 3.22). Hosted on GitHub releases, which
-    // are immutable, so the pinned URL + checksum stay valid.
+
     private const val BASE = "https://github.com/termux/proot-distro/releases/download/v4.30.1"
 
-    /** Android ABI -> rootfs. Ordered lookup follows [Build.SUPPORTED_ABIS] (best ABI first). */
     private val byAbi: Map<String, Rootfs> = mapOf(
         "arm64-v8a" to Rootfs(
             "$BASE/alpine-aarch64-pd-v4.30.1.tar.xz",
@@ -40,7 +30,6 @@ object LinuxDistro {
         ),
     )
 
-    /** The rootfs for this device's preferred supported ABI, or null on an unsupported architecture. */
     fun forThisDevice(): Rootfs? {
         for (abi in Build.SUPPORTED_ABIS) byAbi[abi]?.let { return it }
         return null

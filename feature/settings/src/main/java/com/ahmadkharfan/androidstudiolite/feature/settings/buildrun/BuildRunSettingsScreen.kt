@@ -76,9 +76,8 @@ private fun BuildRunSettingsScreen(
                     .aslImePadding()
                     .padding(16.dp),
             ) {
-                // No Gradle JVM field or parallel/build-cache/config-cache toggles: builds run on the
-                // remote worker, which uses its own JVM and Gradle flags. They were never sent in the
-                // build request, so they only ever looked like settings.
+
+
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -90,7 +89,7 @@ private fun BuildRunSettingsScreen(
         ReleaseKeystoreDialog(
             mode = dialogMode,
             suggestedPath = uiState.suggestedReleaseKeystorePath,
-            busy = uiState.keystoreBusy,
+            isBusy = uiState.keystoreBusy,
             error = uiState.keystoreError,
             onDismiss = { interactionListener.onDismissKeystoreDialog() },
             onSubmit = { form ->
@@ -233,7 +232,7 @@ private fun SectionCard(colors: AslColorScheme, content: @Composable () -> Unit)
 private fun ReleaseKeystoreDialog(
     mode: KeystoreDialogMode,
     suggestedPath: String,
-    busy: Boolean,
+    isBusy: Boolean,
     error: String?,
     onDismiss: () -> Unit,
     onSubmit: (KeystoreForm) -> Unit,
@@ -255,7 +254,7 @@ private fun ReleaseKeystoreDialog(
         confirmLabel = if (creating) "Create" else "Import",
         cancelLabel = "Cancel",
         onConfirm = {
-            if (!busy) {
+            if (!isBusy) {
                 onSubmit(
                     KeystoreForm(
                         storePath = path.trim(),

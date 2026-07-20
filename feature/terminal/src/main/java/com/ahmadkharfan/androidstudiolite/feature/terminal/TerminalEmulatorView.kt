@@ -56,7 +56,6 @@ private const val FONT_SP = 13f
 private const val LINE_HEIGHT_RATIO = 1.30f
 private const val AUTOSCROLL_INTERVAL_MS = 40L
 
-/** Text selection over the terminal grid, in absolute line coordinates (scrollback + live). */
 private data class TerminalSelection(
     val anchorRow: Int,
     val anchorCol: Int,
@@ -75,12 +74,6 @@ private data class TerminalSelection(
 
 private data class SelectionBounds(val startRow: Int, val startCol: Int, val endRow: Int, val endCol: Int)
 
-/**
- * Renders an emulated [TerminalScreen] as a monospaced character grid and captures keyboard input
- * via a dedicated [TerminalInputEditText] overlay. Volume Up/Down moves a block cursor through the
- * output; dragging pans scroll-back; long-press starts a native-style text selection with a Copy
- * toolbar and draggable handles.
- */
 @Composable
 fun TerminalEmulatorView(
     screen: TerminalScreen,
@@ -113,18 +106,18 @@ fun TerminalEmulatorView(
     val handleRadiusPx = with(density) { 7.dp.toPx() }
     val handleTouchRadiusPx = with(density) { 24.dp.toPx() }
 
-    // Latest screen for touch handlers captured by the one-shot pointerInput block.
+
     val screenState = rememberUpdatedState(screen)
 
-    // Lines scrolled up from the live bottom (0 == following live output).
+
     var scrollOffset by remember { mutableFloatStateOf(0f) }
-    // Viewport row/col where the browse cursor is drawn while [isBrowsing].
+
     var indicatorRow by remember { mutableIntStateOf(0) }
     var indicatorCol by remember { mutableIntStateOf(0) }
     var isBrowsing by remember { mutableStateOf(false) }
     var selection by remember { mutableStateOf<TerminalSelection?>(null) }
     var selecting by remember { mutableStateOf(false) }
-    // Viewport pixel position where the selection drag ended; the toolbar anchors here.
+
     var selAnchorPx by remember { mutableStateOf<Offset?>(null) }
     var pastePos by remember { mutableStateOf<Offset?>(null) }
     var inputHost by remember { mutableStateOf<TerminalInputEditText?>(null) }
@@ -134,7 +127,7 @@ fun TerminalEmulatorView(
         if (scrollOffset > maxOffset) scrollOffset = maxOffset.toFloat()
     }
 
-    // When following live output, keep the browse indicator aligned with the shell cursor.
+
     LaunchedEffect(screen.cursorRow, screen.cursorCol, scrollOffset, isBrowsing) {
         if (!isBrowsing && scrollOffset == 0f) {
             indicatorRow = screen.cursorRow.coerceIn(0, (screen.rows - 1).coerceAtLeast(0))
@@ -187,7 +180,7 @@ fun TerminalEmulatorView(
         }
     }
 
-    // Drag by [deltaY] px: dragging the finger DOWN reveals older output.
+
     fun applyScrollDrag(deltaY: Float) {
         val historyMax = screenState.value.scrollback.size
         if (historyMax == 0) return
@@ -204,7 +197,7 @@ fun TerminalEmulatorView(
 
     fun offNow(): Int = scrollOffset.roundToInt().coerceIn(0, screenState.value.scrollback.size)
 
-    // Viewport (x,y) px -> absolute (row into scrollback+live, column).
+
     fun touchToCell(x: Float, y: Float): Pair<Int, Int> {
         val s = screenState.value
         val vpRow = (y / lineHeightPx).toInt().coerceIn(0, (s.rows - 1).coerceAtLeast(0))
@@ -240,7 +233,7 @@ fun TerminalEmulatorView(
         selAnchorPx = null
     }
 
-    // Which handle (1 = start, 2 = end, 0 = none) is near the given viewport point.
+
     fun handleAt(x: Float, y: Float, sel: TerminalSelection): Int {
         val s = screenState.value
         val base = s.scrollback.size - offNow()
@@ -284,7 +277,7 @@ fun TerminalEmulatorView(
         val viewportWidthPx = constraints.maxWidth.toFloat()
         val viewportHeightPx = constraints.maxHeight.toFloat()
 
-        // While selecting near an edge, pan the view so selection can extend past the viewport.
+
         fun autoScrollForSelection(y: Float): Boolean {
             val edge = lineHeightPx * 1.2f
             return when {
@@ -328,7 +321,7 @@ fun TerminalEmulatorView(
                     val native = canvas.nativeCanvas
                     val baseline = -fm.ascent
 
-                    // Selection highlight, drawn behind the glyphs.
+
                     if (bounds != null) {
                         paint.color = selectionArgb
                         paint.isUnderlineText = false
@@ -377,7 +370,7 @@ fun TerminalEmulatorView(
                         )
                     }
 
-                    // Selection drag handles.
+
                     if (bounds != null) {
                         paint.color = cursorColor.toArgb()
                         val startVp = bounds.startRow - base
@@ -400,7 +393,7 @@ fun TerminalEmulatorView(
                         }
                     }
 
-                    // Scroll position thumb when history exists.
+
                     if (maxOffset > 0) {
                         val trackW = 4f
                         val trackX = size.width - trackW - 2f
@@ -427,7 +420,7 @@ fun TerminalEmulatorView(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
-                            // Extend selection from a fixed anchor, auto-scrolling near the edges.
+
                             suspend fun AwaitPointerEventScope.runSelectionDrag(
                                 pointerId: PointerId,
                                 anchorRow: Int,
@@ -466,7 +459,7 @@ fun TerminalEmulatorView(
                                 val startPos = down.position
                                 val activeSel = selection
 
-                                // 1) Grab a selection handle?
+
                                 val grabbed = if (activeSel != null) {
                                     handleAt(startPos.x, startPos.y, activeSel)
                                 } else 0
@@ -478,7 +471,7 @@ fun TerminalEmulatorView(
                                     continue
                                 }
 
-                                // 2) Decide between long-press (select/paste), drag (scroll) and tap.
+
                                 val decision = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
                                     var d = "tap"
                                     while (true) {
@@ -500,11 +493,11 @@ fun TerminalEmulatorView(
                                         val liveCursorAbs = s.scrollback.size + s.cursorRow
                                         val inTypingPlace = aRow == liveCursorAbs && aCol >= s.cursorCol
                                         if (inTypingPlace && clipboardText().isNotEmpty()) {
-                                            // Long press on the actual typing position: offer Paste.
+
                                             selection = null
                                             pastePos = startPos
                                         } else {
-                                            // Long press elsewhere: select the word, then extend on drag.
+
                                             pastePos = null
                                             val cells = lineCellsAbs(s, aRow)
                                             val word = if (cells != null) wordRange(cells, aCol) else aCol..aCol
@@ -541,8 +534,7 @@ fun TerminalEmulatorView(
                     },
             )
 
-            // Floating selection toolbar (Copy / Select all). Hidden while actively dragging so it
-            // never covers the selection; on release it re-appears pinned inside the viewport.
+
             val sel = selection
             if (sel != null && !selecting) {
                 val b = sel.ordered()
@@ -552,8 +544,8 @@ fun TerminalEmulatorView(
                 var toolbarWidthPx by remember { mutableIntStateOf(0) }
                 var toolbarHeightPx by remember { mutableIntStateOf(0) }
                 val margin = lineHeightPx * 0.3f
-                // Anchor to where the finger was released so the toolbar follows the drag end
-                // (top when selecting upward, bottom when selecting downward).
+
+
                 val anchor = selAnchorPx ?: Offset(b.startCol * charWidthPx, startVp * lineHeightPx)
                 val aboveY = anchor.y - toolbarHeightPx - margin
                 val belowY = anchor.y + lineHeightPx + margin
@@ -579,7 +571,7 @@ fun TerminalEmulatorView(
                 }
             }
 
-            // Floating Paste toolbar (shown when long-pressing the input line).
+
             val pp = pastePos
             if (pp != null) {
                 var pasteWidthPx by remember { mutableIntStateOf(0) }
@@ -700,7 +692,7 @@ private fun TerminalInputHost(
             }
             onViewReady(view)
         },
-        // Leaving composition (switching to Build Output / App Logs, or closing the panel).
+
         onRelease = { view ->
             view.hideKeyboard()
             view.clearFocus()
@@ -708,10 +700,6 @@ private fun TerminalInputHost(
     )
 }
 
-/**
- * Draw one row, coalescing maximal runs of identically-styled cells into a single `drawText`. When
- * [cursorCol] >= 0 the cursor block is painted over that column.
- */
 private fun drawRow(
     native: android.graphics.Canvas,
     paint: Paint,
@@ -783,10 +771,6 @@ private fun drawRow(
 private fun sameStyle(a: TerminalCell, b: TerminalCell): Boolean =
     a.fg == b.fg && a.bg == b.bg && a.bold == b.bold && a.underline == b.underline && a.inverse == b.inverse
 
-/**
- * Resolve an ANSI palette index to a color: 0–15 standard/bright, 16–255 the xterm 256-color set,
- * ≥256 packed 24-bit truecolor, [DEFAULT_COLOR] the caller's default.
- */
 fun ansiColor(index: Int, default: Color): Color {
     if (index == DEFAULT_COLOR) return default
     if (index >= 256) {

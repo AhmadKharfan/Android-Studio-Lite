@@ -31,7 +31,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-// On-screen helper keys for things a soft keyboard makes awkward (Esc, arrows, Ctrl-C, pipes).
+
 private val EXTRA_KEYS = listOf("Esc", "Tab", "Ctrl+C", "←", "↑", "↓", "→", "/", "|", "~", "-")
 
 @Composable
@@ -43,16 +43,17 @@ fun TerminalRoute(onBack: () -> Unit, viewModel: TerminalViewModel = koinViewMod
         onBack = onBack,
     )
     if (uiState.settingsVisible) {
+        val listener: TerminalInteractionListener = viewModel
         TerminalSettingsSheet(
             linux = uiState.linux,
-            onDismiss = { viewModel.onDismissSettings() },
+            onDismiss = listener::onDismissSettings,
             onInstallLinux = {
-                viewModel.onDismissSettings()
-                viewModel.onInstallLinux()
+                listener.onDismissSettings()
+                listener.onInstallLinux()
             },
             onReinstallLinux = {
-                viewModel.onDismissSettings()
-                viewModel.onReinstallLinux()
+                listener.onDismissSettings()
+                listener.onReinstallLinux()
             },
         )
     }
@@ -186,7 +187,7 @@ private fun TerminalLinuxBanner(
     onInstall: () -> Unit,
     colors: AslColorScheme,
 ) {
-    // Nothing to offer once installed, or on an architecture with no rootfs.
+
     if (linux.installed || !linux.supported) return
     Column(modifier = Modifier.background(colors.bgElevated)) {
         Row(
@@ -198,7 +199,7 @@ private fun TerminalLinuxBanner(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (linux.busy) (linux.phase ?: "Installing Linux…")
+                    text = if (linux.isBusy) (linux.phase ?: "Installing Linux…")
                     else "Enable full Linux — apk, python, git, gcc and more",
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,
@@ -207,11 +208,11 @@ private fun TerminalLinuxBanner(
                     Text(text = "Failed: $it", style = AslCode.codeTiny, color = colors.textSecondary)
                 }
             }
-            if (!linux.busy) {
+            if (!linux.isBusy) {
                 InstallPill(label = if (linux.error != null) "Retry" else "Install", onClick = onInstall, colors = colors)
             }
         }
-        if (linux.busy && linux.progressPercent in 1..99) {
+        if (linux.isBusy && linux.progressPercent in 1..99) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

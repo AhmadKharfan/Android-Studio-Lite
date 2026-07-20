@@ -5,7 +5,6 @@ import androidx.compose.runtime.Immutable
 data class CreateProjectTemplateUiModel(
     val id: String,
     val name: String,
-    /** Artwork key; the picker resolves it via `templateThumbnailRes`. */
     val thumbnail: String,
 )
 
@@ -21,7 +20,6 @@ val MIN_SDK_OPTIONS = listOf(
 const val LANG_KOTLIN = "kotlin"
 const val LANG_JAVA = "java"
 
-/** Android Studio's default template; the wizard selects it instead of whatever loads first. */
 const val DEFAULT_TEMPLATE_ID = "empty-compose"
 
 @Immutable
@@ -31,7 +29,6 @@ data class CreateProjectUiState(
     val selectedTemplateId: String? = null,
     val projectName: String = "MyApplication",
     val packageName: String = "com.example.myapplication",
-    /** Absolute parent directory the project is created in; defaults to the on-device projects root. */
     val location: String = "",
     val minSdk: String = "26",
     val language: String = LANG_KOTLIN,
@@ -49,11 +46,6 @@ data class CreateProjectUiState(
     val languageLabel: String
         get() = if (language == LANG_JAVA) "Java" else "Kotlin"
 
-    /**
-     * Whether the project may be generated. Step-independent on purpose: the Create button lives on
-     * the last step, but the ViewModel guards on this too, so a duplicate or malformed package can't
-     * slip through by any path.
-     */
     val canCreate: Boolean
         get() = selectedTemplateId != null && nameError == null && packageError == null &&
             projectName.isNotBlank() && packageName.isNotBlank()

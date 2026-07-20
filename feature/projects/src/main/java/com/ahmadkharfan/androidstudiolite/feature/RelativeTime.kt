@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.feature
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
-/** Formats a past timestamp as a short human phrase, localized via [context]. */
 fun formatRelativeTime(context: Context, millis: Long): String {
     val diffMs = System.currentTimeMillis() - millis
     val minutes = diffMs / 60_000

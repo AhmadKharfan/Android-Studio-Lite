@@ -93,8 +93,8 @@ private fun CreateProjectStepContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        // AnimatedContent needs bounded (non-scrolling) constraints to size/slide its two panes —
-        // each step scrolls internally instead of the wrapper scrolling around the animation.
+
+
         AslSlideContent(
             modifier = Modifier.fillMaxSize(),
             targetState = uiState.step,

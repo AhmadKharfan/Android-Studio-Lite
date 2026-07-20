@@ -4,10 +4,6 @@ import android.view.KeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 
-/**
- * While the terminal screen is visible, intercept volume keys (via [TerminalVolumeKeyDispatcher]
- * hooked in MainActivity) and move the browse cursor one character at a time through output.
- */
 @Composable
 fun TerminalVolumeScrollEffect(
     enabled: Boolean,
