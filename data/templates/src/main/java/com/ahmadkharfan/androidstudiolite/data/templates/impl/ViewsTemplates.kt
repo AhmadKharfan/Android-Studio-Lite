@@ -8,7 +8,6 @@ import com.ahmadkharfan.androidstudiolite.data.templates.TemplateMetadata
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 
-/** Shared setup for classic-Views single-activity templates (Kotlin or Java). */
 internal object ViewsSupport {
 
     fun applyBaseAndroidApp(spec: NewProjectSpec, recipe: ProjectRecipe) {
@@ -23,7 +22,6 @@ internal object ViewsSupport {
         TemplateContent.addStandardTestDeps(recipe)
     }
 
-    /** Emits `MainActivity` in the selected language that inflates [layoutRes]. */
     fun mainActivity(spec: NewProjectSpec, recipe: ProjectRecipe, layoutRes: String = "activity_main") {
         val pkg = spec.packageName
         if (spec.language == TemplateLanguage.KOTLIN) {
@@ -70,7 +68,6 @@ internal object ViewsSupport {
     }
 }
 
-/** A single classic-Views activity with a centered greeting inside a ConstraintLayout. */
 object EmptyViewsTemplate : Template {
 
     override val metadata = TemplateMetadata(
@@ -112,7 +109,6 @@ object EmptyViewsTemplate : Template {
     }
 }
 
-/** A single-activity app with a Material toolbar and a floating action button ("Basic Activity"). */
 object BasicViewsTemplate : Template {
 
     override val metadata = TemplateMetadata(

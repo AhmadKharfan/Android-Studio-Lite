@@ -8,7 +8,6 @@ import com.ahmadkharfan.androidstudiolite.data.templates.TemplateMetadata
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 
-/** An empty Android app module with no Activity — a starting point to add your own entry point. */
 object NoActivityTemplate : Template {
 
     override val metadata = TemplateMetadata(

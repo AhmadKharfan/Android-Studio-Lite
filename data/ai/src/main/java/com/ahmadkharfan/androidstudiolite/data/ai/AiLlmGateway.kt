@@ -23,10 +23,6 @@ data class LlmReply(val text: String, val codeSnippet: ChatCodeSnippet? = null)
 
 class AiLlmException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
-/**
- * Thin HTTP client for the supported LLM providers. Each provider uses its native REST shape; OpenAI-
- * compatible backends (OpenAI, DeepSeek, Grok) share one code path.
- */
 class AiLlmGateway(
     private val httpClient: OkHttpClient = defaultClient(),
 ) {
@@ -53,7 +49,6 @@ class AiLlmGateway(
         return parseLlmReply(chatRaw(providerId, apiKey, model, systemPrompt, turns))
     }
 
-    /** Sends the full [turns] conversation and returns the model's raw text (no fenced-code parsing). */
     fun chatRaw(
         providerId: String,
         apiKey: String,
@@ -71,10 +66,6 @@ class AiLlmGateway(
         }
     }
 
-    /**
-     * Streams the model reply token-by-token, invoking [onDelta] with each text chunk, and returns the
-     * full accumulated text. Falls back to the blocking [chatRaw] if streaming fails before any delta.
-     */
     fun chatRawStream(
         providerId: String,
         apiKey: String,
@@ -102,7 +93,7 @@ class AiLlmGateway(
             }
         } catch (e: Exception) {
             AiAgentLog.w("Stream", "streaming error provider=$providerId accumulated=${accumulated.length}", e)
-            // If nothing streamed yet, fall back to the blocking path; otherwise surface the error.
+
             if (accumulated.isEmpty()) {
                 val full = chatRaw(providerId, apiKey, resolvedModel, systemPrompt, turns)
                 if (full.isNotEmpty()) onDelta(full)
@@ -113,7 +104,6 @@ class AiLlmGateway(
         return accumulated.toString().ifBlank { throw AiLlmException("Empty response from $providerId") }
     }
 
-    /** Best-effort list of available model ids for [providerId]; empty on failure. */
     fun listModels(providerId: String, apiKey: String): List<String> {
         if (apiKey.isBlank()) return emptyList()
         return runCatching {
@@ -416,7 +406,6 @@ class AiLlmGateway(
         }
     }
 
-    /** Reads an SSE response body, invoking [onData] for each `data:` payload. */
     private fun readSse(request: Request, onData: (String) -> Unit) {
         httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -476,7 +465,6 @@ class AiLlmGateway(
     }
 }
 
-/** Pulls an optional fenced code block out of a markdown reply for the chat UI. */
 fun parseLlmReply(raw: String): LlmReply {
     val fence = Regex("```(\\w*)\\r?\\n([\\s\\S]*?)```")
     val match = fence.find(raw) ?: return LlmReply(text = raw.trim())
@@ -555,7 +543,6 @@ private data class OpenAiChatResponse(val choices: List<OpenAiChoice> = emptyLis
 @Serializable
 private data class OpenAiChoice(val message: OpenAiMessage? = null)
 
-/** Shared shape for OpenAI-compatible and Anthropic model-list endpoints: `{"data":[{"id":...}]}`. */
 @Serializable
 private data class IdListResponse(val data: List<IdEntry> = emptyList())
 

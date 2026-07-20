@@ -10,14 +10,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/**
- * Real [FileTreeRepository] over [java.io.File]. A project's id is its directory name under
- * [projectsRoot] (absolute ids are also accepted, for callers that already hold a path); every emitted
- * [FileNode.id] is an absolute path, which is the same key [LocalFileContentRepository] and the mutation
- * methods here accept. Mutations publish events on the shared [changeBus].
- *
- * git status is intentionally left null here — that is populated by the git integration (task T5).
- */
 class LocalFileTreeRepository(
     private val projectsRoot: File,
     private val changeBus: FileChangeBus,
@@ -36,7 +28,7 @@ class LocalFileTreeRepository(
         if (!dir.isDirectory) emptyList()
         else LocalFsSupport.sortedChildren(dir)
             .filterNot { LocalFsSupport.isIgnoredDir(it) }
-            // One level only: children carry null so callers know to lazily fetch on expand.
+
             .map { FileNode(id = it.absolutePath, name = it.name, children = if (it.isDirectory) null else null) }
     }
 
@@ -120,7 +112,6 @@ class LocalFileTreeRepository(
 
     override fun observeChanges(): Flow<FileChangeEvent> = changeBus.events
 
-    /** Accepts either a bare directory name under [projectsRoot] or an already-absolute project path. */
     private fun resolveProjectRoot(projectId: String): File {
         val asAbsolute = File(projectId)
         return if (asAbsolute.isAbsolute && asAbsolute.exists()) asAbsolute else File(projectsRoot, projectId)

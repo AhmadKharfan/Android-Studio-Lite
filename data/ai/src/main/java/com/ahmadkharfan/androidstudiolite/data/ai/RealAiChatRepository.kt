@@ -48,7 +48,6 @@ class RealAiChatRepository(
     private val historyStore: ChatHistoryStore,
 ) : AiChatRepository {
 
-    /** In-memory, per-project conversation state backed by [historyStore] on disk. */
     private inner class ProjectSession(val projectId: String) {
         val threads = MutableStateFlow<List<ChatThread>>(emptyList())
         val activeThreadId = MutableStateFlow("")
@@ -168,7 +167,7 @@ class RealAiChatRepository(
         val session = sessionFor(projectId)
         session.updateThreadById(threadId) { it.copy(providerId = providerId, model = model) }
         persist(session)
-        // Remember this choice as the default for new chats.
+
         aiAgentRepository.setActiveProvider(providerId)
         if (model.isNotBlank()) aiAgentRepository.setModel(providerId, model)
     }
@@ -238,7 +237,6 @@ class RealAiChatRepository(
         }
     }
 
-    /** Picks the thread's provider if it's validated, else the default/active provider, else the first valid one. */
     private fun resolveProvider(settings: AiAgentSettings, thread: ChatThread?): AiProviderConfig? {
         if (!settings.enabled) return null
         val valid = settings.providers.filter { it.status == ApiKeyStatus.VALID }
@@ -267,7 +265,7 @@ class RealAiChatRepository(
             kotlinPrefix,
         )
 
-        // Seed from persisted plain-text messages (skip welcome, tool cards, and thinking blocks).
+
         val historyMessages = activeMessages(session)
             .filter {
                 it.id != WELCOME_ID &&
@@ -451,10 +449,6 @@ class RealAiChatRepository(
         appendAiMessage(session, "Stopped after $MAX_ITERATIONS steps to avoid running away. Ask me to continue if needed.")
     }
 
-    /**
-     * Streams one model turn into a live Thinking message (and a live answer bubble when `final`
-     * text appears). Returns raw text + message ids, or null on hard failure.
-     */
     private suspend fun streamOneTurn(
         session: ProjectSession,
         provider: AiProviderConfig,
@@ -528,7 +522,7 @@ class RealAiChatRepository(
     ) {
         val display = finalText.trim()
         if (AgentProtocol.looksLikeProtocolJson(display)) {
-            // Should not happen after sanitizeDisplayText, but never show raw JSON.
+
             removeMessage(session, thoughtId)
             answerId?.let { removeMessage(session, it) }
             if (display != AgentProtocol.PARSE_FAILURE_MESSAGE) {
@@ -541,7 +535,7 @@ class RealAiChatRepository(
             removeMessage(session, answerId)
         }
         if (display.isNotBlank()) {
-            // Plan, Ask (review), and other read-only modes can produce an updated plan — surface Build/Review on the latest one.
+
             if (AgentProtocol.isPlanLike(display) && mode != ChatMode.AGENT) {
                 appendPlanMessage(session, display)
             } else {
@@ -614,7 +608,7 @@ class RealAiChatRepository(
         val projectId = session.projectId
         val root = withContext(Dispatchers.IO) { executor.projectRoot(projectId) }
         val normalized = executor.normalizeAction(root, action)
-        // In read-only modes (Ask/Plan) file-mutating tools are refused so the model must answer/plan instead.
+
         if (mode != ChatMode.AGENT && normalized.mutating) {
             val toolCallId = "tool-${UUID.randomUUID()}"
             appendToolMessage(
@@ -824,7 +818,6 @@ class RealAiChatRepository(
     }
 }
 
-/** The configured default provider if valid, else the first provider (catalog order) with a validated key. */
 internal fun AiAgentSettings.activeProvider(): AiProviderConfig? {
     if (!enabled) return null
     val byId = providers.associateBy { it.id }

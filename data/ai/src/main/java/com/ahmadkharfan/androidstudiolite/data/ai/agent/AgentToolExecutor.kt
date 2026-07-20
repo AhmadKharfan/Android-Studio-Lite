@@ -12,12 +12,6 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Runs [AgentAction]s against the open project's working tree. Every project-relative path is resolved
- * against the project root and validated so the agent can never read or write outside the project (or
- * into the `.git` directory). File writes route through [FileContentRepository]/[FileTreeRepository] so
- * the shared FileChangeBus fires and open editor tabs stay in sync.
- */
 class AgentToolExecutor(
     private val fileContentRepository: FileContentRepository,
     private val fileTreeRepository: FileTreeRepository,
@@ -25,7 +19,6 @@ class AgentToolExecutor(
     private val gradleProjectReader: GradleProjectReader,
 ) {
 
-    /** Project-relative prefix for Kotlin sources, e.g. `app/src/main/java/com/example/app/`. */
     suspend fun kotlinSourcePackagePrefix(projectId: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -37,15 +30,14 @@ class AgentToolExecutor(
                 val kotlinRoot = appModule.sourceSets.firstOrNull { it.name == "main" }?.kotlinDirs?.firstOrNull()
                     ?: appModule.sourceSets.firstOrNull()?.kotlinDirs?.firstOrNull()
                     ?: File(appModule.moduleDir, "src/main/java")
-                val relRoot = rel(root, kotlinRoot).trimEnd('/')
-                "$relRoot/${pkg.replace('.', '/')}/"
+                val relativeRoot = relativePath(root, kotlinRoot).trimEnd('/')
+                "$relativeRoot/${pkg.replace('.', '/')}/"
             }.getOrNull()
         }
 
     suspend fun projectRoot(projectId: String): File =
         withContext(Dispatchers.IO) { projectPathResolver(projectId).canonicalFile }
 
-    /** Reads a file's current text, or null if it does not exist — used to build edit diffs. */
     suspend fun readTextOrNull(projectId: String, relativePath: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -55,7 +47,6 @@ class AgentToolExecutor(
             }.getOrNull()
         }
 
-    /** A shallow, project-relative listing used to seed the agent's system prompt. */
     suspend fun outline(projectId: String, maxEntries: Int = 250): String =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -65,9 +56,9 @@ class AgentToolExecutor(
                     if (lines.size >= maxEntries) return
                     for (node in nodes) {
                         if (lines.size >= maxEntries) return
-                        val rel = rel(root, File(node.id))
+                        val relative = relativePath(root, File(node.id))
                         val isDir = node.children != null
-                        lines.add("  ".repeat(depth) + rel.substringAfterLast('/') + if (isDir) "/" else "")
+                        lines.add("  ".repeat(depth) + relative.substringAfterLast('/') + if (isDir) "/" else "")
                         if (isDir && depth < 3) walk(node.children.orEmpty(), depth + 1)
                     }
                 }
@@ -111,7 +102,7 @@ class AgentToolExecutor(
             } else {
                 children.joinToString("\n") { child ->
                     val isDir = child.children != null || File(child.id).isDirectory
-                    rel(root, File(child.id)) + if (isDir) "/" else ""
+                    relativePath(root, File(child.id)) + if (isDir) "/" else ""
                 }
             }
         }
@@ -159,7 +150,7 @@ class AgentToolExecutor(
                 "newName must be a single segment: ${action.newName}"
             }
             val newPath = fileTreeRepository.rename(file.absolutePath, action.newName)
-            "Renamed to ${rel(root, File(newPath))}"
+            "Renamed to ${relativePath(root, File(newPath))}"
         }
 
         is AgentAction.Move -> {
@@ -168,7 +159,7 @@ class AgentToolExecutor(
             val newParent = resolve(root, action.newParent)
             require(newParent.isDirectory) { "Not a directory: ${action.newParent}" }
             val newPath = fileTreeRepository.move(file.absolutePath, newParent.absolutePath)
-            "Moved to ${rel(root, File(newPath))}"
+            "Moved to ${relativePath(root, File(newPath))}"
         }
 
         is AgentAction.Delete -> {
@@ -188,12 +179,12 @@ class AgentToolExecutor(
             .filter { it.isFile && it.length() <= MAX_SEARCH_BYTES }
             .forEach { file ->
                 if (matches.size >= MAX_MATCHES) return@forEach
-                val rel = rel(root, file)
-                if (rel.lowercase().contains(needle)) matches.add("$rel (filename)")
+                val relative = relativePath(root, file)
+                if (relative.lowercase().contains(needle)) matches.add("$relative (filename)")
                 runCatching { file.readText() }.getOrNull()?.let { content ->
                     content.lineSequence().forEachIndexed { index, line ->
                         if (matches.size < MAX_MATCHES && line.lowercase().contains(needle)) {
-                            matches.add("$rel:${index + 1}: ${line.trim().take(160)}")
+                            matches.add("$relative:${index + 1}: ${line.trim().take(160)}")
                         }
                     }
                 }
@@ -201,7 +192,6 @@ class AgentToolExecutor(
         return if (matches.isEmpty()) "No matches for \"$query\"" else matches.take(MAX_MATCHES).joinToString("\n")
     }
 
-    /** Resolves a project-relative path to a canonical file inside [root], rejecting traversal + `.git`. */
     private fun resolve(root: File, path: String): File {
         val cleaned = path.trim().removePrefix("./").trimStart('/')
         val file = if (cleaned.isEmpty() || cleaned == ".") root else File(root, cleaned)
@@ -223,14 +213,10 @@ class AgentToolExecutor(
         return false
     }
 
-    private fun rel(root: File, file: File): String =
+    private fun relativePath(root: File, file: File): String =
         file.canonicalFile.relativeToOrNull(root.canonicalFile)?.path?.replace('\\', '/')
             ?: file.absolutePath
 
-    /**
-     * Models often place Kotlin files directly under `app/src/main/java/`. Relocate to the package
-     * directory declared in the file content so files appear in the project tree.
-     */
     private fun normalizeKotlinSourcePath(root: File, path: String, content: String): String {
         val cleaned = path.trim().removePrefix("./").trimStart('/')
         val fileName = File(cleaned).name

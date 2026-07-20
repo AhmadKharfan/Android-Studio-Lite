@@ -16,13 +16,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Snapshot of one project's chat threads plus which one is active. */
 data class ProjectChats(val activeThreadId: String, val threads: List<ChatThread>)
 
-/**
- * Persists each project's chat threads to a JSON file under `<filesDir>/ai_chats/<hash>.json`, so
- * conversations survive app restarts and stay isolated per project.
- */
 class ChatHistoryStore(context: Context) {
 
     private val dir = File(context.applicationContext.filesDir, "ai_chats").apply { mkdirs() }
@@ -166,7 +161,7 @@ private fun ChatToolCall.toDto() = ToolCallDto(
     summary = summary,
     diffOld = diffOld,
     diffNew = diffNew,
-    // Persist only terminal statuses so a reopened thread never shows a stuck "Review" card.
+
     status = when (status) {
         ToolCallStatus.PENDING, ToolCallStatus.RUNNING -> ToolCallStatus.DONE.name
         else -> status.name

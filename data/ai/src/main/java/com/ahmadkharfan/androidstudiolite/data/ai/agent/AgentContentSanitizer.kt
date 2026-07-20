@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.data.ai.agent
 
 import com.ahmadkharfan.androidstudiolite.domain.model.AgentAction
 
-/** Repairs and validates Kotlin file payloads from LLM tool calls before writing to disk. */
 internal object AgentContentSanitizer {
 
     fun sanitizeAction(action: AgentAction): AgentAction = when (action) {
@@ -14,7 +13,7 @@ internal object AgentContentSanitizer {
     fun sanitizeFileContent(path: String, content: String): String {
         if (!isKotlinPath(path)) return content
         var text = content.replace("\r\n", "\n").replace('\r', '\n')
-        // Common JSON/stream glitches seen from OpenAI models.
+
         text = text.replace("*nimport", "\nimport")
         text = text.replace(Regex("""\.\\*nimport"""), ".\nimport")
         text = text.replace(Regex("""\*n(?=import|package|@|fun |class |val |var |//)"""), "\n")

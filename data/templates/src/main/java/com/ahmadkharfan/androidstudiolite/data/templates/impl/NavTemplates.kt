@@ -7,7 +7,6 @@ import com.ahmadkharfan.androidstudiolite.data.templates.TemplateContent
 import com.ahmadkharfan.androidstudiolite.data.templates.TemplateMetadata
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 
-/** Shared helpers for the Views + Navigation-component templates (Kotlin-only). */
 internal object NavSupport {
 
     fun applyBase(recipe: ProjectRecipe) {
@@ -25,7 +24,6 @@ internal object NavSupport {
         TemplateContent.addStandardTestDeps(recipe)
     }
 
-    /** A minimal Fragment named [className] that inflates a centered-TextView layout [layout]. */
     fun placeholderFragment(spec: NewProjectSpec, recipe: ProjectRecipe, className: String, layout: String, label: String) {
         val pkg = spec.packageName
         recipe.sourceFileIn(
@@ -75,7 +73,6 @@ internal object NavSupport {
         """.trimIndent()
 }
 
-/** Bottom navigation bar hosting three destinations via the Navigation component. */
 object BottomNavigationTemplate : Template {
 
     override val metadata = TemplateMetadata(
@@ -191,7 +188,6 @@ object BottomNavigationTemplate : Template {
     }
 }
 
-/** A navigation drawer with three destinations via DrawerLayout + NavigationView. */
 object NavDrawerTemplate : Template {
 
     override val metadata = TemplateMetadata(
@@ -346,14 +342,6 @@ object NavDrawerTemplate : Template {
     }
 }
 
-/**
- * One app whose navigation follows the window size: a bottom bar on a phone, a navigation rail on a
- * medium window (w600dp, e.g. a tablet or unfolded foldable), and a permanent drawer on an expanded
- * one (w1240dp, e.g. a desktop-sized window).
- *
- * All three layouts host the same nav graph and the same three destinations; only the navigation
- * widget differs, and `MainActivity` wires whichever one the inflated layout happens to contain.
- */
 object ResponsiveTemplate : Template {
 
     override val metadata = TemplateMetadata(
@@ -424,7 +412,7 @@ object ResponsiveTemplate : Template {
         NavSupport.placeholderFragment(spec, recipe, "DashboardFragment", "fragment_dashboard", "Dashboard")
         NavSupport.placeholderFragment(spec, recipe, "NotificationsFragment", "fragment_notifications", "Notifications")
 
-        // Compact: bottom bar under the content.
+
         recipe.file(
             "app/src/main/res/layout/activity_main.xml",
             """
@@ -461,7 +449,7 @@ object ResponsiveTemplate : Template {
             """.trimIndent(),
         )
 
-        // Medium: rail down the side.
+
         recipe.file(
             "app/src/main/res/layout-w600dp/activity_main.xml",
             """
@@ -505,7 +493,7 @@ object ResponsiveTemplate : Template {
             """.trimIndent(),
         )
 
-        // Expanded: the drawer is permanent, so there's no hamburger to open it.
+
         recipe.file(
             "app/src/main/res/layout-w1240dp/activity_main.xml",
             """
@@ -549,8 +537,7 @@ object ResponsiveTemplate : Template {
             """.trimIndent(),
         )
 
-        // One menu for all three widgets: the item ids match the destination ids, which is what lets
-        // NavigationUI select the right destination whichever widget is showing.
+
         recipe.file(
             "app/src/main/res/menu/navigation_menu.xml",
             """
@@ -594,7 +581,6 @@ object ResponsiveTemplate : Template {
         )
     }
 
-    /** A rail draws icons above labels, so unlike the bottom-bar template these items need icons. */
     private val NAV_ICONS = listOf(
         "ic_navigation_home" to "M12,3L4,9v12h5v-7h6v7h5V9L12,3z",
         "ic_navigation_dashboard" to "M3,3h8v8H3V3zM13,3h8v5h-8V3zM13,10h8v11h-8V10zM3,13h8v8H3V13z",
@@ -602,8 +588,7 @@ object ResponsiveTemplate : Template {
             "M12,22a2,2 0 0,0 2,-2h-4A2,2 0 0,0 12,22zM18,16v-5a6,6 0 0,0 -5,-5.9V4a1,1 0 0,0 -2,0v1.1A6,6 0 0,0 6,11v5l-2,2v1h16v-1L18,16z",
     )
 
-    // No android:tint here: the bar, rail and drawer all tint their menu icons themselves, and a
-    // theme attribute inside a drawable is a needless way for this to go wrong.
+
     private fun navIcon(pathData: String): String =
         """
         <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -618,7 +603,6 @@ object ResponsiveTemplate : Template {
         """.trimIndent()
 }
 
-/** Builds a Navigation-component graph XML with the given destinations. [destinations] = (id, fragment, label). */
 private fun navGraph(
     pkg: String,
     startDest: String,

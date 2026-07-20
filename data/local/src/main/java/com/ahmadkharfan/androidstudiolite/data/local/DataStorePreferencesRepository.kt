@@ -14,15 +14,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepositor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/**
- * Real [PreferencesRepository] backed by DataStore, mirroring the DataStore usage in
- * [com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository]. Every field on
- * [AppPreferences] is persisted so settings survive process death. Missing keys fall back to the
- * [AppPreferences] defaults, so first launch (and any newly-added field) reads the default value.
- *
- * Takes a [DataStore] rather than a [android.content.Context] so it can be exercised in plain JVM
- * unit tests with a temp-file-backed store (see the Koin `preferencesModule` for production wiring).
- */
 class DataStorePreferencesRepository(
     private val dataStore: DataStore<Preferences>,
 ) : PreferencesRepository {
@@ -62,7 +53,6 @@ class DataStorePreferencesRepository(
         }
     }
 
-    /** Reads an [AppPreferences] from DataStore, defaulting any missing key to its [AppPreferences] default. */
     private fun Preferences.toAppPreferences(): AppPreferences {
         val defaults = AppPreferences()
         return AppPreferences(
@@ -81,7 +71,6 @@ class DataStorePreferencesRepository(
         )
     }
 
-    /** Writes every [AppPreferences] field so the persisted state fully matches [value]. */
     private fun MutablePreferences.writeAppPreferences(value: AppPreferences) {
         this[THEME_MODE] = value.themeMode.name
         this[EDITOR_FONT_SIZE] = value.editorFontSize

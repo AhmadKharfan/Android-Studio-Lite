@@ -11,12 +11,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/**
- * Real [FileSystemRepository] for directory browsing (e.g. picking an external folder to import). Rooted
- * at [browseRoot]; [getFolderTree] returns a shallow, directory-only snapshot (root + two levels) and
- * [listChildren] lazily fetches deeper levels. Every [FolderNode.id] is an absolute path. Mutations
- * publish events on the shared [changeBus].
- */
 class LocalFileSystemRepository(
     private val browseRoot: File,
     private val changeBus: FileChangeBus,
@@ -77,7 +71,7 @@ class LocalFileSystemRepository(
         LocalFsSupport.sortedChildren(dir).filter { it.isDirectory && !LocalFsSupport.isIgnoredDir(it) }
 
     private fun File.toNode(depth: Int): FolderNode {
-        // Root + two visible levels keeps the initial browse cheap; deeper levels load via listChildren.
+
         val children = if (depth < 2) childDirs(this).map { it.toNode(depth + 1) } else null
         return FolderNode(id = absolutePath, name = name, children = children)
     }

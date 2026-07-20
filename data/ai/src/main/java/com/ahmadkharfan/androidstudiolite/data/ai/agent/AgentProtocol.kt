@@ -10,17 +10,11 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/** One decoded step of the agent conversation: either a batch of tool calls or a final answer. */
 sealed interface AgentTurn {
     data class Actions(val thought: String?, val actions: List<AgentAction>) : AgentTurn
     data class Final(val text: String) : AgentTurn
 }
 
-/**
- * The provider-agnostic tool protocol. The model is told to answer with a single JSON object per turn:
- * either `{"actions": [...]}` to use file tools, or `{"final": "..."}` when done. This keeps one code
- * path across OpenAI/Anthropic/Gemini/DeepSeek/Grok without proprietary function-calling.
- */
 object AgentProtocol {
 
     const val PARSE_FAILURE_MESSAGE = "I couldn't apply the changes. Please try again."
@@ -121,10 +115,6 @@ object AgentProtocol {
         }
     }
 
-    /**
-     * Parses a model turn for execution. When [preferActions] is true (Agent mode), a non-empty
-     * `actions` array wins over `final` so the agent actually runs tools instead of dumping JSON.
-     */
     fun parseExecutionTurn(raw: String, preferActions: Boolean = false): AgentTurn {
         val diagnostic = diagnoseParse(raw, preferActions)
         AiAgentLog.i("Parse", diagnostic.summary)
@@ -164,7 +154,6 @@ object AgentProtocol {
         return AgentTurn.Final(sanitized)
     }
 
-    /** Log-friendly snapshot of why a raw model reply did or did not parse. */
     fun diagnoseParse(raw: String, preferActions: Boolean): ParseDiagnostic {
         val trimmed = raw.trim()
         val root = parseRootObject(raw)
@@ -234,7 +223,7 @@ object AgentProtocol {
             return AgentTurn.Actions(thought, sanitized)
         }
 
-        // Agent mode: explicit empty actions array means the model skipped tools — force retry/salvage.
+
         if (preferActions && root.containsKey("actions") && actions.isEmpty() && final.isNullOrBlank()) {
             AiAgentLog.w("Parse", "preferActions=true but actions=[] with no final")
             return AgentTurn.Final(PARSE_FAILURE_MESSAGE)
@@ -397,7 +386,6 @@ object AgentProtocol {
         return root["thought"]?.stringOrNull()?.takeIf { it.isNotBlank() }
     }
 
-    /** Pulls individual tool objects out of malformed/truncated agent JSON. */
     internal fun salvageActions(raw: String): List<AgentAction> {
         val actions = LinkedHashMap<String, AgentAction>()
         var index = 0
@@ -418,10 +406,6 @@ object AgentProtocol {
         return actions.values.toList()
     }
 
-    /**
-     * Extracts create_file/edit_file when the JSON content string contains unescaped Kotlin quotes
-     * (e.g. Text(text = "Hi")) which breaks [extractBalancedObject].
-     */
     internal fun salvageLooseFileAction(raw: String, objectStart: Int): AgentAction? {
         if (objectStart < 0 || objectStart >= raw.length) return null
         val slice = raw.substring(objectStart)
@@ -465,7 +449,6 @@ object AgentProtocol {
     private val LOOSE_FILE_TOOL = Regex(""""tool"\s*:\s*"(create_file|edit_file)"""")
     private val LOOSE_PATH = Regex(""""path"\s*:\s*"((?:\\.|[^"\\])*)"""")
 
-    /** Reads a JSON string value that may contain unescaped quotes (common in Kotlin file payloads). */
     internal fun extractLooseJsonStringValue(
         raw: String,
         contentStart: Int,
@@ -510,7 +493,6 @@ object AgentProtocol {
         }
     }
 
-    /** Escapes raw newlines/tabs that models often emit inside JSON string values. */
     internal fun repairJsonStringEscapes(source: String): String {
         val out = StringBuilder(source.length + 32)
         var inString = false
@@ -538,7 +520,6 @@ object AgentProtocol {
         return out.toString()
     }
 
-    /** @see parseExecutionTurn */
     fun parse(raw: String): AgentTurn = parseExecutionTurn(raw, preferActions = false)
 
     private fun parseActions(root: JsonObject): List<AgentAction> {
@@ -549,7 +530,6 @@ object AgentProtocol {
         }
     }
 
-    /** Never surface raw protocol JSON in the chat UI. */
     fun sanitizeDisplayText(raw: String): String {
         val trimmed = raw.trim()
         if (!looksLikeProtocolJson(trimmed)) return trimmed
@@ -594,7 +574,6 @@ object AgentProtocol {
 
     private fun JsonElement.stringOrNull(): String? = runCatching { jsonPrimitive.contentOrNull }.getOrNull()
 
-    /** Pulls the first balanced JSON object out of the reply, tolerating fences or surrounding prose. */
     private fun extractJson(raw: String): String? {
         val fenced = Regex("```(?:json)?\\s*([\\s\\S]*?)```").find(raw)?.groupValues?.get(1)?.trim()
         val candidate = fenced ?: raw

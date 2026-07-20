@@ -19,10 +19,8 @@ class RealAiAgentRepository(
 
     private val testingProviders = MutableStateFlow<Set<String>>(emptySet())
 
-    /** Transient, per-provider reason for the last failed key test (cleared on a new key or success). */
     private val keyErrors = MutableStateFlow<Map<String, String>>(emptyMap())
 
-    /** In-memory cache of live model ids fetched from each provider. */
     private val fetchedModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
 
     override fun observeSettings(): Flow<AiAgentSettings> = combine(
@@ -115,7 +113,7 @@ class RealAiAgentRepository(
                     prefs.keyStatuses[def.id] == "invalid" -> ApiKeyStatus.INVALID
                     else -> ApiKeyStatus.EMPTY
                 }
-                // Fetched ids first (most current), then any curated ones not already present.
+
                 val availableModels = (fetched[def.id].orEmpty() + def.curatedModels).distinct()
                 val selectedModel = prefs.models[def.id]?.takeIf { it.isNotBlank() } ?: def.defaultModel
                 AiProviderConfig(

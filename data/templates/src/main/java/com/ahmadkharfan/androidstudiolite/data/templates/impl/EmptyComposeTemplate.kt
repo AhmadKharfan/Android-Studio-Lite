@@ -7,7 +7,6 @@ import com.ahmadkharfan.androidstudiolite.data.templates.TemplateContent
 import com.ahmadkharfan.androidstudiolite.data.templates.TemplateMetadata
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 
-/** A single-screen Jetpack Compose app (Material 3), mirroring Android Studio's "Empty Activity". */
 object EmptyComposeTemplate : Template {
 
     override val metadata = TemplateMetadata(
@@ -18,7 +17,7 @@ object EmptyComposeTemplate : Template {
         tags = listOf("Kotlin", "Compose"),
     )
 
-    override val supportsJava = false // Compose is Kotlin-only.
+    override val supportsJava = false
 
     override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe) {
         recipe.enableCompose = true

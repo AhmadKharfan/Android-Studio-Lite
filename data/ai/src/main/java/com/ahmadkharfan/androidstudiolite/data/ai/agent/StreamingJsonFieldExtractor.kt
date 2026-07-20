@@ -1,10 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.ai.agent
 
-/**
- * Incrementally extracts decoded text deltas for top-level JSON string fields `"thought"` and
- * `"final"` as raw model tokens arrive. If the stream does not begin with `{`, the entire stream is
- * treated as `final` prose so non-JSON replies still stream live.
- */
 class StreamingJsonFieldExtractor(
     private val onThought: (String) -> Unit,
     private val onFinal: (String) -> Unit,
@@ -31,10 +26,10 @@ class StreamingJsonFieldExtractor(
 
     fun feed(chunk: String) {
         if (chunk.isEmpty()) return
-        for (c in chunk) process(c)
+        for (c in chunk) consumeChar(c)
     }
 
-    private fun process(c: Char) {
+    private fun consumeChar(c: Char) {
         when (mode) {
             Mode.BOOTSTRAP -> when {
                 c.isWhitespace() -> Unit
@@ -82,7 +77,7 @@ class StreamingJsonFieldExtractor(
                 c.isWhitespace() -> Unit
                 c == '"' -> {
                     val field = key.toString()
-                    // Only top-level thought/final (depth == 1) are streamed to the UI.
+
                     captureField = if (depth == 1 && (field == "thought" || field == "final")) field else null
                     mode = Mode.VALUE_STRING
                 }
@@ -95,7 +90,7 @@ class StreamingJsonFieldExtractor(
                     depth = (depth - 1).coerceAtLeast(0)
                     mode = Mode.OBJECT
                 }
-                // Skip non-string scalars / arrays until comma or end.
+
                 else -> Unit
             }
             Mode.VALUE_STRING -> when (c) {

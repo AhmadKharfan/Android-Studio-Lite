@@ -6,9 +6,7 @@ data class AiProviderDefinition(
     val icon: String,
     val description: String,
     val featured: Boolean = false,
-    /** Fallback model used when nothing is fetched or selected. */
     val defaultModel: String,
-    /** Well-known models shown when a live fetch is unavailable. */
     val curatedModels: List<String>,
 )
 

@@ -5,47 +5,24 @@ import com.ahmadkharfan.androidstudiolite.domain.model.ProjectBuildDsl
 import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 import java.io.File
 
-/**
- * The mutable accumulator a [Template] fills in. It captures the single-app-module shape common to
- * every ASL template — plugins, the `android {}` config, catalog dependencies, and arbitrary files —
- * then renders the whole project (shared scaffolding + assembled build script + version catalog) so
- * output is uniform and always parseable by the static Gradle reader.
- *
- * Written fresh for ASL (no GPL sources). KTS + version catalogs is the default; Groovy is fully
- * supported for the DSL option.
- */
 class ProjectRecipe(val spec: NewProjectSpec) {
 
     private val kts: Boolean = spec.buildDsl == ProjectBuildDsl.KTS
     private val kotlin: Boolean = spec.language == TemplateLanguage.KOTLIN
 
-    /** `app/build.gradle(.kts)` android {} config. */
     var enableCompose: Boolean = false
     var enableViewBinding: Boolean = false
     var useAndroidX: Boolean = true
 
-    /** When set, an `externalNativeBuild { cmake { path = … } }` clause is emitted. */
     var cmakeListsRelPath: String? = null
 
     private val appPlugins = LinkedHashSet<PluginSpec>()
     private val appDependencies = ArrayList<DependencyRef>()
     private val files = LinkedHashMap<String, RecipeFile>()
 
-    // --- template-facing API --------------------------------------------------------------------
 
     fun plugin(spec: PluginSpec) { appPlugins += spec }
 
-    /**
-     * The plugins the app module actually applies: what templates declared, plus the Kotlin 2.x
-     * Compose compiler plugin whenever this is a Kotlin Compose module.
-     *
-     * Compose needs its compiler plugin applied, and under Kotlin 2.x that is a real Gradle plugin
-     * rather than the `composeOptions { kotlinCompilerExtensionVersion }` block Kotlin 1.9 used
-     * (which 2.x rejects outright). Adding it here rather than in each template keeps
-     * `enableCompose = true` the single thing a Compose template has to say, and keeps the plugin
-     * impossible to forget. It flows into the version catalog and the root build script for free,
-     * since both are derived from this set.
-     */
     private fun effectiveAppPlugins(): List<PluginSpec> = buildList {
         addAll(appPlugins)
         if (enableCompose && kotlin) add(Catalog.composeCompiler)
@@ -64,18 +41,15 @@ class ProjectRecipe(val spec: NewProjectSpec) {
 
     fun debugImplementation(library: LibrarySpec) = dependency("debugImplementation", library)
 
-    /** Add a file relative to the project root, e.g. `app/src/main/AndroidManifest.xml`. */
     fun file(relativePath: String, content: String) {
         files[relativePath] = RecipeFile(relativePath, content.trimEnd('\n') + "\n")
     }
 
-    /** Add a file under the app module's main source package dir (java/kotlin), language-aware. */
     fun sourceFile(simpleFileName: String, content: String) {
         val pkgPath = spec.packageName.replace('.', '/')
         file("app/src/main/java/$pkgPath/$simpleFileName", content)
     }
 
-    /** Add a file under a sub-package of the app module's main source dir. */
     fun sourceFileIn(subPackage: String, simpleFileName: String, content: String) {
         val pkgPath = (spec.packageName + "." + subPackage).replace('.', '/')
         file("app/src/main/java/$pkgPath/$simpleFileName", content)
@@ -84,9 +58,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
     val isKotlin: Boolean get() = kotlin
     val sourceExt: String get() = if (kotlin) "kt" else "java"
 
-    // --- rendering ------------------------------------------------------------------------------
 
-    /** Renders every project file into a path → content map (relative to the project root). */
     fun render(): Map<String, String> {
         val out = LinkedHashMap<String, String>()
         val settingsExt = if (kts) "settings.gradle.kts" else "settings.gradle"
@@ -107,16 +79,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         return out
     }
 
-    /**
-     * Baseline launcher icon. Every template's manifest declares
-     * `android:icon="@mipmap/ic_launcher"`, so without these files aapt2 fails EVERY generated
-     * project at :app:processDebugResources with
-     * "resource mipmap/ic_launcher ... not found" — i.e. nothing the wizard produced could build.
-     * Emitted here (like proguard-rules/.gitignore) so all templates get it, rather than in each one.
-     *
-     * Vector-only, because templates are text: `mipmap/` holds a plain VectorDrawable that resolves on
-     * every API level, and `mipmap-anydpi-v26/` overrides it with a proper adaptive icon on 26+.
-     */
     private fun launcherIconFiles(): Map<String, String> {
         val adaptive = { round: Boolean ->
             """
@@ -136,7 +98,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
                 </resources>
             """.trimIndent() + "\n",
             "app/src/main/res/drawable/ic_launcher_foreground.xml" to LAUNCHER_FOREGROUND,
-            // Fallback for API < 26 (adaptive-icon is v26+): a vector is a legal mipmap resource.
+
             "app/src/main/res/mipmap/ic_launcher.xml" to LAUNCHER_FALLBACK,
             "app/src/main/res/mipmap/ic_launcher_round.xml" to LAUNCHER_FALLBACK,
             "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" to adaptive(false),
@@ -144,11 +106,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         )
     }
 
-    /**
-     * Flushes the rendered project to [projectRoot] and, when a [wrapperSource] is given, copies the
-     * Gradle wrapper binaries in beside the `gradle-wrapper.properties` this recipe renders — so the
-     * project the packager zips up is one the remote worker can actually invoke (`./gradlew`).
-     */
     fun writeTo(projectRoot: File, wrapperSource: GradleWrapperSource? = null) {
         for ((relPath, content) in render()) {
             val target = File(projectRoot, relPath)
@@ -169,7 +126,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         File(projectRoot, GradleWrapperSource.GRADLEW).setExecutable(true, false)
     }
 
-    // --- gradle files ---------------------------------------------------------------------------
 
     private fun renderSettings(): String {
         val name = spec.name
@@ -230,9 +186,8 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         appendLine("org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8")
         appendLine("org.gradle.caching=true")
         appendLine("org.gradle.parallel=true")
-        // Note: org.gradle.configuration-cache is deliberately absent. The build worker runs Gradle
-        // with --no-configuration-cache (its BuildEvent init script uses task listeners the
-        // configuration cache forbids), so setting it here would mislead rather than speed anything.
+
+
         appendLine("android.useAndroidX=${useAndroidX}")
         appendLine("android.nonTransitiveRClass=true")
         if (kotlin) appendLine("kotlin.code.style=official")
@@ -249,7 +204,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         zipStorePath=wrapper/dists
         """.trimIndent() + "\n"
 
-    // --- app build script -----------------------------------------------------------------------
 
     private fun renderAppBuild(): String = if (kts) renderAppBuildKts() else renderAppBuildGroovy()
 
@@ -303,9 +257,8 @@ class ProjectRecipe(val spec: NewProjectSpec) {
             if (enableViewBinding) appendLine("        viewBinding = true")
             appendLine("    }")
         }
-        // No composeOptions block: under Kotlin 2.x the Compose compiler comes from the
-        // org.jetbrains.kotlin.plugin.compose plugin (see effectiveAppPlugins), and
-        // kotlinCompilerExtensionVersion is rejected at configuration time.
+
+
         cmakeListsRelPath?.let {
             appendLine("    externalNativeBuild {")
             appendLine("        cmake {")
@@ -371,7 +324,7 @@ class ProjectRecipe(val spec: NewProjectSpec) {
             if (enableViewBinding) appendLine("        viewBinding true")
             appendLine("    }")
         }
-        // No composeOptions block — see the KTS renderer above (Kotlin 2.x compose plugin).
+
         cmakeListsRelPath?.let {
             appendLine("    externalNativeBuild {")
             appendLine("        cmake {")
@@ -390,10 +343,9 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         appendLine("}")
     }
 
-    // --- version catalog ------------------------------------------------------------------------
 
     private fun renderCatalog(): String {
-        // Collect libraries + plugins actually referenced, and the versions they pin to.
+
         val libraries = LinkedHashMap<String, LibrarySpec>()
         for (d in appDependencies) libraries[d.library.alias] = d.library
         val plugins = LinkedHashMap<String, PluginSpec>()
@@ -420,7 +372,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         }
     }
 
-    /** Plugins declared at the root (with `apply false`) = the distinct set the app module applies. */
     private fun rootPlugins(): List<PluginSpec> = effectiveAppPlugins()
 
     private fun renderRootGitignore(): String =
@@ -437,7 +388,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
         """.trimIndent() + "\n"
 
     private companion object {
-        /** Adaptive-icon foreground (API 26+) and, reused, the pre-26 fallback artwork. */
         val LAUNCHER_FOREGROUND =
             """
             <?xml version="1.0" encoding="utf-8"?>
@@ -452,11 +402,6 @@ class ProjectRecipe(val spec: NewProjectSpec) {
             </vector>
             """.trimIndent() + "\n"
 
-        /**
-         * Pre-26 launcher icon: a self-contained vector (background + mark) living directly in
-         * `mipmap/`, so `@mipmap/ic_launcher` resolves on every API level the templates support
-         * (minSdk can go to 24, below adaptive-icon's v26).
-         */
         val LAUNCHER_FALLBACK =
             """
             <?xml version="1.0" encoding="utf-8"?>

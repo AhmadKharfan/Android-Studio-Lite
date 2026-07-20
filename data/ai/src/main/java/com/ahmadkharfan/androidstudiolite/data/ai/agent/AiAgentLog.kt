@@ -2,10 +2,6 @@ package com.ahmadkharfan.androidstudiolite.data.ai.agent
 
 import android.util.Log
 
-/**
- * Logcat filter: `adb logcat -s AslAiAgent`
- * Or in Android Studio Logcat: tag = AslAiAgent
- */
 internal object AiAgentLog {
     const val TAG = "AslAiAgent"
 

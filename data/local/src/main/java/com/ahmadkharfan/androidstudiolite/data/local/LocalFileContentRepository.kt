@@ -9,13 +9,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * Real [FileContentRepository] over [java.io.File]. Reads and writes UTF-8 by absolute path, refuses to
- * load files above [LocalFsSupport.MAX_TEXT_FILE_BYTES] (throwing [FileTooLargeException]), creates
- * parent directories on write, and publishes a [FileChangeType.CREATED] or [FileChangeType.MODIFIED]
- * event on the shared bus after every successful write so the editor can refresh open tabs and the
- * project tree live.
- */
 class LocalFileContentRepository(
     private val changeBus: FileChangeBus,
     private val maxBytes: Long = LocalFsSupport.MAX_TEXT_FILE_BYTES,

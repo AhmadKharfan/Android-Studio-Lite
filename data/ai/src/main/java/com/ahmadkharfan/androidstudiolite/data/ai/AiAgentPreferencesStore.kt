@@ -11,12 +11,9 @@ import kotlinx.coroutines.flow.map
 data class AiAgentPreferences(
     val enabled: Boolean = true,
     val instructions: String = "",
-    /** Persisted validation outcome per provider id (`valid` / `invalid`). */
     val keyStatuses: Map<String, String> = emptyMap(),
     val autoApply: Boolean = false,
-    /** Default provider used for new chats; blank means "first validated provider". */
     val activeProviderId: String = "",
-    /** Default model id chosen per provider id. */
     val models: Map<String, String> = emptyMap(),
 )
 

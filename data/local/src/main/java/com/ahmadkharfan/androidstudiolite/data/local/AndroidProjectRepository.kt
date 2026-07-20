@@ -17,12 +17,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * Real [ProjectRepository]. The recent-projects list is persisted in a DataStore (mirroring the
- * DataStore pattern in [com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository])
- * as a single serialized string. Created/imported projects live under [projectsRoot], while existing
- * projects may be registered at another absolute path. Mutations publish events on [changeBus].
- */
 class AndroidProjectRepository(
     private val projectsRoot: File,
     private val dataStore: DataStore<Preferences>,
@@ -83,8 +77,8 @@ class AndroidProjectRepository(
     }
 
     override suspend fun renameProject(id: String, newName: String) {
-        // Only the display name changes; the directory (and therefore the id) stays stable so open tabs
-        // and navigation keep working.
+
+
         val project = current().firstOrNull { it.id == id } ?: return
         save(current().map { if (it.id == id) it.copy(name = newName) else it })
     }
@@ -107,11 +101,9 @@ class AndroidProjectRepository(
         project
     }
 
-    // --- persistence helpers -------------------------------------------------------------------
 
     private suspend fun current(): List<Project> = decode(dataStore.data.first()[KEY].orEmpty())
 
-    /** Inserts or replaces [project] by id and floats it to the front (most-recent-first ordering). */
     private suspend fun upsert(project: Project) {
         val next = listOf(project) + current().filterNot { it.id == project.id }
         save(next)
@@ -124,13 +116,7 @@ class AndroidProjectRepository(
     private suspend fun requireProject(id: String): Project =
         current().firstOrNull { it.id == id } ?: error("No such project: $id")
 
-    // --- filesystem helpers --------------------------------------------------------------------
 
-    /**
-     * Directory to create the project in. When [saveLocation] is a usable absolute path it is used as
-     * the parent directory; otherwise the on-device [projectsRoot] is used. A numeric suffix is added
-     * to avoid clobbering an existing directory.
-     */
     private fun uniqueProjectDir(name: String, saveLocation: String? = null): File {
         val root = saveLocation?.takeIf { it.isNotBlank() }
             ?.let { File(it) }
@@ -182,8 +168,7 @@ class AndroidProjectRepository(
     private companion object {
         val KEY = stringPreferencesKey("recent_projects")
 
-        // Records are newline-separated; fields within a record are tab-separated. Both delimiters and
-        // the escape char itself are escaped so arbitrary names/paths round-trip safely.
+
         fun encode(projects: List<Project>): String =
             projects.joinToString("\n") { p ->
                 listOf(
@@ -192,8 +177,7 @@ class AndroidProjectRepository(
                 ).joinToString("\t") { escape(it) }
             }
 
-        // Additive fields are read optionally, so older five/six-field records still decode instead
-        // of dropping the user's project list on upgrade.
+
         fun decode(raw: String): List<Project> =
             if (raw.isEmpty()) emptyList()
             else raw.split("\n").mapNotNull { line ->
@@ -206,8 +190,8 @@ class AndroidProjectRepository(
                     language = unescape(parts[3]),
                     lastOpenedMillis = unescape(parts[4]).toLongOrNull()?.takeIf { it > 0L },
                     packageName = parts.getOrNull(5)?.let(::unescape)?.takeIf { it.isNotBlank() },
-                    // Records written before buildability existed are created/imported projects and
-                    // remain buildable by default.
+
+
                     buildable = parts.getOrNull(6)?.let(::unescape)?.toBooleanStrictOrNull() ?: true,
                 )
             }

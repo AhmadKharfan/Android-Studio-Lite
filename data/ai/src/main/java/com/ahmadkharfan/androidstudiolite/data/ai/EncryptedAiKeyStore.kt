@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-/** AES-256 encrypted storage for provider API keys — never written to plaintext prefs. */
 class EncryptedAiKeyStore(context: Context) {
 
     private val prefs: SharedPreferences by lazy {

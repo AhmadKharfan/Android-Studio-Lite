@@ -2,13 +2,8 @@ package com.ahmadkharfan.androidstudiolite.data.templates
 
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 
-/**
- * Shared, language-agnostic content builders (manifests, resources, the Compose theme package) reused
- * across templates. Kept fresh for ASL — no GPL sources.
- */
 object TemplateContent {
 
-    /** A safe PascalCase token derived from the project name, for the generated theme name. */
     fun pascal(spec: NewProjectSpec): String {
         val cleaned = spec.name.filter { it.isLetterOrDigit() || it == ' ' }
         val camel = cleaned.split(' ').filter { it.isNotBlank() }
@@ -19,10 +14,6 @@ object TemplateContent {
 
     fun themeName(spec: NewProjectSpec): String = "Theme.${pascal(spec)}"
 
-    /**
-     * An `AndroidManifest.xml`. When [activityName] is null no `<activity>` is emitted at all
-     * (No-Activity template); when [launcher] is true the activity gets a LAUNCHER intent filter.
-     */
     fun manifest(
         spec: NewProjectSpec,
         activityName: String?,
@@ -62,13 +53,6 @@ object TemplateContent {
         append("</resources>")
     }
 
-    /**
-     * A themes.xml for Views templates (Material 3 DayNight, no action bar).
-     *
-     * No `android:statusBarColor`: `?attr/colorPrimaryVariant` is an M2/AppCompat attribute that the
-     * `Theme.Material3.*` parent doesn't define, so aapt2 failed every Views project on it. M3
-     * DayNight handles the system bars, and the attribute is deprecated as of API 35 anyway.
-     */
     fun viewsThemesXml(spec: NewProjectSpec): String =
         """
         <resources xmlns:tools="http://schemas.android.com/tools">
@@ -76,7 +60,6 @@ object TemplateContent {
         </resources>
         """.trimIndent()
 
-    /** A themes.xml for Compose templates (Compose supplies the real theme at runtime). */
     fun composeThemesXml(spec: NewProjectSpec): String =
         """
         <resources>
@@ -84,7 +67,6 @@ object TemplateContent {
         </resources>
         """.trimIndent()
 
-    // --- Compose theme package (ui/theme) -------------------------------------------------------
 
     fun composeThemeFiles(recipe: ProjectRecipe, spec: NewProjectSpec) {
         val name = pascal(spec)
@@ -166,7 +148,6 @@ object TemplateContent {
         )
     }
 
-    /** The standard test dependencies every activity-bearing template gets. */
     fun addStandardTestDeps(recipe: ProjectRecipe) {
         recipe.testImplementation(Catalog.junit)
         recipe.androidTestImplementation(Catalog.androidxJunit)
