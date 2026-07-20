@@ -504,6 +504,7 @@ private fun EditorBottomToolSection(
         EditorBottomPanelContent(
             activeTabId = uiState.activeBottomTabId,
             buildConsole = uiState.buildConsole,
+            operationRunning = uiState.running,
             projectRootPath = uiState.projectRootPath,
             onCancelBuild = { interactionListener.onCancelBuild() },
             onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },

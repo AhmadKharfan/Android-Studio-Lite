@@ -38,13 +38,14 @@ import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTermina
 fun EditorBottomPanelContent(
     activeTabId: String,
     buildConsole: BuildConsoleState,
+    operationRunning: Boolean = buildConsole.isRunning,
     modifier: Modifier = Modifier,
     projectRootPath: String = "",
     onCancelBuild: () -> Unit = {},
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
 ) {
     when (activeTabId) {
-        "build" -> BuildTab(buildConsole, onCancelBuild, onJumpToBuildProblem, modifier)
+        "build" -> BuildTab(buildConsole, operationRunning, onCancelBuild, onJumpToBuildProblem, modifier)
         "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
         else -> AslEmptyState(
             icon = "terminal",
@@ -58,6 +59,7 @@ fun EditorBottomPanelContent(
 @Composable
 private fun BuildTab(
     console: BuildConsoleState,
+    operationRunning: Boolean,
     onCancelBuild: () -> Unit,
     onJumpToBuildProblem: (BuildProblem) -> Unit,
     modifier: Modifier,
@@ -77,6 +79,7 @@ private fun BuildTab(
     Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
         BuildStatusHeader(
             console = console,
+            operationRunning = operationRunning,
             onCancelBuild = onCancelBuild,
             onCopyAll = { clipboard.setText(AnnotatedString(console.toClipboardText())) },
         )
@@ -165,6 +168,7 @@ private fun BuildConsoleState.toClipboardText(): String = buildString {
 @Composable
 private fun BuildStatusHeader(
     console: BuildConsoleState,
+    operationRunning: Boolean,
     onCancelBuild: () -> Unit,
     onCopyAll: () -> Unit,
 ) {
@@ -203,7 +207,7 @@ private fun BuildStatusHeader(
                     icon = "copy",
                 )
             }
-            if (console.isRunning) {
+            if (operationRunning) {
                 AslButton(
                     label = "Cancel",
                     onClick = onCancelBuild,

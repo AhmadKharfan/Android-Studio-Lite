@@ -2,8 +2,6 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -24,9 +22,9 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildClientMeta
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.reduce
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.InstallExecutionState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.StartBuildResult
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
-import kotlinx.coroutines.flow.Flow
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds
@@ -52,9 +50,6 @@ private const val DEFAULT_BOTTOM_PANEL_HEIGHT_DP = 260f
 private fun expandedBottomPanelHeight(current: Float): Float =
     if (current > 0f) current else DEFAULT_BOTTOM_PANEL_HEIGHT_DP
 
-private const val BUILD_INACTIVITY_TIMEOUT_MS = 900_000L
-
-private data class PendingInstall(val apk: File, val applicationId: String)
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
     private val projectId: String,
@@ -79,12 +74,6 @@ class EditorViewModel(
     private var shouldLaunchAfterInstall = true
 
     private var isBuildInFlight = false
-
-    private var buildWatchdogJob: Job? = null
-
-    @Volatile private var lastBuildEventAt = 0L
-
-    private var pendingInstall: PendingInstall? = null
 
     private var projectRootPath: String? = null
     private var latestGitFiles: Map<String, GitFileState> = emptyMap()
@@ -125,6 +114,34 @@ class EditorViewModel(
                 }
             },
         )
+        tryToCollect(
+            block = { buildRunCoordinator.execution },
+            onCollect = { execution ->
+                if (execution.projectId != projectId) return@tryToCollect
+                val console = execution.console
+                updateState {
+                    copy(
+                        running = execution.isActive,
+                        buildFailed = console.status == BuildStatus.Failed ||
+                            execution.installState == InstallExecutionState.Failed,
+                        buildConsole = console,
+                        bottomPanelTabs = markBuildTab(
+                            error = console.status == BuildStatus.Failed,
+                            count = console.errorCount.takeIf { it > 0 },
+                        ),
+                        snackbarMessage = when (execution.installState) {
+                            InstallExecutionState.Preparing -> "Installing…"
+                            InstallExecutionState.AwaitingConfirmation ->
+                                "Waiting for install confirmation — check notifications if needed"
+                            InstallExecutionState.Installed -> "Installed successfully"
+                            InstallExecutionState.Failed -> "Installation failed"
+                            InstallExecutionState.None -> snackbarMessage
+                        },
+                    )
+                }
+            },
+            dispatcher = Dispatchers.Main.immediate,
+        )
         tryToExecute(
             block = {
                 val project = projectRepository.openProject(projectId)
@@ -156,7 +173,7 @@ class EditorViewModel(
                 observeGitState(File(projectPath))
                 syncProjectSymbols(projectPath)
                 viewModelScope.launch { reconcileLatestRootGeneration() }
-                resumeActiveBuildIfNeeded(projectPath, projectName)
+                viewModelScope.launch { buildRunCoordinator.recover(projectId) }
             },
         )
 
@@ -967,22 +984,34 @@ class EditorViewModel(
             emitEffect(EditorEffect.RequestNotificationsPermission)
         }
         isBuildInFlight = true
-        lastBuildEventAt = System.currentTimeMillis()
         showBuildRunning()
         buildJob = viewModelScope.launch {
             try {
                 if (!prepareWorkspaceForBuild(root)) return@launch
                 val targets = resolveBuildTargets(root, variant, install) ?: return@launch
-                launchInactivityWatchdog()
                 val request = BuildRequest(root, targets.modulePath, targets.variant, kind)
                 val meta = BuildClientMeta(
                     projectId = projectId,
                     projectName = state.value.projectName,
                     installAfterSuccess = install,
+                    autoLaunchAfterInstall = shouldLaunchAfterInstall,
                 )
-                collectBuildFlow(buildRunCoordinator.build(request, meta), install = install)
+                when (val result = buildRunCoordinator.start(request, meta)) {
+                    is StartBuildResult.Accepted -> Unit
+                    is StartBuildResult.AlreadyRunning -> updateState {
+                        copy(
+                            snackbarMessage = if (result.projectId == projectId) {
+                                "This build is already running"
+                            } else {
+                                "Another project is already building"
+                            },
+                        )
+                    }
+                    is StartBuildResult.Failed -> updateState {
+                        copy(snackbarMessage = result.reason, running = false, buildFailed = true)
+                    }
+                }
             } finally {
-                buildWatchdogJob?.cancel()
                 isBuildInFlight = false
             }
         }
@@ -1082,150 +1111,6 @@ class EditorViewModel(
         return BuildTargets(modulePath, resolvedVariant)
     }
 
-    private fun resumeActiveBuildIfNeeded(projectPath: String, projectName: String) {
-        if (isBuildInFlight) return
-        viewModelScope.launch {
-            val active = buildRunCoordinator.activeBuildFor(projectId) ?: return@launch
-            if (isBuildInFlight) return@launch
-            if (networkMonitor?.isOnline() == false) return@launch
-            val flow = buildRunCoordinator.attachIfActive(
-                projectId = projectId,
-                projectRoot = File(projectPath),
-                projectName = projectName,
-            ) ?: return@launch
-
-            isBuildInFlight = true
-            lastBuildEventAt = System.currentTimeMillis()
-            updateState {
-                copy(
-                    running = true,
-                    buildFailed = false,
-                    bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
-                    activeBottomTabId = "build",
-                    buildConsole = BuildConsoleState(
-                        status = BuildStatus.Running,
-                        progressMessage = "Checking build status…",
-                    ),
-                )
-            }
-            buildJob = viewModelScope.launch {
-                try {
-                    launchInactivityWatchdog()
-                    collectBuildFlow(flow, install = active.installAfterSuccess)
-                } finally {
-                    buildWatchdogJob?.cancel()
-                    isBuildInFlight = false
-                }
-            }
-        }
-    }
-
-    private suspend fun collectBuildFlow(flow: Flow<BuildEvent>, install: Boolean) {
-        try {
-            flow.collect { event -> onBuildEvent(event) }
-            buildWatchdogJob?.cancel()
-            markBuildFailedIfStillRunning()
-            val console = state.value.buildConsole
-            val success = console.status == BuildStatus.Succeeded
-            finishBuildUi(console, success, install)
-            if (success && install) {
-                buildRunCoordinator.updateKeepAliveProgress(
-                    projectId,
-                    state.value.projectName,
-                    "Installing…",
-                )
-                installArtifact(console)
-            } else {
-                buildRunCoordinator.notifyFinished(
-                    projectName = state.value.projectName,
-                    success = success,
-                    durationMillis = console.durationMillis,
-                    projectId = projectId,
-                    installFollows = false,
-                )
-            }
-        } finally {
-            buildWatchdogJob?.cancel()
-            buildRunCoordinator.endKeepAlive()
-        }
-    }
-
-    private fun markBuildFailedIfStillRunning() {
-        if (!state.value.buildConsole.isRunning) return
-        updateState {
-            copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
-        }
-    }
-
-    private fun finishBuildUi(console: BuildConsoleState, success: Boolean, install: Boolean) {
-        val failureMessage = console.problems
-            .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
-            ?.message
-        updateState {
-            copy(
-                running = false,
-                buildFailed = !success,
-                snackbarMessage = when {
-                    success && install -> "Build succeeded — installing…"
-                    success -> snackbarMessage
-                    !failureMessage.isNullOrBlank() -> failureMessage
-                    else -> "Build failed — open Build Output for details"
-                },
-                bottomPanelTabs = markBuildTab(
-                    error = !success,
-                    count = if (console.errorCount > 0) console.errorCount else null,
-                ),
-            )
-        }
-    }
-
-    private fun launchInactivityWatchdog() {
-        buildWatchdogJob = viewModelScope.launch {
-            while (true) {
-                val sinceLastEvent = System.currentTimeMillis() - lastBuildEventAt
-                val remaining = BUILD_INACTIVITY_TIMEOUT_MS - sinceLastEvent
-                if (remaining > 0) {
-                    delay(remaining)
-                    continue
-                }
-                if (!state.value.buildConsole.isRunning) return@launch
-                failBuildOnInactivity(offline = networkMonitor?.isOnline() == false)
-                return@launch
-            }
-        }
-    }
-
-    private fun failBuildOnInactivity(offline: Boolean) {
-        val timeoutMsg = if (offline) {
-            "You're offline — connect to the internet and try again."
-        } else {
-            "Build stopped responding — no progress for several minutes. Tap Run to try again."
-        }
-        updateState {
-            copy(
-                running = false,
-                buildFailed = true,
-                buildConsole = buildConsole.copy(
-                    status = BuildStatus.Failed,
-                    progressMessage = null,
-                    problems = buildConsole.problems + BuildProblem(
-                        severity = BuildEvent.ProblemSeverity.ERROR,
-                        message = timeoutMsg,
-                    ),
-                ),
-                snackbarMessage = timeoutMsg,
-                bottomPanelTabs = markBuildTab(error = true, count = null),
-            )
-        }
-        buildRunCoordinator.cancel()
-        buildJob?.cancel()
-    }
-
-    private fun onBuildEvent(event: BuildEvent) {
-        lastBuildEventAt = System.currentTimeMillis()
-        updateState { copy(buildConsole = buildConsole.reduce(event)) }
-    }
-
     private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
         val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
             text = "Preflight: " + warnings.joinToString("; ") { "${it.title} — ${it.detail}" },
@@ -1234,99 +1119,11 @@ class EditorViewModel(
         updateState { copy(buildConsole = buildConsole.copy(logs = listOf(prefix) + buildConsole.logs)) }
     }
 
-    private suspend fun installArtifact(console: BuildConsoleState) {
-        val apk = resolveInstallableApk(console) ?: return
-        val applicationId = projectRootPath
-            ?.let { buildRunCoordinator.resolveApplicationId(File(it), state.value.runModulePath) }
-        runInstall(apk, applicationId)
-    }
-
-    private fun resolveInstallableApk(console: BuildConsoleState): File? {
-        val artifact = console.artifact
-        if (artifact == null) {
-            updateState {
-                copy(snackbarMessage = "Build succeeded but no APK was downloaded — open Build Output for details")
-            }
-            return null
-        }
-        if (artifact.kind != BuildEvent.ArtifactKind.APK) {
-            updateState {
-                copy(snackbarMessage = "Build succeeded — ${artifact.kind.name} can't be installed on-device")
-            }
-            return null
-        }
-        if (artifact.name.contains("unsigned", ignoreCase = true)) {
-            updateState {
-                copy(
-                    snackbarMessage = "Build produced an unsigned release APK — use a debug variant or add a release keystore",
-                )
-            }
-            return null
-        }
-        val apk = File(artifact.path)
-        if (!apk.isFile) {
-            updateState {
-                copy(snackbarMessage = "Build succeeded — APK download incomplete, tap Run to try again")
-            }
-            return null
-        }
-        return apk
-    }
-
-    private suspend fun runInstall(apk: File, applicationId: String?) {
-        buildRunCoordinator.install(apk, applicationId, autoLaunch = shouldLaunchAfterInstall).collect { event ->
-            when (event) {
-                is InstallEvent.Conflict -> onInstallConflict(apk, event)
-                is InstallEvent.Preparing -> updateState { copy(snackbarMessage = "Installing ${apk.name}…") }
-                is InstallEvent.AwaitingConfirmation -> updateState {
-                    copy(snackbarMessage = "Waiting for install confirmation — check notifications if the prompt isn't visible")
-                }
-                is InstallEvent.Installed -> updateState {
-                    copy(
-                        snackbarMessage = if (event.launched) "Installed and launched"
-                        else "Installed ${event.packageName ?: apk.name}",
-                    )
-                }
-                is InstallEvent.Failed -> updateState { copy(snackbarMessage = "Install failed: ${event.reason}") }
-            }
-        }
-    }
-
-    private fun onInstallConflict(apk: File, event: InstallEvent.Conflict) {
-        val applicationId = event.packageName
-        if (applicationId == null) {
-
-            updateState { copy(snackbarMessage = "Install failed: ${event.reason}") }
-            return
-        }
-        pendingInstall = PendingInstall(apk, applicationId)
-        updateState { copy(installConflict = InstallConflictUiModel(applicationId)) }
-    }
-
     override fun onConfirmInstallConflictUninstall() {
-        val pending = pendingInstall ?: return
-        pendingInstall = null
-        updateState { copy(installConflict = null) }
-        viewModelScope.launch {
-            var uninstalled = false
-            buildRunCoordinator.uninstall(pending.applicationId).collect { event ->
-                when (event) {
-                    is UninstallEvent.Uninstalling ->
-                        updateState { copy(snackbarMessage = "Uninstalling ${pending.applicationId}…") }
-                    is UninstallEvent.AwaitingConfirmation ->
-                        updateState { copy(snackbarMessage = "Confirm the uninstall prompt") }
-                    is UninstallEvent.Uninstalled -> uninstalled = true
-                    is UninstallEvent.Failed ->
-                        updateState { copy(snackbarMessage = "Uninstall failed: ${event.reason}") }
-                }
-            }
-
-            if (uninstalled) runInstall(pending.apk, pending.applicationId)
-        }
+        updateState { copy(installConflict = null, snackbarMessage = "Run again after removing the conflicting app") }
     }
 
     override fun onDismissInstallConflict() {
-        pendingInstall = null
         updateState {
             copy(
                 installConflict = null,
@@ -1336,7 +1133,7 @@ class EditorViewModel(
     }
 
     private fun cancelBuild() {
-        if (!state.value.buildConsole.isRunning) return
+        if (!state.value.running) return
         buildRunCoordinator.cancel()
         buildJob?.cancel()
         updateState {
