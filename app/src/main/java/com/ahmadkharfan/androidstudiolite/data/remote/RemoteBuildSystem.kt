@@ -177,13 +177,23 @@ class RemoteBuildSystem(
             // Never let the flow complete silently: the console would sit at "Preparing…"/Running forever
             // and the UI's run-guard would stay jammed. Synthesize a failure so the run always terminates.
             if (!finishedSeen) {
-                send(
-                    BuildEvent.Problem(
-                        severity = BuildEvent.ProblemSeverity.ERROR,
-                        message = "Build stream ended before the build reported a result",
-                    ),
-                )
-                send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+                val polled = runCatching { client.buildStatus(created.buildId) }.getOrNull()
+                if (polled != null && isTerminalBuildStatus(polled.status)) {
+                    emitTerminalFromStatus(
+                        buildId = created.buildId,
+                        status = polled,
+                        startedAt = startedAt,
+                    )
+                } else {
+                    send(
+                        BuildEvent.Problem(
+                            severity = BuildEvent.ProblemSeverity.ERROR,
+                            message = "Lost connection to the build server and the build did not finish. " +
+                                "Large projects can run out of worker memory — tap Run to try again.",
+                        ),
+                    )
+                    send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+                }
             }
         } catch (e: CancellationException) {
             // cancel() / collector scope death — not a failure, and must stay cooperative.
@@ -245,7 +255,14 @@ class RemoteBuildSystem(
                 send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
             }
         } else {
-            val message = status.error?.message ?: "Build ${status.status.lowercase()}"
+            val raw = status.error?.message ?: "Build ${status.status.lowercase()}"
+            val message = when {
+                raw.contains("OOM", ignoreCase = true) ||
+                    raw.contains("evict", ignoreCase = true) ||
+                    raw.contains("out of memory", ignoreCase = true) ->
+                    "Build worker ran out of memory and was stopped. Tap Run to try again."
+                else -> raw
+            }
             send(
                 BuildEvent.Problem(
                     severity = BuildEvent.ProblemSeverity.ERROR,
@@ -306,15 +323,22 @@ class RemoteBuildSystem(
         buildId: String,
         wireEvent: BuildEvent.ArtifactProduced,
     ) {
+        send(BuildEvent.Progress("Downloading ${wireEvent.file.name}…"))
         val downloaded = runCatching {
             artifactDownloader.download(buildId, fallbackName = wireEvent.file.name)
+        }.onFailure { err ->
+            send(
+                BuildEvent.Problem(
+                    severity = BuildEvent.ProblemSeverity.ERROR,
+                    message = "Couldn't download the APK: ${err.message ?: err.javaClass.simpleName}",
+                ),
+            )
         }.getOrNull()
         if (downloaded != null) {
             send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
-        } else {
-            // Keep the event (its name/kind) even if the download failed, so the UI still records it.
-            send(wireEvent)
         }
+        // Do NOT fall back to the wire placeholder File(name) — that path does not exist on the
+        // device and produces the misleading "install skipped (no APK on disk)" snackbar.
     }
 
     override fun cancel() {
