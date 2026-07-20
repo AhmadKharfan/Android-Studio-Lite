@@ -120,6 +120,46 @@ class AndroidProjectRepositoryTest {
     }
 
     @Test
+    fun `Kotlin Gradle scripts do not make a Java project Kotlin`() = runBlocking {
+        val external = tmp.newFolder("external-kts", "JavaKts")
+        File(external, "settings.gradle.kts").writeText("rootProject.name = \"JavaKts\"\n")
+        File(external, "app/build.gradle.kts").apply { parentFile?.mkdirs() }
+            .writeText("plugins { id(\"com.android.application\") }\n")
+        File(external, "app/src/main/java/example/App.java").apply { parentFile?.mkdirs() }
+            .writeText("package example; class App {}\n")
+        File(external, "buildSrc/src/main/kotlin/Versions.kt").apply { parentFile?.mkdirs() }
+            .writeText("object Versions\n")
+
+        assertEquals("Java", repo.registerExistingProject(external).language)
+    }
+
+    @Test
+    fun `mixed Java and Kotlin sources are reported as mixed`() = runBlocking {
+        val external = tmp.newFolder("external-mixed", "Mixed")
+        File(external, "settings.gradle.kts").writeText("rootProject.name = \"Mixed\"\n")
+        File(external, "app/src/main/java/example/App.java").apply { parentFile?.mkdirs() }
+            .writeText("package example; class App {}\n")
+        File(external, "app/src/main/java/example/Helper.kt").writeText("package example\nclass Helper\n")
+
+        assertEquals("Java + Kotlin", repo.registerExistingProject(external).language)
+    }
+
+    @Test
+    fun `opening an existing project refreshes stale language metadata`() = runBlocking {
+        val external = tmp.newFolder("external-refresh", "Refresh")
+        File(external, "settings.gradle.kts").writeText("rootProject.name = \"Refresh\"\n")
+        val java = File(external, "app/src/main/java/example/App.java").apply { parentFile?.mkdirs() }
+        java.writeText("package example; class App {}\n")
+        val registered = repo.registerExistingProject(external)
+        assertEquals("Java", registered.language)
+
+        assertTrue(java.delete())
+        File(external, "app/src/main/java/example/App.kt").writeText("package example\nclass App\n")
+
+        assertEquals("Kotlin", repo.openProject(registered.id).language)
+    }
+
+    @Test
     fun `importProject rejects a non-gradle directory`() = runBlocking {
         val notAProject = tmp.newFolder("external", "random")
         File(notAProject, "readme.txt").writeText("hi\n")
