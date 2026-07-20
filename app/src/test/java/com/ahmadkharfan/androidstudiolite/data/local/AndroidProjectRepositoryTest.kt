@@ -181,7 +181,8 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `legacy recent entry defaults to buildable`() = runBlocking {
-        val legacy = listOf("legacy", "Legacy", "/legacy", "Kotlin", "1000", "").joinToString("\t")
+        val legacyDir = tmp.newFolder("legacy")
+        val legacy = listOf("legacy", "Legacy", legacyDir.absolutePath, "Kotlin", "1000", "").joinToString("\t")
         dataStore.edit { it[stringPreferencesKey("recent_projects")] = legacy }
 
         assertTrue(recents().single().buildable)
