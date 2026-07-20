@@ -82,6 +82,23 @@ class RemoteBuildRequestFactoryTest {
         )
     }
 
+    @Test
+    fun `authoritative synchronized task is used verbatim`() {
+        val request = BuildRequest(
+            root,
+            ":mobile",
+            "paidProductionRelease",
+            BuildKind.BUNDLE,
+            taskPath = ":mobile:bundlePaidProductionRelease",
+            buildType = "release",
+        )
+
+        assertEquals(
+            listOf(":mobile:bundlePaidProductionRelease"),
+            RemoteBuildRequestFactory.defaultTasks(request),
+        )
+    }
+
 
     @Test
     fun `flavored release names are detected as release variants`() {
