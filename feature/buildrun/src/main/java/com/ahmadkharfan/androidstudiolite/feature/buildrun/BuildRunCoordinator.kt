@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuild
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
@@ -18,6 +19,8 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.ToolchainVe
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,9 +55,20 @@ class BuildRunCoordinator(
     private val _execution = MutableStateFlow(BuildExecutionSnapshot())
     override val execution: StateFlow<BuildExecutionSnapshot> = _execution.asStateFlow()
     @Volatile private var admittedOperationId: String? = null
+    @Volatile private var activeExecutionJob: Job? = null
+    @Volatile private var cancelledOperationId: String? = null
 
     override suspend fun start(request: BuildRequest, meta: BuildClientMeta): StartBuildResult =
         admissionMutex.withLock {
+            val release = request.buildType.equals("release", ignoreCase = true) ||
+                (request.buildType == null && RunTargetResolver.isReleaseVariant(request.variantName))
+            val releaseConfig = if (release) runCatching { keystoreManager.releaseSigningConfig() } else null
+            if (release && (releaseConfig?.isFailure == true || releaseConfig?.getOrNull() == null)) {
+                return@withLock StartBuildResult.Failed(
+                    releaseConfig?.exceptionOrNull()?.message
+                        ?: "Configure a valid release keystore in Settings before building ${request.variantName}.",
+                )
+            }
             val current = admittedOperationId
             if (current != null) {
                 return@withLock StartBuildResult.AlreadyRunning(current, _execution.value.projectId)
@@ -77,6 +91,7 @@ class BuildRunCoordinator(
                 activeBuildStore.clear(persisted.buildId)
             }
             val operationId = UUID.randomUUID().toString()
+            cancelledOperationId = null
             admittedOperationId = operationId
             _execution.value = BuildExecutionSnapshot(
                 operationId = operationId,
@@ -99,6 +114,8 @@ class BuildRunCoordinator(
                 modulePath = request.modulePath,
                 variantName = request.variantName,
                 kind = request.kind.name,
+                taskPath = request.taskPath,
+                buildType = request.buildType,
             )
             try {
                 activeBuildStore.save(active)
@@ -139,6 +156,8 @@ class BuildRunCoordinator(
             runCatching { com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.valueOf(active.kind) }
                 .getOrDefault(com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.ASSEMBLE),
             active.operationId,
+            active.taskPath,
+            active.buildType,
         )
         val meta = BuildClientMeta(
             active.projectId,
@@ -182,6 +201,7 @@ class BuildRunCoordinator(
         meta: BuildClientMeta,
         attachBuildId: String? = null,
     ) {
+        activeExecutionJob = currentCoroutineContext()[Job]
         val persisted = admissionMutex.withLock {
             val active = activeBuildStore.get()?.takeIf { it.operationId == operationId }
                 ?: return@withLock null
@@ -216,6 +236,9 @@ class BuildRunCoordinator(
             events.onEach { event ->
                 onBuildEvent(event, meta, request.projectRoot, operationId)
             }.collect { event ->
+                if (cancelledOperationId == operationId) {
+                    throw kotlinx.coroutines.CancellationException("Build cancelled")
+                }
                 console = console.reduce(event)
                 _execution.value = _execution.value.copy(
                     console = console,
@@ -236,6 +259,7 @@ class BuildRunCoordinator(
                     console.durationMillis, meta.projectId, false)
             }
         } finally {
+            if (activeExecutionJob == currentCoroutineContext()[Job]) activeExecutionJob = null
             admissionMutex.withLock {
                 if (_execution.value.operationId == operationId) {
                     _execution.value = _execution.value.copy(active = false)
@@ -289,10 +313,18 @@ class BuildRunCoordinator(
                         installState = InstallExecutionState.Installed,
                         phase = BuildExecutionPhase.Succeeded,
                     )
-                    is InstallEvent.Conflict, is InstallEvent.Failed ->
+                    is InstallEvent.Conflict ->
                         _execution.value.copy(
                             installState = InstallExecutionState.Failed,
                             phase = BuildExecutionPhase.Failed,
+                            installConflictPackage = event.packageName,
+                            installFailureReason = event.reason,
+                        )
+                    is InstallEvent.Failed ->
+                        _execution.value.copy(
+                            installState = InstallExecutionState.Failed,
+                            phase = BuildExecutionPhase.Failed,
+                            installFailureReason = event.reason,
                         )
                 }
             }
@@ -308,6 +340,31 @@ class BuildRunCoordinator(
         )
     }
 
+    override fun uninstallConflict(packageName: String) {
+        if (packageName.isBlank()) return
+        clearScope.launch {
+            apkInstaller.uninstall(packageName).collect { event ->
+                _execution.value = when (event) {
+                    UninstallEvent.Uninstalling -> _execution.value.copy(
+                        installState = InstallExecutionState.Preparing,
+                        installFailureReason = null,
+                    )
+                    UninstallEvent.AwaitingConfirmation -> _execution.value.copy(
+                        installState = InstallExecutionState.AwaitingConfirmation,
+                    )
+                    UninstallEvent.Uninstalled -> _execution.value.copy(
+                        installState = InstallExecutionState.None,
+                        installConflictPackage = null,
+                    )
+                    is UninstallEvent.Failed -> _execution.value.copy(
+                        installState = InstallExecutionState.Failed,
+                        installFailureReason = event.reason,
+                    )
+                }
+            }
+        }
+    }
+
     override suspend fun preflight(projectRoot: File): BuildPreflightResult = withContext(Dispatchers.IO) {
         val versions = runCatching {
             val read = gradleReader.read(projectRoot)
@@ -320,14 +377,20 @@ class BuildRunCoordinator(
         BuildPreflight.run(versions, DeviceStorage.availableBytes(projectRoot))
     }
 
+    override suspend fun syncProject(projectRoot: File) = buildSystem.sync(projectRoot)
+
     override suspend fun ensureDebugKeystore() {
         runCatching { keystoreManager.debugSigningConfig() }
     }
 
     override fun cancel() {
         val operationId = _execution.value.operationId
+        if (operationId == null || !_execution.value.active) return
+        cancelledOperationId = operationId
+        _execution.value = _execution.value.copy(phase = BuildExecutionPhase.Cancelling)
         buildSystem.cancel()
         apkInstaller.cancelActiveInstall()
+        activeExecutionJob?.cancel(kotlinx.coroutines.CancellationException("Cancelled by user"))
         _execution.value = _execution.value.copy(
             console = _execution.value.console.copy(status = BuildStatus.Cancelled, progressMessage = null),
             active = false,
@@ -379,9 +442,11 @@ class BuildRunCoordinator(
                             ?.takeIf { it.buildId == event.buildId }
                             ?.startedAtEpochMs
                             ?: System.currentTimeMillis(),
-                        modulePath = existing?.modulePath ?: ":app",
-                        variantName = existing?.variantName ?: "debug",
+                        modulePath = existing?.modulePath.orEmpty(),
+                        variantName = existing?.variantName.orEmpty(),
                         kind = existing?.kind ?: "ASSEMBLE",
+                        taskPath = existing?.taskPath,
+                        buildType = existing?.buildType,
                     ),
                 )
             }

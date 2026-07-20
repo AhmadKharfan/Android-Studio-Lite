@@ -70,6 +70,10 @@ data class BuildArtifact(
     val path: String,
     val name: String,
     val kind: BuildEvent.ArtifactKind,
+    val sizeBytes: Long? = null,
+    val sha256: String? = null,
+    val signed: Boolean? = null,
+    val certificateSha256: String? = null,
 )
 
 fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event) {
@@ -107,7 +111,15 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
     )
 
     is BuildEvent.ArtifactProduced -> copy(
-        artifact = BuildArtifact(event.file.path, event.file.name, event.kind),
+        artifact = BuildArtifact(
+            event.file.path,
+            event.file.name,
+            event.kind,
+            event.sizeBytes,
+            event.sha256,
+            event.signed,
+            event.certificateSha256,
+        ),
     )
 
     is BuildEvent.Finished -> copy(

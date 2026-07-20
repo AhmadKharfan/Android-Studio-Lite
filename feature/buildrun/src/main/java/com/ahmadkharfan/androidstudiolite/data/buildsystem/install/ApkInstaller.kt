@@ -30,6 +30,28 @@ class ApkInstaller(private val context: Context) {
             close()
             return@callbackFlow
         }
+        val archive = @Suppress("DEPRECATION") context.packageManager.getPackageArchiveInfo(
+            apk.absolutePath,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                android.content.pm.PackageManager.GET_SIGNATURES
+            },
+        )
+        if (archive == null) {
+            trySend(InstallEvent.Failed("APK is invalid, corrupt, or unsigned"))
+            close()
+            return@callbackFlow
+        }
+        if (!applicationId.isNullOrBlank() && archive.packageName != applicationId) {
+            trySend(
+                InstallEvent.Failed(
+                    "APK package ${archive.packageName} does not match expected package $applicationId",
+                ),
+            )
+            close()
+            return@callbackFlow
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             !context.packageManager.canRequestPackageInstalls()
         ) {

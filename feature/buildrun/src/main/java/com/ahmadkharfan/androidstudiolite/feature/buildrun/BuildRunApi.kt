@@ -4,6 +4,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightResult
 import java.io.File
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import kotlinx.coroutines.flow.StateFlow
 
 data class BuildExecutionSnapshot(
@@ -13,6 +14,8 @@ data class BuildExecutionSnapshot(
     val console: BuildConsoleState = BuildConsoleState(),
     val installRequested: Boolean = false,
     val installState: InstallExecutionState = InstallExecutionState.None,
+    val installConflictPackage: String? = null,
+    val installFailureReason: String? = null,
     val active: Boolean = false,
     val phase: BuildExecutionPhase = BuildExecutionPhase.Idle,
 ) {
@@ -35,9 +38,11 @@ sealed interface StartBuildResult {
 interface BuildRunApi {
     val execution: StateFlow<BuildExecutionSnapshot>
     suspend fun preflight(projectRoot: File): BuildPreflightResult
+    suspend fun syncProject(projectRoot: File): ProjectModel
     suspend fun ensureDebugKeystore()
     suspend fun start(request: BuildRequest, meta: BuildClientMeta): StartBuildResult
     suspend fun recover(projectId: String): Boolean
     fun cancel()
+    fun uninstallConflict(packageName: String)
     fun canPostNotifications(): Boolean
 }
