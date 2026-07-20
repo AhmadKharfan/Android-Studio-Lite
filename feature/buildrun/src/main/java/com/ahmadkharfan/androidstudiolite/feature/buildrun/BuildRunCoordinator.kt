@@ -48,12 +48,12 @@ class BuildRunCoordinator(
     private val gradleReader: GradleProjectReader,
     private val notifier: BuildNotifier,
     private val activeBuildStore: ActiveBuildRepository,
-) {
+) : BuildRunApi {
 
     private val clearScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Runs the pre-build reliability checks (doc 10 §3): storage pressure + version compatibility. */
-    suspend fun preflight(projectRoot: File): BuildPreflightResult = withContext(Dispatchers.IO) {
+    override suspend fun preflight(projectRoot: File): BuildPreflightResult = withContext(Dispatchers.IO) {
         val versions = runCatching {
             val read = gradleReader.read(projectRoot)
             ToolchainVersions(
@@ -66,11 +66,11 @@ class BuildRunCoordinator(
     }
 
     /** Ensures the debug keystore exists so debug builds are signable before the build starts. */
-    suspend fun ensureDebugKeystore() {
+    override suspend fun ensureDebugKeystore() {
         runCatching { keystoreManager.debugSigningConfig() }
     }
 
-    fun build(request: BuildRequest, meta: BuildClientMeta): Flow<BuildEvent> {
+    override fun build(request: BuildRequest, meta: BuildClientMeta): Flow<BuildEvent> {
         RemoteBuildKeepAliveService.startBuilding(context, meta.projectId, meta.projectName, "Preparing…")
         return buildSystem.build(request)
             .onEach { event -> onBuildEvent(event, meta, request.projectRoot) }
@@ -80,7 +80,7 @@ class BuildRunCoordinator(
     /**
      * Reattaches to a persisted in-flight remote build for [meta.projectId], or null when none matches.
      */
-    suspend fun attachIfActive(projectId: String, projectRoot: File, projectName: String): Flow<BuildEvent>? {
+    override suspend fun attachIfActive(projectId: String, projectRoot: File, projectName: String): Flow<BuildEvent>? {
         val active = activeBuildStore.get() ?: return null
         if (active.projectId != projectId) return null
         // Stale entry older than the follow budget — drop it.
@@ -104,14 +104,14 @@ class BuildRunCoordinator(
     }
 
     /** Updates the ongoing keep-alive notification (e.g. while installing). */
-    fun updateKeepAliveProgress(projectId: String, projectName: String, progress: String) {
+    override fun updateKeepAliveProgress(projectId: String, projectName: String, progress: String) {
         RemoteBuildKeepAliveService.updateProgress(context, projectId, projectName, progress)
     }
 
     /** Drops the foreground keep-alive after build + optional install complete. */
-    fun endKeepAlive() = demoteKeepAlive()
+    override fun endKeepAlive() = demoteKeepAlive()
 
-    suspend fun activeBuildFor(projectId: String): ActiveBuild? {
+    override suspend fun activeBuildFor(projectId: String): ActiveBuild? {
         val active = activeBuildStore.get() ?: return null
         if (active.projectId != projectId) return null
         if (System.currentTimeMillis() - active.startedAtEpochMs > ACTIVE_BUILD_MAX_AGE_MS) {
@@ -121,7 +121,7 @@ class BuildRunCoordinator(
         return active
     }
 
-    fun cancel() {
+    override fun cancel() {
         buildSystem.cancel()
         demoteKeepAlive()
         clearScope.launch { activeBuildStore.clear() }
@@ -133,7 +133,7 @@ class BuildRunCoordinator(
      * package, so this is what lets the install flow name — and, on a signature conflict, uninstall —
      * the app being replaced.
      */
-    suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
+    override suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val modules = gradleReader.read(projectRoot).model.modules
@@ -143,21 +143,21 @@ class BuildRunCoordinator(
             }.getOrNull()
         }
 
-    fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> =
+    override fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> =
         apkInstaller.install(apk, applicationId, autoLaunch)
 
     /** Removes [applicationId] (and its data) so a differently-signed rebuild can install. */
-    fun uninstall(applicationId: String): Flow<UninstallEvent> = apkInstaller.uninstall(applicationId)
+    override fun uninstall(applicationId: String): Flow<UninstallEvent> = apkInstaller.uninstall(applicationId)
 
-    fun notifyFinished(
+    override fun notifyFinished(
         projectName: String,
         success: Boolean,
         durationMillis: Long?,
-        projectId: String = "",
-        installFollows: Boolean = false,
+        projectId: String,
+        installFollows: Boolean,
     ) = notifier.notifyFinished(projectName, success, durationMillis, projectId, installFollows)
 
-    fun canPostNotifications(): Boolean = notifier.canPost()
+    override fun canPostNotifications(): Boolean = notifier.canPost()
 
     private suspend fun onBuildEvent(event: BuildEvent, meta: BuildClientMeta, projectRoot: File) {
         when (event) {

@@ -11,7 +11,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.ahmadkharfan.androidstudiolite.MainActivity
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
 
 /**
@@ -47,7 +46,7 @@ class BuildNotifier(private val context: Context) {
             if (seconds != null) append(" · ").append(String.format("%.1fs", seconds))
         }
         // When install follows, route the tap through InstallConfirmActivity so the system install
-        // sheet appears; if the prompt isn't ready yet it falls through to the editor.
+        // sheet appears; otherwise route to the application launcher activity.
         val contentIntent = if (success && installFollows) {
             PendingIntent.getActivity(
                 context,
@@ -63,7 +62,9 @@ class BuildNotifier(private val context: Context) {
             PendingIntent.getActivity(
                 context,
                 projectId.hashCode().xor(NOTIFICATION_ID),
-                MainActivity.openProjectIntent(context, projectId),
+                context.packageManager.getLaunchIntentForPackage(context.packageName)
+                    ?.apply { putExtra("open_project_id", projectId) }
+                    ?: Intent(),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }

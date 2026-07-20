@@ -11,7 +11,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.ahmadkharfan.androidstudiolite.MainActivity
 
 /**
  * Foreground keep-alive while a remote build stream is active. The Gradle work runs on the server;
@@ -88,7 +87,9 @@ class RemoteBuildKeepAliveService : Service() {
         val contentIntent = PendingIntent.getActivity(
             this,
             projectId.hashCode(),
-            MainActivity.openProjectIntent(this, projectId),
+            packageManager.getLaunchIntentForPackage(packageName)
+                ?.putExtra("open_project_id", projectId)
+                ?: Intent(),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)

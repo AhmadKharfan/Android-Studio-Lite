@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.data.buildsystem.install
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import com.ahmadkharfan.androidstudiolite.MainActivity
 
 /**
  * Transparent trampoline launched from a notification tap (user gesture → allowed to start
@@ -32,7 +31,9 @@ class InstallConfirmActivity : Activity() {
         } else if (!PendingInstallPrompt.hasPending()) {
             // Nothing to install — open the project editor instead.
             val projectId = intent.getStringExtra(EXTRA_PROJECT_ID).orEmpty()
-            startActivity(MainActivity.openProjectIntent(this, projectId))
+            packageManager.getLaunchIntentForPackage(packageName)?.let { launcherIntent ->
+                startActivity(launcherIntent.putExtra("open_project_id", projectId))
+            }
         }
         // If hasPending but claim failed, another launcher already showed the sheet — do nothing.
         finish()
