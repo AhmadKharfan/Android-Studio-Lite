@@ -124,6 +124,24 @@ create → build on cluster → stream logs → download → install → launch.
 
 ---
 
+## 5.1 Android module structure
+
+The Android app is a Gradle multi-module project. `:app` is the composition root: it owns the
+application class, manifest, navigation, and Koin assembly. Reusable contracts and implementation
+belong below it:
+
+- `:domain`, `:core:common`, `:designsystem`
+- `:data:templates`, `:data:local`, `:data:git`, `:data:build`, `:data:ai`
+- `:feature:onboarding`, `:feature:projects`, `:feature:settings`, `:feature:terminal`,
+  `:feature:buildrun`, `:feature:git`, and `:feature:editor`
+
+Feature integration points are explicit: the editor uses `BuildRunApi` and `GitPanelApi`, rather
+than concrete coordinators or panels. Shared Gradle configuration lives in included build
+`build-logic` convention plugins (`asl.android.application`, `asl.android.library`,
+`asl.android.library.compose`, and `asl.kotlin.library`).
+
+---
+
 ## 6. Live infrastructure (DigitalOcean, user's account, region nyc3)
 
 - **DOKS cluster:** `asl-build-cluster` (Kubernetes 1.34). Node pools: 1× `s-2vcpu-4gb` control node,
