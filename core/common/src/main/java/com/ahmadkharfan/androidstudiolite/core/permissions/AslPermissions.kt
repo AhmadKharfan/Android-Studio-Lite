@@ -10,19 +10,12 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 
-/**
- * Every permission the IDE needs to store projects on device and install the APKs the remote build
- * server produces, and how to check and request each one for real — no fake "granted" flags. Modeled
- * on android-code-studio's `PermissionsFragment` (storage / install-packages checks are API-level
- * dependent, not a single `checkSelfPermission` call).
- */
 enum class AslPermissionId {
     STORAGE,
     INSTALL_PACKAGES,
     NOTIFICATIONS,
     ;
 
-    /** The stable string id the rest of the app (domain model, UI icon maps) keys on. */
     val domainId: String
         get() = when (this) {
             STORAGE -> "storage"
@@ -35,11 +28,8 @@ enum class AslPermissionId {
     }
 }
 
-/** How a permission must be requested — the two Android permission UX models. */
 sealed interface AslPermissionRequest {
-    /** A normal runtime permission dialog via [ActivityResultContracts.RequestPermission/-MultiplePermissions]. */
     data class Runtime(val manifestPermissions: List<String>) : AslPermissionRequest
-    /** A permission only grantable from a Settings screen (all-files-access, install-unknown-apps). */
     data class SettingsScreen(val intentAction: String) : AslPermissionRequest
 }
 
@@ -53,7 +43,6 @@ data class AslPermissionDescriptor(
 
 object AslPermissions {
 
-    /** The permissions relevant on this OS version, in display order. Notifications is a no-op pre-API 33. */
     fun descriptors(): List<AslPermissionDescriptor> = buildList {
         add(
             AslPermissionDescriptor(
@@ -107,11 +96,9 @@ object AslPermissions {
     fun canRequestPackageInstalls(context: Context): Boolean =
         context.packageManager.canRequestPackageInstalls()
 
-    /** Every required (non-optional) permission granted — the gate for leaving the onboarding step. */
     fun allRequiredGranted(context: Context): Boolean =
         descriptors().filterNot { it.optional }.all { isGranted(context, it.id) }
 
-    /** Builds the settings-screen [Intent] for a [AslPermissionRequest.SettingsScreen] descriptor. */
     fun settingsIntent(context: Context, action: String): Intent =
         Intent(action).apply {
             data = Uri.fromParts("package", context.packageName, null)

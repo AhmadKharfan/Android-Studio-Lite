@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.core.xml
 
-/** Lightweight dependency-free XML model produced by [XmlParser]. */
 enum class XmlNodeType {
     DOCUMENT, ELEMENT, ATTRIBUTE, TEXT, COMMENT, CDATA, PROCESSING, DOCTYPE, MALFORMED,
 }

@@ -22,10 +22,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-// Repositories still backed by fakes live here. Real ones are bound in their own modules and
-// registered from AslApplication: File/Project (localDataModule, T3), Preferences (preferencesModule,
-// T6), Terminal (terminalModule, T7), Git (gitModule, T5), Templates (templatesModule, T4), AI
-// (aiModule). Those interfaces are intentionally NOT bound here so there are no duplicate Koin definitions.
+
 val dataModule = module {
     single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
     single { NetworkMonitor(androidContext()) }
@@ -35,8 +32,8 @@ val viewModelModule = module {
     viewModelOf(::CompleteViewModel)
     viewModelOf(::HubViewModel)
     viewModelOf(::OpenProjectViewModel)
-    // Explicit (not viewModelOf) because the default save location is a plain String the graph can't
-    // resolve by type.
+
+
     viewModel {
         CreateProjectViewModel(
             templateRepository = get(),
@@ -44,7 +41,7 @@ val viewModelModule = module {
             defaultLocation = IdeEnvironmentPaths.projectsDir(androidContext()).absolutePath,
         )
     }
-    // CloneRepoViewModel + GitPanelViewModel are bound in gitModule (T5).
+
     viewModel { params -> AiChatViewModel(get(), get(), projectId = params.get()) }
     viewModelOf(::TerminalViewModel)
     viewModelOf(::FolderPickerViewModel)

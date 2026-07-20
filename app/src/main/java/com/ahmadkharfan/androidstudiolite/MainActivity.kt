@@ -85,9 +85,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Only if nothing else has claimed the install sheet yet (e.g. user returned to the app
-        // without tapping the notification). claimForLaunch prevents a second dialog when the
-        // notification trampoline already opened it.
+
+
         val confirm = PendingInstallPrompt.claimForLaunch() ?: return
         runCatching {
             startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

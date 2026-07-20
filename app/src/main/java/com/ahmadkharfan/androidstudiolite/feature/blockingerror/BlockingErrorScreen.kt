@@ -18,7 +18,7 @@ enum class BlockingErrorType { UnsupportedDevice, SdCardInstall, SecondaryUser }
 
 @Composable
 fun BlockingErrorRoute(type: BlockingErrorType) {
-    BackHandler(enabled = true) {} // blocking screen — no back navigation, only the one offered action
+    BackHandler(enabled = true) {}
     val context = LocalContext.current
     val activity = context as? Activity
     BlockingErrorScreen(

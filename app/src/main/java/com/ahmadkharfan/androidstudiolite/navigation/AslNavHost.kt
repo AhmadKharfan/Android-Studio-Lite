@@ -44,7 +44,7 @@ fun AslNavHost(
 ) {
     LaunchedEffect(openProjectId) {
         val id = openProjectId ?: return@LaunchedEffect
-        // Cold start already used Routes.editor as startDestination; only navigate for warm taps.
+
         if (startDestination != Routes.editor(id)) {
             navController.navigate(Routes.editor(id)) {
                 launchSingleTop = true
@@ -63,8 +63,8 @@ fun AslNavHost(
         composable(Routes.ONBOARDING_WELCOME) {
             WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
         }
-        // Permissions is the last onboarding gate: the Setup step used to install the on-device
-        // toolchain, which no longer exists now that builds run on the server.
+
+
         composable(Routes.ONBOARDING_PERMISSIONS) {
             PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_COMPLETE) })
         }

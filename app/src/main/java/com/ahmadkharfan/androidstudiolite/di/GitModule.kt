@@ -38,10 +38,6 @@ import org.koin.dsl.module
 
 private val Context.gitAuthorDataStore: DataStore<Preferences> by preferencesDataStore(name = "git_author")
 
-/**
- * T5 — JGit-backed git integration. Kept in its own module (registered from [AslApplication]) so the
- * central [KoinModules] file stays untouched by this task.
- */
 val gitModule = module {
     single<GitPanelApi> { GitPanelApiImpl() }
     single<GitCredentialStore> { EncryptedGitCredentialStore(androidContext()) }
@@ -74,10 +70,10 @@ val gitModule = module {
         )
     }
 
-    // The clone screen drives a real JGit clone (+ optional token persistence) instead of the fake.
+
     viewModelOf(::CloneRepoViewModel)
 
-    // The in-editor git panel is scoped to the open project's working tree, resolved from its id.
+
     viewModel { params ->
         GitPanelViewModel(
             projectId = params.get(),
@@ -101,7 +97,7 @@ val gitModule = module {
     viewModel { params ->
         GitHistoryViewModel(
             projectId = params.get(0),
-            // The path arg is always supplied (empty when browsing full history); treat blank as none.
+
             requestedPath = params.get<String>(1).takeIf { it.isNotBlank() },
             projectPathResolver = get(),
             gitRepository = get(),
@@ -132,7 +128,7 @@ val gitModule = module {
             gitRepository = get(),
         )
     }
-    // The Assets panel lists real on-disk resources for the open project, resolved from its id.
+
     viewModel { params ->
         AssetsViewModel(
             projectId = params.get(),

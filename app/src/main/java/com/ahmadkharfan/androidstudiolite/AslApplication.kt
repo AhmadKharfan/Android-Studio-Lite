@@ -30,12 +30,12 @@ class AslApplication : Application() {
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@AslApplication)
-            // Single flavor (builds run server-side). buildRunModule binds BuildSystem to
-            // RemoteBuildSystem; remoteModule provides its transport, packager, downloader, settings.
+
+
             modules(appModules + localDataModule + templatesModule + preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule + aiModule)
         }
-        // Process death drops the FGS notification; restore a keep-alive chip as soon as the process
-        // comes back so the user can see a build is still running before they reopen the project.
+
+
         restoreActiveBuildKeepAlive()
     }
 
@@ -58,7 +58,6 @@ class AslApplication : Application() {
     }
 
     private companion object {
-        /** Align with BuildRunCoordinator / RemoteBuildSystem follow budget. */
         const val ACTIVE_BUILD_MAX_AGE_MS = 1_000_000L
     }
 }

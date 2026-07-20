@@ -12,15 +12,10 @@ import java.io.File
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
-/**
- * Wiring for the server-side build backend (A2): settings persistence, the OkHttp transport, the
- * project packager and artifact downloader. `RemoteBuildSystem` itself is bound in [buildRunModule].
- * Registered from [com.ahmadkharfan.androidstudiolite.AslApplication].
- */
 val remoteModule = module {
     single { ServerSettingsRepository(androidContext()) }
-    // Play Integrity attestation (A3). Gated by BuildConfig so dev builds (no Play Services, unlinked
-    // cloud project) register without it; the real provider fails soft to null anyway.
+
+
     single<IntegrityTokenProvider> {
         val projectNumber = BuildConfig.PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER
         if (BuildConfig.PLAY_INTEGRITY_ENABLED && projectNumber > 0L) {

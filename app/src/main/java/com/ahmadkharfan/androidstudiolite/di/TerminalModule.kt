@@ -9,16 +9,6 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
 
-/**
- * Terminal wiring. Kept as its own module (registered in `AslApplication`) so the shell binding stays
- * self-contained.
- *
- * Exposes a single [TerminalSessionManager] that mints a fresh [PtyTerminalRepository] per tab, so
- * multiple independent sessions can run at once. Each session forks a real pseudo-terminal. The
- * command + environment come from [ProotEnvironment]: once the user installs the Linux userland it
- * launches an Alpine shell under proot (so any tool can run); until then it falls back to the system
- * shell so the terminal always works. [LinuxBootstrapInstaller] downloads that userland on demand.
- */
 val terminalModule: Module = module {
     single { ProotEnvironment(androidContext()) }
     single { LinuxBootstrapInstaller(androidContext(), get()) }

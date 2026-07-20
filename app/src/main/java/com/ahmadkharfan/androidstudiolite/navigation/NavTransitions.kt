@@ -11,11 +11,6 @@ import androidx.navigation.NavBackStackEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import kotlin.math.roundToInt
 
-/**
- * Material 3 shared-axis (X) screen transitions, driven by [AslMotion] timing. The incoming screen
- * slides in from the leading edge while the outgoing one drifts the opposite way, both cross-fading —
- * giving forward/back navigation a clear sense of spatial direction instead of a flat fade.
- */
 private const val INCOMING_FRACTION = 0.30f
 private const val OUTGOING_FRACTION = 0.12f
 

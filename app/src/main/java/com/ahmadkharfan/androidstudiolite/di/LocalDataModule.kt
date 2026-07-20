@@ -16,18 +16,11 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
-/** DataStore holding the serialized recent-projects list; kept separate from other feature stores. */
 private val Context.recentProjectsDataStore by preferencesDataStore(name = "recent_projects")
 
-/**
- * Real implementations of the file-system / project layer (task T3), replacing the in-memory `Fake*`
- * bindings from [dataModule]. This is registered *after* [appModules] in [com.ahmadkharfan.androidstudiolite.AslApplication]
- * so Koin's default override (last-wins) swaps the fakes out — kept in its own file, and flavor-agnostic,
- * so it never collides with sibling task edits to the shared [dataModule].
- */
 val localDataModule = module {
-    // One change bus shared by every local repository so a mutation via any of them is observable
-    // through all of them (editor external-change detection, live file-tree refresh).
+
+
     single { FileChangeBus() }
 
     single<FileSystemRepository> {

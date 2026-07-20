@@ -25,14 +25,6 @@ private val Context.activeBuildDataStore: DataStore<Preferences> by preferencesD
     name = "active_build",
 )
 
-/**
- * Build / install / run wiring for the build UI (T11). Everything here targets only the [BuildSystem]
- * interface. The app builds server-side, so [BuildSystem] is bound to [RemoteBuildSystem], which
- * streams the control plane's [com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent]s
- * into the same console and downloads the resulting APK for the install/run flow. Its transport,
- * packager, downloader, and settings live in [remoteModule]; the installer, keystore manager,
- * notifier, and coordinator around it are backend-agnostic.
- */
 val buildRunModule = module {
     single<ActiveBuildRepository> { ActiveBuildStore(androidContext().activeBuildDataStore) }
     single<BuildSystem> {

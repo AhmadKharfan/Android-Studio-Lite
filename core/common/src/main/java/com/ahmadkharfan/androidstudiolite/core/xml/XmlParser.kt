@@ -1,9 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.core.xml
 
-/**
- * Forgiving, single-pass XML parser shared by project inspection and editor language tooling.
- * It records malformed input rather than throwing so callers can process in-progress documents.
- */
 class XmlParser(private val src: CharSequence) {
     private val length = src.length
     private var cursor = 0
@@ -22,8 +18,8 @@ class XmlParser(private val src: CharSequence) {
                 lookingAt("<![CDATA[") -> open.last().append(readDelimited(XmlNodeType.CDATA, "]]>"))
                 lookingAt("<?") -> open.last().append(readDelimited(XmlNodeType.PROCESSING, "?>"))
                 lookingAt("<!") -> open.last().append(readDoctype())
-                lookingAt("</") -> handleCloseTag(open)
-                cursor + 1 < length && isNameStart(src[cursor + 1]) -> handleOpenTag(open)
+                lookingAt("</") -> parseCloseTag(open)
+                cursor + 1 < length && isNameStart(src[cursor + 1]) -> parseOpenTag(open)
                 else -> {
                     open.last().append(XmlNode(XmlNodeType.MALFORMED, null, cursor, cursor + 1, src))
                     cursor++
@@ -37,7 +33,7 @@ class XmlParser(private val src: CharSequence) {
 
     private enum class TagClose { OPEN, SELF_CLOSED, TRUNCATED }
 
-    private fun handleOpenTag(open: ArrayDeque<XmlNode>) {
+    private fun parseOpenTag(open: ArrayDeque<XmlNode>) {
         val start = cursor++
         val name = readName()
         val element = XmlNode(XmlNodeType.ELEMENT, name, start, cursor, src)
@@ -61,7 +57,7 @@ class XmlParser(private val src: CharSequence) {
         }
     }
 
-    private fun handleCloseTag(open: ArrayDeque<XmlNode>) {
+    private fun parseCloseTag(open: ArrayDeque<XmlNode>) {
         val start = cursor
         cursor += 2
         val name = readName()

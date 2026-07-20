@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-/** Real device connectivity via [ConnectivityManager] — no simulated/fake network state. */
 class NetworkMonitor(context: Context) {
 
     private val connectivityManager =

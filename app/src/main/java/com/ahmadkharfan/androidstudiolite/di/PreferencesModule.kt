@@ -11,10 +11,6 @@ import org.koin.dsl.module
 
 private val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
 
-/**
- * Binds the real DataStore-backed [PreferencesRepository] so settings survive process death.
- * Registered from [com.ahmadkharfan.androidstudiolite.AslApplication] alongside [appModules].
- */
 val preferencesModule = module {
     single<PreferencesRepository> { DataStorePreferencesRepository(androidContext().appPreferencesDataStore) }
 }
