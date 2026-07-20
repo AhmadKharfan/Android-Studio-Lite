@@ -40,8 +40,8 @@ android {
         // Builds run server-side, so nothing forces the legacy targetSdk 28 constraint any more:
         // target a normal high SDK for a Play-compatible single-flavor app.
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = System.getenv("CI_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("CI_VERSION_NAME") ?: "1.0"
 
         buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"https://build.androidstudiolite.me\"")
 
@@ -88,6 +88,10 @@ android {
         }
     }
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = signingConfigs.findByName("release")
             optimization {
