@@ -453,7 +453,8 @@ class AiLlmGateway(
         const val ANTHROPIC_MODEL = "claude-3-5-haiku-latest"
         const val DEFAULT_SYSTEM =
             "You are an Android development assistant inside Android Studio Lite. " +
-                "Prefer Kotlin and Jetpack Compose. Be concise. Use fenced code blocks for snippets."
+                "Respect the project's existing Java or Kotlin language and UI toolkit. " +
+                "Be concise. Use fenced code blocks for snippets."
 
         val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
 

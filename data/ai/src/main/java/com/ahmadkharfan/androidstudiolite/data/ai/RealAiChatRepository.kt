@@ -256,13 +256,15 @@ class RealAiChatRepository(
     ) {
         val projectId = session.projectId
         val outline = executor.outline(projectId)
-        val kotlinPrefix = executor.kotlinSourcePackagePrefix(projectId)
+        val sourcePrefix = executor.sourcePackagePrefix(projectId)
+        val projectLanguage = executor.projectLanguage(projectId)
         val system = AgentProtocol.systemPrompt(
             settings.instructions,
             outline,
             activeFilePath,
             mode,
-            kotlinPrefix,
+            sourcePrefix,
+            projectLanguage,
         )
 
 
