@@ -22,6 +22,8 @@ import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelApi
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelApiImpl
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameViewModel
@@ -41,6 +43,7 @@ private val Context.gitAuthorDataStore: DataStore<Preferences> by preferencesDat
  * central [KoinModules] file stays untouched by this task.
  */
 val gitModule = module {
+    single<GitPanelApi> { GitPanelApiImpl() }
     single<GitCredentialStore> { EncryptedGitCredentialStore(androidContext()) }
     single<GitHubDeviceAuthenticator> {
         GitHubDeviceFlowAuthenticator(
