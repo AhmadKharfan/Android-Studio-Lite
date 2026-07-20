@@ -1,11 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine
 
-/**
- * A conservative, lexer-aware re-indenter. It never rewrites the *content* of a line — it only fixes
- * leading indentation and trims trailing whitespace — and it refuses to touch any line that begins
- * inside a multi-line construct (block comment or Kotlin triple-quoted string) so significant
- * whitespace and comment art are preserved. Brace languages indent off `{ ( [`; XML off its tags.
- */
 object CodeFormatter {
 
     fun reformat(text: String, tabSize: Int, language: EditorLanguage): String = when (language) {
@@ -50,7 +44,7 @@ object CodeFormatter {
         var i = 0
         val n = line.length
         var state = startCarry
-        // Transient in-line states (strings/char/line-comment) never carry past a newline.
+
         var inString = false
         var inChar = false
         var lineComment = false

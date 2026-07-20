@@ -5,14 +5,8 @@ import com.ahmadkharfan.androidstudiolite.core.xml.ParsedXml
 import com.ahmadkharfan.androidstudiolite.core.xml.XmlNode
 import com.ahmadkharfan.androidstudiolite.core.xml.XmlNodeType
 
-/** What the caret is positioned to complete. */
 enum class XmlCompletionKind { TAG_NAME, ATTRIBUTE_NAME, ATTRIBUTE_VALUE, TEXT, UNKNOWN }
 
-/**
- * A fully resolved completion site: what we are completing, the enclosing tag/parent, the attribute
- * being valued (if any), attributes already present on the current tag, the typed [prefix], and the
- * source range that a chosen item should replace.
- */
 data class XmlCompletionPosition(
     val kind: XmlCompletionKind,
     val tag: String?,
@@ -25,17 +19,10 @@ data class XmlCompletionPosition(
     val filePath: String,
 )
 
-/** Contributes completion candidates for a resolved [XmlCompletionPosition]. */
 fun interface XmlCompletionContributor {
     fun contribute(position: XmlCompletionPosition): List<CompletionItem>
 }
 
-/**
- * Determines what should be completed at a caret offset by scanning the raw text backwards to the
- * nearest `<`, then forward through the start tag while tracking attribute/quote state.
- *
- * Original implementation for Android Studio Lite.
- */
 object XmlCompletionAnalyzer {
 
     fun locate(text: CharSequence, offset: Int, parsed: ParsedXml, filePath: String): XmlCompletionPosition {
@@ -44,7 +31,7 @@ object XmlCompletionAnalyzer {
         val openAngle = previousIndexOf(text, '<', caret)
         if (openAngle < 0) return textPosition(parsed, caret, filePath)
 
-        // A closing tag, comment, PI or declaration is not a completion site.
+
         when (text.getOrNull(openAngle + 1)) {
             '/', '!', '?' -> return unknownPosition(caret, filePath)
         }
@@ -52,8 +39,7 @@ object XmlCompletionAnalyzer {
         val tagNameEnd = nameEndAt(text, openAngle + 1)
         val tagName = text.subSequence(openAngle + 1, tagNameEnd).toString().ifEmpty { null }
 
-        // Walk the start tag, tracking the current attribute, whether we've passed '=', quote state,
-        // and which attribute names already appear.
+
         var i = tagNameEnd
         var quote: Char? = null
         var valueStart = -1
@@ -97,7 +83,7 @@ object XmlCompletionAnalyzer {
 
         val parentTag = enclosingElementName(parsed, (openAngle - 1).coerceAtLeast(0))
 
-        // Inside an open quoted value.
+
         if (quote != null) {
             val from = valueStart.coerceAtMost(caret)
             return XmlCompletionPosition(
@@ -113,7 +99,7 @@ object XmlCompletionAnalyzer {
             )
         }
 
-        // Just past `attr=` but before any quote.
+
         if (afterEquals && currentAttr != null) {
             return XmlCompletionPosition(
                 kind = XmlCompletionKind.ATTRIBUTE_VALUE,
@@ -128,7 +114,7 @@ object XmlCompletionAnalyzer {
             )
         }
 
-        // Still within the tag name itself.
+
         if (caret <= tagNameEnd) {
             return XmlCompletionPosition(
                 kind = XmlCompletionKind.TAG_NAME,
@@ -143,8 +129,7 @@ object XmlCompletionAnalyzer {
             )
         }
 
-        // Typing an attribute name. The token under the caret is being edited, so don't treat it as
-        // "already present" when suppressing duplicates.
+
         var tokenStart = caret
         while (tokenStart > openAngle + 1 && isNameChar(text[tokenStart - 1])) tokenStart--
         present.remove(text.subSequence(tokenStart, caret).toString())
@@ -161,10 +146,6 @@ object XmlCompletionAnalyzer {
         )
     }
 
-    /**
-     * Prefix match used to filter candidates. Besides a plain leading match, we also match on the
-     * segment after `:`, `/` or `.` so that typing `layout_w` reaches `android:layout_width`.
-     */
     fun prefixMatches(candidate: String, prefix: String): Boolean {
         if (prefix.isEmpty()) return true
         if (candidate.startsWith(prefix, ignoreCase = true)) return true

@@ -10,7 +10,6 @@ data class FileTreeSearchMatch(
     val icon: String?,
 )
 
-/** Case-insensitive name search across the whole project tree. */
 fun searchFileTree(
     nodes: List<EditorFileNodeUiModel>,
     query: String,
@@ -45,7 +44,6 @@ private fun collectMatches(
     }
 }
 
-/** Folder ids that must be expanded to reveal [targetId] in the tree. */
 fun ancestorFolderIds(nodes: List<EditorFileNodeUiModel>, targetId: String): Set<String> {
     fun walk(list: List<EditorFileNodeUiModel>, ancestors: List<String>): Set<String>? {
         for (node in list) {

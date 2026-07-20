@@ -58,18 +58,13 @@ data class AiChatUiState(
     val showHistory: Boolean = false,
     val mode: ChatMode = ChatMode.AGENT,
     val activeThreadId: String = "",
-    /** Effective provider id for the active thread (thread choice or global default). */
     val providerId: String = "",
-    /** Effective model id for the active thread. */
     val model: String = "",
-    /** Validated providers the user can switch between, each with its selectable models. */
     val providers: List<ChatProviderUiModel> = emptyList(),
     val showControls: Boolean = false,
-    /** When set, the plan review sheet is open for this plan message id. */
     val planReviewMessageId: String? = null,
     val planReviewInput: String = "",
 ) {
-    /** Models offered for the currently selected provider. */
     val availableModels: List<String>
         get() = providers.firstOrNull { it.id == providerId }?.models ?: emptyList()
 }

@@ -13,11 +13,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * Build-variant picker. The selected variant is owned by the editor (it drives Run), so this panel is
- * stateless: it reflects [selectedVariant] and reports changes through [onSelectVariant].
- * [variants] comes from the project’s Android application module (including product-flavor combos).
- */
 @Composable
 fun VariantsRoute(
     selectedVariant: String,

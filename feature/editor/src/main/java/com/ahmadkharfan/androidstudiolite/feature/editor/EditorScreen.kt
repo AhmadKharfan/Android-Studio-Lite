@@ -95,7 +95,7 @@ fun EditorRoute(
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-    ) { /* BuildNotifier no-ops until granted; user can grant later in settings. */ }
+    ) {  }
 
     LaunchedEffect(openConflictPath) {
         openConflictPath?.let {
@@ -119,8 +119,7 @@ fun EditorRoute(
         }
     }
 
-    // Persist unsaved edits whenever the editor stops (app backgrounded, screen off, navigation away).
-    // ON_STOP fires before the process can be killed, so a debounce still in flight isn't lost.
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -360,7 +359,7 @@ private fun EditorContentArea(
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
-        // Keep the bottom panel visible while typing in the project terminal (Android Studio behaviour).
+
         if (!keyboardOpen || terminalPanelActive) {
             EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
         }

@@ -5,14 +5,6 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionPositionKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionProvider
 
-/**
- * Contributes project + dependency symbols (from the last sync's [ProjectSymbolIndex]) alongside the
- * built-in stdlib/Android catalog. Reads the index through a provider so the controller can swap in a
- * fresh index after each sync without rebuilding anything.
- *
- * The index it reads is empty until a project syncs, in which case this provider is a no-op and the
- * built-in catalog behaves exactly as before.
- */
 class ProjectSymbolCompletionProvider(
     private val indexProvider: () -> ProjectSymbolIndex,
 ) : CompletionProvider {

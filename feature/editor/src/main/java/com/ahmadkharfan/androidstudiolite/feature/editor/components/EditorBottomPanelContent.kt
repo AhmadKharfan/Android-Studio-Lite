@@ -80,13 +80,8 @@ private fun BuildTab(
             onCancelBuild = onCancelBuild,
             onCopyAll = { clipboard.setText(AnnotatedString(console.toClipboardText())) },
         )
-        // NOTE: do NOT wrap this LazyColumn in a single SelectionContainer. A shared
-        // SelectionContainer over a lazy list crashes when the user selects text and then
-        // scrolls — disposed items drop their selectable ids from the selection registry, and
-        // the selection manager then looks up a missing id
-        // (java.util.NoSuchElementException: Cannot find value for key N). Instead we offer a
-        // reliable "Copy" action for the whole console and per-line SelectionContainers (each
-        // with its own registry) for granular copying.
+
+
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             if (console.problems.isNotEmpty()) {
                 item { SectionLabel("Problems (${console.problems.size})") }
@@ -110,8 +105,8 @@ private fun BuildTab(
             if (console.logs.isNotEmpty()) {
                 item { SectionLabel("Output") }
                 items(console.logs) { line ->
-                    // Per-line SelectionContainer: each has its own selection registry, so a line
-                    // scrolling out of view can never leave a dangling selectable id behind.
+
+
                     SelectionContainer {
                         Text(
                             text = line.text,
@@ -126,7 +121,6 @@ private fun BuildTab(
     }
 }
 
-/** Flattens the whole console into plain text for the "Copy" action. */
 private fun BuildConsoleState.toClipboardText(): String = buildString {
     val statusLabel = when (status) {
         BuildStatus.Running -> progressMessage ?: "Building…"

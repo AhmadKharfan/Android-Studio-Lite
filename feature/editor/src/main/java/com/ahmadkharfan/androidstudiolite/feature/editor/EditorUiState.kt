@@ -46,10 +46,6 @@ data class BuildOutputLineUiModel(
     val duration: String? = null,
     val jumpToTabId: String? = null,
 )
-/**
- * A build's APK couldn't install over the copy already on the device because the two are signed
- * differently. Prompts for the only fix — uninstalling [applicationId], which drops its data.
- */
 @Immutable
 data class InstallConflictUiModel(
     val applicationId: String,
@@ -98,7 +94,6 @@ sealed interface EditorFileOperationDialogUiState {
 data class EditorUiState(
     val projectId: String = "",
     val projectName: String = "",
-    /** Absolute path to the open project root — used by the bottom-panel terminal. */
     val projectRootPath: String = "",
     val tabs: List<EditorTabUiModel> = emptyList(),
     val activeTabId: String? = null,
@@ -115,10 +110,8 @@ data class EditorUiState(
     val buildProgressPercent: Int? = null,
     val buildLines: List<BuildOutputLineUiModel> = emptyList(),
     val buildFailed: Boolean = false,
-    /** Folded output of the current/last real build, driven through the [BuildConsoleState] reducer. */
     val buildConsole: BuildConsoleState = BuildConsoleState(),
     val snackbarMessage: String? = null,
-    /** Non-null while asking the user to approve the uninstall that clears a signature conflict. */
     val installConflict: InstallConflictUiModel? = null,
     val fileOperationDialog: EditorFileOperationDialogUiState = EditorFileOperationDialogUiState.None,
     val copiedFileTreeEntry: CopiedFileTreeEntryUiModel? = null,
@@ -133,24 +126,19 @@ data class EditorUiState(
     val editorThemeId: String = "darcula",
     val editorFontFamily: String = "jetbrains",
     val selectedVariant: String = "debug",
-    /** Concrete Gradle variants for the run module (e.g. developmentDebug); drives the Variants picker. */
     val availableVariants: List<String> = listOf("debug", "release"),
-    /** Gradle path of the Android application module used for Run (e.g. `:composeApp`). */
     val runModulePath: String = ":app",
-    /** When true, the release build produces an .aab bundle instead of an .apk (Build & Run setting). */
     val buildOutputAab: Boolean = false,
     val caretLine: Int = 0,
     val caretColumn: Int = 0,
     val editorRevealNonce: Int = 0,
     val editorRevealOffset: Int = 0,
-    /** Project + dependency symbols from the last static sync; drives project-aware completion. */
     val projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
         com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }
     val gitBadge: String? get() = gitPendingChangeCount.takeIf { it > 0 }?.toString()
-    /** Label for the single release-build menu action; format follows the Build & Run output setting. */
     val releaseBuildLabel: String get() = if (buildOutputAab) "Build AAB (release)" else "Build APK (release)"
 }
 

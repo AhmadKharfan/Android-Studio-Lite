@@ -78,7 +78,6 @@ class CodeEditorView(context: Context) : View(context) {
     private var findCurrentIndex: Int = 0
     private var findMatches: List<Int> = emptyList()
     private val completionController = EditorCompletionController()
-    /** Feed the latest synced project/dependency symbols into completion. */
     fun setProjectIndex(index: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex) {
         completionController.projectIndex = index
     }
@@ -396,8 +395,8 @@ class CodeEditorView(context: Context) : View(context) {
             val session = session
             if (handlesVisible && session != null && !session.selection.isCollapsed) {
                 val codeLeft = gutterWidthPx + dp(CODE_PADDING_DP)
-                val (startX, startY) = handleCenter(session, session.selection.start, codeLeft)
-                val (endX, endY) = handleCenter(session, session.selection.end, codeLeft)
+                val (startX, startY) = selectionHandleCenter(session, session.selection.start, codeLeft)
+                val (endX, endY) = selectionHandleCenter(session, session.selection.end, codeLeft)
                 val touchR = dp(HANDLE_RADIUS_DP) * 2.4f
                 when {
                     dist(e.x, e.y, startX, startY) <= touchR -> { draggingStartHandle = true; dragMode = DragMode.SELECT }
@@ -446,7 +445,7 @@ class CodeEditorView(context: Context) : View(context) {
             return true
         }
     }
-    private fun handleCenter(session: EditorSession, offset: Int, codeLeft: Float): Pair<Float, Float> {
+    private fun selectionHandleCenter(session: EditorSession, offset: Int, codeLeft: Float): Pair<Float, Float> {
         val pos = session.document.offsetToPosition(offset)
         val x = codeLeft + pos.column * charWidthPx - scrollXpx
         val y = pos.line * lineHeightPx - scrollYpx + glyphTopOffsetPx + glyphHeightPx + dp(HANDLE_RADIUS_DP)

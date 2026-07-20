@@ -81,12 +81,6 @@ private fun String.toRailTool(): EditorRailTool? = when (this) {
     else -> null
 }
 
-/** Tool-window rail + its slide-out drawer content (phone, <600dp: overlay with dim scrim).
- *  Git/AI Agent/Variants/Assets have no dedicated design-spec screen card (Phase 3b was never
- *  provided), so their tool windows are composed from the shared component library per the
- *  design system's own composition map (README.md: "Git tool window: ToolWindowPanel · NavRail ·
- *  DiffLine · ListItem · TextField · StatusChip", "AI Agent: ToolWindowPanel · ChatBubble ·
- *  ChatCodeBlock · TextField · ApiKeyCard"). */
 @Composable
 fun EditorDrawer(
     openTool: EditorRailTool?,
@@ -121,24 +115,20 @@ fun EditorDrawer(
     isLoadingFileTree: Boolean = false,
 ) {
     val visible = openTool != null
-    // Retain the last opened tool so the slide-out keeps rendering its content while it animates away.
+
     var lastTool by remember { mutableStateOf<EditorRailTool?>(null) }
     if (openTool != null) lastTool = openTool
     val tool = lastTool ?: return
 
-    // Both transitions are seeded at `false` regardless of `visible`'s first value — a plain
-    // `AnimatedVisibility(visible = ...)` initializes its MutableTransitionState AT that first value,
-    // so if this composable's very first composition already has visible = true (the first time the
-    // drawer is ever opened), there is nothing to animate *from* and it just snaps in. Forcing the
-    // initial state to false makes the very first open play the same enter animation as every later one.
+
     val scrimState = remember { MutableTransitionState(false) }
     scrimState.targetState = visible
     val panelState = remember { MutableTransitionState(false) }
     panelState.targetState = visible
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Full-screen scrim sits behind the panel; the panel is drawn on top so taps on Git
-        // controls (commit field, ⋮ menu) never fall through to onDismiss.
+
+
         AnimatedVisibility(
             visibleState = scrimState,
             modifier = Modifier.fillMaxSize(),
@@ -198,9 +188,6 @@ fun EditorDrawer(
     }
 }
 
-/** Tablet (>=600dp) docked variant: rail is always visible (no overlay/scrim), the panel sits
- *  inline in the layout instead of sliding over the editor — matches S12t's "ToolRail persistent,
- *  Project tool window docked (250dp)". Caller composes this beside the code-editor column. */
 @Composable
 fun EditorDockedPanel(
     openTool: EditorRailTool?,
@@ -324,7 +311,7 @@ private fun EditorToolPanelContent(
     isLoadingFileTree: Boolean = false,
 ) {
     val gitPanelApi: GitPanelApi = koinInject()
-    // Rail tabs slide vertically in the direction of travel (down the rail → from below).
+
     AslToolRailContent(
         targetState = openTool,
         indexOf = EditorRailTool::ordinal,

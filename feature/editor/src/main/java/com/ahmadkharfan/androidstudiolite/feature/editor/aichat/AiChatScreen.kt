@@ -399,7 +399,7 @@ private fun ChatMessageList(
 ) {
     val colors = AslTheme.colors
     val scrollState = rememberScrollState()
-    // Scroll on new messages and while streaming tokens into the last one.
+
     val streamTick = uiState.messages.lastOrNull()?.let { "${it.id}:${it.text.length}:${it.streaming}" }
     LaunchedEffect(uiState.messages.size, streamTick) {
         scrollState.animateScrollTo(scrollState.maxValue)
@@ -428,7 +428,7 @@ private fun ChatMessageList(
                 }
             }
         }
-        // Only show the static working indicator until the first streamed delta arrives.
+
         if (uiState.sending && !hasLiveContent) {
             Text(
                 text = stringResource(R.string.ai_chat_typing),

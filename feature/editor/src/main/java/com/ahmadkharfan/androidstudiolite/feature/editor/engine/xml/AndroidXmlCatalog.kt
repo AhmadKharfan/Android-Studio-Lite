@@ -3,15 +3,6 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
 
-/**
- * Supplies Android XML completion candidates — element names, attribute names and enumerated
- * attribute values — for both layout resources and `AndroidManifest.xml`.
- *
- * The catalogs below are plain factual data drawn from the public Android SDK. Whether the manifest
- * or layout vocabulary applies is decided from the file name and the surrounding tags.
- *
- * Original implementation for Android Studio Lite.
- */
 object AndroidXmlContributor : XmlCompletionContributor {
 
     override fun contribute(position: XmlCompletionPosition): List<CompletionItem> {
@@ -40,7 +31,6 @@ object AndroidXmlContributor : XmlCompletionContributor {
         return VALUE_SETS[localName].orEmpty().map(::valueItem)
     }
 
-    // region item builders
 
     private fun tagItem(name: String) =
         CompletionItem(name, name, CompletionKind.Class, typeText = "tag")
@@ -51,11 +41,7 @@ object AndroidXmlContributor : XmlCompletionContributor {
     private fun valueItem(name: String) =
         CompletionItem(name, name, CompletionKind.Variable, typeText = "value")
 
-    // endregion
 
-    // region catalogs
-
-    /** Elements that make the surrounding context a manifest, used to route attribute vocabulary. */
     private val MANIFEST_ELEMENTS = setOf(
         "manifest", "application", "activity", "service", "receiver", "provider", "intent-filter",
     )
@@ -96,7 +82,6 @@ object AndroidXmlContributor : XmlCompletionContributor {
         "android:value", "android:required", "xmlns:android", "xmlns:tools", "package",
     ).map(::attributeItem)
 
-    /** Local attribute name -> the enumerated values that attribute accepts. */
     private val VALUE_SETS: Map<String, List<String>> = mapOf(
         "layout_width" to listOf("match_parent", "wrap_content", "0dp"),
         "layout_height" to listOf("match_parent", "wrap_content", "0dp"),
@@ -117,5 +102,5 @@ object AndroidXmlContributor : XmlCompletionContributor {
         "screenOrientation" to listOf("portrait", "landscape", "sensor", "behind"),
     )
 
-    // endregion
+
 }

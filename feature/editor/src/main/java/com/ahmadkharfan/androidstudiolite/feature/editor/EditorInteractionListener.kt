@@ -33,7 +33,6 @@ interface EditorInteractionListener {
     fun onReformatCode()
     fun onSnackbarShown()
 
-    /** Approves uninstalling the conflicting package, then reinstalling. Destroys that app's data. */
     fun onConfirmInstallConflictUninstall()
     fun onDismissInstallConflict()
     fun onToggleFindBar()

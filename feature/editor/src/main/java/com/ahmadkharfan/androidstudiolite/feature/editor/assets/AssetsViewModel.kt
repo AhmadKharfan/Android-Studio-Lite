@@ -6,11 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * Lists the project's real resources and raw assets straight from disk (no Gradle, no build). It walks
- * every module's `src/main/res` and `src/main/assets`, so the panel reflects what's actually on the
- * filesystem rather than a fixed sample list.
- */
 class AssetsViewModel(
     private val projectId: String,
     private val projectPathResolver: ProjectPathResolver,

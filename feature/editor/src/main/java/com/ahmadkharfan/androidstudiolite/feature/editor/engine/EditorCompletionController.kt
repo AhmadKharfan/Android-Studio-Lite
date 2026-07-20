@@ -2,10 +2,6 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.engine
 class EditorCompletionController {
     private val builtInCache = HashMap<EditorLanguage, BuiltInCompletionProvider>()
 
-    /**
-     * Symbols the last project sync made resolvable. Set by the editor when a project opens/re-syncs;
-     * empty otherwise, in which case completion falls back to the built-in catalog exactly as before.
-     */
     var projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
         com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY
 
