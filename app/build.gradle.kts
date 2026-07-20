@@ -1,6 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
+    id("asl.android.application")
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -78,14 +77,8 @@ android {
         compose = true
         buildConfig = true
     }
-    testOptions {
-        unitTests {
-            // Let JVM unit tests exercise code that touches android.util.Log (and other stubbed
-            // android.* APIs) without a device: unmocked android calls return defaults instead of
-            // throwing "Method ... not mocked".
-            isReturnDefaultValues = true
-        }
-    }
+    // testOptions.unitTests.isReturnDefaultValues is applied centrally by the asl.android.* convention
+    // plugin so every module's JVM tests can touch stubbed android.* APIs without a device.
     packaging {
         jniLibs {
             // proot + its loader ship as native libs so they land in the exec-capable
@@ -97,6 +90,21 @@ android {
 }
 
 dependencies {
+    implementation(projects.domain)
+    implementation(projects.core.common)
+    implementation(projects.data.templates)
+    implementation(projects.designsystem)
+    implementation(projects.data.local)
+    implementation(projects.data.git)
+    implementation(projects.data.build)
+    implementation(projects.data.ai)
+    implementation(projects.feature.onboarding)
+    implementation(projects.feature.settings)
+    implementation(projects.feature.projects)
+    implementation(projects.feature.terminal)
+    implementation(projects.feature.buildrun)
+    implementation(projects.feature.git)
+    implementation(projects.feature.editor)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

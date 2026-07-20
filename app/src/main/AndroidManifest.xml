@@ -73,7 +73,7 @@
 
         <!-- Transparent trampoline: notification tap / resume → PackageInstaller confirm UI. -->
         <activity
-            android:name=".data.buildsystem.install.InstallConfirmActivity"
+            android:name="com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
@@ -82,7 +82,7 @@
              IDE is less likely to kill the client mid-build. specialUse: long-running user-initiated
              build follow that fits no other FGS category. -->
         <service
-            android:name=".feature.buildrun.RemoteBuildKeepAliveService"
+            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
