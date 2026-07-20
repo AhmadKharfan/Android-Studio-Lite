@@ -17,6 +17,9 @@ import androidx.core.content.ContextCompat
  * fails/cancels). Android often lets `startActivity` from a background receiver return without
  * showing UI — so we never trust that path alone; a heads-up notification / foreground trampoline
  * is the reliable way to present the install sheet.
+ *
+ * [claimForLaunch] ensures only one caller can open the system sheet (notification trampoline and
+ * MainActivity.onResume used to race and show two dialogs).
  */
 object PendingInstallPrompt {
     @Volatile
@@ -28,39 +31,42 @@ object PendingInstallPrompt {
     @Volatile
     private var lastLaunchAttemptAtMs: Long = 0L
 
+    private val lock = Any()
+
     fun hold(confirmationIntent: Intent, apkLabel: String) {
-        confirmation = Intent(confirmationIntent)
-        label = apkLabel.ifBlank { "app" }
-        lastLaunchAttemptAtMs = 0L
+        synchronized(lock) {
+            confirmation = Intent(confirmationIntent)
+            label = apkLabel.ifBlank { "app" }
+            lastLaunchAttemptAtMs = 0L
+        }
     }
 
-    /** Snapshot for launching without clearing — clear only on terminal install success/failure. */
-    fun peek(): Intent? = confirmation?.let { Intent(it) }
+    /** Snapshot without claiming — for has-pending checks only. */
+    fun peek(): Intent? = synchronized(lock) { confirmation?.let { Intent(it) } }
 
-    fun hasPending(): Boolean = confirmation != null
+    fun hasPending(): Boolean = synchronized(lock) { confirmation != null }
 
     fun apkLabel(): String = label
 
     fun clear() {
-        confirmation = null
-        lastLaunchAttemptAtMs = 0L
+        synchronized(lock) {
+            confirmation = null
+            lastLaunchAttemptAtMs = 0L
+        }
     }
 
     /**
-     * True when we should auto-present from MainActivity resume. Debounced so we don't double-open
-     * the system sheet (which caused "Session files in use").
+     * Atomically claims the right to show the system install sheet. Returns null if another caller
+     * already launched it recently (or there is nothing pending).
      */
-    fun shouldAutoPresent(nowMs: Long = System.currentTimeMillis()): Boolean {
-        if (confirmation == null) return false
-        if (nowMs - lastLaunchAttemptAtMs < LAUNCH_DEBOUNCE_MS) return false
-        return true
-    }
-
-    fun recordLaunchAttempt(nowMs: Long = System.currentTimeMillis()) {
+    fun claimForLaunch(nowMs: Long = System.currentTimeMillis()): Intent? = synchronized(lock) {
+        val intent = confirmation ?: return null
+        if (nowMs - lastLaunchAttemptAtMs < LAUNCH_DEBOUNCE_MS) return null
         lastLaunchAttemptAtMs = nowMs
+        Intent(intent)
     }
 
-    private const val LAUNCH_DEBOUNCE_MS = 2_000L
+    private const val LAUNCH_DEBOUNCE_MS = 8_000L
 }
 
 /**
