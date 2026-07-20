@@ -11,24 +11,22 @@ import kotlinx.coroutines.flow.map
 
 private val Context.buildServerDataStore by preferencesDataStore(name = "build_server")
 
-private val KEY_BASE_URL = stringPreferencesKey("base_url")
 private val KEY_DEVICE_TOKEN = stringPreferencesKey("device_token")
 
 class ServerSettingsRepository(private val context: Context) {
 
+    private val fixedBaseUrl: String
+        get() = BuildConfig.DEFAULT_BUILD_SERVER_URL.trimEnd('/')
+
     fun observe(): Flow<ServerSettings> =
         context.buildServerDataStore.data.map { prefs ->
             ServerSettings(
-                baseUrl = (prefs[KEY_BASE_URL] ?: BuildConfig.DEFAULT_BUILD_SERVER_URL).trimEnd('/'),
+                baseUrl = fixedBaseUrl,
                 deviceToken = prefs[KEY_DEVICE_TOKEN],
             )
         }
 
     suspend fun current(): ServerSettings = observe().first()
-
-    suspend fun setBaseUrl(url: String) {
-        context.buildServerDataStore.edit { it[KEY_BASE_URL] = url.trim().trimEnd('/') }
-    }
 
     suspend fun setDeviceToken(token: String) {
         context.buildServerDataStore.edit { it[KEY_DEVICE_TOKEN] = token }
