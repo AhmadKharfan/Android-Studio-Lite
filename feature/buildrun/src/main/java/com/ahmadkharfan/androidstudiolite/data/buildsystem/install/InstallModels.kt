@@ -24,7 +24,7 @@ sealed interface UninstallEvent {
     data class Failed(val reason: String) : UninstallEvent
 }
 
-internal object InstallStatusMapper {
+object InstallStatusMapper {
 
     sealed interface Outcome {
         object NeedsUserAction : Outcome

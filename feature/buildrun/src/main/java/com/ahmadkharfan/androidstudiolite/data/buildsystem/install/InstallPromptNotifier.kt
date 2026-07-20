@@ -12,65 +12,29 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 
-object PendingInstallPrompt {
-    @Volatile
-    private var confirmation: Intent? = null
-
-    @Volatile
-    private var label: String = "app"
-
-    @Volatile
-    private var lastLaunchAttemptAtMs: Long = 0L
-
-    private val lock = Any()
-
-    fun hold(confirmationIntent: Intent, apkLabel: String) {
-        synchronized(lock) {
-            confirmation = Intent(confirmationIntent)
-            label = apkLabel.ifBlank { "app" }
-            lastLaunchAttemptAtMs = 0L
-        }
-    }
-
-    fun peek(): Intent? = synchronized(lock) { confirmation?.let { Intent(it) } }
-
-    fun hasPending(): Boolean = synchronized(lock) { confirmation != null }
-
-    fun apkLabel(): String = label
-
-    fun clear() {
-        synchronized(lock) {
-            confirmation = null
-            lastLaunchAttemptAtMs = 0L
-        }
-    }
-
-    fun claimForLaunch(nowMs: Long = System.currentTimeMillis()): Intent? = synchronized(lock) {
-        val intent = confirmation ?: return null
-        if (nowMs - lastLaunchAttemptAtMs < LAUNCH_DEBOUNCE_MS) return null
-        lastLaunchAttemptAtMs = nowMs
-        Intent(intent)
-    }
-
-    private const val LAUNCH_DEBOUNCE_MS = 8_000L
-}
-
 class InstallPromptNotifier(private val context: Context) {
 
-    fun notifyReady(apkLabel: String, projectId: String = "") {
+    fun notifyReady(
+        apkLabel: String,
+        requestToken: String,
+        confirmationIntent: Intent,
+        projectId: String = "",
+    ) {
         if (!canPost()) return
         ensureChannel()
         val trampoline = Intent(context, InstallConfirmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_ACTIVITY_NO_ANIMATION
             putExtra(InstallConfirmActivity.EXTRA_APK_LABEL, apkLabel)
+            putExtra(InstallConfirmActivity.EXTRA_REQUEST_TOKEN, requestToken)
+            putExtra(InstallConfirmActivity.EXTRA_CONFIRMATION_INTENT, confirmationIntent)
             if (projectId.isNotBlank()) {
                 putExtra(InstallConfirmActivity.EXTRA_PROJECT_ID, projectId)
             }
         }
         val contentIntent = PendingIntent.getActivity(
             context,
-            NOTIFICATION_ID,
+            requestToken.hashCode(),
             trampoline,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -89,11 +53,11 @@ class InstallPromptNotifier(private val context: Context) {
             .setContentIntent(contentIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
-        runCatching { NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification) }
+        runCatching { NotificationManagerCompat.from(context).notify(requestToken.hashCode(), notification) }
     }
 
-    fun cancel() {
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    fun cancel(requestToken: String) {
+        NotificationManagerCompat.from(context).cancel(requestToken.hashCode())
     }
 
     private fun canPost(): Boolean =
@@ -121,6 +85,5 @@ class InstallPromptNotifier(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "asl_install_prompt"
-        const val NOTIFICATION_ID = 0x2012
     }
 }
