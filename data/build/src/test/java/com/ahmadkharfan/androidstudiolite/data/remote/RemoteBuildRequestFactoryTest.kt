@@ -31,6 +31,15 @@ class RemoteBuildRequestFactoryTest {
     }
 
     @Test
+    fun `operation id is carried as the remote idempotency key`() {
+        val request = request("debug").copy(operationId = "operation-123")
+
+        val wire = RemoteBuildRequestFactory.create(request, gitSource = null, signing = null)
+
+        assertEquals("operation-123", wire.clientRequestId)
+    }
+
+    @Test
     fun `git source produces a git request carrying url and ref, no upload needed`() {
         val git = GitRemoteInfo(url = "https://example.com/app.git", ref = "main")
 
