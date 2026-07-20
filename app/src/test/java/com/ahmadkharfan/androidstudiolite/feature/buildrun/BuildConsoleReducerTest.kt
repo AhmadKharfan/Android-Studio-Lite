@@ -116,4 +116,15 @@ class BuildConsoleReducerTest {
         assertEquals("help", state.taskGroups.single().tasks.single().name)
         assertEquals(BuildKind.ASSEMBLE, request.kind)
     }
+
+    @Test
+    fun `verbose builds retain only the bounded log tail`() {
+        val state = (0..5_100).fold(BuildConsoleState()) { current, index ->
+            current.reduce(BuildEvent.Output("line-$index", BuildEvent.OutputStream.STDOUT))
+        }
+
+        assertEquals(5_000, state.logs.size)
+        assertEquals("line-101", state.logs.first().text)
+        assertEquals("line-5100", state.logs.last().text)
+    }
 }
