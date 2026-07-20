@@ -1,4 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -78,6 +80,7 @@ private fun BuildRunSettingsScreen(
             ) {
 
 
+                BuildServerSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -100,6 +103,36 @@ private fun BuildRunSettingsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun BuildServerSection(
+    uiState: BuildRunUiState,
+    interactionListener: BuildRunInteractionListener,
+    colors: AslColorScheme,
+) {
+    var url by remember(uiState.buildServerUrl) { mutableStateOf(uiState.buildServerUrl) }
+    HubSectionHeader("Build server")
+    SectionCard(colors) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AslTextField(value = url, onValueChange = { url = it }, label = "Server URL")
+            AslButton(
+                label = "Save server",
+                onClick = { interactionListener.onSaveBuildServerUrl(url) },
+                variant = AslButtonVariant.Secondary,
+            )
+            uiState.serverError?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = colors.error)
+            }
+        }
+    }
+    Text(
+        text = "Release keys are transmitted only to an HTTPS server. HTTP remains available for debug builds.",
+        style = MaterialTheme.typography.bodySmall,
+        color = colors.textTertiary,
+        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+    )
+    Spacer(Modifier.height(20.dp))
 }
 
 @Composable
@@ -175,7 +208,7 @@ private fun BuildRunSigningSection(
                 )
             } else {
                 Text(
-                    text = "Release builds fall back to the debug keystore until you set one up.",
+                    text = "Release builds are blocked until you create or import a valid private-key keystore.",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                 )
@@ -246,6 +279,9 @@ private fun ReleaseKeystoreDialog(
     var commonName by remember { mutableStateOf("") }
     var organization by remember { mutableStateOf("") }
     var country by remember { mutableStateOf("") }
+    val keystorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) path = uri.toString()
+    }
 
     AslDialog(
         title = if (creating) "Create release keystore" else "Import release keystore",
@@ -272,6 +308,13 @@ private fun ReleaseKeystoreDialog(
         inputContent = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AslTextField(value = path, onValueChange = { path = it }, label = "Keystore path")
+                if (!creating) {
+                    AslButton(
+                        label = "Choose keystore file",
+                        onClick = { keystorePicker.launch(arrayOf("application/octet-stream", "application/x-pkcs12")) },
+                        variant = AslButtonVariant.Secondary,
+                    )
+                }
                 AslTextField(value = storePassword, onValueChange = { storePassword = it }, label = "Store password", type = AslTextFieldType.Password)
                 AslTextField(value = alias, onValueChange = { alias = it }, label = "Key alias")
                 AslTextField(value = keyPassword, onValueChange = { keyPassword = it }, label = "Key password", type = AslTextFieldType.Password)

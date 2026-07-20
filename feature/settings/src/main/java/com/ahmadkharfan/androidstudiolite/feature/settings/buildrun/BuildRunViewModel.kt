@@ -1,7 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.data.remote.ServerSettingsRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreException
@@ -14,6 +17,8 @@ import kotlinx.coroutines.launch
 class BuildRunViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val keystoreManager: KeystoreManager,
+    private val context: Context,
+    private val serverSettings: ServerSettingsRepository,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
 
     init {
@@ -28,6 +33,10 @@ class BuildRunViewModel(
                     )
                 }
             },
+        )
+        tryToCollect(
+            block = { serverSettings.observe() },
+            onCollect = { settings -> updateState { copy(buildServerUrl = settings.baseUrl) } },
         )
         updateState {
             copy(
@@ -57,6 +66,28 @@ class BuildRunViewModel(
         viewModelScope.launch { preferencesRepository.update { it.copy(preferGitSource = enabled) } }
     }
 
+    override fun onSaveBuildServerUrl(url: String) {
+        val normalized = url.trim().trimEnd('/')
+        val parsed = runCatching { Uri.parse(normalized) }.getOrNull()
+        if (parsed == null || parsed.host.isNullOrBlank() || parsed.scheme !in setOf("http", "https")) {
+            updateState { copy(serverError = "Enter a complete http:// or https:// server URL") }
+            return
+        }
+        viewModelScope.launch {
+            serverSettings.setBaseUrl(normalized)
+            // Registration tokens are scoped to one backend and cannot be reused after switching.
+            serverSettings.clearDeviceToken()
+            updateState {
+                copy(
+                    buildServerUrl = normalized,
+                    serverError = null,
+                    message = if (parsed.scheme == "https") "Build server saved" else
+                        "Build server saved; release signing remains blocked until HTTPS is configured",
+                )
+            }
+        }
+    }
+
     override fun onOpenKeystoreDialog(mode: KeystoreDialogMode) {
         updateState { copy(keystoreDialog = mode, keystoreError = null) }
     }
@@ -84,8 +115,17 @@ class BuildRunViewModel(
 
     override fun onImportReleaseKeystore(form: KeystoreForm) {
         runKeystoreOp {
+            val source = if (form.storePath.startsWith("content://")) {
+                val target = File(context.cacheDir, "keystore-import-${java.util.UUID.randomUUID()}")
+                context.contentResolver.openInputStream(Uri.parse(form.storePath))?.use { input ->
+                    target.outputStream().use(input::copyTo)
+                } ?: throw KeystoreException(KeystoreError.FileNotFound)
+                target
+            } else {
+                File(form.storePath)
+            }
             keystoreManager.importReleaseKeystore(
-                storeFile = File(form.storePath),
+                storeFile = source,
                 storePassword = form.storePassword,
                 keyAlias = form.keyAlias,
                 keyPassword = form.keyPassword,
