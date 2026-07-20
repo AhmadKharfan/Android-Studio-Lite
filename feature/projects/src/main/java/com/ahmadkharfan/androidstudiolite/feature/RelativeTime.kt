@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature
 
 import android.content.Context
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 /** Formats a past timestamp as a short human phrase, localized via [context]. */
 fun formatRelativeTime(context: Context, millis: Long): String {

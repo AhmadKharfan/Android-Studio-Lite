@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.hub
 
 import android.content.Context
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository

@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.createproject.components
 
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 /**
  * Resolves a template's [com.ahmadkharfan.androidstudiolite.domain.model.ProjectTemplate.thumbnail]
