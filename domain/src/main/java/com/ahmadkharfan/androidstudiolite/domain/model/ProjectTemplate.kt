@@ -6,4 +6,5 @@ data class ProjectTemplate(
     val description: String,
     val thumbnail: String,
     val tags: List<String>,
+    val supportsJava: Boolean = true,
 )
