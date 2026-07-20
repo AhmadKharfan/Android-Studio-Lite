@@ -10,11 +10,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Check deploy keyword
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Decide whether to deploy
+        id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$COMMIT_MESSAGE" | grep -qiF 'deploy'; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     name: Build signed APK and upload to Slack
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      contains(lower(github.event.head_commit.message || ''), 'deploy')
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -95,6 +116,5 @@ jobs:
             *Android Studio Lite — new release APK*
             *Version:* `1.0.${{ github.run_number }}`
             *Commit:* `${{ github.sha }}`
-            *Message:* `${{ github.event.head_commit.message || 'manual run' }}`
             *Branch:* `${{ github.ref_name }}`
             *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run #${{ github.run_number }}>
