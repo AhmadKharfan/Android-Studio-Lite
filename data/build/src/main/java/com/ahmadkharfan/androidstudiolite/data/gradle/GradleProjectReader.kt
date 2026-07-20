@@ -114,7 +114,7 @@ class GradleProjectReader {
 
         val type = moduleType(script, catalog)
         val deps = resolveDependencies(script.dependencies, catalog, projectRoot, buildFile, diagnostics)
-        val variants = variantsOf(script.android)
+        val variants = variantsOf(path, script.android)
         val sourceSets = sourceSetsOf(dir, script.android)
 
         return ModuleModel(
@@ -204,18 +204,28 @@ class GradleProjectReader {
     }
 
 
-    private fun variantsOf(android: ParsedAndroidBlock?): List<VariantModel> {
+    private fun variantsOf(modulePath: String, android: ParsedAndroidBlock?): List<VariantModel> {
         if (android == null) return emptyList()
+
+        fun task(name: String): String = modulePath.trim().let { module ->
+            if (module.isEmpty() || module == ":") name
+            else "${if (module.startsWith(':')) module else ":$module"}:$name"
+        }
 
 
         val buildTypes = effectiveBuildTypes(android.buildTypes)
         val flavors = android.productFlavors
         if (flavors.isEmpty()) {
-            return buildTypes.map { VariantModel(name = it, buildType = it) }
+            return buildTypes.map { bt ->
+                val cap = bt.replaceFirstChar { it.uppercase() }
+                VariantModel(name = bt, buildType = bt, assembleTaskPath = task("assemble$cap"), bundleTaskPath = task("bundle$cap"))
+            }
         }
         return flavors.flatMap { flavor ->
             buildTypes.map { bt ->
-                VariantModel(name = flavor + bt.replaceFirstChar { c -> c.uppercase() }, buildType = bt, flavors = listOf(flavor))
+                val name = flavor + bt.replaceFirstChar { c -> c.uppercase() }
+                val cap = name.replaceFirstChar { it.uppercase() }
+                VariantModel(name = name, buildType = bt, flavors = listOf(flavor), assembleTaskPath = task("assemble$cap"), bundleTaskPath = task("bundle$cap"))
             }
         }
     }

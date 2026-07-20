@@ -40,7 +40,14 @@ sealed interface WireBuildEvent {
 
     @Serializable
     @SerialName("artifactProduced")
-    data class ArtifactProduced(val name: String, val kind: String) : WireBuildEvent
+    data class ArtifactProduced(
+        val name: String,
+        val kind: String,
+        val sizeBytes: Long? = null,
+        val sha256: String? = null,
+        val signed: Boolean? = null,
+        val certificateSha256: String? = null,
+    ) : WireBuildEvent
 
     @Serializable
     @SerialName("finished")

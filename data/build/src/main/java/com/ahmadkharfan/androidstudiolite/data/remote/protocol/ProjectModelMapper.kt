@@ -22,9 +22,12 @@ object ProjectModelMapper {
         name = wire.name,
         type = enumOrDefault(wire.type, ModuleType.UNKNOWN),
         moduleDir = resolve(root, wire.moduleDir) ?: File(root, wire.name),
-        variants = wire.variants.map { VariantModel(it.name, it.buildType, it.flavors) },
+        variants = wire.variants.map {
+            VariantModel(it.name, it.buildType, it.flavors, it.assembleTaskPath, it.bundleTaskPath, it.debuggable)
+        },
         sourceSets = wire.sourceSets.map { sourceSet(it, root) },
         dependencies = wire.dependencies.map { dependency(it, root) },
+        applicationId = wire.applicationId,
     )
 
     private fun sourceSet(wire: WireSourceSet, root: File): SourceSetModel = SourceSetModel(

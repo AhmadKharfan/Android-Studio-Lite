@@ -56,12 +56,12 @@ data class ArtifactResponse(
 data class BuildStatusResponse(
     val buildId: String,
     val status: String,
-    val queuedAt: Long? = null,
-    val startedAt: Long? = null,
-    val finishedAt: Long? = null,
+    val createdAt: String? = null,
+    val startedAt: String? = null,
+    val finishedAt: String? = null,
     val durationMillis: Long? = null,
-    val artifact: ArtifactResponse? = null,
-    val error: ErrorBody? = null,
+    val artifactUrl: String? = null,
+    val errorMessage: String? = null,
 )
 
 @Serializable
@@ -96,6 +96,7 @@ data class WireModule(
     val variants: List<WireVariant> = emptyList(),
     val sourceSets: List<WireSourceSet> = emptyList(),
     val dependencies: List<WireDependency> = emptyList(),
+    val applicationId: String? = null,
 )
 
 @Serializable
@@ -103,6 +104,9 @@ data class WireVariant(
     val name: String,
     val buildType: String,
     val flavors: List<String> = emptyList(),
+    val assembleTaskPath: String? = null,
+    val bundleTaskPath: String? = null,
+    val debuggable: Boolean? = null,
 )
 
 @Serializable

@@ -37,6 +37,10 @@ object BuildEventMapper {
         is WireBuildEvent.ArtifactProduced -> BuildEvent.ArtifactProduced(
             file = File(wire.name),
             kind = artifactKind(wire.kind),
+            sizeBytes = wire.sizeBytes,
+            sha256 = wire.sha256,
+            signed = wire.signed,
+            certificateSha256 = wire.certificateSha256,
         )
 
         is WireBuildEvent.Finished -> BuildEvent.Finished(wire.success, wire.durationMillis)
