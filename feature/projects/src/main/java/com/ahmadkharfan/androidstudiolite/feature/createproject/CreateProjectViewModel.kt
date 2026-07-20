@@ -30,7 +30,7 @@ class CreateProjectViewModel(
         tryToExecute(
             block = {
                 templateRepository.getTemplates().map {
-                    CreateProjectTemplateUiModel(it.id, it.name, it.thumbnail)
+                    CreateProjectTemplateUiModel(it.id, it.name, it.thumbnail, it.supportsJava)
                 }
             },
             onSuccess = { templates ->
@@ -58,7 +58,17 @@ class CreateProjectViewModel(
     }
 
     override fun onSelectTemplate(id: String) {
-        updateState { copy(selectedTemplateId = id) }
+        updateState {
+            val template = templates.firstOrNull { it.id == id }
+            copy(
+                selectedTemplateId = id,
+                language = if (language == LANG_JAVA && template?.supportsJava != true) {
+                    LANG_KOTLIN
+                } else {
+                    language
+                },
+            )
+        }
     }
 
     override fun onNextStep() {
@@ -94,7 +104,10 @@ class CreateProjectViewModel(
     }
 
     override fun onLanguageChanged(language: String) {
-        updateState { copy(language = language) }
+        updateState {
+            val accepted = language != LANG_JAVA || selectedTemplateSupportsJava
+            if (accepted) copy(language = language) else this
+        }
     }
 
     override fun onCreateProject() {

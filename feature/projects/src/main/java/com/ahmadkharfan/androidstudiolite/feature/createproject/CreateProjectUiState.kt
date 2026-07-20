@@ -6,6 +6,7 @@ data class CreateProjectTemplateUiModel(
     val id: String,
     val name: String,
     val thumbnail: String,
+    val supportsJava: Boolean,
 )
 
 @Immutable
@@ -46,6 +47,9 @@ data class CreateProjectUiState(
 
     val languageLabel: String
         get() = if (language == LANG_JAVA) "Java" else "Kotlin"
+
+    val selectedTemplateSupportsJava: Boolean
+        get() = selectedTemplate?.supportsJava == true
 
     val canCreate: Boolean
         get() = selectedTemplateId != null && nameError == null && packageError == null &&
