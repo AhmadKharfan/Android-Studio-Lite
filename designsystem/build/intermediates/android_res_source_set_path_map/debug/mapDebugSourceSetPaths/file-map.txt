@@ -1,0 +1,9 @@
+com.ahmadkharfan.androidstudiolite.designsystem-pngs-0 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/generated/res/pngs/debug
+com.ahmadkharfan.androidstudiolite.designsystem-updated_navigation_xml-1 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/generated/updated_navigation_xml/debug
+com.ahmadkharfan.androidstudiolite.designsystem-mergeDebugResources-2 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+com.ahmadkharfan.androidstudiolite.designsystem-mergeDebugResources-3 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+com.ahmadkharfan.androidstudiolite.designsystem-debug-4 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/intermediates/merged_res/debug/mergeDebugResources
+com.ahmadkharfan.androidstudiolite.designsystem-debug-5 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/build/intermediates/packaged_res/debug/packageDebugResources
+com.ahmadkharfan.androidstudiolite.designsystem-debug-6 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/src/debug/res
+com.ahmadkharfan.androidstudiolite.designsystem-main-7 /home/null/AndroidStudioProjects/AndroidStudioLite/designsystem/src/main/res
+gradleHome-0 /home/null/.gradle

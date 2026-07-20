@@ -1,0 +1,4 @@
+com.ahmadkharfan.androidstudiolite.designsystem
+font inter
+font jetbrains_mono
+font jetbrains_mono_italic
