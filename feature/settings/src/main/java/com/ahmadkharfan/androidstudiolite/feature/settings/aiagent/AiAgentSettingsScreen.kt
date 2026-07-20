@@ -35,7 +35,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel

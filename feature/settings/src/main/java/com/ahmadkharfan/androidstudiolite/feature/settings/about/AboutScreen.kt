@@ -28,8 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ahmadkharfan.androidstudiolite.BuildConfig
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.settings.BuildConfig
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem

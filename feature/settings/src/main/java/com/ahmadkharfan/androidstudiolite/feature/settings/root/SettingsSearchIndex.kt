@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.settings.root
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import com.ahmadkharfan.androidstudiolite.data.ai.AiProviderCatalog
 
 data class SettingsSearchEntry(

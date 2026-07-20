@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import com.ahmadkharfan.androidstudiolite.R
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
