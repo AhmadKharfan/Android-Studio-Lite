@@ -73,6 +73,13 @@ data class ErrorBody(
 )
 
 @Serializable
+data class FlatErrorResponse(
+    val error: String? = null,
+    val message: String? = null,
+    val retryAfterSeconds: Long? = null,
+)
+
+@Serializable
 data class WireProjectModel(
     val name: String,
     val rootDir: String? = null,

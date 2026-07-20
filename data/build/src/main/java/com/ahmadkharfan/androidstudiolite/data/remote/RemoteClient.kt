@@ -6,6 +6,7 @@ import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStatusRespon
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildRequest
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ErrorEnvelope
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.FlatErrorResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RegisterDeviceRequest
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RegisterDeviceResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RemoteJson
@@ -258,8 +259,24 @@ class RemoteClient(
     @PublishedApi
     internal data class ResponseSnapshot(val code: Int, val isSuccessful: Boolean, val body: String) {
         fun toException(): RemoteException {
-            val err = runCatching { RemoteJson.decodeFromString<ErrorEnvelope>(body).error }.getOrNull()
-            return RemoteException(code, err?.code, err?.message ?: "HTTP $code")
+            runCatching { RemoteJson.decodeFromString<ErrorEnvelope>(body).error }
+                .getOrNull()
+                ?.let { nested ->
+                    val msg = nested.message?.takeIf { it.isNotBlank() }
+                    if (msg != null || nested.code != null) {
+                        return RemoteException(code, nested.code, msg ?: "HTTP $code")
+                    }
+                }
+            runCatching { RemoteJson.decodeFromString<FlatErrorResponse>(body) }
+                .getOrNull()
+                ?.let { flat ->
+                    val msg = flat.message?.takeIf { it.isNotBlank() }
+                    val errCode = flat.error?.takeIf { it.isNotBlank() }
+                    if (msg != null || errCode != null) {
+                        return RemoteException(code, errCode, msg ?: errCode ?: "HTTP $code")
+                    }
+                }
+            return RemoteException(code, null, "HTTP $code")
         }
     }
 

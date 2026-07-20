@@ -235,19 +235,19 @@ lists/`manifestFile`/`resolvedArtifact` serialize as project-relative POSIX path
 
 ## Errors
 
-Non-2xx responses:
+Non-2xx responses (live control-plane shape):
 ```json
-{ "error": { "code": "QUOTA_EXCEEDED", "message": "Daily build-minute quota reached." } }
+{ "error": "quota_exceeded", "message": "You've used today's build time for this device (480 min). Quota resets at midnight UTC — try again tomorrow." }
 ```
 
 | HTTP | `code` (examples)                          | Meaning                                    |
 |------|--------------------------------------------|--------------------------------------------|
-| 400  | `INVALID_REQUEST`                          | Malformed body / missing field.            |
-| 401  | `INVALID_TOKEN`                            | Missing/expired/revoked device token.      |
-| 404  | `BUILD_NOT_FOUND`                          | Unknown `buildId`.                         |
-| 409  | `INVALID_STATE`                            | e.g. `start` before upload, cancel a done build. |
+| 400  | `bad_request` / `INVALID_REQUEST`          | Malformed body / missing field.            |
+| 401  | `unauthorized` / `INVALID_TOKEN`           | Missing/expired/revoked device token.      |
+| 404  | `not_found` / `BUILD_NOT_FOUND`            | Unknown `buildId`.                         |
+| 409  | `conflict` / `INVALID_STATE`               | e.g. `start` before upload, cancel a done build. |
 | 413  | `SOURCE_TOO_LARGE`                         | Uploaded zip exceeds the limit.            |
-| 429  | `RATE_LIMITED`, `QUOTA_EXCEEDED`           | Per-token/IP rate limit or daily quota.    |
+| 429  | `rate_limited`, `quota_exceeded`           | Per-token/IP rate limit or daily quota (480 min/device/UTC day). |
 | 503  | `CAPACITY`, `CIRCUIT_OPEN`                 | Build pool saturated / cost circuit-breaker open. |
 
 ---

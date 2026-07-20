@@ -357,6 +357,21 @@ class RemoteBuildSystem(
             status.equals("ERROR", ignoreCase = true)
 
     private fun userFacingBuildError(t: Throwable): String {
+        for (err in generateSequence(t) { it.cause }) {
+            if (err is RemoteException) {
+                val code = err.code?.lowercase().orEmpty()
+                val msg = err.message.takeIf { it.isNotBlank() && !it.matches(Regex("""HTTP \d+""")) }
+                when {
+                    code == "quota_exceeded" || "quota" in err.message.lowercase() ||
+                        "build time" in err.message.lowercase() ->
+                        return msg
+                            ?: "You've used today's build time for this device. Quota resets at midnight UTC — try again tomorrow."
+                    err.httpStatus == 429 || code == "rate_limited" ->
+                        return msg
+                            ?: "Too many builds right now — wait a moment and try again."
+                }
+            }
+        }
 
         val chain = generateSequence(t) { it.cause }.toList()
         for (err in chain) {
