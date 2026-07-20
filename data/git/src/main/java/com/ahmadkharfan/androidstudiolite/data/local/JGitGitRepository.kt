@@ -38,6 +38,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
@@ -53,14 +54,10 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.api.CreateBranchCommand
 import org.eclipse.jgit.api.CheckoutCommand
-import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.api.MergeCommand
 import org.eclipse.jgit.api.MergeResult
 import org.eclipse.jgit.api.RebaseCommand
-import org.eclipse.jgit.api.errors.CannotDeleteCurrentBranchException
-import org.eclipse.jgit.api.errors.NotMergedException
 import org.eclipse.jgit.lib.BranchConfig
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.EmptyProgressMonitor
@@ -71,9 +68,7 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.transport.RefSpec
 import org.eclipse.jgit.transport.RefLeaseSpec
-import org.eclipse.jgit.transport.RemoteConfig
 import org.eclipse.jgit.transport.RemoteRefUpdate
-import org.eclipse.jgit.transport.URIish
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.eclipse.jgit.treewalk.FileTreeIterator
 import org.eclipse.jgit.submodule.SubmoduleStatusType
@@ -85,11 +80,6 @@ import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Real [GitRepository] over [JGit](https://www.eclipse.org/jgit/). All calls run on [io] and never
- * touch the main thread. Per-repository [GitState] is cached by its refresh runtime and recomputed
- * after mutations so the git panel stays in sync.
- */
 class JGitGitRepository(
     private val credentialStore: GitCredentialStore,
     private val io: CoroutineDispatcher = Dispatchers.IO,
@@ -105,8 +95,9 @@ class JGitGitRepository(
     private val statusComputer = JGitStatusComputer()
     private val diffEngine = JGitDiffEngine()
     private val historyEngine = JGitHistoryEngine()
-
-    // region clone
+    private val stashEngine = JGitStashEngine()
+    private val branchEngine = JGitBranchEngine()
+    private val remoteEngine = JGitRemoteEngine()
 
     override fun clone(
         url: String,
@@ -122,52 +113,19 @@ class JGitGitRepository(
             }
             val cancelled = AtomicBoolean(false)
             val collectionJob = coroutineContext.job
-            val monitor = object : EmptyProgressMonitor() {
-                private var task = ""
-                private var total = 0
-                private var done = 0
-                override fun beginTask(title: String?, totalWork: Int) {
-                    task = title.orEmpty()
-                    total = totalWork
-                    done = 0
-                    emit(0)
-                }
-                override fun update(completed: Int) {
-                    done += completed
-                    emit(done)
-                }
-                override fun isCancelled(): Boolean = cancelled.get() || collectionJob.isCancelled
-                private fun emit(current: Int) {
-                    val fraction = if (total > 0) (current.toFloat() / total).coerceIn(0f, 1f) else null
-                    trySendBlocking(CloneProgress(fraction = fraction, message = task.ifBlank { "Cloning" }))
-                }
+            val monitor = cloneProgressMonitor(cancelled, collectionJob) { progress ->
+                trySendBlocking(progress)
             }
             trySendBlocking(
                 CloneProgress(fraction = 0f, message = "Resolving ${GitUrlRedactor.stripUserInfo(cleanUrl)}"),
             )
             try {
-                Git.cloneRepository()
-                    .setURI(cleanUrl)
-                    .setDirectory(destination)
-                    .apply {
-                        options.depth?.let { setDepth(it) }
-                        options.branch?.takeIf { it.isNotBlank() }?.let { branch ->
-                            setBranch(branch)
-                            if (options.singleBranch) {
-                                setBranchesToClone(listOf(branch.toFullBranchRef()))
-                            }
-                        }
-                        if (options.singleBranch) setCloneAllBranches(false)
-                        setCloneSubmodules(options.recursiveSubmodules)
-                    }
-                    .setCredentialsProvider(credentialProviderFor(cleanUrl, credentials))
-                    .setProgressMonitor(monitor)
+                configureCloneCommand(cleanUrl, destination, options, credentials, monitor)
                     .call()
                     .close()
                 if (monitor.isCancelled()) throw CancellationException("Clone cancelled")
                 close()
             } catch (t: Throwable) {
-                // A partially-cloned directory is useless; don't leave it behind as a phantom project.
                 destination.deleteRecursively()
                 if (monitor.isCancelled() || t is CancellationException) {
                     val cancellation = CancellationException("Clone cancelled")
@@ -180,7 +138,53 @@ class JGitGitRepository(
             awaitClose { cancelled.set(true) }
         }.flowOn(io)
 
-    // endregion
+    private fun cloneProgressMonitor(
+        cancelled: AtomicBoolean,
+        collectionJob: Job,
+        emit: (CloneProgress) -> Unit,
+    ): EmptyProgressMonitor = object : EmptyProgressMonitor() {
+        private var task = ""
+        private var total = 0
+        private var done = 0
+        override fun beginTask(title: String?, totalWork: Int) {
+            task = title.orEmpty()
+            total = totalWork
+            done = 0
+            emitProgress(0)
+        }
+        override fun update(completed: Int) {
+            done += completed
+            emitProgress(done)
+        }
+        override fun isCancelled(): Boolean = cancelled.get() || collectionJob.isCancelled
+        private fun emitProgress(current: Int) {
+            val fraction = if (total > 0) (current.toFloat() / total).coerceIn(0f, 1f) else null
+            emit(CloneProgress(fraction = fraction, message = task.ifBlank { "Cloning" }))
+        }
+    }
+
+    private fun configureCloneCommand(
+        cleanUrl: String,
+        destination: File,
+        options: CloneOptions,
+        credentials: GitCredentials?,
+        monitor: EmptyProgressMonitor,
+    ) = Git.cloneRepository()
+        .setURI(cleanUrl)
+        .setDirectory(destination)
+        .apply {
+            options.depth?.let { setDepth(it) }
+            options.branch?.takeIf { it.isNotBlank() }?.let { branch ->
+                setBranch(branch)
+                if (options.singleBranch) {
+                    setBranchesToClone(listOf(branch.toFullBranchRef()))
+                }
+            }
+            if (options.singleBranch) setCloneAllBranches(false)
+            setCloneSubmodules(options.recursiveSubmodules)
+        }
+        .setCredentialsProvider(credentialProviderFor(cleanUrl, credentials))
+        .setProgressMonitor(monitor)
 
     override fun observeState(repoDir: File): StateFlow<GitState> = refreshRuntime(repoDir).state
 
@@ -224,7 +228,7 @@ class JGitGitRepository(
         }
 
     override suspend fun stage(repoDir: File, path: String) = mutate(repoDir, GitOperationType.STAGE) { git ->
-        // addFilepattern stages new/modified content; a deletion needs an explicit rm from the index.
+
         if (File(repoDir, path).exists()) {
             git.add().addFilepattern(path).call()
         } else {
@@ -301,21 +305,7 @@ class JGitGitRepository(
 
     override suspend fun branches(repoDir: File): List<GitBranch> = withContext(io) {
         if (!isRepo(repoDir)) return@withContext emptyList()
-        openGit(repoDir).use { git ->
-            val current = git.repository.fullBranch
-                ?.takeIf { it.startsWith(Constants.R_HEADS) }
-                ?.let(Repository::shortenRefName)
-            git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call()
-                .filterNot { it.name.startsWith(Constants.R_REMOTES) && it.name.endsWith("/HEAD") }
-                .map { ref ->
-                    val shortName = Repository.shortenRefName(ref.name)
-                    GitBranch(
-                        name = shortName,
-                        isRemote = ref.name.startsWith(Constants.R_REMOTES),
-                        current = shortName == current,
-                    )
-                }
-        }
+        openGit(repoDir).use { branchEngine.list(it) }
     }
 
     override suspend fun createBranch(repoDir: File, name: String, checkout: Boolean) =
@@ -323,45 +313,34 @@ class JGitGitRepository(
             repoDir,
             GitOperationType.CREATE_BRANCH,
             invalidatesRoot = checkout,
-        ) { git ->
-            git.branchCreate().setName(name).call()
-            if (checkout) git.checkout().setName(name).call()
-        }
+        ) { git -> branchEngine.create(git, name, checkout) }
 
     override suspend fun checkout(repoDir: File, name: String) {
         workspaceWriteGate.prepareForWorktreeMutation(repoDir)
         mutate(repoDir, GitOperationType.CHECKOUT, invalidatesRoot = true) { git ->
-            git.checkout().setName(name).call()
+            branchEngine.checkout(git, name)
         }
     }
 
     override suspend fun checkoutRemoteBranch(repoDir: File, remoteBranch: String, localName: String?) {
         workspaceWriteGate.prepareForWorktreeMutation(repoDir)
         mutate(repoDir, GitOperationType.CHECKOUT, invalidatesRoot = true) { git ->
-            val local = localName?.takeIf { it.isNotBlank() } ?: remoteBranch.substringAfter('/')
-            git.branchCreate()
-                .setName(local)
-                .setStartPoint(remoteBranch)
-                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                .call()
-            git.checkout().setName(local).call()
+            branchEngine.checkoutRemote(git, remoteBranch, localName)
         }
     }
 
     override suspend fun renameBranch(repoDir: File, oldName: String, newName: String) =
         mutate(repoDir, GitOperationType.BRANCH) { git ->
-            git.branchRename().setOldName(oldName).setNewName(newName).call()
+            branchEngine.rename(git, oldName, newName)
         }
 
     override suspend fun deleteBranch(repoDir: File, name: String, force: Boolean) = withContext(io) {
         operationCoordinator.runExclusive(repoDir, GitOperationType.BRANCH) {
             try {
-                openGit(repoDir).use { it.branchDelete().setBranchNames(name).setForce(force).call() }
+                openGit(repoDir).use { branchEngine.delete(it, name, force) }
                 refreshAfterGitOperation(repoDir)
-            } catch (error: CannotDeleteCurrentBranchException) {
-                throw GitException.CurrentBranch("Switch branches before deleting $name", error)
-            } catch (error: NotMergedException) {
-                throw GitException.BranchNotMerged("$name has unmerged commits; force deletion to continue", error)
+            } catch (error: GitException) {
+                throw error
             } catch (error: Throwable) {
                 throw JGitExceptionMapper.map(error)
             }
@@ -506,11 +485,12 @@ class JGitGitRepository(
             operationCoordinator.runExclusive(repoDir, GitOperationType.STASH) {
                 val id = openGit(repoDir).use { git ->
                     val identity = identityFor(git.repository)
-                    git.stashCreate()
-                        .setIncludeUntracked(includeUntracked)
-                        .setPerson(org.eclipse.jgit.lib.PersonIdent(identity.name, identity.email))
-                        .apply { message?.takeIf { it.isNotBlank() }?.let(::setWorkingDirectoryMessage) }
-                        .call()
+                    stashEngine.create(
+                        git,
+                        org.eclipse.jgit.lib.PersonIdent(identity.name, identity.email),
+                        message,
+                        includeUntracked,
+                    )
                 }
                 refreshAfterGitOperation(repoDir)
                 fileChangeBus.emitRootInvalidated(repoDir.absolutePath, RootInvalidationReason.GIT_OPERATION)
@@ -519,11 +499,7 @@ class JGitGitRepository(
         }
 
     override suspend fun stashList(repoDir: File): List<GitStash> = withContext(io) {
-        openGit(repoDir).use { git ->
-            git.stashList().call().mapIndexed { index, commit ->
-                GitStash(index, commit.name, commit.shortMessage, commit.commitTime * 1_000L)
-            }
-        }
+        openGit(repoDir).use { stashEngine.list(it) }
     }
 
     override suspend fun stashApply(repoDir: File, index: Int) = applyStash(repoDir, index, pop = false)
@@ -531,7 +507,7 @@ class JGitGitRepository(
     override suspend fun stashPop(repoDir: File, index: Int) = applyStash(repoDir, index, pop = true)
 
     override suspend fun stashDrop(repoDir: File, index: Int) = mutate(repoDir, GitOperationType.STASH) { git ->
-        git.stashDrop().setStashRef(index).call()
+        stashEngine.drop(git, index)
     }
 
     override suspend fun merge(
@@ -775,34 +751,20 @@ class JGitGitRepository(
 
     override suspend fun listRemotes(repoDir: File): List<GitRemote> = withContext(io) {
         try {
-            openGit(repoDir).use { git ->
-                RemoteConfig.getAllRemoteConfigs(git.repository.config).map { remote ->
-                    GitRemote(
-                        name = remote.name,
-                        url = remote.urIs.firstOrNull()?.toString()?.let(GitUrlRedactor::stripUserInfo).orEmpty(),
-                        pushUrl = remote.pushURIs.firstOrNull()?.toString()?.let(GitUrlRedactor::stripUserInfo),
-                    )
-                }.sortedBy { it.name }
-            }
+            openGit(repoDir).use { remoteEngine.list(it) }
         } catch (error: Throwable) {
             throw JGitExceptionMapper.map(error)
         }
     }
 
     override suspend fun addRemote(repoDir: File, name: String, url: String) =
-        configureRemote(repoDir, url) { git ->
-            git.remoteAdd().setName(name).setUri(URIish(url)).call()
-        }
+        configureRemote(repoDir, url) { git -> remoteEngine.add(git, name, url) }
 
     override suspend fun setRemoteUrl(repoDir: File, name: String, url: String) =
-        configureRemote(repoDir, url) { git ->
-            git.remoteSetUrl().setRemoteName(name).setRemoteUri(URIish(url)).call()
-        }
+        configureRemote(repoDir, url) { git -> remoteEngine.setUrl(git, name, url) }
 
     override suspend fun removeRemote(repoDir: File, name: String) =
-        configureRemote(repoDir) { git ->
-            git.remoteRemove().setRemoteName(name).call()
-        }
+        configureRemote(repoDir) { git -> remoteEngine.remove(git, name) }
 
     override suspend fun fetch(repoDir: File, remote: String?, prune: Boolean): GitSyncResult = withContext(io) {
         operationCoordinator.runExclusive(repoDir, GitOperationType.FETCH, cancellable = true) {
@@ -835,22 +797,14 @@ class JGitGitRepository(
         withContext(io) {
             operationCoordinator.runExclusive(repoDir, GitOperationType.CONFIGURE) {
                 openGit(repoDir).use { git ->
-                    val config = git.repository.config
-                    config.setString("branch", branch, "remote", remote)
-                    config.setString("branch", branch, "merge", remoteBranch.toFullBranchRef())
-                    config.save()
+                    remoteEngine.setUpstream(git.repository, branch, remote, remoteBranch)
                 }
                 refreshAfterGitOperation(repoDir)
             }
         }
 
     override suspend fun upstreamOf(repoDir: File, branch: String): GitUpstream? = withContext(io) {
-        openGit(repoDir).use { git ->
-            val config = BranchConfig(git.repository.config, branch)
-            val remote = config.remote?.takeIf { it.isNotBlank() } ?: return@withContext null
-            val merge = config.merge?.takeIf { it.isNotBlank() } ?: return@withContext null
-            GitUpstream(branch, remote, Repository.shortenRefName(merge))
-        }
+        openGit(repoDir).use { remoteEngine.upstreamOf(it.repository, branch) }
     }
 
     override suspend fun push(repoDir: File, setUpstreamIfMissing: Boolean): GitSyncResult = withContext(io) {
@@ -916,7 +870,7 @@ class JGitGitRepository(
             var url: String? = null
             var attempted = false
             try {
-                val syncResult = openGit(repoDir).use { git ->
+                openGit(repoDir).use { git ->
                     val repo = git.repository
                     val branch = currentLocalBranch(repo)
                     val upstream = upstreamFor(repo, branch)
@@ -932,24 +886,8 @@ class JGitGitRepository(
                         .setProgressMonitor(operationProgressMonitor(repoDir))
                         .call()
                     ensureOperationActive(repoDir)
-                    if (result.isSuccessful) {
-                        val detail = result.rebaseResult?.status?.toString()
-                            ?: result.mergeResult?.mergeStatus?.toString()
-                            ?: "Up to date"
-                        GitSyncResult(true, detail)
-                    } else {
-                        val detail = result.rebaseResult?.status?.toString()
-                            ?: result.mergeResult?.mergeStatus?.toString()
-                            ?: "Pull failed"
-                        if (result.rebaseResult?.conflicts?.isNotEmpty() == true ||
-                            result.mergeResult?.mergeStatus?.isSuccessful == false
-                        ) {
-                            throw GitException.MergeConflict(detail)
-                        }
-                        throw GitException.Unknown(detail)
-                    }
+                    pullResultToSyncResult(result)
                 }
-                syncResult
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -965,6 +903,24 @@ class JGitGitRepository(
         }
     }
 
+    private fun pullResultToSyncResult(result: org.eclipse.jgit.api.PullResult): GitSyncResult {
+        if (result.isSuccessful) {
+            val detail = result.rebaseResult?.status?.toString()
+                ?: result.mergeResult?.mergeStatus?.toString()
+                ?: "Up to date"
+            return GitSyncResult(true, detail)
+        }
+        val detail = result.rebaseResult?.status?.toString()
+            ?: result.mergeResult?.mergeStatus?.toString()
+            ?: "Pull failed"
+        if (result.rebaseResult?.conflicts?.isNotEmpty() == true ||
+            result.mergeResult?.mergeStatus?.isSuccessful == false
+        ) {
+            throw GitException.MergeConflict(detail)
+        }
+        throw GitException.Unknown(detail)
+    }
+
     override suspend fun isRepository(repoDir: File): Boolean = withContext(io) { isRepo(repoDir) }
 
     override suspend fun remoteInfo(repoDir: File): GitRemoteInfo? = withContext(io) {
@@ -972,7 +928,7 @@ class JGitGitRepository(
         runCatching {
             openGit(repoDir).use { git ->
                 val repo = git.repository
-                // Detached HEAD / unborn branch → no ref to build from.
+
                 val branch = repo.branch?.takeIf { it.isNotBlank() && it != repo.resolve(Constants.HEAD)?.name }
                     ?: return@runCatching null
                 val remote = BranchConfig(repo.config, branch).remote ?: Constants.DEFAULT_REMOTE_NAME
@@ -995,7 +951,6 @@ class JGitGitRepository(
         }
     }
 
-    // region internals
 
     private suspend fun integration(
         repoDir: File,
@@ -1157,8 +1112,7 @@ class JGitGitRepository(
                 try {
                     openGit(repoDir).use { git ->
                         attempted = true
-                        git.stashApply().setStashRef("stash@{$index}").call()
-                        if (pop) git.stashDrop().setStashRef(index).call()
+                        stashEngine.applyAndMaybeDrop(git, index, pop)
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -1269,15 +1223,10 @@ class JGitGitRepository(
     }
 
     private fun trackingRemote(repo: Repository, branch: String): String =
-        BranchConfig(repo.config, branch).remote?.takeIf { it.isNotBlank() }
-            ?: Constants.DEFAULT_REMOTE_NAME
+        remoteEngine.trackingRemote(repo, branch)
 
-    private fun upstreamFor(repo: Repository, branch: String): GitUpstream? {
-        val config = BranchConfig(repo.config, branch)
-        val remote = config.remote?.takeIf { it.isNotBlank() } ?: return null
-        val merge = config.merge?.takeIf { it.isNotBlank() } ?: return null
-        return GitUpstream(branch, remote, Repository.shortenRefName(merge))
-    }
+    private fun upstreamFor(repo: Repository, branch: String): GitUpstream? =
+        remoteEngine.upstreamFor(repo, branch)
 
     private fun currentLocalBranch(repo: Repository): String {
         val fullBranch = repo.fullBranch
@@ -1372,7 +1321,7 @@ class JGitGitRepository(
     }
 
     private fun remoteUrl(repo: Repository, remote: String): String? =
-        repo.config.getString("remote", remote, "url")
+        remoteEngine.remoteUrl(repo, remote)
 
     private fun isRepo(repoDir: File): Boolean = openRepositoryOrNull(repoDir)?.use { true } ?: false
 
