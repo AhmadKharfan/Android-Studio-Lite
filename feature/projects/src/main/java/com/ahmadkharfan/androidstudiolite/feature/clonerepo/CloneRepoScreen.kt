@@ -22,7 +22,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSta
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChip
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipKind
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
-import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoInteractionListener
@@ -73,10 +72,15 @@ private fun CloneRepoScreen(
 
 @Composable
 private fun CloneRepoProgress(uiState: CloneRepoUiState, onCancel: () -> Unit) {
-    AslStatusChip(status = AslStatus.Syncing, label = "Cloning · ${uiState.progressMessage}")
+    val chipLabel = uiState.progressMessage
+        .substringBefore(' ')
+        .takeIf { it.isNotBlank() }
+        ?.let { "Cloning · $it" }
+        ?: "Cloning…"
+    AslStatusChip(status = AslStatus.Syncing, label = chipLabel)
     AslLinearProgress(
         value = uiState.progressPercent.toFloat(),
-        label = "Receiving objects",
+        label = uiState.progressMessage.ifBlank { "Receiving objects" },
         detail = "${uiState.progressPercent}%",
     )
     AslButton(label = "Cancel", onClick = onCancel, variant = AslButtonVariant.Secondary, fullWidth = true)
@@ -93,6 +97,7 @@ private fun CloneRepoForm(
         label = "Repository URL",
         placeholder = "https://github.com/user/repo.git",
         leadingIcon = "link",
+        error = uiState.error,
     )
     AslTextField(
         value = uiState.branch,
@@ -100,16 +105,6 @@ private fun CloneRepoForm(
         label = "Branch",
         placeholder = "main",
         helper = "Optional — defaults to the remote's default branch",
-    )
-    AslTextField(
-        value = uiState.token,
-        onValueChange = { interactionListener.onTokenChanged(it) },
-        label = "Access token",
-        placeholder = "ghp_…",
-        helper = "Optional — required for private HTTPS repos; stored securely and reused for push/pull",
-        type = AslTextFieldType.Password,
-        leadingIcon = "key-round",
-        error = uiState.error,
     )
     CloneRepoOptions(uiState = uiState, interactionListener = interactionListener)
     AslButton(

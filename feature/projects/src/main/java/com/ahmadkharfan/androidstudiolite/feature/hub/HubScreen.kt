@@ -302,11 +302,7 @@ private fun HubGreeting(
     colors: AslColorScheme,
 ) {
     Text(
-        text = stringResource(
-            R.string.greeting_user,
-            uiState.greeting,
-            stringResource(R.string.default_user_name),
-        ),
+        text = uiState.greeting,
         style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
         color = colors.textPrimary,
         modifier = Modifier
@@ -320,8 +316,6 @@ private fun HubResumeBanner(
     uiState: HubUiState,
     interactionListener: HubInteractionListener,
 ) {
-
-
     val resume = uiState.resumeProject
     var lastResume by remember { mutableStateOf(resume) }
     if (resume != null) lastResume = resume

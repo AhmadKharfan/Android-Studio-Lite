@@ -8,7 +8,6 @@ data class CloneOptionUiModel(val id: String, val label: String, val selected: B
 data class CloneRepoUiState(
     val url: String = "",
     val branch: String = "",
-    val token: String = "",
     val options: List<CloneOptionUiModel> = listOf(
         CloneOptionUiModel("depth1", "--depth 1", selected = true),
         CloneOptionUiModel("recursive", "--recursive", selected = false),

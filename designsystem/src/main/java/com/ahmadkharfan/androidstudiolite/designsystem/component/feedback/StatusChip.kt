@@ -3,15 +3,15 @@ package com.ahmadkharfan.androidstudiolite.designsystem.component.feedback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
@@ -46,9 +46,9 @@ fun AslStatusChip(
 
     Row(
         modifier = modifier
-            .height(26.dp)
+            .heightIn(min = 26.dp)
             .background(bg, AslShape.full)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -62,6 +62,8 @@ fun AslStatusChip(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = fg,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
