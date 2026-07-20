@@ -11,9 +11,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
-import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
@@ -41,9 +39,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 private val BOTTOM_PANEL_TABS = listOf(
@@ -51,22 +47,13 @@ private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
-private const val GUTTER_DEBOUNCE_MS = 300L
 private const val DEFAULT_BOTTOM_PANEL_HEIGHT_DP = 260f
 
 private fun expandedBottomPanelHeight(current: Float): Float =
     if (current > 0f) current else DEFAULT_BOTTOM_PANEL_HEIGHT_DP
 
-/**
- * How long a run may go with NO [BuildEvent] before it's declared failed. Rolling: each event resets
- * it, so it only trips on genuine silence (dead worker, dropped stream). Large multi-module / KMP
- * projects can spend many quiet minutes resolving dependencies and configuring; the worker also
- * emits progress heartbeats (~30s) while Gradle is alive, so this is a backstop for a truly dead
- * stream — not a bound on configure duration.
- */
 private const val BUILD_INACTIVITY_TIMEOUT_MS = 900_000L
 
-/** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)
 private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
@@ -77,7 +64,6 @@ class EditorViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val gradleProjectReader: com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader,
     private val buildRunCoordinator: BuildRunApi,
-    /** Null in unit tests — treated as online. Production always injects a real monitor. */
     private val networkMonitor: NetworkMonitor? = null,
     private val gitRepository: GitRepository? = null,
     private val workspaceWriteGate: WorkspaceWriteGate? = null,
@@ -85,58 +71,49 @@ class EditorViewModel(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
     private val sessions = mutableMapOf<String, EditorSession>()
-    private var autoSaveEnabled = true
+    private var isAutoSaveEnabled = true
     private var autoSaveJob: Job? = null
     private var buildJob: Job? = null
 
-    /**
-     * A Main-dispatched scope that outlives [viewModelScope] so a flush triggered by teardown
-     * (onCleared) still runs — viewModelScope is already cancelled by then. Reads happen on Main
-     * (where edits happen, so [sessions] access is safe); the repository does the actual write off it.
-     */
     private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var launchAfterInstall = true
+    private var shouldLaunchAfterInstall = true
 
-    /**
-     * True for the whole duration of a run — build → download → install — not just the build phase.
-     * The console's `isRunning` only covers the build (it flips to Succeeded before install), so it is
-     * not a sufficient guard: a second Run pressed while the previous one is still installing would
-     * collide on the shared build backend. This flag is the real re-entrancy guard.
-     */
-    private var runInFlight = false
+    private var isBuildInFlight = false
 
-    /** Rolling inactivity watchdog for the current run — see [launchInactivityWatchdog]. */
     private var buildWatchdogJob: Job? = null
 
-    /** Wall-clock of the current run's most recent [BuildEvent] (or its start); drives the watchdog. */
     @Volatile private var lastBuildEventAt = 0L
 
-    /** The install to retry once the user approves clearing a signature conflict. */
     private var pendingInstall: PendingInstall? = null
 
-    /** Absolute path of the open project's root, used to show file-tree paths relative to it. */
     private var projectRootPath: String? = null
     private var latestGitFiles: Map<String, GitFileState> = emptyMap()
     private var workspaceWriteRegistration: Closeable? = null
     private var latestRootGenerations: Map<String, Long> = emptyMap()
     private var lastReconciledGeneration = 0L
-    private data class GutterRequest(val tabId: String, val immediate: Boolean)
-    private val gutterRequests = MutableSharedFlow<GutterRequest>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    private val findController = EditorFindController()
+    private val gutterController = EditorGitGutterController(
+        scope = viewModelScope,
+        gitRepository = { gitRepository },
+        projectRootPath = { projectRootPath },
+        latestGitFiles = { latestGitFiles },
+        activeTabId = { state.value.activeTabId },
+        bufferText = { tabId -> sessions[tabId]?.text },
+        isBufferUnchanged = { tabId, buffer -> sessions[tabId]?.text == buffer },
+        applyMarkers = { tabId, markers ->
+            updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = markers) else it }) }
+        },
+        clearMarkers = { tabId ->
+            updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = emptyMap()) else it }) }
+        },
     )
     init {
-        viewModelScope.launch {
-            gutterRequests.collectLatest { request ->
-                if (!request.immediate) delay(GUTTER_DEBOUNCE_MS)
-                recomputeGutter(request.tabId)
-            }
-        }
+        gutterController.start()
         tryToCollect(
             block = { preferencesRepository.observePreferences() },
             onCollect = { prefs ->
-                autoSaveEnabled = prefs.editorAutoSave
-                launchAfterInstall = prefs.launchAfterInstall
+                isAutoSaveEnabled = prefs.editorAutoSave
+                shouldLaunchAfterInstall = prefs.launchAfterInstall
                 updateState {
                     copy(
                         editorFontSize = prefs.editorFontSize,
@@ -165,8 +142,8 @@ class EditorViewModel(
                 )
                 updateState {
                     copy(
-                        // Qualify: the copy receiver (EditorUiState) also has a `projectId`, which would
-                        // otherwise shadow the ViewModel's field and leave the UI state's id blank.
+
+
                         projectId = this@EditorViewModel.projectId,
                         projectName = projectName,
                         projectRootPath = projectPath,
@@ -182,7 +159,7 @@ class EditorViewModel(
                 resumeActiveBuildIfNeeded(projectPath, projectName)
             },
         )
-        // Detect edits to open files made outside the editor (e.g. by another repository operation).
+
         tryToCollect(
             block = { fileContentRepository.observeChanges() },
             onCollect = { event -> onExternalFileEvent(event) },
@@ -198,29 +175,19 @@ class EditorViewModel(
         )
     }
 
-    /**
-     * Directories to expand initially: every top-level directory, plus every directory on the path to
-     * the file we open by default, so the user lands on real source without hand-expanding the tree.
-     */
     private fun defaultExpandedIds(nodes: List<FileNode>): Set<String> {
         val topLevelDirs = nodes.filter { it.children != null }.map { it.id }
         val trailDirs = pathToDefaultFile(nodes)?.dropLast(1)?.map { it.id }.orEmpty()
         return (topLevelDirs + trailDirs).toSet()
     }
 
-    /** The file to open when a project first loads, or null for an empty project. */
     private fun firstOpenableFile(nodes: List<FileNode>): FileNode? = pathToDefaultFile(nodes)?.lastOrNull()
 
-    /**
-     * Chain of nodes to the file we open by default. Prefer the app's entry point `MainActivity`
-     * (what a developer wants to see first on a fresh project), then any source file, then any file.
-     */
     private fun pathToDefaultFile(nodes: List<FileNode>): List<FileNode>? =
         pathToFile(nodes) { it.name.equals("MainActivity.kt", true) || it.name.equals("MainActivity.java", true) }
             ?: pathToFile(nodes) { isCodeFile(it.name) }
             ?: pathToFile(nodes) { true }
 
-    /** Depth-first search returning the chain of nodes (ancestor dirs … file) to the first matching file. */
     private fun pathToFile(
         nodes: List<FileNode>,
         trail: List<FileNode> = emptyList(),
@@ -241,12 +208,6 @@ class EditorViewModel(
     private fun isCodeFile(name: String): Boolean =
         name.substringAfterLast('.', "").lowercase() in CODE_FILE_EXTENSIONS
 
-    /**
-     * Static "sync": read the Gradle project off disk and index the open module's declarations plus its
-     * resolved dependency classes, so completion resolves project symbols instead of only
-     * the built-in stdlib catalog. Best-effort — a non-Gradle or unreadable project just leaves the index
-     * empty, preserving the previous behaviour.
-     */
     private fun syncProjectSymbols(projectPath: String) {
         tryToExecute(
             block = {
@@ -264,8 +225,8 @@ class EditorViewModel(
                         .resolveAppModule(model)
                     val variants = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .availableVariantNames(app)
-                    // Remap bare/stale names (e.g. "debug") onto the Android Studio-like default
-                    // (developmentDebug). Keep an already-valid concrete selection the user picked.
+
+
                     val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .resolveSelectedVariant(app, state.value.selectedVariant)
                     SyncSymbolsResult(
@@ -412,7 +373,7 @@ class EditorViewModel(
     override fun onSelectTab(id: String) {
         val previousId = state.value.activeTabId
         viewModelScope.launch {
-            // Checkpoint the outgoing tab's edits before switching focus.
+
             autoSaveJob?.cancel()
             if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
                 updateState { copy(snackbarMessage = "Couldn't save file before switching tabs") }
@@ -577,8 +538,8 @@ class EditorViewModel(
     override fun onCancelBuild() = cancelBuild()
     override fun onBuildRelease() {
         val kind = if (state.value.buildOutputAab) BuildKind.BUNDLE else BuildKind.ASSEMBLE
-        // Package the release sibling of the current Run selection (e.g. stagingDebug → stagingRelease)
-        // without switching Build Variants off debug.
+
+
         startBuild(variant = "release", kind = kind, install = false)
     }
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
@@ -626,7 +587,7 @@ class EditorViewModel(
     }
     override fun onCloseProject() {
         viewModelScope.launch {
-            // Persist edits before leaving the editor.
+
             autoSaveJob?.cancel()
             if (flushDirtyFiles()) {
                 emitEffect(EditorEffect.CloseProject)
@@ -645,15 +606,25 @@ class EditorViewModel(
         updateState { copy(snackbarMessage = null) }
     }
     override fun onToggleFindBar() {
-        updateState { copy(findBarOpen = !findBarOpen, findQuery = "", findMatchCount = 0, findCurrentMatch = 0) }
+        val snapshot = findController.toggledBar(state.value.findBarOpen)
+        updateState {
+            copy(
+                findBarOpen = snapshot.findBarOpen,
+                findQuery = snapshot.findQuery,
+                findMatchCount = snapshot.findMatchCount,
+                findCurrentMatch = snapshot.findCurrentMatch,
+            )
+        }
     }
     override fun onFindQueryChanged(query: String) = updateFindQuery(query)
     override fun onFindNext() {
-        updateState { copy(findCurrentMatch = if (findMatchCount == 0) 0 else (findCurrentMatch % findMatchCount) + 1) }
+        updateState {
+            copy(findCurrentMatch = findController.nextMatch(findMatchCount, findCurrentMatch))
+        }
     }
     override fun onFindPrevious() {
         updateState {
-            copy(findCurrentMatch = if (findMatchCount == 0) 0 else ((findCurrentMatch - 2 + findMatchCount) % findMatchCount) + 1)
+            copy(findCurrentMatch = findController.previousMatch(findMatchCount, findCurrentMatch))
         }
     }
     override fun onToggleAutocompleteDemo() {
@@ -786,14 +757,8 @@ class EditorViewModel(
         if (id == state.value.activeTabId) requestGutter(id, immediate = false)
     }
 
-    /**
-     * Debounced auto-save: each edit pushes the write out by [AUTO_SAVE_DEBOUNCE_MS] so we don't hit
-     * disk on every keystroke, but a short pause persists the changes with no save tap. When it fires
-     * it flushes EVERY dirty tab (not just the last-edited one), so quickly editing file A then file B
-     * can't leave A's earlier debounce cancelled and unsaved.
-     */
     private fun scheduleAutoSave() {
-        if (!autoSaveEnabled) return
+        if (!isAutoSaveEnabled) return
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
             delay(AUTO_SAVE_DEBOUNCE_MS)
@@ -801,11 +766,6 @@ class EditorViewModel(
         }
     }
 
-    /**
-     * Writes every tab with unsaved edits to disk now. Idempotent and safe to call repeatedly. A tab's
-     * `modified` flag is only cleared if its buffer is unchanged since we snapshotted it, so an edit
-     * that lands mid-flush isn't silently marked saved.
-     */
     private suspend fun flushDirtyFiles(onlyIds: Set<String>? = null): Boolean {
         val snapshots = state.value.tabs
             .filter { it.modified && (onlyIds == null || it.id in onlyIds) }
@@ -831,11 +791,6 @@ class EditorViewModel(
         return writtenIds.size == snapshots.size
     }
 
-    /**
-     * Persists any unsaved edits immediately, cancelling the pending debounce. Called at every point
-     * where losing in-memory edits would matter: app backgrounding (ON_STOP), and editor teardown.
-     * Non-blocking; runs on [flushScope] so it completes even if [viewModelScope] is torn down next.
-     */
     fun flushPendingSaves() {
         autoSaveJob?.cancel()
         flushScope.launch { flushDirtyFiles() }
@@ -873,64 +828,16 @@ class EditorViewModel(
     }
 
     private fun requestGutter(tabId: String, immediate: Boolean) {
-        gutterRequests.tryEmit(GutterRequest(tabId, immediate))
-    }
-
-    private suspend fun recomputeGutter(tabId: String) {
-        if (state.value.activeTabId != tabId) return
-        val rootPath = projectRootPath ?: return clearGutter(tabId)
-        val git = gitRepository ?: return clearGutter(tabId)
-        val root = File(rootPath).canonicalFile
-        val file = File(tabId).canonicalFile
-        val prefix = root.path.trimEnd(File.separatorChar) + File.separator
-        if (!file.path.startsWith(prefix)) return clearGutter(tabId)
-        val relative = file.relativeTo(root).invariantSeparatorsPath
-        if (latestGitFiles[relative]?.conflictStage != null) return clearGutter(tabId)
-        val buffer = sessions[tabId]?.text ?: return clearGutter(tabId)
-        val diff = runCatching { git.diffIndexToBuffer(root, relative, buffer) }.getOrNull()
-            ?: return clearGutter(tabId)
-        if (diff.isBinary || diff.tooLarge) return clearGutter(tabId)
-        val markers = buildMap {
-            diff.hunks.forEach { hunk ->
-                var removed = 0
-                val added = mutableListOf<Int>()
-                var newCursor = (hunk.newStart - 1).coerceAtLeast(0)
-                fun flushEdit() {
-                    if (added.isNotEmpty()) {
-                        added.forEach { put(it, if (removed > 0) AslLineGit.Modified else AslLineGit.Added) }
-                    } else if (removed > 0) {
-                        put(newCursor.coerceAtLeast(0), AslLineGit.Deleted)
-                    }
-                    removed = 0
-                    added.clear()
-                }
-                hunk.lines.forEach { line ->
-                    when (line.kind) {
-                        GitDiffKind.REMOVED -> removed++
-                        GitDiffKind.ADDED, GitDiffKind.MODIFIED -> {
-                            line.newNo?.let { added += it - 1; newCursor = it }
-                        }
-                        GitDiffKind.CONTEXT -> {
-                            flushEdit()
-                            newCursor = line.newNo ?: newCursor
-                        }
-                    }
-                }
-                flushEdit()
-            }
-        }
-        if (state.value.activeTabId == tabId && sessions[tabId]?.text == buffer) {
-            updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = markers) else it }) }
-        }
+        gutterController.request(tabId, immediate)
     }
 
     private fun clearGutter(tabId: String) {
-        updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = emptyMap()) else it }) }
+        gutterController.clear(tabId)
     }
 
     override fun onCleared() {
-        // Last-chance persist: viewModelScope is cancelled during onCleared, so this must run on the
-        // independent flushScope. Left un-cancelled so the in-flight write can complete.
+
+
         autoSaveJob?.cancel()
         flushScope.launch { flushDirtyFiles() }
         workspaceWriteRegistration?.close()
@@ -965,24 +872,14 @@ class EditorViewModel(
         }
     }
     private fun updateFindQuery(query: String) {
-        val text = state.value.activeTab?.text.orEmpty()
-        val count = if (query.isEmpty()) 0 else countOccurrences(text, query)
+        val snapshot = findController.queryChanged(state.value.activeTab?.text.orEmpty(), query)
         updateState {
             copy(
-                findQuery = query,
-                findMatchCount = count,
-                findCurrentMatch = if (count > 0) 1 else 0,
+                findQuery = snapshot.findQuery,
+                findMatchCount = snapshot.findMatchCount,
+                findCurrentMatch = snapshot.findCurrentMatch,
             )
         }
-    }
-    private fun countOccurrences(text: String, query: String): Int {
-        var count = 0
-        var index = text.indexOf(query, ignoreCase = true)
-        while (index >= 0) {
-            count++
-            index = text.indexOf(query, index + 1, ignoreCase = true)
-        }
-        return count
     }
     private fun closeTab(id: String) {
         viewModelScope.launch {
@@ -1003,21 +900,27 @@ class EditorViewModel(
     }
     private fun openFile(id: String, name: String) {
         if (state.value.tabs.any { it.id == id }) {
-            val previousId = state.value.activeTabId
-            viewModelScope.launch {
-                // Checkpoint the current tab's edits before switching to another file.
-                autoSaveJob?.cancel()
-                if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
-                    updateState { copy(snackbarMessage = "Couldn't save file before switching files") }
-                    return@launch
-                }
-                updateState { copy(activeTabId = id, openRailTool = null) }
-                requestGutter(id, immediate = true)
-            }
+            activateExistingTab(id)
             return
         }
+        openNewTab(id, name)
+    }
+
+    private fun activateExistingTab(id: String) {
+        val previousId = state.value.activeTabId
         viewModelScope.launch {
-            // Checkpoint the current tab's edits before opening another file.
+            autoSaveJob?.cancel()
+            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
+                updateState { copy(snackbarMessage = "Couldn't save file before switching files") }
+                return@launch
+            }
+            updateState { copy(activeTabId = id, openRailTool = null) }
+            requestGutter(id, immediate = true)
+        }
+    }
+
+    private fun openNewTab(id: String, name: String) {
+        viewModelScope.launch {
             autoSaveJob?.cancel()
             val previousId = state.value.activeTabId
             if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
@@ -1043,53 +946,73 @@ class EditorViewModel(
             requestGutter(id, immediate = true)
         }
     }
+
     private fun breadcrumbFor(id: String, name: String): List<String> {
         val root = projectRootPath
         val relative = if (root != null && id.startsWith(root)) id.removePrefix(root).trimStart('/') else id
         val parts = relative.split('/').filter { it.isNotEmpty() }
         return if (parts.size > 1) parts else listOf(name)
     }
-    /**
-     * Drives a real build through the [BuildRunCoordinator] (backed by the remote [BuildSystem]).
-     * Runs the reliability preflight, folds the [BuildEvent] stream into [EditorUiState.buildConsole],
-     * and — for a run — installs and launches the produced APK.
-     */
     private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
-        // Guard the WHOLE run (build+install), not just the build phase — see [runInFlight].
-        if (runInFlight) return
+        if (isBuildInFlight) return
         val root = projectRootPath?.let { File(it) }
         if (root == null) {
             updateState { copy(snackbarMessage = "Open a project before building") }
             return
         }
         if (networkMonitor?.isOnline() == false) {
-            val offlineMsg = "You're offline — connect to the internet and try again."
-            updateState {
-                copy(
-                    running = false,
-                    buildFailed = true,
-                    bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
-                    activeBottomTabId = "build",
-                    buildConsole = BuildConsoleState(
-                        status = BuildStatus.Failed,
-                        problems = listOf(
-                            BuildProblem(
-                                severity = BuildEvent.ProblemSeverity.ERROR,
-                                message = offlineMsg,
-                            ),
-                        ),
-                    ),
-                    snackbarMessage = offlineMsg,
-                    bottomPanelTabs = markBuildTab(error = true, count = 1),
-                )
-            }
+            showOfflineBuildFailure()
             return
         }
         if (!buildRunCoordinator.canPostNotifications()) {
             emitEffect(EditorEffect.RequestNotificationsPermission)
         }
-        runInFlight = true
+        isBuildInFlight = true
         lastBuildEventAt = System.currentTimeMillis()
+        showBuildRunning()
+        buildJob = viewModelScope.launch {
+            try {
+                if (!prepareWorkspaceForBuild(root)) return@launch
+                val targets = resolveBuildTargets(root, variant, install) ?: return@launch
+                launchInactivityWatchdog()
+                val request = BuildRequest(root, targets.modulePath, targets.variant, kind)
+                val meta = BuildClientMeta(
+                    projectId = projectId,
+                    projectName = state.value.projectName,
+                    installAfterSuccess = install,
+                )
+                collectBuildFlow(buildRunCoordinator.build(request, meta), install = install)
+            } finally {
+                buildWatchdogJob?.cancel()
+                isBuildInFlight = false
+            }
+        }
+    }
+
+    private fun showOfflineBuildFailure() {
+        val offlineMsg = "You're offline — connect to the internet and try again."
+        updateState {
+            copy(
+                running = false,
+                buildFailed = true,
+                bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
+                activeBottomTabId = "build",
+                buildConsole = BuildConsoleState(
+                    status = BuildStatus.Failed,
+                    problems = listOf(
+                        BuildProblem(
+                            severity = BuildEvent.ProblemSeverity.ERROR,
+                            message = offlineMsg,
+                        ),
+                    ),
+                ),
+                snackbarMessage = offlineMsg,
+                bottomPanelTabs = markBuildTab(error = true, count = 1),
+            )
+        }
+    }
+
+    private fun showBuildRunning() {
         updateState {
             copy(
                 running = true,
@@ -1099,96 +1022,72 @@ class EditorViewModel(
                 buildConsole = BuildConsoleState(status = BuildStatus.Running, progressMessage = "Preparing…"),
             )
         }
-        buildJob = viewModelScope.launch {
-            try {
-                // Persist unsaved edits BEFORE packaging — the build zips the project off disk, so an
-                // un-flushed buffer would build stale code.
-                autoSaveJob?.cancel()
-                if (!flushDirtyFiles()) {
-                    updateState {
-                        copy(
-                            running = false,
-                            buildFailed = true,
-                            buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
-                            snackbarMessage = "Couldn't save pending editor changes before build",
-                            bottomPanelTabs = markBuildTab(error = true, count = null),
-                        )
-                    }
-                    return@launch
-                }
-                val preflight = buildRunCoordinator.preflight(root)
-                if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
-                if (!preflight.canProceed) {
-                    val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
-                    updateState {
-                        copy(
-                            running = false,
-                            buildFailed = true,
-                            buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
-                            snackbarMessage = blocker.title,
-                            bottomPanelTabs = markBuildTab(error = true, count = 1),
-                        )
-                    }
-                    return@launch
-                }
-                buildRunCoordinator.ensureDebugKeystore()
+    }
 
-                // Resolve the real application module + variant (KMP often uses :composeApp and
-                // flavored debug variants like developmentDebug — not hardcoded :app / debug).
-                val projectModel = runCatching { gradleProjectReader.read(root).model }.getOrNull()
-                val appModule = projectModel?.let {
-                    com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.resolveAppModule(it)
-                }
-                val modulePath = appModule?.path
-                    ?: state.value.runModulePath.takeIf { it.isNotBlank() }
-                    ?: ":app"
-                val resolvedVariant = when {
-                    // "Build APK (release)" → release sibling of the current Run flavor, not a
-                    // permanent switch of Build Variants onto release.
-                    !install && variant.equals("release", ignoreCase = true) ->
-                        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                            .resolveReleaseVariant(appModule, state.value.selectedVariant)
-                    else ->
-                        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                            .resolveVariant(appModule, variant)
-                }
-                val available = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                    .availableVariantNames(appModule)
-                updateState {
-                    copy(
-                        selectedVariant = if (install) resolvedVariant else selectedVariant,
-                        runModulePath = modulePath,
-                        availableVariants = available,
-                    )
-                }
+    private suspend fun prepareWorkspaceForBuild(root: File): Boolean {
+        autoSaveJob?.cancel()
+        if (!flushDirtyFiles()) {
+            failBuildPreparation("Couldn't save pending editor changes before build")
+            return false
+        }
+        val preflight = buildRunCoordinator.preflight(root)
+        if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
+        if (!preflight.canProceed) {
+            val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
+            failBuildPreparation(blocker.title, problemCount = 1)
+            return false
+        }
+        buildRunCoordinator.ensureDebugKeystore()
+        return true
+    }
 
-                // Backstop for a build that goes silent (worker dies before, or during, streaming):
-                // without this the console could sit at "Preparing…"/"Starting build…" forever.
-                launchInactivityWatchdog()
-
-                val request = BuildRequest(root, modulePath, resolvedVariant, kind)
-                val meta = BuildClientMeta(
-                    projectId = projectId,
-                    projectName = state.value.projectName,
-                    installAfterSuccess = install,
-                )
-                collectBuildFlow(buildRunCoordinator.build(request, meta), install = install)
-            } finally {
-                buildWatchdogJob?.cancel()
-                runInFlight = false
-            }
+    private fun failBuildPreparation(message: String, problemCount: Int? = null) {
+        updateState {
+            copy(
+                running = false,
+                buildFailed = true,
+                buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
+                snackbarMessage = message,
+                bottomPanelTabs = markBuildTab(error = true, count = problemCount),
+            )
         }
     }
 
-    /**
-     * If a previous session left an in-flight remote build for this project, reattach the stream
-     * (or finish from REST if it already completed server-side).
-     */
+    private data class BuildTargets(val modulePath: String, val variant: String)
+
+    private fun resolveBuildTargets(root: File, variant: String, install: Boolean): BuildTargets? {
+        val projectModel = runCatching { gradleProjectReader.read(root).model }.getOrNull()
+        val appModule = projectModel?.let {
+            com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.resolveAppModule(it)
+        }
+        val modulePath = appModule?.path
+            ?: state.value.runModulePath.takeIf { it.isNotBlank() }
+            ?: ":app"
+        val resolvedVariant = when {
+            !install && variant.equals("release", ignoreCase = true) ->
+                com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                    .resolveReleaseVariant(appModule, state.value.selectedVariant)
+            else ->
+                com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                    .resolveVariant(appModule, variant)
+        }
+        val available = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+            .availableVariantNames(appModule)
+        updateState {
+            copy(
+                selectedVariant = if (install) resolvedVariant else selectedVariant,
+                runModulePath = modulePath,
+                availableVariants = available,
+            )
+        }
+        return BuildTargets(modulePath, resolvedVariant)
+    }
+
     private fun resumeActiveBuildIfNeeded(projectPath: String, projectName: String) {
-        if (runInFlight) return
+        if (isBuildInFlight) return
         viewModelScope.launch {
             val active = buildRunCoordinator.activeBuildFor(projectId) ?: return@launch
-            if (runInFlight) return@launch
+            if (isBuildInFlight) return@launch
             if (networkMonitor?.isOnline() == false) return@launch
             val flow = buildRunCoordinator.attachIfActive(
                 projectId = projectId,
@@ -1196,7 +1095,7 @@ class EditorViewModel(
                 projectName = projectName,
             ) ?: return@launch
 
-            runInFlight = true
+            isBuildInFlight = true
             lastBuildEventAt = System.currentTimeMillis()
             updateState {
                 copy(
@@ -1216,7 +1115,7 @@ class EditorViewModel(
                     collectBuildFlow(flow, install = active.installAfterSuccess)
                 } finally {
                     buildWatchdogJob?.cancel()
-                    runInFlight = false
+                    isBuildInFlight = false
                 }
             }
         }
@@ -1226,38 +1125,11 @@ class EditorViewModel(
         try {
             flow.collect { event -> onBuildEvent(event) }
             buildWatchdogJob?.cancel()
-
-            // The flow should have reduced a terminal Finished; if it somehow completed while still
-            // Running, don't leave the console spinning — normalise it to a failure.
-            if (state.value.buildConsole.isRunning) {
-                updateState {
-                    copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
-                }
-            }
-
+            markBuildFailedIfStillRunning()
             val console = state.value.buildConsole
             val success = console.status == BuildStatus.Succeeded
-            // Prefer the concrete ERROR problem (e.g. offline / can't reach server) over a
-            // generic "Build failed" snackbar so the user knows what to fix.
-            val failureMessage = console.problems
-                .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
-                ?.message
-            updateState {
-                copy(
-                    running = false,
-                    buildFailed = !success,
-                    snackbarMessage = when {
-                        success && install -> "Build succeeded — installing…"
-                        success -> snackbarMessage
-                        !failureMessage.isNullOrBlank() -> failureMessage
-                        else -> "Build failed — open Build Output for details"
-                    },
-                    bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
-                )
-            }
+            finishBuildUi(console, success, install)
             if (success && install) {
-                // One notification only: posted when PackageInstaller needs confirmation
-                // ("Ready to install"). Skipping BuildNotifier here avoids a second heads-up.
                 buildRunCoordinator.updateKeepAliveProgress(
                     projectId,
                     state.value.projectName,
@@ -1279,13 +1151,35 @@ class EditorViewModel(
         }
     }
 
-    /**
-     * Fails a run that has gone silent. Rolling inactivity timer: every [BuildEvent] pushes the
-     * deadline out, so a build that keeps streaming is never touched, but one that stops producing
-     * events for [BUILD_INACTIVITY_TIMEOUT_MS] — whether it never started ("Preparing…" forever) or
-     * started and then had its worker die mid-flight — is failed and the UI unblocked. This is the
-     * app-side guarantee that a run can never hang, independent of the server's own watchdog.
-     */
+    private fun markBuildFailedIfStillRunning() {
+        if (!state.value.buildConsole.isRunning) return
+        updateState {
+            copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
+        }
+    }
+
+    private fun finishBuildUi(console: BuildConsoleState, success: Boolean, install: Boolean) {
+        val failureMessage = console.problems
+            .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
+            ?.message
+        updateState {
+            copy(
+                running = false,
+                buildFailed = !success,
+                snackbarMessage = when {
+                    success && install -> "Build succeeded — installing…"
+                    success -> snackbarMessage
+                    !failureMessage.isNullOrBlank() -> failureMessage
+                    else -> "Build failed — open Build Output for details"
+                },
+                bottomPanelTabs = markBuildTab(
+                    error = !success,
+                    count = if (console.errorCount > 0) console.errorCount else null,
+                ),
+            )
+        }
+    }
+
     private fun launchInactivityWatchdog() {
         buildWatchdogJob = viewModelScope.launch {
             while (true) {
@@ -1295,36 +1189,37 @@ class EditorViewModel(
                     delay(remaining)
                     continue
                 }
-                // Silent past the deadline. Only act while the build is still running (during the
-                // post-build install phase the console is already terminal — leave it alone).
                 if (!state.value.buildConsole.isRunning) return@launch
-                val offline = networkMonitor?.isOnline() == false
-                val timeoutMsg = if (offline) {
-                    "You're offline — connect to the internet and try again."
-                } else {
-                    "Build stopped responding — no progress for several minutes. Tap Run to try again."
-                }
-                updateState {
-                    copy(
-                        running = false,
-                        buildFailed = true,
-                        buildConsole = buildConsole.copy(
-                            status = BuildStatus.Failed,
-                            progressMessage = null,
-                            problems = buildConsole.problems + BuildProblem(
-                                severity = BuildEvent.ProblemSeverity.ERROR,
-                                message = timeoutMsg,
-                            ),
-                        ),
-                        snackbarMessage = timeoutMsg,
-                        bottomPanelTabs = markBuildTab(error = true, count = null),
-                    )
-                }
-                buildRunCoordinator.cancel()
-                buildJob?.cancel()
+                failBuildOnInactivity(offline = networkMonitor?.isOnline() == false)
                 return@launch
             }
         }
+    }
+
+    private fun failBuildOnInactivity(offline: Boolean) {
+        val timeoutMsg = if (offline) {
+            "You're offline — connect to the internet and try again."
+        } else {
+            "Build stopped responding — no progress for several minutes. Tap Run to try again."
+        }
+        updateState {
+            copy(
+                running = false,
+                buildFailed = true,
+                buildConsole = buildConsole.copy(
+                    status = BuildStatus.Failed,
+                    progressMessage = null,
+                    problems = buildConsole.problems + BuildProblem(
+                        severity = BuildEvent.ProblemSeverity.ERROR,
+                        message = timeoutMsg,
+                    ),
+                ),
+                snackbarMessage = timeoutMsg,
+                bottomPanelTabs = markBuildTab(error = true, count = null),
+            )
+        }
+        buildRunCoordinator.cancel()
+        buildJob?.cancel()
     }
 
     private fun onBuildEvent(event: BuildEvent) {
@@ -1332,7 +1227,6 @@ class EditorViewModel(
         updateState { copy(buildConsole = buildConsole.reduce(event)) }
     }
 
-    /** Surfaces preflight warnings as a leading, non-blocking note in the build console log. */
     private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
         val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
             text = "Preflight: " + warnings.joinToString("; ") { "${it.title} — ${it.detail}" },
@@ -1342,20 +1236,25 @@ class EditorViewModel(
     }
 
     private suspend fun installArtifact(console: BuildConsoleState) {
+        val apk = resolveInstallableApk(console) ?: return
+        val applicationId = projectRootPath
+            ?.let { buildRunCoordinator.resolveApplicationId(File(it), state.value.runModulePath) }
+        runInstall(apk, applicationId)
+    }
+
+    private fun resolveInstallableApk(console: BuildConsoleState): File? {
         val artifact = console.artifact
         if (artifact == null) {
             updateState {
-                copy(
-                    snackbarMessage = "Build succeeded but no APK was downloaded — open Build Output for details",
-                )
+                copy(snackbarMessage = "Build succeeded but no APK was downloaded — open Build Output for details")
             }
-            return
+            return null
         }
         if (artifact.kind != BuildEvent.ArtifactKind.APK) {
             updateState {
                 copy(snackbarMessage = "Build succeeded — ${artifact.kind.name} can't be installed on-device")
             }
-            return
+            return null
         }
         if (artifact.name.contains("unsigned", ignoreCase = true)) {
             updateState {
@@ -1363,23 +1262,20 @@ class EditorViewModel(
                     snackbarMessage = "Build produced an unsigned release APK — use a debug variant or add a release keystore",
                 )
             }
-            return
+            return null
         }
         val apk = File(artifact.path)
         if (!apk.isFile) {
             updateState {
                 copy(snackbarMessage = "Build succeeded — APK download incomplete, tap Run to try again")
             }
-            return
+            return null
         }
-        val applicationId = projectRootPath
-            ?.let { buildRunCoordinator.resolveApplicationId(File(it), state.value.runModulePath) }
-        runInstall(apk, applicationId)
+        return apk
     }
 
-    /** One install attempt; a signature conflict parks the retry behind a confirmation dialog. */
     private suspend fun runInstall(apk: File, applicationId: String?) {
-        buildRunCoordinator.install(apk, applicationId, autoLaunch = launchAfterInstall).collect { event ->
+        buildRunCoordinator.install(apk, applicationId, autoLaunch = shouldLaunchAfterInstall).collect { event ->
             when (event) {
                 is InstallEvent.Conflict -> onInstallConflict(apk, event)
                 is InstallEvent.Preparing -> updateState { copy(snackbarMessage = "Installing ${apk.name}…") }
@@ -1397,16 +1293,10 @@ class EditorViewModel(
         }
     }
 
-    /**
-     * The APK is signed differently from the installed copy. Only reachable for an app installed from
-     * a build made before the worker got its fixed debug keystore — every build now shares one
-     * signature, so rebuilds update in place. Recovering means uninstalling, which drops that app's
-     * data, so ask first.
-     */
     private fun onInstallConflict(apk: File, event: InstallEvent.Conflict) {
         val applicationId = event.packageName
         if (applicationId == null) {
-            // Nothing to uninstall by name — surface it rather than offering a fix we can't perform.
+
             updateState { copy(snackbarMessage = "Install failed: ${event.reason}") }
             return
         }
@@ -1431,7 +1321,7 @@ class EditorViewModel(
                         updateState { copy(snackbarMessage = "Uninstall failed: ${event.reason}") }
                 }
             }
-            // Only retry once the package is actually gone; a second conflict would just re-prompt.
+
             if (uninstalled) runInstall(pending.apk, pending.applicationId)
         }
     }
@@ -1460,14 +1350,13 @@ class EditorViewModel(
         }
     }
 
-    /** Opens the problem's file (if any) and moves the caret to its line, like a Problems-list jump. */
     private fun jumpToBuildProblem(problem: BuildProblem) {
         val path = problem.filePath ?: return
         val name = problem.fileName ?: path.substringAfterLast('/')
         openFile(path, name)
         val line = problem.line ?: return
         viewModelScope.launch {
-            // Give openFile a moment to create the session, then position the caret.
+
             repeat(20) {
                 val session = sessions[path] ?: run { delay(20); return@repeat }
                 val offset = session.document.positionToOffset(line - 1, (problem.column ?: 1) - 1)
