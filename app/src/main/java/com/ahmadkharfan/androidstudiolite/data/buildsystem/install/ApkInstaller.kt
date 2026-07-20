@@ -34,7 +34,7 @@ class ApkInstaller(private val context: Context) {
      * uninstall-and-retry. Pass null when it isn't known.
      */
     fun install(apk: File, applicationId: String?, autoLaunch: Boolean): Flow<InstallEvent> = callbackFlow {
-        if (!apk.isFile) {
+        if (!apk.isFile || apk.length() == 0L) {
             trySend(InstallEvent.Failed("APK not found: ${apk.name}"))
             close()
             return@callbackFlow
@@ -43,11 +43,21 @@ class ApkInstaller(private val context: Context) {
         val action = "${context.packageName}.INSTALL_STATUS.${SESSION_COUNTER.incrementAndGet()}"
         val installer = context.packageManager.packageInstaller
         var sessionId = -1
+        var committed = false
+        var terminalReached = false
 
         val receiver = statusReceiver(
+            apkLabel = apk.name,
             onNeedsUserAction = { trySend(InstallEvent.AwaitingConfirmation) },
-            onNoPrompt = { trySend(InstallEvent.Failed("System did not provide a confirmation prompt")); close() },
+            onNoPrompt = {
+                terminalReached = true
+                trySend(InstallEvent.Failed("System did not provide a confirmation prompt"))
+                close()
+            },
             onSuccess = { pkg ->
+                terminalReached = true
+                PendingInstallPrompt.clear()
+                InstallPromptNotifier(context).cancel()
                 // Launch off the broadcast thread with a short retry: right after commit the package's
                 // MAIN/LAUNCHER activity is often not yet queryable, so getLaunchIntentForPackage would
                 // return null on the first try and auto-launch would silently no-op.
@@ -58,27 +68,48 @@ class ApkInstaller(private val context: Context) {
                 }
             },
             onConflict = { pkg, message ->
+                terminalReached = true
+                PendingInstallPrompt.clear()
+                InstallPromptNotifier(context).cancel()
                 trySend(InstallEvent.Conflict(pkg ?: applicationId, message))
                 close()
             },
-            onFailure = { message -> trySend(InstallEvent.Failed(message)); close() },
+            onFailure = { message ->
+                terminalReached = true
+                PendingInstallPrompt.clear()
+                InstallPromptNotifier(context).cancel()
+                trySend(InstallEvent.Failed(message))
+                close()
+            },
         )
         registerInstallReceiver(receiver, action)
 
         try {
             trySend(InstallEvent.Preparing)
-            sessionId = writeSession(installer, apk)
-            installer.openSession(sessionId).use { session ->
-                session.commit(buildStatusSender(action).intentSender)
-            }
+            // Drop stale sessions from a previous Run that left "pending user action" / abandoned mid-way.
+            // Confirming those while creating a new session causes INSTALL_FAILED_INTERNAL_ERROR:
+            // "Session files in use".
+            abandonStaleSessions(installer)
+            sessionId = createAndCommitSession(installer, apk, applicationId, action)
+            committed = true
         } catch (e: Exception) {
+            terminalReached = true
             trySend(InstallEvent.Failed(e.message ?: "Could not start install"))
             close()
         }
 
         awaitClose {
             runCatching { context.unregisterReceiver(receiver) }
-            if (sessionId >= 0) runCatching { installer.abandonSession(sessionId) }
+            // Never abandon a committed session that already finished — and don't abandon while the
+            // system install UI is still using the session (that yields "Session files in use").
+            // Only abandon if we never committed, or the user cancelled before a terminal status.
+            if (sessionId >= 0 && (!committed || !terminalReached)) {
+                runCatching { installer.abandonSession(sessionId) }
+            }
+            if (!terminalReached) {
+                PendingInstallPrompt.clear()
+                InstallPromptNotifier(context).cancel()
+            }
         }
     }
 
@@ -103,7 +134,7 @@ class ApkInstaller(private val context: Context) {
 
         try {
             trySend(UninstallEvent.Uninstalling)
-            installer.uninstall(packageName, buildStatusSender(action).intentSender)
+            installer.uninstall(packageName, buildStatusSender(action, requestCode = action.hashCode()).intentSender)
         } catch (e: Exception) {
             trySend(UninstallEvent.Failed(e.message ?: "Could not start uninstall"))
             close()
@@ -114,9 +145,11 @@ class ApkInstaller(private val context: Context) {
 
     /**
      * The shared status-broadcast plumbing behind [install] and [uninstall]: maps the broadcast to an
-     * outcome and, for the user-action case, launches the system prompt.
+     * outcome and, for the user-action case, launches the system prompt (or a heads-up notification
+     * when background activity launch is blocked).
      */
     private fun statusReceiver(
+        apkLabel: String = "app",
         onNeedsUserAction: () -> Unit,
         onNoPrompt: () -> Unit,
         onSuccess: (packageName: String?) -> Unit,
@@ -132,7 +165,16 @@ class ApkInstaller(private val context: Context) {
                     onNeedsUserAction()
                     val confirm = intent.confirmationIntent()
                     if (confirm != null) {
-                        context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        val labeled = confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        PendingInstallPrompt.hold(labeled, apkLabel)
+                        // Single path: foreground → show the system sheet once; background → one
+                        // heads-up notification. Doing both caused two popups / two notifications.
+                        if (isAppInForeground()) {
+                            PendingInstallPrompt.recordLaunchAttempt()
+                            runCatching { context.startActivity(Intent(labeled)) }
+                        } else {
+                            InstallPromptNotifier(context).notifyReady(apkLabel)
+                        }
                     } else {
                         onNoPrompt()
                     }
@@ -145,10 +187,20 @@ class ApkInstaller(private val context: Context) {
         }
     }
 
-    /** Creates a session, copies the APK bytes in, and returns the session id. */
-    private fun writeSession(installer: PackageInstaller, apk: File): Int {
+    /**
+     * Writes the APK and commits in one open session (Android's recommended pattern). Split
+     * open-write-close then re-open-commit left some OEMs with "Session files in use" on confirm.
+     */
+    private fun createAndCommitSession(
+        installer: PackageInstaller,
+        apk: File,
+        applicationId: String?,
+        action: String,
+    ): Int {
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-        params.setAppPackageName(null)
+        if (!applicationId.isNullOrBlank()) {
+            params.setAppPackageName(applicationId)
+        }
         val sessionId = installer.createSession(params)
         installer.openSession(sessionId).use { session ->
             apk.inputStream().use { input ->
@@ -157,18 +209,27 @@ class ApkInstaller(private val context: Context) {
                     session.fsync(output)
                 }
             }
+            session.commit(buildStatusSender(action, requestCode = sessionId).intentSender)
         }
         return sessionId
     }
 
-    private fun buildStatusSender(action: String): PendingIntent {
+    private fun abandonStaleSessions(installer: PackageInstaller) {
+        for (info in installer.mySessions) {
+            runCatching { installer.abandonSession(info.sessionId) }
+        }
+        PendingInstallPrompt.clear()
+        InstallPromptNotifier(context).cancel()
+    }
+
+    private fun buildStatusSender(action: String, requestCode: Int): PendingIntent {
         val intent = Intent(action).setPackage(context.packageName)
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        return PendingIntent.getBroadcast(context, REQUEST_CODE, intent, flags)
+        return PendingIntent.getBroadcast(context, requestCode, intent, flags)
     }
 
     /**
@@ -201,8 +262,18 @@ class ApkInstaller(private val context: Context) {
         }
     }
 
+    /** True when this app is in the foreground — used to avoid dual install UI / notifications. */
+    private fun isAppInForeground(): Boolean {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            ?: return false
+        val pkg = context.packageName
+        return am.runningAppProcesses.orEmpty().any {
+            it.processName == pkg &&
+                it.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+    }
+
     private companion object {
-        const val REQUEST_CODE = 0xA5
         val SESSION_COUNTER = AtomicInteger(0)
 
         /** ~2s total (10 × 200ms) to cover the post-commit window before the launcher entry resolves. */
