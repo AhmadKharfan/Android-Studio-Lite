@@ -85,10 +85,22 @@ class ProjectTemplateEngineTest {
                 "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
                 "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
                 "app/src/main/res/drawable/ic_launcher_foreground.xml",
+                "app/src/main/res/drawable/ic_launcher_background.xml",
                 "app/src/main/res/values/ic_launcher_background.xml",
             )) {
                 assertTrue("${template.metadata.id}: $icon", File(dir, icon).isFile)
             }
+
+            val foreground = File(dir, "app/src/main/res/drawable/ic_launcher_foreground.xml").readText()
+            assertTrue(
+                "${template.metadata.id}: launcher uses Android Studio bugdroid foreground",
+                foreground.contains("M65.3,45.828") && !foreground.contains("M54,30L70,66"),
+            )
+            val adaptive = File(dir, "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml").readText()
+            assertTrue(
+                "${template.metadata.id}: adaptive icon uses drawable background",
+                adaptive.contains("@drawable/ic_launcher_background"),
+            )
 
 
             val app = appModule(dir)
