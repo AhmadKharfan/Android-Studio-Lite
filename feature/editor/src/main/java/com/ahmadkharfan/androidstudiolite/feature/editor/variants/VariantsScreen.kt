@@ -19,12 +19,10 @@ fun VariantsRoute(
     onSelectVariant: (String) -> Unit,
     onClose: () -> Unit,
     module: String = "app",
-    variants: List<String> = listOf("debug", "release"),
+    variants: List<String> = emptyList(),
 ) {
     val colors = AslTheme.colors
-    val options = variants
-        .ifEmpty { listOf("debug", "release") }
-        .map { AslDropdownOption(it, it) }
+    val options = variants.map { AslDropdownOption(it, it) }
     val isDebugish = selectedVariant.contains("debug", ignoreCase = true) &&
         !selectedVariant.contains("release", ignoreCase = true)
     AslToolWindowPanel(title = "Build Variants", width = rememberAslToolWindowWidth(), onClose = onClose) {
@@ -39,7 +37,7 @@ fun VariantsRoute(
                 text = if (isDebugish) {
                     "Debug builds keep debugging symbols and are not optimized. Run installs this variant."
                 } else {
-                    "Release builds are minified and optimized for distribution. Run installs this variant (release signing required)."
+                    "Release builds use the project's release configuration and require a valid release signing key. Run can install APK variants."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,

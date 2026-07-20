@@ -76,6 +76,8 @@ class EditorViewModel(
     private var isBuildInFlight = false
 
     private var projectRootPath: String? = null
+    @Volatile private var authoritativeProjectModel:
+        Pair<String, com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel>? = null
     private var latestGitFiles: Map<String, GitFileState> = emptyMap()
     private var workspaceWriteRegistration: Closeable? = null
     private var latestRootGenerations: Map<String, Long> = emptyMap()
@@ -125,6 +127,7 @@ class EditorViewModel(
                         buildFailed = console.status == BuildStatus.Failed ||
                             execution.installState == InstallExecutionState.Failed,
                         buildConsole = console,
+                        installConflict = execution.installConflictPackage?.let(::InstallConflictUiModel),
                         bottomPanelTabs = markBuildTab(
                             error = console.status == BuildStatus.Failed,
                             count = console.errorCount.takeIf { it > 0 },
@@ -134,7 +137,7 @@ class EditorViewModel(
                             InstallExecutionState.AwaitingConfirmation ->
                                 "Waiting for install confirmation — check notifications if needed"
                             InstallExecutionState.Installed -> "Installed successfully"
-                            InstallExecutionState.Failed -> "Installation failed"
+                            InstallExecutionState.Failed -> execution.installFailureReason ?: "Installation failed"
                             InstallExecutionState.None -> snackbarMessage
                         },
                     )
@@ -150,6 +153,7 @@ class EditorViewModel(
             },
             onSuccess = { (projectName, projectPath, nodes) ->
                 projectRootPath = projectPath
+                authoritativeProjectModel = null
                 workspaceWriteRegistration?.close()
                 workspaceWriteRegistration = workspaceWriteGate?.register(
                     File(projectPath),
@@ -232,12 +236,15 @@ class EditorViewModel(
                 if (!gradleProjectReader.isGradleProject(root)) {
                     SyncSymbolsResult(
                         index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
-                        runModulePath = ":app",
-                        availableVariants = listOf("debug", "release"),
-                        selectedVariant = state.value.selectedVariant,
+                        runModulePath = "",
+                        availableVariants = emptyList(),
+                        selectedVariant = "",
                     )
                 } else {
-                    val model = gradleProjectReader.read(root).model
+                    val localModel = gradleProjectReader.read(root).model
+                    val model = runCatching { buildRunCoordinator.syncProject(root) }
+                        .getOrDefault(localModel)
+                    authoritativeProjectModel = root.absolutePath to model
                     val app = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .resolveAppModule(model)
                     val variants = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
@@ -247,8 +254,8 @@ class EditorViewModel(
                     val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .resolveSelectedVariant(app, state.value.selectedVariant)
                     SyncSymbolsResult(
-                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model),
-                        runModulePath = app?.path ?: ":app",
+                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(localModel),
+                        runModulePath = app?.path.orEmpty(),
                         availableVariants = variants,
                         selectedVariant = selected,
                     )
@@ -988,8 +995,15 @@ class EditorViewModel(
         buildJob = viewModelScope.launch {
             try {
                 if (!prepareWorkspaceForBuild(root)) return@launch
-                val targets = resolveBuildTargets(root, variant, install) ?: return@launch
-                val request = BuildRequest(root, targets.modulePath, targets.variant, kind)
+                val targets = resolveBuildTargets(root, variant, kind, install) ?: return@launch
+                val request = BuildRequest(
+                    projectRoot = root,
+                    modulePath = targets.modulePath,
+                    variantName = targets.variant,
+                    kind = kind,
+                    taskPath = targets.taskPath,
+                    buildType = targets.buildType,
+                )
                 val meta = BuildClientMeta(
                     projectId = projectId,
                     projectName = state.value.projectName,
@@ -1008,7 +1022,19 @@ class EditorViewModel(
                         )
                     }
                     is StartBuildResult.Failed -> updateState {
-                        copy(snackbarMessage = result.reason, running = false, buildFailed = true)
+                        copy(
+                            snackbarMessage = result.reason,
+                            running = false,
+                            buildFailed = true,
+                            buildConsole = buildConsole.copy(
+                                status = BuildStatus.Failed,
+                                progressMessage = null,
+                                problems = buildConsole.problems + BuildProblem(
+                                    BuildEvent.ProblemSeverity.ERROR,
+                                    result.reason,
+                                ),
+                            ),
+                        )
                     }
                 }
             } finally {
@@ -1081,16 +1107,31 @@ class EditorViewModel(
         }
     }
 
-    private data class BuildTargets(val modulePath: String, val variant: String)
+    private data class BuildTargets(
+        val modulePath: String,
+        val variant: String,
+        val buildType: String?,
+        val taskPath: String?,
+    )
 
-    private fun resolveBuildTargets(root: File, variant: String, install: Boolean): BuildTargets? {
-        val projectModel = runCatching { gradleProjectReader.read(root).model }.getOrNull()
+    private suspend fun resolveBuildTargets(root: File, variant: String, kind: BuildKind, install: Boolean): BuildTargets? {
+        // Build from the same authoritative model used by sync. The local reader is only a
+        // fallback for an unavailable backend and must not replace flavor-aware task paths.
+        val projectModel = authoritativeProjectModel
+            ?.takeIf { it.first == root.absolutePath }
+            ?.second
+            ?: runCatching { buildRunCoordinator.syncProject(root) }
+                .recoverCatching { gradleProjectReader.read(root).model }
+                .getOrNull()
+                ?.also { authoritativeProjectModel = root.absolutePath to it }
         val appModule = projectModel?.let {
             com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.resolveAppModule(it)
         }
-        val modulePath = appModule?.path
-            ?: state.value.runModulePath.takeIf { it.isNotBlank() }
-            ?: ":app"
+        if (appModule == null || appModule.variants.isEmpty()) {
+            failBuildPreparation("No supported Android application variants were found. Sync the project and try again.")
+            return null
+        }
+        val modulePath = appModule.path
         val resolvedVariant = when {
             !install && variant.equals("release", ignoreCase = true) ->
                 com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
@@ -1108,7 +1149,16 @@ class EditorViewModel(
                 availableVariants = available,
             )
         }
-        return BuildTargets(modulePath, resolvedVariant)
+        val variantModel = appModule?.variants?.firstOrNull {
+            it.name.equals(resolvedVariant, ignoreCase = true)
+        }
+        val taskPath = when (kind) {
+            BuildKind.ASSEMBLE -> variantModel?.assembleTaskPath
+            BuildKind.BUNDLE -> variantModel?.bundleTaskPath
+            BuildKind.CLEAN -> null
+            BuildKind.MODEL -> null
+        }
+        return BuildTargets(modulePath, resolvedVariant, variantModel?.buildType, taskPath)
     }
 
     private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
@@ -1120,7 +1170,9 @@ class EditorViewModel(
     }
 
     override fun onConfirmInstallConflictUninstall() {
-        updateState { copy(installConflict = null, snackbarMessage = "Run again after removing the conflicting app") }
+        val packageName = state.value.installConflict?.applicationId ?: return
+        buildRunCoordinator.uninstallConflict(packageName)
+        updateState { copy(installConflict = null, snackbarMessage = "Waiting for uninstall confirmation…") }
     }
 
     override fun onDismissInstallConflict() {

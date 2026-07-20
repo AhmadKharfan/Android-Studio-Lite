@@ -86,6 +86,23 @@ private fun BuildTab(
 
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
+            console.artifact?.let { artifact ->
+                item { SectionLabel("Artifact") }
+                item {
+                    val details = buildList {
+                        add(artifact.kind.name)
+                        artifact.sizeBytes?.let { add(formatBytes(it)) }
+                        artifact.signed?.let { add(if (it) "signed" else "unsigned") }
+                        artifact.sha256?.let { add("SHA-256 ${it.take(12)}…") }
+                    }.joinToString(" · ")
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Text(artifact.name, style = AslCode.codeSmall, color = colors.textPrimary)
+                        if (details.isNotBlank()) {
+                            Text(details, style = AslCode.codeTiny, color = colors.textTertiary)
+                        }
+                    }
+                }
+            }
             if (console.problems.isNotEmpty()) {
                 item { SectionLabel("Problems (${console.problems.size})") }
                 items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
@@ -126,6 +143,12 @@ private fun BuildTab(
             }
         }
     }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1024L * 1024L -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+    bytes >= 1024L -> String.format("%.1f KB", bytes / 1024.0)
+    else -> "$bytes B"
 }
 
 private fun BuildConsoleState.toClipboardText(): String = buildString {
