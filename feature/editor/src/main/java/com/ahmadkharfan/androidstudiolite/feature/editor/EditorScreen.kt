@@ -523,7 +523,7 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
             when {
                 uiState.running -> add(AslStatusBarEntry.Item("Building"))
                 uiState.buildFailed -> add(AslStatusBarEntry.Item("Build failed", icon = "octagon-alert", tone = AslStatusTone.Error))
-                else -> add(AslStatusBarEntry.Item("Kotlin"))
+                else -> add(AslStatusBarEntry.Item(uiState.activeTab?.language?.displayName ?: "Plain text"))
             }
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))

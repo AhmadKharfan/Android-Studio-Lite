@@ -4,6 +4,15 @@ enum class EditorLanguage {
     Java,
     Xml,
     Plain;
+
+    val displayName: String
+        get() = when (this) {
+            Kotlin -> "Kotlin"
+            Java -> "Java"
+            Xml -> "XML"
+            Plain -> "Plain text"
+        }
+
     companion object {
         fun fromFileName(name: String): EditorLanguage {
             val lower = name.lowercase()
