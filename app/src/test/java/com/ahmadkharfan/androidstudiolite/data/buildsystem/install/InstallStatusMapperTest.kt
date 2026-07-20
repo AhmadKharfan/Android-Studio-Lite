@@ -31,8 +31,8 @@ class InstallStatusMapperTest {
         val outcome = InstallStatusMapper.map(
             PackageInstaller.STATUS_FAILURE_CONFLICT, "signatures do not match", "com.example.app",
         )
-        // The install flow keys the uninstall-and-retry prompt off this outcome, so a conflict must
-        // never fold into Failure.
+
+
         val conflict = outcome as InstallStatusMapper.Outcome.Conflict
         assertEquals("com.example.app", conflict.packageName)
         assertTrue(conflict.message.contains("Conflicts with an existing package"))

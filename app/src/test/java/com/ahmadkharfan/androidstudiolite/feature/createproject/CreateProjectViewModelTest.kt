@@ -44,7 +44,7 @@ class CreateProjectViewModelTest {
 
     @Test
     fun `defaults to the empty activity compose template, not the first one loaded`() {
-        assertEquals("no-activity", templates.templates.first().id) // the trap the old code fell into
+        assertEquals("no-activity", templates.templates.first().id)
         assertEquals(DEFAULT_TEMPLATE_ID, viewModel().state.value.selectedTemplateId)
     }
 
@@ -152,7 +152,7 @@ class CreateProjectViewModelTest {
     )
 
     private class FakeTemplateRepository : TemplateRepository {
-        // Deliberately ordered so "first template" != the expected default.
+
         val templates = listOf(
             ProjectTemplate("no-activity", "No Activity", "", "template_no_activity", emptyList()),
             ProjectTemplate(DEFAULT_TEMPLATE_ID, "Jetpack Compose", "", "template_compose", emptyList()),

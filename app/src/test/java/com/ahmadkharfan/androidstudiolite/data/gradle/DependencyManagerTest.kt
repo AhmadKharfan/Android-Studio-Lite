@@ -54,11 +54,11 @@ class DependencyManagerTest {
         )
         assertTrue("Expected success but got $outcome", outcome is DependencyManager.Outcome.Success)
 
-        // The catalog now resolves the new alias...
+
         val cat = VersionCatalogParser.parse(catalog.readText())
         assertEquals("com.squareup.retrofit2:retrofit:2.11.0", cat.findLibrary("retrofit")?.coordinate)
 
-        // ...and the build file references it via the catalog accessor.
+
         assertTrue(build.readText().contains("implementation(libs.retrofit)"))
     }
 

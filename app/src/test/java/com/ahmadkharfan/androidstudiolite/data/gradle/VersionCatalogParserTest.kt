@@ -39,7 +39,7 @@ class VersionCatalogParserTest {
         assertEquals("androidx.core:core-ktx:1.12.0", cat.findLibrary("androidx.core.ktx")?.coordinate)
         assertEquals("com.squareup.retrofit2:retrofit:2.11.0", cat.findLibrary("retrofit")?.coordinate)
         assertEquals("com.squareup.okhttp3:okhttp:4.12.0", cat.findLibrary("okhttp")?.coordinate)
-        // Versionless library keeps only group:name.
+
         assertEquals("junit:junit", cat.findLibrary("junit")?.coordinate)
     }
 

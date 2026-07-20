@@ -10,14 +10,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * A3 attestation: the device-registration request carries the (mocked) Play Integrity token under the
- * server-contract field name `integrityToken`, and best-effort semantics hold (no token → field
- * omitted; the Noop provider yields null).
- */
 class IntegrityAttestationTest {
 
-    /** Test double standing in for the Play Integrity SDK. */
     private class FakeIntegrityTokenProvider(private val token: String?) : IntegrityTokenProvider {
         var lastNonce: String? = null
         override suspend fun requestToken(nonce: String): String? {
@@ -47,7 +41,7 @@ class IntegrityAttestationTest {
 
     @Test
     fun `register request omits the token when attestation is unavailable`() {
-        // explicitNulls=false ⇒ a null token is left off the wire, so the server registers unattested.
+
         val json = RemoteJson.encodeToString(RegisterDeviceRequest(integrityToken = null))
         assertFalse(json, json.contains("integrityToken"))
     }

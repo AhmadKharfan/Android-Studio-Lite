@@ -23,8 +23,7 @@ class ProjectTemplateEngineTest {
     @get:Rule
     val tmp = TemporaryFolder()
 
-    // Stands in for the binaries the app ships in assets/wrapper/; content is irrelevant here, only
-    // that every generated project gets the three files (and an executable gradlew).
+
     private val wrapperSource = GradleWrapperSource { path -> "fake:$path".byteInputStream() }
     private val engine = ProjectTemplateEngine(wrapperSource = wrapperSource)
     private val reader = GradleProjectReader()
@@ -37,14 +36,13 @@ class ProjectTemplateEngineTest {
 
     private fun appModule(dir: File): ModuleModel {
         val result = reader.read(dir)
-        // Every generated project must parse without a single ERROR diagnostic.
+
         assertTrue(
             "unexpected parse errors: ${result.diagnostics.filter { it.severity == DiagnosticSeverity.ERROR }}",
             result.diagnostics.none { it.severity == DiagnosticSeverity.ERROR },
         )
-        // Reads the wrapper the recipe emitted back off disk, so this asserts the generated project
-        // really pins the matrix's Gradle — which must be the worker's, or the build server
-        // downloads a second distribution instead of reusing its warm one.
+
+
         assertEquals(Catalog.GRADLE_VERSION, result.gradleVersion)
         assertNotNull("version catalog should parse", result.catalog)
         return result.model.modules.first { it.path == ":app" }
@@ -62,7 +60,7 @@ class ProjectTemplateEngineTest {
             )
             val dir = generate(spec)
 
-            // Shared scaffolding is always present.
+
             assertTrue("${template.metadata.id}: settings", File(dir, "settings.gradle.kts").isFile)
             assertTrue("${template.metadata.id}: root build", File(dir, "build.gradle.kts").isFile)
             assertTrue("${template.metadata.id}: app build", File(dir, "app/build.gradle.kts").isFile)
@@ -70,8 +68,7 @@ class ProjectTemplateEngineTest {
             assertTrue("${template.metadata.id}: wrapper", File(dir, "gradle/wrapper/gradle-wrapper.properties").isFile)
             assertTrue("${template.metadata.id}: manifest", File(dir, "app/src/main/AndroidManifest.xml").isFile)
 
-            // Without these the project isn't self-contained and the remote worker has no ./gradlew
-            // to invoke.
+
             val gradlew = File(dir, "gradlew")
             assertTrue("${template.metadata.id}: gradlew", gradlew.isFile)
             assertTrue("${template.metadata.id}: gradlew executable", gradlew.canExecute())
@@ -81,8 +78,7 @@ class ProjectTemplateEngineTest {
                 File(dir, "gradle/wrapper/gradle-wrapper.jar").isFile,
             )
 
-            // Every manifest declares android:icon="@mipmap/ic_launcher"; without these aapt2 fails
-            // the project at :app:processDebugResources.
+
             for (icon in listOf(
                 "app/src/main/res/mipmap/ic_launcher.xml",
                 "app/src/main/res/mipmap/ic_launcher_round.xml",
@@ -94,13 +90,13 @@ class ProjectTemplateEngineTest {
                 assertTrue("${template.metadata.id}: $icon", File(dir, icon).isFile)
             }
 
-            // The static reader maps it into a coherent app module.
+
             val app = appModule(dir)
             assertEquals("${template.metadata.id}: type", ModuleType.ANDROID_APP, app.type)
             assertTrue("${template.metadata.id}: has variants", app.variants.isNotEmpty())
             assertTrue("${template.metadata.id}: has dependencies", app.dependencies.isNotEmpty())
 
-            // The android {} block carries the requested identity + SDK levels.
+
             val android = BuildGradleParser.parse(File(dir, "app/build.gradle.kts").readText(), GradleDsl.KOTLIN).android
             assertNotNull("${template.metadata.id}: android block", android)
             assertEquals("${template.metadata.id}: namespace", "com.example.sample", android!!.namespace)
@@ -110,11 +106,6 @@ class ProjectTemplateEngineTest {
         }
     }
 
-    /**
-     * Guards the binaries the wizard depends on being in the APK: the engine copies whatever
-     * [AssetGradleWrapperSource] hands it, so a missing asset only surfaces as a broken build on the
-     * worker.
-     */
     @Test
     fun `the gradle wrapper binaries ship as app assets`() {
         for (path in GradleWrapperSource.PATHS) {
@@ -124,10 +115,6 @@ class ProjectTemplateEngineTest {
         }
     }
 
-    /**
-     * `?attr/colorPrimaryVariant` is an M2 attribute the Material3 parent doesn't define — aapt2 fails
-     * the project on it.
-     */
     @Test
     fun `views themes do not reference material2 attributes`() {
         val dir = generate(NewProjectSpec("Viewsy", "com.example.viewsy", "empty-views"))
@@ -144,13 +131,13 @@ class ProjectTemplateEngineTest {
         val app = appModule(dir)
         assertTrue(app.dependencies.any { it.coordinate == "androidx.core:core-ktx:1.13.1" })
         assertTrue(app.dependencies.any { it.coordinate == "androidx.compose:compose-bom:${Catalog.composeBom.version}" })
-        // BOM-governed artifacts are versionless (no double-pinned version).
+
         assertTrue(app.dependencies.any { it.coordinate == "androidx.compose.material3:material3" })
 
         val appBuild = File(dir, "app/build.gradle.kts").readText()
         assertTrue("compose enabled", appBuild.contains("compose = true"))
-        // Under Kotlin 2.x the Compose compiler is a plugin, and the old composeOptions
-        // kotlinCompilerExtensionVersion block is a configuration-time failure rather than a no-op.
+
+
         assertTrue("compose compiler plugin applied", appBuild.contains("alias(libs.plugins.compose.compiler)"))
         assertFalse("Kotlin 1.9 composeOptions must be gone", appBuild.contains("composeOptions"))
 
@@ -159,8 +146,8 @@ class ProjectTemplateEngineTest {
             "compose plugin in catalog",
             catalog.contains("compose-compiler = { id = \"org.jetbrains.kotlin.plugin.compose\""),
         )
-        // The compose compiler plugin ships with the Kotlin compiler: sharing the version ref is
-        // what keeps them from drifting apart into an unbuildable pair.
+
+
         assertTrue("compose plugin tracks kotlin version", catalog.contains("kotlin = \"${Catalog.KOTLIN_VERSION}\""))
 
         assertTrue(File(dir, "app/src/main/java/com/example/composer/MainActivity.kt").isFile)
@@ -168,12 +155,6 @@ class ProjectTemplateEngineTest {
         assertTrue(File(dir, "app/src/main/java/com/example/composer/ui/theme/Color.kt").isFile)
     }
 
-    /**
-     * These templates host navigation in a `FragmentContainerView`. `Activity.findNavController()`
-     * resolves through a tag on the fragment's view, which doesn't exist yet in `onCreate`, so it
-     * throws "does not have a NavController set" — the project builds and then crashes on launch.
-     * The NavController has to come from the fragment via the FragmentManager.
-     */
     @Test
     fun `nav templates get their NavController from the host fragment, not the activity`() {
         for (templateId in listOf("bottom-nav", "nav-drawer")) {
@@ -188,7 +169,6 @@ class ProjectTemplateEngineTest {
         }
     }
 
-    /** The drawer only gets its hamburger if the action bar is wired to a real Toolbar. */
     @Test
     fun `nav drawer wires a toolbar to the nav controller`() {
         val dir = generate(NewProjectSpec("Drawy", "com.example.drawy", "nav-drawer"))
@@ -206,7 +186,7 @@ class ProjectTemplateEngineTest {
 
         val manifest = File(dir, "app/src/main/AndroidManifest.xml").readText()
         assertTrue("no <activity>", !manifest.contains("<activity"))
-        // Still a valid, parseable android app.
+
         assertEquals(ModuleType.ANDROID_APP, appModule(dir).type)
     }
 

@@ -17,11 +17,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
-/**
- * Verifies that [DataStorePreferencesRepository] round-trips through a real file-backed DataStore:
- * a fresh repository instance pointed at the same file reads back what a previous instance wrote,
- * which is exactly what "settings survive process death" means.
- */
 class DataStorePreferencesRepositoryTest {
 
     @get:Rule
@@ -34,12 +29,6 @@ class DataStorePreferencesRepositoryTest {
         file = tmp.newFile("app_preferences.preferences_pb").also { it.delete() }
     }
 
-    /**
-     * Opens a fresh DataStore + repository over [file] in its own coroutine scope, runs [block],
-     * then cancels the scope so the store is fully released. Each call simulates a distinct process
-     * lifetime — DataStore forbids two live instances over the same file, so the scope must be torn
-     * down before the next "launch" opens the file again.
-     */
     private fun <T> withRepository(block: suspend (DataStorePreferencesRepository) -> T): T {
         val scope = CoroutineScope(SupervisorJob())
         try {

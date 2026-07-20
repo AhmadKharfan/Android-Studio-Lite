@@ -5,16 +5,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
 
-/**
- * Writes every shipped template to disk so `tools/template_build_check.sh` can send each one to the
- * real build server and report which templates actually build.
- *
- * Not a test — it's the generator half of that harness, living in test sources because that's where
- * the template engine is reachable from a plain JVM (the engine itself is Android-free; only the
- * wrapper assets need a source, supplied here straight from the asset directory).
- *
- * Inert unless `-Dasl.templateCheck.out=<dir>` is set, so a normal test run doesn't write anything.
- */
 class TemplateBuildCheckGenerator {
 
     @Test
@@ -35,8 +25,8 @@ class TemplateBuildCheckGenerator {
             dir.deleteRecursively()
             engine.generate(
                 NewProjectSpec(
-                    // Package must be a legal, distinct id per template: they're built for real and
-                    // an installed app is keyed by it.
+
+
                     name = "Check" + id.split('-').joinToString("") { it.replaceFirstChar(Char::uppercase) },
                     packageName = "com.example.check." + id.replace("-", ""),
                     templateId = id,

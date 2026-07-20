@@ -17,17 +17,10 @@ import java.io.File
 import java.nio.file.Files
 import java.util.Collections
 
-/**
- * Drives a real `/bin/sh` on the host JVM to prove the session streams live output, expands the
- * injected environment, keeps working-directory state, and reports exit codes. Uses the host shell
- * because on-device tests would need an instrumented device; the [ShellTerminalRepository] logic is
- * identical regardless of which `sh` is launched.
- */
 class ShellTerminalRepositoryTest {
 
     private val hostShell = File("/bin/sh")
 
-    /** Collects [repo] events into [sink], returning only once the (replay-less) stream is subscribed. */
     private suspend fun ShellTerminalRepository.collectInto(sink: MutableList<TerminalEvent>): Job {
         val subscribed = CompletableDeferred<Unit>()
         val job = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
@@ -56,7 +49,7 @@ class ShellTerminalRepositoryTest {
         repo.send("echo hello")
         repo.send("pwd")
         repo.send("echo \$ASL_GREETING")
-        repo.send("(exit 7)") // subshell keeps the session alive while yielding a non-zero status
+        repo.send("(exit 7)")
 
         withTimeout(10_000) {
             while (events.count { it is TerminalEvent.CommandFinished } < 4) delay(20)
@@ -73,7 +66,7 @@ class ShellTerminalRepositoryTest {
             "pwd should print the session working dir: $outputs",
             outputs.any { it.endsWith(home.name) },
         )
-        // The sentinel line itself must never surface as output.
+
         assertTrue("sentinel must be swallowed: $outputs", outputs.none { it.contains("ASL_CMD_DONE") })
         assertEquals("exit codes must be bracketed per command", listOf(0, 0, 0, 7), exitCodes)
     }

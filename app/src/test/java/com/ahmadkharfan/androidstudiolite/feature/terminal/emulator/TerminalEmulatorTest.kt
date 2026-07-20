@@ -43,9 +43,9 @@ class TerminalEmulatorTest {
     @Test
     fun cursor_positioning_overwrites_in_place() {
         val term = TerminalEmulator(4, 20)
-        // A curses-style repaint: home the cursor and overwrite — this is how top rewrites its screen.
+
         term.feed("first line")
-        term.feed("${ESC}[H") // cursor home
+        term.feed("${ESC}[H")
         term.feed("SECOND")
         assertEquals("SECONDline", term.rowText(0))
         assertEquals(0, term.cursorRow)
@@ -56,7 +56,7 @@ class TerminalEmulatorTest {
     fun erase_display_clears_screen() {
         val term = TerminalEmulator(4, 20)
         term.feed("line one\r\nline two")
-        term.feed("${ESC}[2J") // erase whole display
+        term.feed("${ESC}[2J")
         assertEquals("", term.rowText(0))
         assertEquals("", term.rowText(1))
     }
@@ -65,9 +65,9 @@ class TerminalEmulatorTest {
     fun erase_to_end_of_line() {
         val term = TerminalEmulator(4, 20)
         term.feed("abcdef")
-        term.feed("${ESC}[H") // home
-        term.feed("${ESC}[3C") // right 3 -> col 3
-        term.feed("${ESC}[K") // erase to end of line
+        term.feed("${ESC}[H")
+        term.feed("${ESC}[3C")
+        term.feed("${ESC}[K")
         assertEquals("abc", term.rowText(0))
     }
 
@@ -75,7 +75,7 @@ class TerminalEmulatorTest {
     fun scrolls_when_output_exceeds_height() {
         val term = TerminalEmulator(3, 10)
         term.feed("l1\r\nl2\r\nl3\r\nl4")
-        // First line scrolled off; l2..l4 remain.
+
         assertEquals("l2", term.rowText(0))
         assertEquals("l3", term.rowText(1))
         assertEquals("l4", term.rowText(2))
@@ -86,9 +86,9 @@ class TerminalEmulatorTest {
         val term = TerminalEmulator(2, 20)
         term.feed("${ESC}[31mRED${ESC}[0mX")
         val row = term.snapshot().lines[0]
-        assertEquals(1, row[0].fg) // ANSI red = index 1
+        assertEquals(1, row[0].fg)
         assertTrue(row[0].char == 'R')
-        assertEquals(DEFAULT_COLOR, row[3].fg) // after reset
+        assertEquals(DEFAULT_COLOR, row[3].fg)
         assertEquals('X', row[3].char)
     }
 
@@ -105,7 +105,7 @@ class TerminalEmulatorTest {
     fun resize_preserves_content_and_clamps_cursor() {
         val term = TerminalEmulator(4, 20)
         term.feed("keep me")
-        term.feed("${ESC}[4;10H") // move cursor near the old bottom-right
+        term.feed("${ESC}[4;10H")
         term.resize(2, 20)
         assertEquals("keep me", term.rowText(0))
         assertEquals(2, term.snapshot().rows)
@@ -115,12 +115,12 @@ class TerminalEmulatorTest {
     @Test
     fun scroll_region_confines_scrolling() {
         val term = TerminalEmulator(5, 10)
-        term.feed("${ESC}[2;4r") // scroll region rows 2..4 (1-based)
-        // Cursor is homed to the region top (row index 1). Fill the region and force a scroll.
+        term.feed("${ESC}[2;4r")
+
         term.feed("a\r\n")
         term.feed("${ESC}[3;1Hb\r\n")
-        term.feed("${ESC}[4;1Hc\r\n") // linefeed at region bottom scrolls region up
-        // Row 0 (outside region) stays blank; region scrolled.
+        term.feed("${ESC}[4;1Hc\r\n")
+
         assertEquals("", term.rowText(0))
     }
 
@@ -129,10 +129,10 @@ class TerminalEmulatorTest {
         val term = TerminalEmulator(2, 20)
         term.feed("abcdef")
         term.feed("${ESC}[H")
-        term.feed("${ESC}[2P") // delete 2 chars at start
+        term.feed("${ESC}[2P")
         assertEquals("cdef", term.rowText(0))
         term.feed("${ESC}[H")
-        term.feed("${ESC}[2@") // insert 2 blanks
+        term.feed("${ESC}[2@")
         assertEquals("  cdef", term.rowText(0))
     }
 
@@ -141,9 +141,9 @@ class TerminalEmulatorTest {
         val term = TerminalEmulator(3, 10)
         term.feed("a\r\nb")
         val first = term.snapshot()
-        term.feed("c") // extends row 1 only; row 0 is untouched
+        term.feed("c")
         val second = term.snapshot()
-        // Clean rows keep their previous list instance so the renderer can skip them.
+
         assertSame(first.lines[0], second.lines[0])
         assertNotSame(first.lines[1], second.lines[1])
         assertEquals("bc", second.lines[1].joinToString("") { it.char.toString() }.trimEnd())
@@ -152,7 +152,7 @@ class TerminalEmulatorTest {
     @Test
     fun lines_scrolled_off_the_top_go_to_scrollback() {
         val term = TerminalEmulator(2, 10)
-        term.feed("l1\r\nl2\r\nl3") // only 2 rows tall, so l1 scrolls off
+        term.feed("l1\r\nl2\r\nl3")
         val snap = term.snapshot()
         assertEquals(1, snap.scrollback.size)
         assertEquals("l1", snap.scrollback[0].joinToString("") { it.char.toString() }.trimEnd())
@@ -163,8 +163,8 @@ class TerminalEmulatorTest {
     @Test
     fun alt_screen_does_not_pollute_scrollback() {
         val term = TerminalEmulator(2, 10)
-        term.feed("${ESC}[?1049h") // enter alt screen (e.g. a TUI app)
-        term.feed("x\r\ny\r\nz") // scrolls within the alt buffer
+        term.feed("${ESC}[?1049h")
+        term.feed("x\r\ny\r\nz")
         assertTrue(term.snapshot().scrollback.isEmpty())
     }
 }

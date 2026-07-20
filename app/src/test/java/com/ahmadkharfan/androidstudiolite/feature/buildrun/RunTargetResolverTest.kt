@@ -25,8 +25,8 @@ class RunTargetResolverTest {
     )
 
     private fun menaLikeVariants() = listOf(
-        // Intentionally release-before-debug / production-before-development — sorting must still
-        // prefer developmentDebug for Run defaults (Android Studio behavior).
+
+
         VariantModel("productionRelease", "release", listOf("production")),
         VariantModel("stagingRelease", "release", listOf("staging")),
         VariantModel("developmentRelease", "release", listOf("development")),

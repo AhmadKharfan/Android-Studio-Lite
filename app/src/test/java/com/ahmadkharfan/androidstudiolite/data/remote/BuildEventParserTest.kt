@@ -9,11 +9,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Verifies the WebSocket JSON → domain [BuildEvent] parse. Feeds one sample of every lowerCamelCase
- * message the server emits and asserts the correct sealed variant + fields, including wire→domain
- * path/enum mapping and tolerance of unknown types/fields.
- */
 class BuildEventParserTest {
 
     private val parser = BuildEventParser()

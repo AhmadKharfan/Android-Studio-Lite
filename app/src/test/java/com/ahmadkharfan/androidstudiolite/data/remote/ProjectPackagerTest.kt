@@ -10,10 +10,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-/**
- * Verifies [ProjectPackager] zips a project's real sources with project-relative POSIX entry names
- * and prunes the build/tooling scratch directories that would only bloat the upload.
- */
 class ProjectPackagerTest {
 
     @get:Rule val tmp = TemporaryFolder()
@@ -31,7 +27,7 @@ class ProjectPackagerTest {
         writeFile(project, "app/build.gradle.kts", "plugins {}")
         writeFile(project, "app/src/main/java/A.kt", "class A")
         writeFile(project, "app/src/main/AndroidManifest.xml", "<manifest/>")
-        // Excluded scratch/tooling dirs, at various depths:
+
         writeFile(project, "build/outputs/app.apk", "binary")
         writeFile(project, "app/build/intermediates/x.bin", "binary")
         writeFile(project, ".gradle/8.0/fileHashes.bin", "binary")
@@ -55,7 +51,7 @@ class ProjectPackagerTest {
         assertFalse(entries.any { it.startsWith(".idea/") })
         assertFalse(entries.any { it.startsWith(".git/") })
 
-        // Entry names use POSIX separators regardless of platform.
+
         assertFalse(entries.any { it.contains('\\') })
     }
 
@@ -77,9 +73,8 @@ class ProjectPackagerTest {
 
     @Test
     fun `includes gradlew script in the archive`() = runBlocking {
-        // Android's ZipEntry has no public Unix-mode API, so executable bits are restored
-        // server-side (worker entrypoint `chmod +x ./gradlew`). This test just guarantees the
-        // wrapper script itself is never pruned from the upload.
+
+
         val project = tmp.newFolder("proj-wrapper")
         writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj-wrapper\"")
         writeFile(project, "gradlew", "#!/bin/sh\necho hi\n")
@@ -91,9 +86,7 @@ class ProjectPackagerTest {
         assertTrue(entries.contains("gradlew"))
     }
 
-    // --- packageProjectCached: reuse the archive when nothing changed -------------------------
 
-    /** The zip is only rewritten when the source changed; mtime is the proxy for "was rewritten". */
     private fun cachedZip(cache: File) = File(cache, "cached-source.zip")
 
     private fun newProject(name: String): File = tmp.newFolder(name).also {
@@ -108,7 +101,7 @@ class ProjectPackagerTest {
 
         val first = ProjectPackager().packageProjectCached(project, cache)
         assertTrue(first.isFile)
-        // Distinguishes "rewrote the same bytes" from "did not rewrite".
+
         first.setLastModified(0L)
 
         val second = ProjectPackager().packageProjectCached(project, cache)
@@ -177,8 +170,7 @@ class ProjectPackagerTest {
         ProjectPackager().packageProjectCached(project, cache)
         cachedZip(cache).setLastModified(0L)
 
-        // Gradle rewrites these constantly; they are pruned from the zip, so they must not
-        // invalidate it — otherwise the cache would never hit in practice.
+
         writeFile(project, "build/outputs/app.apk", "fresh binary")
         writeFile(project, ".gradle/8.0/fileHashes.bin", "fresh binary")
 
@@ -186,7 +178,6 @@ class ProjectPackagerTest {
         assertEquals("excluded dirs must not invalidate the archive", 0L, second.lastModified())
     }
 
-    // --- Source dedup: hashZip / projectKey ------------------------------------------------
 
     @Test
     fun `an unchanged project hashes identically so the upload can be skipped`() = runBlocking {
@@ -199,9 +190,7 @@ class ProjectPackagerTest {
         val first = packager.hashZip(packager.packageProjectCached(project, cache))
         val second = packager.hashZip(packager.packageProjectCached(project, cache))
 
-        // This is the dedup contract: hit Run twice on an untouched project and the server must
-        // recognise the same source. Note zip entries carry timestamps, so this only holds because
-        // packageProjectCached hands back the same cached file rather than re-zipping.
+
         assertEquals(first, second)
     }
 
@@ -217,7 +206,7 @@ class ProjectPackagerTest {
         writeFile(project, "app/src/main/java/A.kt", "class A { fun b() {} }")
         val after = packager.hashZip(packager.packageProjectCached(project, cache))
 
-        // The dangerous direction: a stale hash here would build the user's OLD code.
+
         assertFalse(before == after)
     }
 
@@ -230,8 +219,7 @@ class ProjectPackagerTest {
 
         val hash = packager.hashZip(packager.packageProjectCached(project, cache))
 
-        // The server ignores anything that doesn't match ^[0-9a-f]{64}$ and silently stops
-        // deduping, so a shape drift here would be invisible except as lost speed.
+
         assertTrue(hash.matches(Regex("^[0-9a-f]{64}$")))
     }
 
@@ -245,9 +233,9 @@ class ProjectPackagerTest {
         writeFile(one, "app/src/main/java/A.kt", "class A")
         val after = packager.projectKey(one)
 
-        // Stable across edits: an edit is exactly when reusing cached configuration pays off.
+
         assertEquals(before, after)
-        // But not shared between projects, or they would fight over one config-cache slot.
+
         assertFalse(before == packager.projectKey(two))
     }
 

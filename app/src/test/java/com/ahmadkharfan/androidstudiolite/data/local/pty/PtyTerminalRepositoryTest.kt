@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets
 
 class PtyTerminalRepositoryTest {
 
-    /** An in-memory PTY: [emit] simulates child output; [captured] records what the app typed. */
     private class FakePty : PtySession {
         private val pipe = PipedInputStream(64 * 1024)
         private val childOut = PipedOutputStream(pipe)
@@ -53,7 +52,7 @@ class PtyTerminalRepositoryTest {
         val repo = repoWith(fake)
         val events = Channel<TerminalEvent>(Channel.UNLIMITED)
         val collector = launch(Dispatchers.IO) { repo.events.collect { events.send(it) } }
-        // Give the collector a moment to actually subscribe (SharedFlow has no replay).
+
         repeat(20) { yield(); Thread.sleep(5) }
 
         repo.start(rows = 24, cols = 80)
@@ -78,8 +77,8 @@ class PtyTerminalRepositoryTest {
         val fake = FakePty()
         val repo = repoWith(fake)
         repo.start(rows = 24, cols = 80)
-        repo.writeInput("q") // e.g. quit key for top — no newline appended
-        repo.send("ls -la") // convenience: adds the Enter
+        repo.writeInput("q")
+        repo.send("ls -la")
         assertEquals("qls -la\n", fake.captured.toString(Charsets.UTF_8.name()))
         repo.stop()
     }
@@ -105,7 +104,7 @@ class PtyTerminalRepositoryTest {
 
         repo.start(rows = 24, cols = 80)
         fake.emit("bye")
-        fake.destroy() // closes the child's output stream -> EOF on the read loop
+        fake.destroy()
 
         val ended = withTimeout(3000) {
             var sawEnd = false

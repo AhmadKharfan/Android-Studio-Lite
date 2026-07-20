@@ -25,7 +25,6 @@ class ProjectSymbolIndexTest {
     @get:Rule
     val tmp = TemporaryFolder()
 
-    /** Build a ProjectModel whose one module has [sources] under src/main/kotlin and the given jar deps. */
     private fun fixtureModel(sources: Map<String, String>, jars: List<File> = emptyList()): ProjectModel {
         val moduleDir = tmp.newFolder("app")
         val kotlinRoot = File(moduleDir, "src/main/kotlin").apply { mkdirs() }
@@ -45,7 +44,6 @@ class ProjectSymbolIndexTest {
         return ProjectModel(name = "fixture", rootDir = tmp.root, modules = listOf(module))
     }
 
-    /** Write a jar containing empty entries for the given class binary names (slash-separated). */
     private fun jarWithClasses(vararg classPaths: String): File {
         val jar = tmp.newFile("dep-${classPaths.hashCode()}.jar")
         ZipOutputStream(jar.outputStream()).use { zip ->
@@ -85,8 +83,8 @@ class ProjectSymbolIndexTest {
     fun indexes_public_classes_from_dependency_jars() {
         val jar = jarWithClasses(
             "com/squareup/okhttp3/OkHttpClient",
-            "com/squareup/okhttp3/OkHttpClient\$Builder", // inner class, must be skipped
-            "com/squareup/okhttp3/package-info", // pseudo-class, must be skipped
+            "com/squareup/okhttp3/OkHttpClient\$Builder",
+            "com/squareup/okhttp3/package-info",
         )
         val index = ProjectSymbolIndexer.index(fixtureModel(emptyMap(), listOf(jar)))
         val okhttp = index.symbols.filter { it.origin == SymbolOrigin.DEPENDENCY }
@@ -122,7 +120,7 @@ class ProjectSymbolIndexTest {
         val index = ProjectSymbolIndexer.index(fixtureModel(emptyMap(), listOf(jar)))
         val underNet = index.membersOf("com.example.net").map { it.label }
         assertTrue("HttpClient" in underNet)
-        assertTrue("dns" in underNet) // sub-package surfaced
+        assertTrue("dns" in underNet)
     }
 
     @Test

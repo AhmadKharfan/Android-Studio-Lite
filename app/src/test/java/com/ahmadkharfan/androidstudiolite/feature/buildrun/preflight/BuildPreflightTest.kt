@@ -34,10 +34,6 @@ class BuildPreflightTest {
         assertEquals(PreflightSeverity.INFO, warnings.single().severity)
     }
 
-    /**
-     * The build runs on the server, so a nearly-full device is worth flagging but must never stop a
-     * build that only needs room for a source zip.
-     */
     @Test
     fun `an almost full device warns but never blocks`() {
         val result = BuildPreflight.run(ToolchainVersions(agp = "8.1", jdkMajor = 17, gradle = "8.2"), 10L * 1024 * 1024)
@@ -52,7 +48,6 @@ class BuildPreflightTest {
         assertEquals(PreflightSeverity.WARNING, warning?.severity)
     }
 
-    /** 1 GB was "low" when the toolchain and caches lived on-device; now it's plenty. */
     @Test
     fun `a gigabyte free is no longer worth warning about`() {
         assertNull(StorageChecker.check(1L * 1024 * 1024 * 1024))
@@ -66,7 +61,7 @@ class BuildPreflightTest {
     @Test
     fun `version compare handles qualifiers and different lengths`() {
         assertTrue(compareVersions("8.0", "7.6.1") > 0)
-        // A non-numeric qualifier segment ("rc") compares as 0, so "8.0-rc" is not treated as < "8.0".
+
         assertTrue(compareVersions("8.0-rc", "8.0") == 0)
         assertTrue(compareVersions("8.2.1", "8.2") > 0)
     }

@@ -98,7 +98,7 @@ class AndroidProjectRepositoryTest {
 
         val updated = recents().single()
         assertEquals("New Name", updated.name)
-        assertEquals(project.id, updated.id)          // id (directory) is stable
+        assertEquals(project.id, updated.id)
         assertEquals(project.path, updated.path)
         assertTrue(File(project.path).isDirectory)
     }
@@ -189,7 +189,7 @@ class AndroidProjectRepositoryTest {
 
     @Test
     fun `recent entries round-trip fields with delimiter characters`() = runBlocking {
-        // Tabs/newlines in the display name must survive the serialized store unescaped.
+
         val gnarly = "Tab\tAnd\nNewline"
         repo.createProject(gnarly, "com.example.weird", "empty-views")
 

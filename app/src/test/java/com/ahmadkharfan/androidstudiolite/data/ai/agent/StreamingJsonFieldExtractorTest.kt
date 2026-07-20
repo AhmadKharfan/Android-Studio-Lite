@@ -27,7 +27,7 @@ class StreamingJsonFieldExtractorTest {
             onFinal = { final.append(it) },
         )
         val json = """{"thought":"Reading files","actions":[{"tool":"read_file","path":"a.kt"}],"final":"Done"}"""
-        // Intentionally feed in awkward chunks that split strings and escapes.
+
         json.chunked(3).forEach { extractor.feed(it) }
         assertEquals("Reading files", thought.toString())
         assertEquals("Done", final.toString())

@@ -11,7 +11,6 @@ import org.junit.Test
 
 class TerminalSessionManagerTest {
 
-    /** A repository that never emits and no-ops everything, so sessions spin up without a real PTY. */
     private class FakeTerminalRepository : TerminalRepository {
         override val events: SharedFlow<TerminalEvent> = MutableSharedFlow()
         override suspend fun start(workingDirectory: String?, rows: Int, cols: Int) {}
@@ -25,7 +24,7 @@ class TerminalSessionManagerTest {
     fun ensureSession_creates_exactly_one_tab() {
         val mgr = manager()
         mgr.ensureSession(24, 80)
-        mgr.ensureSession(24, 80) // idempotent
+        mgr.ensureSession(24, 80)
         assertEquals(1, mgr.sessions.value.size)
         assertEquals(mgr.sessions.value.first().id, mgr.activeId.value)
     }

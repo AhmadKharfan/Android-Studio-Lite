@@ -40,13 +40,13 @@ class LocalFileTreeRepositoryTest {
         val tree = repo.getFileTree("demo")
 
         val names = tree.map { it.name }
-        // Directory ("app") sorts before files ("settings.gradle.kts").
+
         assertEquals(listOf("app", "settings.gradle.kts"), names)
         val app = tree.first { it.name == "app" }
         assertNotNull(app.children)
         val mainActivity = findByName(tree, "MainActivity.kt")
         assertNotNull(mainActivity)
-        assertNull(mainActivity!!.children) // files have null children
+        assertNull(mainActivity!!.children)
         assertTrue(mainActivity.id.endsWith("app/src/main/MainActivity.kt"))
     }
 
@@ -159,7 +159,7 @@ class LocalFileTreeRepositoryTest {
         val children = repo.listChildren(File(project, "app").absolutePath)
 
         assertEquals(setOf("src", "build.gradle.kts"), children.map { it.name }.toSet())
-        // Lazy: directory children are not eagerly populated.
+
         assertNull(children.first { it.name == "src" }.children)
     }
 

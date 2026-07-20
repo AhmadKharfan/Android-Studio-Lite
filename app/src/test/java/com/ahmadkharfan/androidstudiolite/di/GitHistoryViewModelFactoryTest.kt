@@ -24,14 +24,6 @@ import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
-/**
- * Regression: opening "History" without a file path passed `null` through `parametersOf`, and the
- * factory read it with `params.get<String>(1).takeIf { it.isNotBlank() }` — calling `isBlank()` on a
- * null crashed the app inside Koin's factory (Koin has no null-safe index read). The history route
- * now always supplies a non-null path (`path.orEmpty()`, empty = full history). This mirrors the
- * production factory and resolves the view model with the blank path the route sends for full
- * history and with a real file path.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GitHistoryViewModelFactoryTest {
 
@@ -48,7 +40,7 @@ class GitHistoryViewModelFactoryTest {
                 module {
                     single { ProjectPathResolver(projectRepository = FakeProjectRepository) }
                     single { proxyGitRepository() }
-                    // Mirrors gitModule's GitHistoryViewModel factory (JVM `factory`, not `viewModel`).
+
                     factory { params ->
                         GitHistoryViewModel(
                             projectId = params.get(0),
@@ -61,9 +53,9 @@ class GitHistoryViewModelFactoryTest {
             )
         }.koin
 
-        // Opened from the panel's "History" action: full history, empty path (never null).
+
         assertNotNull(koin.get<GitHistoryViewModel> { parametersOf("project", "") })
-        // File history: a real path resolves as well.
+
         assertNotNull(koin.get<GitHistoryViewModel> { parametersOf("project", "app/src/Main.kt") })
     }
 

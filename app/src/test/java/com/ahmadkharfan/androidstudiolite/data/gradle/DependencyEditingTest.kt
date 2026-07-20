@@ -11,7 +11,6 @@ import org.junit.Test
 
 class DependencyEditingTest {
 
-    // -------------------------------------------------------------- version catalog
 
     private val catalog = """
         [versions]
@@ -28,10 +27,10 @@ class DependencyEditingTest {
     fun addLibraryInsertsUnderLibrariesTable() {
         val result = VersionCatalogEditor.addLibrary(catalog, "retrofit", "com.squareup.retrofit2", "retrofit", "2.11.0")
         result as VersionCatalogEditor.Result.Changed
-        // The new alias resolves through a fresh parse — a real round-trip.
+
         val parsed = VersionCatalogParser.parse(result.text)
         assertEquals("com.squareup.retrofit2:retrofit:2.11.0", parsed.findLibrary("retrofit")?.coordinate)
-        // Existing entry survives, and the [plugins] table is untouched below it.
+
         assertEquals("androidx.core:core-ktx:1.12.0", parsed.findLibrary("androidx.core.ktx")?.coordinate)
         assertEquals("com.android.application", parsed.findPlugin("android.application")?.id)
     }
@@ -56,7 +55,6 @@ class DependencyEditingTest {
         assertEquals("com.squareup.okhttp3:okhttp:4.12.0", VersionCatalogParser.parse(r.text).findLibrary("okhttp")?.coordinate)
     }
 
-    // -------------------------------------------------------------- dependencies block
 
     @Test
     fun addToKtsDependenciesBlock() {
@@ -70,7 +68,7 @@ class DependencyEditingTest {
         val r = DependenciesBlockEditor.add(build, "implementation", "junit:junit:4.13.2", GradleDsl.KOTLIN, quoteNotation = true)
         r as DependenciesBlockEditor.Result.Changed
         assertTrue(r.text.contains("implementation(\"junit:junit:4.13.2\")"))
-        // Re-parsing sees both dependencies.
+
         val deps = BuildGradleParser.parse(r.text, GradleDsl.KOTLIN).dependencies.mapNotNull { it.coordinate }
         assertTrue(deps.contains("androidx.core:core-ktx:1.12.0"))
         assertTrue(deps.contains("junit:junit:4.13.2"))

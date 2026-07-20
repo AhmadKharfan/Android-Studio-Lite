@@ -92,7 +92,7 @@ class BuildGradleParserTest {
         """.trimIndent()
         val a = BuildGradleParser.parse(text, GradleDsl.KOTLIN).android
         requireNotNull(a)
-        // Parser surfaces the customized type; GradleProjectReader merges AGP's implicit debug.
+
         assertEquals(listOf("release"), a.buildTypes)
     }
 

@@ -21,7 +21,7 @@ class GradleScriptScannerTest {
         val body = GradleScriptScanner.findBlockBody(tokens, "android")
         assertNotNull(body)
         requireNotNull(body)
-        // The nested defaultConfig block is fully contained within the android body.
+
         val nested = GradleScriptScanner.findBlockBody(tokens, "defaultConfig", body.first, body.last + 1)
         assertNotNull(nested)
     }

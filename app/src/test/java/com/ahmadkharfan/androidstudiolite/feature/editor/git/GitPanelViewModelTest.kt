@@ -154,7 +154,7 @@ class GitPanelViewModelTest {
         val saved = withTimeout(5_000) { viewModel.state.first { it.remotes.any { remote -> remote.name == "origin" } } }
         assertEquals("https://example.com/repo.git", saved.remotes.single().url)
 
-        // Adding again with origin present updates its URL instead of failing on a duplicate.
+
         viewModel.onAddRemote()
         viewModel.onRemoteUrlChanged("https://example.org/other.git")
         viewModel.onSaveRemote()

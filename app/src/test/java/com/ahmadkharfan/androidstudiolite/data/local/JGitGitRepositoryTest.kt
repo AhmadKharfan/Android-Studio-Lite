@@ -20,11 +20,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
-/**
- * Integration tests for [JGitGitRepository] against real on-disk repositories and local `file://`
- * remotes — no network. The repo is constructed with an unconfined dispatcher so `withContext(io)`
- * runs inline under [runTest].
- */
 class JGitGitRepositoryTest {
 
     @get:Rule
@@ -38,14 +33,12 @@ class JGitGitRepositoryTest {
             io = Dispatchers.Unconfined,
         )
 
-    /** A path under a fresh folder that does not yet exist — a valid clone destination. */
     private fun cloneDestination(name: String): File = File(temp.newFolder(), name)
 
     private fun writeFile(dir: File, name: String, content: String) {
         File(dir, name).apply { parentFile?.mkdirs() }.writeText(content)
     }
 
-    /** Files with a real staged/unstaged change (ignores UNCHANGED entries). */
     private suspend fun JGitGitRepository.pendingFiles(dir: File) =
         observeState(dir).value.files.filter { it.hasPendingChange }
 
@@ -65,7 +58,7 @@ class JGitGitRepositoryTest {
         val log = repo.log(dir, 10)
         assertEquals(1, log.size)
         assertEquals("initial commit", log.first().message)
-        // Working tree is clean after committing everything.
+
         repo.refresh(dir)
         assertTrue(repo.pendingFiles(dir).isEmpty())
     }
@@ -81,7 +74,7 @@ class JGitGitRepositoryTest {
         val untracked = repo.pendingFiles(dir).single()
         assertEquals("a.txt", untracked.path)
         assertEquals(GitWorktreeStatus.UNTRACKED, untracked.worktreeStatus)
-        // Not staged yet: nothing in the index for this path.
+
         assertEquals(GitIndexStatus.UNCHANGED, untracked.indexStatus)
 
         repo.stage(dir, "a.txt")
@@ -148,7 +141,7 @@ class JGitGitRepositoryTest {
         Git.init().setBare(true).setDirectory(bare).call().close()
         val repo = repository()
 
-        // Clone A: add a commit and push it to the bare remote.
+
         val cloneA = cloneDestination("remoteA")
         repo.clone(bare.toURI().toString(), cloneA, CloneOptions(), credentials = null).toList()
         writeFile(cloneA, "hello.txt", "from A\n")
@@ -158,13 +151,13 @@ class JGitGitRepositoryTest {
         val push = repo.push(cloneA)
         assertTrue(push.detail, push.success)
 
-        // Clone B should see A's commit.
+
         val cloneB = cloneDestination("remoteB")
         repo.clone(bare.toURI().toString(), cloneB, CloneOptions(), credentials = null).toList()
         assertTrue(File(cloneB, "hello.txt").exists())
         assertEquals("add hello", repo.log(cloneB, 5).first().message)
 
-        // A second commit pushed from A is retrieved by B via pull.
+
         writeFile(cloneA, "hello.txt", "from A again\n")
         repo.stage(cloneA, "hello.txt")
         repo.setCommitMessage(cloneA, "update hello")
@@ -194,9 +187,9 @@ class JGitGitRepositoryTest {
 
         val info = repo.remoteInfo(cloned)
         assertNotNull(info)
-        // JGit stores the origin URL it cloned from; it points at the seeded source repo.
+
         assertTrue(info!!.url, info.url.contains("origin"))
-        // The default branch checked out by the clone (master/main depending on JGit defaults).
+
         assertTrue(info.ref.isNotBlank())
     }
 
@@ -219,7 +212,6 @@ class JGitGitRepositoryTest {
         assertNull(repo.remoteInfo(temp.newFolder("plain")))
     }
 
-    /** Create a non-bare repo with one committed file, usable as a clone source. */
     private fun seedRepo(dir: File): File {
         Git.init().setDirectory(dir).call().use { git ->
             File(dir, "README.md").writeText("hello\n")

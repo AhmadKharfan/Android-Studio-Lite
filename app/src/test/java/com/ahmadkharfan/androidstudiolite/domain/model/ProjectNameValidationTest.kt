@@ -40,7 +40,6 @@ class ProjectNameValidationTest {
         assertTrue(invalidReason("")!!.contains("empty"))
     }
 
-    /** A keyword segment becomes an illegal package/directory name in the generated sources. */
     @Test
     fun `rejects java keywords`() {
         assertTrue(invalidReason("com.example.class")!!.contains("reserved"))

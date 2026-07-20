@@ -33,7 +33,7 @@ class LocalFileContentRepositoryTest {
         repo.writeText(path, text)
 
         assertEquals(text, repo.readText(path))
-        // Bytes on disk match exactly (the manual-verification requirement, automated).
+
         assertEquals(text, File(path).readText(Charsets.UTF_8))
     }
 
@@ -86,7 +86,6 @@ class LocalFileContentRepositoryTest {
     }
 }
 
-/** Subscribes to [flow], runs [action], and returns the first emitted value (fails after 2s). */
 internal suspend fun <T> awaitFirst(flow: Flow<T>, action: suspend () -> Unit): T = coroutineScope {
     val deferred = async(Dispatchers.Unconfined) { flow.first() }
     yield()
