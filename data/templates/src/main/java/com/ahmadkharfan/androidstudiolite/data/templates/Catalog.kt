@@ -30,10 +30,18 @@ object Catalog {
         LibrarySpec("androidx-navigation-fragment-ktx", "androidx.navigation", "navigation-fragment-ktx", "navigation", "2.8.4")
     val navigationUi =
         LibrarySpec("androidx-navigation-ui-ktx", "androidx.navigation", "navigation-ui-ktx", "navigation", "2.8.4")
+    val navigationFragmentJava =
+        LibrarySpec("androidx-navigation-fragment", "androidx.navigation", "navigation-fragment", "navigation", "2.8.4")
+    val navigationUiJava =
+        LibrarySpec("androidx-navigation-ui", "androidx.navigation", "navigation-ui", "navigation", "2.8.4")
     val lifecycleViewModel =
         LibrarySpec("androidx-lifecycle-viewmodel-ktx", "androidx.lifecycle", "lifecycle-viewmodel-ktx", "lifecycle", "2.8.3")
     val lifecycleLiveData =
         LibrarySpec("androidx-lifecycle-livedata-ktx", "androidx.lifecycle", "lifecycle-livedata-ktx", "lifecycle", "2.8.3")
+    val lifecycleViewModelJava =
+        LibrarySpec("androidx-lifecycle-viewmodel", "androidx.lifecycle", "lifecycle-viewmodel", "lifecycle", "2.8.3")
+    val lifecycleLiveDataJava =
+        LibrarySpec("androidx-lifecycle-livedata", "androidx.lifecycle", "lifecycle-livedata", "lifecycle", "2.8.3")
 
 
     val lifecycleRuntimeKtx =
