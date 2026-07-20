@@ -135,7 +135,14 @@ fun AslNavHost(
                 .getStateFlow<String?>("git_conflict_path", null).collectAsState()
             EditorRoute(
                 projectId = projectId,
-                onCloseProject = { navController.popBackStack(Routes.HUB, inclusive = false) },
+                onCloseProject = {
+                    if (!navController.popBackStack(Routes.HUB, inclusive = false)) {
+                        navController.navigate(Routes.HUB) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS_ROOT) },
                 onOpenAiAgentSettings = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
                 onOpenGitDiff = { path, target -> navController.navigate(Routes.gitDiff(projectId, path, target)) },

@@ -7,5 +7,5 @@ import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 data class GeneralUiState(
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val accentId: String = "emerald",
-    val autoOpenLastProject: Boolean = true,
+    val autoOpenLastProject: Boolean = false,
 )

@@ -26,16 +26,20 @@ import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
+import com.ahmadkharfan.androidstudiolite.feature.editor.view.EditorVolumeKeyDispatcher
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalVolumeKeyDispatcher
 import com.ahmadkharfan.androidstudiolite.navigation.AslNavHost
 import com.ahmadkharfan.androidstudiolite.navigation.Routes
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     private val preferencesRepository: PreferencesRepository by inject()
     private val onboardingRepository: OnboardingRepository by inject()
+    private val projectRepository: ProjectRepository by inject()
     private var startDestination by mutableStateOf<String?>(null)
     private var openProjectId by mutableStateOf<String?>(null)
 
@@ -48,11 +52,21 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
-            startDestination = if (onboardingComplete) {
-                openProjectId?.let { Routes.editor(it) } ?: Routes.HUB
-            } else {
-                Routes.ONBOARDING_WELCOME
+            if (!onboardingComplete) {
+                startDestination = Routes.ONBOARDING_WELCOME
+                return@launch
             }
+
+            if (openProjectId == null) {
+                val prefs = preferencesRepository.observePreferences().first()
+                if (prefs.autoOpenLastProject) {
+                    val last = projectRepository.observeRecentProjects().first()
+                        .filter { File(it.path).isDirectory }
+                        .maxByOrNull { it.lastOpenedMillis ?: 0L }
+                    if (last != null) openProjectId = last.id
+                }
+            }
+            startDestination = Routes.HUB
         }
 
         enableEdgeToEdge(
@@ -85,8 +99,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-
-
         val confirm = PendingInstallPrompt.claimForLaunch() ?: return
         runCatching {
             startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -101,6 +113,7 @@ class MainActivity : ComponentActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
+            EditorVolumeKeyDispatcher.handler?.invoke(event)?.takeIf { it }?.let { return true }
             TerminalVolumeKeyDispatcher.handler?.invoke(event)?.takeIf { it }?.let { return true }
         }
         return super.dispatchKeyEvent(event)

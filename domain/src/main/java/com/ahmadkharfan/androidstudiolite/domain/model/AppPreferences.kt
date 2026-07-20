@@ -8,7 +8,7 @@ data class AppPreferences(
     val editorThemeId: String = "darcula",
     val editorFontFamily: String = "jetbrains",
     val accentId: String = "emerald",
-    val autoOpenLastProject: Boolean = true,
+    val autoOpenLastProject: Boolean = false,
     val editorTabSize: Int = 4,
     val editorAutoSave: Boolean = true,
     val launchAfterInstall: Boolean = true,
