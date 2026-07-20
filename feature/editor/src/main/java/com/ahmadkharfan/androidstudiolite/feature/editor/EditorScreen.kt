@@ -299,7 +299,10 @@ private fun EditorTopBar(
         AslEditorToolbar(
             projectName = uiState.projectName.ifBlank { "Loading…" },
             running = uiState.running,
-            onRun = { interactionListener.onRunProject() },
+            onRun = {
+                if (uiState.running) interactionListener.onCancelBuild()
+                else interactionListener.onRunProject()
+            },
             onMenu = { interactionListener.onToggleMenu() },
             actions = {
                 AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = { interactionListener.onUndo() })
@@ -524,7 +527,9 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
             }
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
-            val variantLabel = uiState.selectedVariant.replaceFirstChar { it.uppercase() }
+            val statusVariant = if (uiState.running) uiState.buildConsole.request?.variantName else null
+            val variantLabel = (statusVariant ?: uiState.selectedVariant)
+                .replaceFirstChar { it.uppercase() }
             when {
                 uiState.running -> add(AslStatusBarEntry.Item("assemble$variantLabel", tone = AslStatusTone.Warning))
                 else -> add(AslStatusBarEntry.Item(variantLabel, icon = "layers"))
