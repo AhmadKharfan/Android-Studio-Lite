@@ -131,6 +131,33 @@ class CreateProjectViewModelTest {
     }
 
     @Test
+    fun `create passes Java through for a supported template`() {
+        val vm = viewModel()
+
+        vm.onSelectTemplate("empty-views")
+        vm.onLanguageChanged(LANG_JAVA)
+        vm.onCreateProject()
+
+        assertEquals(com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage.JAVA, projects.created?.language)
+    }
+
+    @Test
+    fun `Kotlin-only template cannot retain or accept Java`() {
+        val vm = viewModel()
+
+        vm.onSelectTemplate("empty-views")
+        vm.onLanguageChanged(LANG_JAVA)
+        assertEquals(LANG_JAVA, vm.state.value.language)
+
+        vm.onSelectTemplate(DEFAULT_TEMPLATE_ID)
+        assertEquals(LANG_KOTLIN, vm.state.value.language)
+        assertFalse(vm.state.value.selectedTemplateSupportsJava)
+
+        vm.onLanguageChanged(LANG_JAVA)
+        assertEquals(LANG_KOTLIN, vm.state.value.language)
+    }
+
+    @Test
     fun `create falls back to the default projects root`() {
         val vm = viewModel()
 
@@ -176,7 +203,14 @@ class CreateProjectViewModelTest {
 
         val templates = listOf(
             ProjectTemplate("no-activity", "No Activity", "", "template_no_activity", emptyList()),
-            ProjectTemplate(DEFAULT_TEMPLATE_ID, "Jetpack Compose", "", "template_compose", emptyList()),
+            ProjectTemplate(
+                DEFAULT_TEMPLATE_ID,
+                "Jetpack Compose",
+                "",
+                "template_compose",
+                emptyList(),
+                supportsJava = false,
+            ),
             ProjectTemplate("empty-views", "Empty project", "", "template_empty_activity", emptyList()),
         )
 
