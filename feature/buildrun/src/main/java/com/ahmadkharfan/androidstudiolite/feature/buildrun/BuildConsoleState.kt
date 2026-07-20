@@ -89,18 +89,21 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
     is BuildEvent.TaskFinished -> upsertTask(event.taskPath, result = event.result)
 
     is BuildEvent.Output -> copy(
-        logs = logs + BuildLogLine(event.line, isError = event.stream == BuildEvent.OutputStream.STDERR),
+        logs = (logs + BuildLogLine(
+            event.line,
+            isError = event.stream == BuildEvent.OutputStream.STDERR,
+        )).takeLast(MAX_LOG_LINES),
     )
 
     is BuildEvent.Problem -> copy(
-        problems = problems + BuildProblem(
+        problems = (problems + BuildProblem(
             severity = event.severity,
             message = event.message,
             filePath = event.file?.path,
             fileName = event.file?.name,
             line = event.line,
             column = event.column,
-        ),
+        )).takeLast(MAX_PROBLEMS),
     )
 
     is BuildEvent.ArtifactProduced -> copy(
@@ -113,6 +116,9 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
         progressMessage = null,
     )
 }
+
+private const val MAX_LOG_LINES = 5_000
+private const val MAX_PROBLEMS = 500
 
 private fun BuildConsoleState.upsertTask(
     taskPath: String,

@@ -57,7 +57,7 @@ class BuildNotifier(private val context: Context) {
                 context,
                 projectId.hashCode().xor(NOTIFICATION_ID),
                 context.packageManager.getLaunchIntentForPackage(context.packageName)
-                    ?.apply { putExtra("open_project_id", projectId) }
+                    ?.apply { putExtra("com.ahmadkharfan.androidstudiolite.OPEN_PROJECT_ID", projectId) }
                     ?: Intent(),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )

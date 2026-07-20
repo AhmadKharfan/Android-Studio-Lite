@@ -107,7 +107,7 @@ object BuildPreflight {
 
 private fun String.majorVersion(): Int? = trim().substringBefore('.').toIntOrNull()
 
-internal fun compareVersions(a: String, b: String): Int {
+fun compareVersions(a: String, b: String): Int {
     val pa = a.split('.', '-')
     val pb = b.split('.', '-')
     val n = maxOf(pa.size, pb.size)
