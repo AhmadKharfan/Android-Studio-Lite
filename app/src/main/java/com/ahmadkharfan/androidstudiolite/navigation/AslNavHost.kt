@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
@@ -37,8 +38,20 @@ import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalRoute
 @Composable
 fun AslNavHost(
     startDestination: String,
+    openProjectId: String? = null,
+    onOpenProjectConsumed: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
+    LaunchedEffect(openProjectId) {
+        val id = openProjectId ?: return@LaunchedEffect
+        // Cold start already used Routes.editor as startDestination; only navigate for warm taps.
+        if (startDestination != Routes.editor(id)) {
+            navController.navigate(Routes.editor(id)) {
+                launchSingleTop = true
+            }
+        }
+        onOpenProjectConsumed()
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination,

@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite
 
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
@@ -18,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.PendingInstallPrompt
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
@@ -34,16 +38,22 @@ class MainActivity : ComponentActivity() {
     private val preferencesRepository: PreferencesRepository by inject()
     private val onboardingRepository: OnboardingRepository by inject()
     private var startDestination by mutableStateOf<String?>(null)
+    private var openProjectId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition { startDestination == null }
+        openProjectId = intent.projectIdExtra()
 
         lifecycleScope.launch {
             val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
-            startDestination = if (onboardingComplete) Routes.HUB else Routes.ONBOARDING_WELCOME
+            startDestination = if (onboardingComplete) {
+                openProjectId?.let { Routes.editor(it) } ?: Routes.HUB
+            } else {
+                Routes.ONBOARDING_WELCOME
+            }
         }
 
         enableEdgeToEdge(
@@ -64,10 +74,33 @@ class MainActivity : ComponentActivity() {
             }
             AslAppTheme(darkTheme = darkTheme, accentId = preferences.accentId) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    AslNavHost(startDestination = destination)
+                    AslNavHost(
+                        startDestination = destination,
+                        openProjectId = openProjectId,
+                        onOpenProjectConsumed = { openProjectId = null },
+                    )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // If install is waiting and the system sheet never appeared (common when backgrounded),
+        // present it now that we have a foreground activity. Debounced inside PendingInstallPrompt.
+        if (PendingInstallPrompt.shouldAutoPresent()) {
+            PendingInstallPrompt.recordLaunchAttempt()
+            startActivity(
+                Intent(this, InstallConfirmActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
+            )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openProjectId = intent.projectIdExtra()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -76,4 +109,20 @@ class MainActivity : ComponentActivity() {
         }
         return super.dispatchKeyEvent(event)
     }
+
+    companion object {
+        const val EXTRA_OPEN_PROJECT_ID = "com.ahmadkharfan.androidstudiolite.OPEN_PROJECT_ID"
+
+        fun openProjectIntent(context: Context, projectId: String): Intent =
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+                if (projectId.isNotBlank()) {
+                    putExtra(EXTRA_OPEN_PROJECT_ID, projectId)
+                }
+            }
+    }
 }
+
+private fun Intent.projectIdExtra(): String? =
+    getStringExtra(MainActivity.EXTRA_OPEN_PROJECT_ID)?.takeIf { it.isNotBlank() }
