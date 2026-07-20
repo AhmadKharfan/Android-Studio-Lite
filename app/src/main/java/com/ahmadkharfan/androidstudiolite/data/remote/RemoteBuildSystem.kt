@@ -13,6 +13,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
+import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
@@ -88,6 +90,8 @@ class RemoteBuildSystem(
         val startedAt = System.currentTimeMillis()
         var socket: WebSocket? = null
         try {
+            send(BuildEvent.Started(request))
+
             // 1. Resolve the source: Git remote (no upload) when the user opted in and the project has
             //    one, else zip-upload (A2's default, and always for local-only projects).
             val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
@@ -115,6 +119,7 @@ class RemoteBuildSystem(
                 ),
             )
             currentBuildId = created.buildId
+            send(BuildEvent.RemoteBuildBound(created.buildId))
 
             // 4. Upload — unless the server already has this exact source. Zipping was already
             //    skipped for an unchanged project; this skips the transfer too, which is the part
@@ -128,73 +133,14 @@ class RemoteBuildSystem(
             // 5. Start the build.
             client.startBuild(created.buildId)
 
-            // 6. Stream BuildEvents over the WebSocket. Reconnect on transient drops and fall back
-            //    to status polling when the build has already finished server-side.
-            var finishedSeen = false
-            var reconnectAttempt = 0
-            while (!finishedSeen && reconnectAttempt <= MAX_STREAM_RECONNECTS) {
-                val frames = Channel<Frame>(Channel.UNLIMITED)
-                socket?.cancel()
-                socket = client.openStream(created.buildId, FrameListener(frames))
-
-                finishedSeen = consumeBuildStream(
-                    buildId = created.buildId,
-                    projectRoot = projectRoot,
-                    parser = parser,
-                    frames = frames,
-                )
-                frames.close()
-
-                if (finishedSeen) break
-
-                val terminal = runCatching { client.buildStatus(created.buildId) }
-                    .getOrNull()
-                    ?.takeIf { isTerminalBuildStatus(it.status) }
-                if (terminal != null) {
-                    emitTerminalFromStatus(
-                        buildId = created.buildId,
-                        status = terminal,
-                        startedAt = startedAt,
-                    )
-                    finishedSeen = true
-                    break
-                }
-
-                if (reconnectAttempt >= MAX_STREAM_RECONNECTS) break
-
-                send(
-                    BuildEvent.Problem(
-                        severity = BuildEvent.ProblemSeverity.INFO,
-                        message = "Connection to build server lost (retrying…)",
-                    ),
-                )
-                delay(STREAM_RECONNECT_BACKOFF_MS shl reconnectAttempt)
-                reconnectAttempt++
-            }
-
-            // The stream can end (server closed the socket, or the frame channel drained) WITHOUT ever
-            // delivering a Finished — e.g. the assigned worker died before emitting its terminal event.
-            // Never let the flow complete silently: the console would sit at "Preparing…"/Running forever
-            // and the UI's run-guard would stay jammed. Synthesize a failure so the run always terminates.
-            if (!finishedSeen) {
-                val polled = runCatching { client.buildStatus(created.buildId) }.getOrNull()
-                if (polled != null && isTerminalBuildStatus(polled.status)) {
-                    emitTerminalFromStatus(
-                        buildId = created.buildId,
-                        status = polled,
-                        startedAt = startedAt,
-                    )
-                } else {
-                    send(
-                        BuildEvent.Problem(
-                            severity = BuildEvent.ProblemSeverity.ERROR,
-                            message = "Lost connection to the build server and the build did not finish. " +
-                                "Large projects can run out of worker memory — tap Run to try again.",
-                        ),
-                    )
-                    send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
-                }
-            }
+            // 6. Stream until REST says terminal (LB idle-drops are not failures — see template_build_check.py).
+            followBuildStream(
+                buildId = created.buildId,
+                projectRoot = projectRoot,
+                parser = parser,
+                startedAt = startedAt,
+                socketHolder = { socket = it },
+            )
         } catch (e: CancellationException) {
             // cancel() / collector scope death — not a failure, and must stay cooperative.
             throw e
@@ -216,15 +162,175 @@ class RemoteBuildSystem(
         }
     }
 
-    /** Drains WebSocket frames until a terminal event or the stream ends. */
+    override fun attach(buildId: String, projectRoot: File): Flow<BuildEvent> = channelFlow {
+        val parser = BuildEventParser()
+        val startedAt = System.currentTimeMillis()
+        var socket: WebSocket? = null
+        try {
+            currentBuildId = buildId
+            send(BuildEvent.RemoteBuildBound(buildId))
+
+            // Already terminal? Finish from REST without opening a socket.
+            val existing = runCatching { client.buildStatus(buildId) }.getOrNull()
+            if (existing != null && isTerminalBuildStatus(existing.status)) {
+                send(BuildEvent.Progress("Build finished — collecting results…"))
+                emitTerminalFromStatus(buildId, existing, startedAt)
+                return@channelFlow
+            }
+            send(BuildEvent.Progress(statusProgressLabel(existing?.status)))
+
+            followBuildStream(
+                buildId = buildId,
+                projectRoot = projectRoot,
+                parser = parser,
+                startedAt = startedAt,
+                socketHolder = { socket = it },
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (t: Throwable) {
+            send(
+                BuildEvent.Problem(
+                    severity = BuildEvent.ProblemSeverity.ERROR,
+                    message = userFacingBuildError(t),
+                ),
+            )
+            send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+        } finally {
+            socket?.cancel()
+            currentBuildId = null
+        }
+    }
+
+    /**
+     * Follows an in-flight build: WebSocket for logs, REST for the verdict. Reconnects for as long as
+     * the build is non-terminal (or until [BUILD_FOLLOW_TIMEOUT_MS]), matching `template_build_check.py`.
+     * A dropped stream is not a failed build — only a terminal REST status (or overall timeout) ends it.
+     *
+     * While the socket is open we also poll REST on a timer: after process death the stream has no
+     * replay, so [BuildEvent.Finished] may never arrive even though the build already completed.
+     */
+    private suspend fun ProducerScope<BuildEvent>.followBuildStream(
+        buildId: String,
+        projectRoot: File,
+        parser: BuildEventParser,
+        startedAt: Long,
+        socketHolder: (WebSocket?) -> Unit,
+    ) {
+        var finishedSeen = false
+        var reconnectAttempt = 0
+        val followDeadline = startedAt + BUILD_FOLLOW_TIMEOUT_MS
+
+        while (!finishedSeen) {
+            if (System.currentTimeMillis() >= followDeadline) break
+
+            val frames = Channel<Frame>(Channel.UNLIMITED)
+            socketHolder(null)
+            val socket = client.openStream(buildId, FrameListener(frames))
+            socketHolder(socket)
+
+            finishedSeen = consumeBuildStream(
+                buildId = buildId,
+                projectRoot = projectRoot,
+                parser = parser,
+                frames = frames,
+                startedAt = startedAt,
+                followDeadline = followDeadline,
+            )
+            frames.close()
+            socket.cancel()
+            socketHolder(null)
+
+            if (finishedSeen) break
+
+            val terminal = runCatching { client.buildStatus(buildId) }
+                .getOrNull()
+                ?.takeIf { isTerminalBuildStatus(it.status) }
+            if (terminal != null) {
+                emitTerminalFromStatus(
+                    buildId = buildId,
+                    status = terminal,
+                    startedAt = startedAt,
+                )
+                finishedSeen = true
+                break
+            }
+
+            if (System.currentTimeMillis() >= followDeadline) break
+
+            send(
+                BuildEvent.Problem(
+                    severity = BuildEvent.ProblemSeverity.INFO,
+                    message = "Connection to build server lost (retrying…)",
+                ),
+            )
+            val backoff = min(
+                STREAM_RECONNECT_BACKOFF_CAP_MS,
+                STREAM_RECONNECT_BACKOFF_MS shl min(reconnectAttempt, 5),
+            )
+            delay(backoff)
+            reconnectAttempt++
+        }
+
+        // Stream ended without Finished and REST was never terminal (timeout / unreachable).
+        // Never leave the console spinning — synthesize a failure with accurate copy (not "worker memory").
+        if (!finishedSeen) {
+            val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
+            if (polled != null && isTerminalBuildStatus(polled.status)) {
+                emitTerminalFromStatus(
+                    buildId = buildId,
+                    status = polled,
+                    startedAt = startedAt,
+                )
+            } else {
+                val timedOut = System.currentTimeMillis() >= followDeadline
+                send(
+                    BuildEvent.Problem(
+                        severity = BuildEvent.ProblemSeverity.ERROR,
+                        message = if (timedOut) {
+                            "Build is still running on the server but this session timed out waiting for updates. " +
+                                "Re-open the project to reconnect, or tap Run to start a new build."
+                        } else {
+                            "Lost connection to the build server before the build finished. " +
+                                "The build may still be running on the server — re-open the project to reconnect, " +
+                                "or tap Run to try again."
+                        },
+                    ),
+                )
+                send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+            }
+        }
+    }
+
+    /**
+     * Drains WebSocket frames until a terminal event or the stream ends. Periodically polls REST so a
+     * quiet/reconnected socket (no event replay) still finishes when the server build is done.
+     */
     private suspend fun ProducerScope<BuildEvent>.consumeBuildStream(
         buildId: String,
         projectRoot: File,
         parser: BuildEventParser,
         frames: ReceiveChannel<Frame>,
+        startedAt: Long,
+        followDeadline: Long,
     ): Boolean {
-        for (frame in frames) {
-            when (frame) {
+        while (true) {
+            if (System.currentTimeMillis() >= followDeadline) return false
+
+            val result = withTimeoutOrNull(STATUS_POLL_INTERVAL_MS) {
+                frames.receiveCatching()
+            }
+            if (result == null) {
+                val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
+                if (polled != null && isTerminalBuildStatus(polled.status)) {
+                    emitTerminalFromStatus(buildId, polled, startedAt)
+                    return true
+                }
+                send(BuildEvent.Progress(statusProgressLabel(polled?.status)))
+                continue
+            }
+            if (result.isClosed) return false
+            when (val frame = result.getOrNull() ?: return false) {
                 is Frame.Text -> {
                     val event = parser.parse(frame.text, projectRoot) ?: continue
                     if (event is BuildEvent.ArtifactProduced) {
@@ -237,7 +343,15 @@ class RemoteBuildSystem(
                 is Frame.Closed, is Frame.Failure -> return false
             }
         }
-        return false
+    }
+
+    private fun statusProgressLabel(status: String?): String = when (status?.uppercase()) {
+        null, "", "UNKNOWN" -> "Build still running…"
+        "QUEUED" -> "Build queued…"
+        "STARTING", "PREPARING" -> "Starting build…"
+        "RUNNING" -> "Building…"
+        "UPLOADING" -> "Uploading…"
+        else -> "Build status: ${status.lowercase()}…"
     }
 
     /** Synthesizes console events when polling finds a terminal build status. */
@@ -283,6 +397,7 @@ class RemoteBuildSystem(
             status.equals("FAILED", ignoreCase = true) ||
             status.equals("TIMED_OUT", ignoreCase = true) ||
             status.equals("CANCELED", ignoreCase = true) ||
+            status.equals("CANCELLED", ignoreCase = true) ||
             status.equals("ERROR", ignoreCase = true)
 
     private fun userFacingBuildError(t: Throwable): String {
@@ -393,7 +508,11 @@ class RemoteBuildSystem(
     }
 
     private companion object {
-        private const val MAX_STREAM_RECONNECTS = 3
+        /** Overall budget to follow one build (matches tools/template_build_check.py default). */
+        private const val BUILD_FOLLOW_TIMEOUT_MS = 900_000L
         private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
+        private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
+        /** How often to poll REST while a quiet WebSocket is open (no event replay on reconnect). */
+        private const val STATUS_POLL_INTERVAL_MS = 5_000L
     }
 }
