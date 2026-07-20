@@ -207,38 +207,6 @@ def no_androidx():
     return doc(body)
 
 
-def responsive():
-    """A wide window: rail on the left, content grid, and the resize arrow that names the template."""
-    # Landscape, unlike the others -- that *is* the point of this template.
-    body = path(rrect(X0 + 4, CY - 122, X1 + 4, CY + 130, R), fill="#000000", alpha="0.08")
-    frame = rrect(X0, CY - 126, X1, CY + 126, R)
-    body += path(frame, fill=WHITE)
-    inner = path(f"M{X0},{CY - 126} H{X0 + 74} V{CY + 126} H{X0} Z", fill=LIGHT_GREEN)
-    inner += path(f"M{X0},{CY - 126} H{X0 + 74} V{CY - 56} H{X0} Z", fill=GREEN)
-    inner += path(f"M{X0 + 37},{CY - 96} m-18,0 a18,18 0 1 0 36,0 a18,18 0 1 0 -36,0 Z", fill=DARK_GREEN)
-    inner += bar(X0 + 14, CY - 72, X0 + 60, CY - 62, DARK_GREEN, r=5)
-    for i in range(3):
-        y = CY - 28 + i * 30
-        inner += path(f"M{X0 + 20},{y} m-6,0 a6,6 0 1 0 12,0 a6,6 0 1 0 -12,0 Z", fill=GREEN)
-        inner += bar(X0 + 34, y - 3, X0 + 66, y + 3, GREEN, r=3)
-    body += ("    <group>\n"
-             f'        <clip-path android:pathData="{frame}" />\n'
-             f"{inner}"
-             "    </group>\n")
-    # content cards
-    for row in range(2):
-        for col in range(2):
-            x = X0 + 96 + col * 82
-            y = CY - 94 + row * 90
-            body += path(rrect(x, y, x + 68, y + 76, 8), fill=LIGHT_GREEN)
-    # the resize arrow across the content
-    body += path(f"M{X0 + 108},{CY + 74} L{X1 - 34},{CY - 82}", stroke=GREEN, width=7)
-    body += path(f"M{X0 + 108},{CY + 44} V{CY + 74} H{X0 + 138}", stroke=GREEN, width=7)
-    body += path(f"M{X1 - 64},{CY - 82} H{X1 - 34} V{CY - 52}", stroke=GREEN, width=7)
-    body += fab(X1 - 44, CY + 86, r=20)
-    return doc(body)
-
-
 def compose():
     """The Compose cube, drawn as three faces."""
     body = phone_body() + app_bar()
@@ -265,7 +233,6 @@ THUMBS = {
     "template_empty_activity": empty_activity,
     "template_basic_activity": basic_activity,
     "template_nav_drawer": nav_drawer,
-    "template_responsive": responsive,
     "template_bottom_nav": bottom_nav,
     "template_compose": compose,
 }

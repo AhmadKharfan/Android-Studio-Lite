@@ -115,7 +115,7 @@ create → build on cluster → stream logs → download → install → launch.
 
 - **App (`main`):** onboarding + permissions, real file/project repos, editor with completion/
   diagnostics, JGit git, terminal, static Gradle parser, **7 templates** (Empty Compose [default],
-  Empty/Basic Views, Bottom Nav, Nav Drawer, No Activity, Responsive) that all build on the server,
+  Empty/Basic Views, Bottom Nav, Nav Drawer, No Activity) that all build on the server,
   create-project wizard (name/package/Save location/language/minSdk, blocks duplicate name+package),
   `RemoteBuildSystem` streaming builds, install/run, release-keystore upload, Play-Integrity hook.
   27 MB APK. Unit tests green (438).

@@ -17,7 +17,6 @@ class TemplateRegistryTest {
             "empty-compose" to "Compose Activity",
             "bottom-nav" to "Bottom Navigation",
             "nav-drawer" to "Navigation drawer",
-            "responsive" to "Responsive activity",
         )
 
         val actual = TemplateRegistry.DEFAULT.map { it.metadata.id to it.metadata.name }
