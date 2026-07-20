@@ -43,10 +43,10 @@ class KeystoreFilesTest {
         assertNotNull(ks.getKey("release", "keypass".toCharArray()))
 
         val cert = ks.getCertificate("release") as X509Certificate
-        // A valid, self-signed cert verifies against its own public key.
+
         cert.verify(cert.publicKey)
         assertTrue(cert.subjectX500Principal.name.contains("CN=Ahmad Kharfan"))
-        // 25-year validity is comfortably in the future.
+
         assertTrue(cert.notAfter.after(cert.notBefore))
     }
 

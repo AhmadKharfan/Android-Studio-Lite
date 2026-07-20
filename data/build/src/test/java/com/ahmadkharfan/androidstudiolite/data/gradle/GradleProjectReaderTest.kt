@@ -17,7 +17,6 @@ class GradleProjectReaderTest {
 
     private val reader = GradleProjectReader()
 
-    /** Builds a small two-module KTS + version-catalog project on disk and returns its root. */
     private fun sampleProject(): File {
         val root = tmp.newFolder("sample")
         write(root, "settings.gradle.kts", """
@@ -59,7 +58,7 @@ class GradleProjectReaderTest {
         """.trimIndent())
         write(root, "app/src/main/AndroidManifest.xml",
             "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"></manifest>")
-        // A real source file so the "main" source set's java dir exists.
+
         write(root, "app/src/main/java/com/example/app/Main.kt", "package com.example.app\n")
 
         write(root, "core/build.gradle.kts", """
@@ -87,11 +86,11 @@ class GradleProjectReaderTest {
     fun resolvesCatalogAndProjectAndPlainDependencies() {
         val app = reader.read(sampleProject()).model.modules.first { it.path == ":app" }
         val coords = app.dependencies.map { it.coordinate }
-        // Catalog reference resolved to a real coordinate.
+
         assertTrue(coords.contains("androidx.core:core-ktx:1.12.0"))
-        // Project dependency preserved as its path.
+
         assertTrue(coords.contains(":core"))
-        // Plain coordinate with the right scope.
+
         val junit = app.dependencies.first { it.coordinate == "junit:junit:4.13.2" }
         assertEquals(DependencyScope.TEST, junit.scope)
     }
@@ -104,9 +103,8 @@ class GradleProjectReaderTest {
 
     @Test
     fun `getByName release still yields debug variants like Android Studio`() {
-        // Real projects (e.g. MENA-mobile) often only customize release:
-        //   buildTypes { getByName("release") { … } }
-        // AGP still has an implicit debug type — the static reader must not drop it.
+
+
         val root = tmp.newFolder("flavored")
         write(root, "settings.gradle.kts", """
             rootProject.name = "Flavored"
@@ -136,9 +134,8 @@ class GradleProjectReaderTest {
         assertTrue(names.contains("developmentRelease"))
         assertTrue(names.contains("stagingDebug"))
         assertTrue(names.contains("productionDebug"))
-        // The run-variant preference for a flavored project is a :feature:buildrun concern and is
-        // covered by RunTargetResolverTest; asserting it here would couple the data-layer parser to a
-        // feature module, which the module graph (correctly) forbids.
+
+
     }
 
     @Test
@@ -163,7 +160,7 @@ class GradleProjectReaderTest {
     fun unresolvedCatalogRefProducesDiagnostic() {
         val root = tmp.newFolder("bad")
         write(root, "settings.gradle.kts", "include(\":app\")")
-        write(root, "gradle/libs.versions.toml", "[libraries]\n") // empty catalog
+        write(root, "gradle/libs.versions.toml", "[libraries]\n")
         write(root, "app/build.gradle.kts", """
             plugins { id("com.android.application") }
             dependencies { implementation(libs.does.not.exist) }

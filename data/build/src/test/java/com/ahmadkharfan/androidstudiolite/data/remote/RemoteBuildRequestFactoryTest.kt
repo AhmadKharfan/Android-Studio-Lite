@@ -10,7 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Unit tests for A3's source-selection and release-signing payload policy in [RemoteBuildRequestFactory]. */
 class RemoteBuildRequestFactoryTest {
 
     private val root = File("/tmp/project")
@@ -18,7 +17,6 @@ class RemoteBuildRequestFactoryTest {
     private fun request(variant: String, kind: BuildKind = BuildKind.ASSEMBLE) =
         BuildRequest(projectRoot = root, modulePath = ":app", variantName = variant, kind = kind)
 
-    // --- source selection --------------------------------------------------------------
 
     @Test
     fun `null git source produces a zip request with no git fields`() {
@@ -75,7 +73,6 @@ class RemoteBuildRequestFactoryTest {
         )
     }
 
-    // --- release signing payload -------------------------------------------------------
 
     @Test
     fun `flavored release names are detected as release variants`() {
@@ -105,7 +102,7 @@ class RemoteBuildRequestFactoryTest {
         assertEquals("keyPass", signing.keyPassword)
         assertEquals("release.jks", signing.keystoreName)
 
-        // And it rides in the create request.
+
         val req = RemoteBuildRequestFactory.create(request("release"), gitSource = null, signing = signing)
         assertEquals("release", req.variant)
         assertEquals(listOf(":app:assembleRelease"), req.tasks)
@@ -133,7 +130,7 @@ class RemoteBuildRequestFactoryTest {
         assertNull(
             RemoteBuildRequestFactory.releaseSigningMaterial(
                 config = config,
-                readBytes = { null }, // file not found
+                readBytes = { null },
                 encodeBase64 = { "x" },
             ),
         )
