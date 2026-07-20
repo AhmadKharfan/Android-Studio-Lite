@@ -225,7 +225,10 @@ class GradleProjectReader {
 
     private fun variantsOf(android: ParsedAndroidBlock?): List<VariantModel> {
         if (android == null) return emptyList()
-        val buildTypes = android.buildTypes.ifEmpty { listOf("debug", "release") }
+        // AGP always provides debug + release. Scripts often only customize one via
+        // `getByName("release") { … }`, which must not hide the implicit debug type —
+        // otherwise the IDE "Run" default collapses onto a release variant.
+        val buildTypes = effectiveBuildTypes(android.buildTypes)
         val flavors = android.productFlavors
         if (flavors.isEmpty()) {
             return buildTypes.map { VariantModel(name = it, buildType = it) }
@@ -235,6 +238,21 @@ class GradleProjectReader {
                 VariantModel(name = flavor + bt.replaceFirstChar { c -> c.uppercase() }, buildType = bt, flavors = listOf(flavor))
             }
         }
+    }
+
+    /**
+     * Merge script-declared build types with AGP defaults. [declared] may be only `release` when the
+     * project uses `getByName("release")` / `create("benchmark")` without naming `debug`.
+     */
+    internal fun effectiveBuildTypes(declared: List<String>): List<String> {
+        val skip = setOf("getbyname", "maybecreate", "create", "named", "register", "matching", "configureeach")
+        val extras = declared.map { it.trim() }.filter { it.isNotEmpty() && it.lowercase() !in skip }
+        // LinkedHashSet keeps debug → release first (Android Studio Run default), then custom types.
+        return LinkedHashSet<String>().apply {
+            add("debug")
+            add("release")
+            addAll(extras)
+        }.toList()
     }
 
     private fun sourceSetsOf(moduleDir: File, android: ParsedAndroidBlock?): List<SourceSetModel> {

@@ -103,6 +103,56 @@ class GradleProjectReaderTest {
     }
 
     @Test
+    fun `getByName release still yields debug variants like Android Studio`() {
+        // Real projects (e.g. MENA-mobile) often only customize release:
+        //   buildTypes { getByName("release") { … } }
+        // AGP still has an implicit debug type — the static reader must not drop it.
+        val root = tmp.newFolder("flavored")
+        write(root, "settings.gradle.kts", """
+            rootProject.name = "Flavored"
+            include(":composeApp")
+        """.trimIndent())
+        write(root, "composeApp/build.gradle.kts", """
+            plugins { id("com.android.application") }
+            android {
+                namespace = "com.example.mena"
+                compileSdk = 34
+                defaultConfig { applicationId = "com.example.mena"; minSdk = 24 }
+                buildTypes {
+                    getByName("release") { isMinifyEnabled = false }
+                }
+                flavorDimensions += "environment"
+                productFlavors {
+                    create("development") { dimension = "environment" }
+                    create("staging") { dimension = "environment" }
+                    create("production") { dimension = "environment" }
+                }
+            }
+        """.trimIndent())
+
+        val app = reader.read(root).model.modules.first { it.path == ":composeApp" }
+        val names = app.variants.map { it.name }.toSet()
+        assertTrue(names.contains("developmentDebug"))
+        assertTrue(names.contains("developmentRelease"))
+        assertTrue(names.contains("stagingDebug"))
+        assertTrue(names.contains("productionDebug"))
+        assertEquals(
+            "developmentDebug",
+            com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.preferredRunVariant(app),
+        )
+    }
+
+    @Test
+    fun effectiveBuildTypesAlwaysIncludesDebugAndRelease() {
+        assertEquals(listOf("debug", "release"), reader.effectiveBuildTypes(emptyList()))
+        assertEquals(listOf("debug", "release"), reader.effectiveBuildTypes(listOf("release")))
+        assertEquals(
+            listOf("debug", "release", "benchmark"),
+            reader.effectiveBuildTypes(listOf("benchmark", "release")),
+        )
+    }
+
+    @Test
     fun mainSourceSetHasConventionalDirs() {
         val app = reader.read(sampleProject()).model.modules.first { it.path == ":app" }
         val main = app.sourceSets.first { it.name == "main" }

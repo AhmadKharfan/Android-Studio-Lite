@@ -82,6 +82,21 @@ class BuildGradleParserTest {
     }
 
     @Test
+    fun buildTypesGetByNameReleaseIsParsed() {
+        val text = """
+            android {
+                buildTypes {
+                    getByName("release") { isMinifyEnabled = false }
+                }
+            }
+        """.trimIndent()
+        val a = BuildGradleParser.parse(text, GradleDsl.KOTLIN).android
+        requireNotNull(a)
+        // Parser surfaces the customized type; GradleProjectReader merges AGP's implicit debug.
+        assertEquals(listOf("release"), a.buildTypes)
+    }
+
+    @Test
     fun androidBlockGroovyScalarSyntax() {
         val text = """
             android {
