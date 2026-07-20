@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.data.local.GitRefreshPipelineTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-20T10:56:07.010Z" hostname="pop-os" time="0.143">
+  <properties/>
+  <testcase name="immediate trigger bypasses pending debounce" classname="com.ahmadkharfan.androidstudiolite.data.local.GitRefreshPipelineTest" time="0.138"/>
+  <testcase name="rapid debounced triggers coalesce into one scan" classname="com.ahmadkharfan.androidstudiolite.data.local.GitRefreshPipelineTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
