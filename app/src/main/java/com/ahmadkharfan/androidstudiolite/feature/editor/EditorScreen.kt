@@ -1,4 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -89,6 +93,10 @@ fun EditorRoute(
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
 
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { /* BuildNotifier no-ops until granted; user can grant later in settings. */ }
+
     LaunchedEffect(openConflictPath) {
         openConflictPath?.let {
             viewModel.onOpenFile(it, File(it).name)
@@ -102,6 +110,11 @@ fun EditorRoute(
                 EditorEffect.CloseProject -> onCloseProject()
                 EditorEffect.OpenSettings -> onOpenSettings()
                 EditorEffect.OpenAiAgentSettings -> onOpenAiAgentSettings()
+                EditorEffect.RequestNotificationsPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
             }
         }
     }

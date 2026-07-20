@@ -142,12 +142,14 @@ class EditorRootInvalidationTest {
             apkInstaller = ApkInstaller(context),
             gradleReader = gradleReader,
             notifier = BuildNotifier(context),
+            activeBuildStore = com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore(),
         )
     }
 
     private object NoopBuildSystem : BuildSystem {
         override suspend fun sync(projectRoot: File): ProjectModel = error("not used")
         override fun build(request: BuildRequest): Flow<BuildEvent> = emptyFlow()
+        override fun attach(buildId: String, projectRoot: File): Flow<BuildEvent> = emptyFlow()
         override fun cancel() = Unit
     }
 

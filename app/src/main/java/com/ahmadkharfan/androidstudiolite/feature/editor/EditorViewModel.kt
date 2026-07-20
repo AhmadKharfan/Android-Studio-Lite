@@ -22,11 +22,13 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteHandler
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildClientMeta
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.reduce
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
+import kotlinx.coroutines.flow.Flow
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds
@@ -177,6 +179,7 @@ class EditorViewModel(
                 observeGitState(File(projectPath))
                 syncProjectSymbols(projectPath)
                 viewModelScope.launch { reconcileLatestRootGeneration() }
+                resumeActiveBuildIfNeeded(projectPath, projectName)
             },
         )
         // Detect edits to open files made outside the editor (e.g. by another repository operation).
@@ -1081,6 +1084,9 @@ class EditorViewModel(
             }
             return
         }
+        if (!buildRunCoordinator.canPostNotifications()) {
+            emitEffect(EditorEffect.RequestNotificationsPermission)
+        }
         runInFlight = true
         lastBuildEventAt = System.currentTimeMillis()
         updateState {
@@ -1160,42 +1166,115 @@ class EditorViewModel(
                 launchInactivityWatchdog()
 
                 val request = BuildRequest(root, modulePath, resolvedVariant, kind)
-                buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
-                buildWatchdogJob?.cancel()
-
-                // The flow should have reduced a terminal Finished; if it somehow completed while still
-                // Running, don't leave the console spinning — normalise it to a failure.
-                if (state.value.buildConsole.isRunning) {
-                    updateState {
-                        copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
-                    }
-                }
-
-                val console = state.value.buildConsole
-                val success = console.status == BuildStatus.Succeeded
-                buildRunCoordinator.notifyFinished(state.value.projectName, success, console.durationMillis)
-                // Prefer the concrete ERROR problem (e.g. offline / can't reach server) over a
-                // generic "Build failed" snackbar so the user knows what to fix.
-                val failureMessage = console.problems
-                    .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
-                    ?.message
-                updateState {
-                    copy(
-                        running = false,
-                        buildFailed = !success,
-                        snackbarMessage = when {
-                            success -> snackbarMessage
-                            !failureMessage.isNullOrBlank() -> failureMessage
-                            else -> "Build failed — open Build Output for details"
-                        },
-                        bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
-                    )
-                }
-                if (success && install) installArtifact(console)
+                val meta = BuildClientMeta(
+                    projectId = projectId,
+                    projectName = state.value.projectName,
+                    installAfterSuccess = install,
+                )
+                collectBuildFlow(buildRunCoordinator.build(request, meta), install = install)
             } finally {
                 buildWatchdogJob?.cancel()
                 runInFlight = false
             }
+        }
+    }
+
+    /**
+     * If a previous session left an in-flight remote build for this project, reattach the stream
+     * (or finish from REST if it already completed server-side).
+     */
+    private fun resumeActiveBuildIfNeeded(projectPath: String, projectName: String) {
+        if (runInFlight) return
+        viewModelScope.launch {
+            val active = buildRunCoordinator.activeBuildFor(projectId) ?: return@launch
+            if (runInFlight) return@launch
+            if (networkMonitor?.isOnline() == false) return@launch
+            val flow = buildRunCoordinator.attachIfActive(
+                projectId = projectId,
+                projectRoot = File(projectPath),
+                projectName = projectName,
+            ) ?: return@launch
+
+            runInFlight = true
+            lastBuildEventAt = System.currentTimeMillis()
+            updateState {
+                copy(
+                    running = true,
+                    buildFailed = false,
+                    bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
+                    activeBottomTabId = "build",
+                    buildConsole = BuildConsoleState(
+                        status = BuildStatus.Running,
+                        progressMessage = "Checking build status…",
+                    ),
+                )
+            }
+            buildJob = viewModelScope.launch {
+                try {
+                    launchInactivityWatchdog()
+                    collectBuildFlow(flow, install = active.installAfterSuccess)
+                } finally {
+                    buildWatchdogJob?.cancel()
+                    runInFlight = false
+                }
+            }
+        }
+    }
+
+    private suspend fun collectBuildFlow(flow: Flow<BuildEvent>, install: Boolean) {
+        try {
+            flow.collect { event -> onBuildEvent(event) }
+            buildWatchdogJob?.cancel()
+
+            // The flow should have reduced a terminal Finished; if it somehow completed while still
+            // Running, don't leave the console spinning — normalise it to a failure.
+            if (state.value.buildConsole.isRunning) {
+                updateState {
+                    copy(buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null))
+                }
+            }
+
+            val console = state.value.buildConsole
+            val success = console.status == BuildStatus.Succeeded
+            // Prefer the concrete ERROR problem (e.g. offline / can't reach server) over a
+            // generic "Build failed" snackbar so the user knows what to fix.
+            val failureMessage = console.problems
+                .lastOrNull { it.severity == BuildEvent.ProblemSeverity.ERROR }
+                ?.message
+            updateState {
+                copy(
+                    running = false,
+                    buildFailed = !success,
+                    snackbarMessage = when {
+                        success && install -> "Build succeeded — installing…"
+                        success -> snackbarMessage
+                        !failureMessage.isNullOrBlank() -> failureMessage
+                        else -> "Build failed — open Build Output for details"
+                    },
+                    bottomPanelTabs = markBuildTab(error = !success, count = if (console.errorCount > 0) console.errorCount else null),
+                )
+            }
+            if (success && install) {
+                // One notification only: posted when PackageInstaller needs confirmation
+                // ("Ready to install"). Skipping BuildNotifier here avoids a second heads-up.
+                buildRunCoordinator.updateKeepAliveProgress(
+                    projectId,
+                    state.value.projectName,
+                    "Installing…",
+                )
+                installArtifact(console)
+            } else {
+                buildRunCoordinator.notifyFinished(
+                    projectName = state.value.projectName,
+                    success = success,
+                    durationMillis = console.durationMillis,
+                    projectId = projectId,
+                    installFollows = false,
+                )
+            }
+        } finally {
+            buildWatchdogJob?.cancel()
+            buildRunCoordinator.endKeepAlive()
         }
     }
 
@@ -1303,7 +1382,9 @@ class EditorViewModel(
             when (event) {
                 is InstallEvent.Conflict -> onInstallConflict(apk, event)
                 is InstallEvent.Preparing -> updateState { copy(snackbarMessage = "Installing ${apk.name}…") }
-                is InstallEvent.AwaitingConfirmation -> updateState { copy(snackbarMessage = "Confirm the install prompt") }
+                is InstallEvent.AwaitingConfirmation -> updateState {
+                    copy(snackbarMessage = "Waiting for install confirmation — check notifications if the prompt isn't visible")
+                }
                 is InstallEvent.Installed -> updateState {
                     copy(
                         snackbarMessage = if (event.launched) "Installed and launched"
