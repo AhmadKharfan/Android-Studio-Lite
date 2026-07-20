@@ -7,6 +7,7 @@ data class BuildRequest(
     val modulePath: String,
     val variantName: String,
     val kind: BuildKind = BuildKind.ASSEMBLE,
+    val operationId: String? = null,
 )
 
 enum class BuildKind { ASSEMBLE, BUNDLE, CLEAN }

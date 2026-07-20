@@ -45,9 +45,14 @@ Response `201`:
 Create a build. Returns a `buildId`; for `zip` source, also a presigned `uploadUrl` to PUT the
 project archive to before starting.
 
+Clients send a stable `Idempotency-Key` header and matching `clientRequestId` for each user build
+operation. Repeating the request with the same key MUST return the original build rather than create
+another build; this is required because the client may lose the first successful HTTP response.
+
 Request (mirrors `BuildRequest`; `projectRoot` is not sent — the source is uploaded/cloned instead):
 ```json
 {
+  "clientRequestId": "7d80f7a0-9c4a-4ad7-96b4-1300715af5c5",
   "sourceType": "zip",            // "zip" | "git"
   "gitUrl": null,                  // required when sourceType == "git"
   "ref": null,                     // optional git ref/branch/sha
