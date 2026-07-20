@@ -49,6 +49,25 @@ class CreateProjectViewModelTest {
     }
 
     @Test
+    fun `starts with MyApplication and derived package`() {
+        val state = viewModel().state.value
+        assertEquals(DEFAULT_PROJECT_NAME, state.projectName)
+        assertEquals("com.example.myapplication", state.packageName)
+        assertTrue(state.canCreate)
+    }
+
+    @Test
+    fun `suggests MyApplication2 when MyApplication already exists`() {
+        projects.projects.value = listOf(
+            project(name = "MyApplication", packageName = "com.example.myapplication"),
+        )
+        val state = viewModel().state.value
+        assertEquals("MyApplication2", state.projectName)
+        assertEquals("com.example.myapplication2", state.packageName)
+        assertNull(state.nameError)
+    }
+
+    @Test
     fun `package auto-derives from the name until the user edits it`() {
         val vm = viewModel()
 
@@ -115,6 +134,7 @@ class CreateProjectViewModelTest {
     fun `create falls back to the default projects root`() {
         val vm = viewModel()
 
+        vm.onNameChanged("Placed")
         vm.onCreateProject()
 
         assertEquals(DEFAULT_LOCATION, projects.created?.saveLocation)
@@ -136,6 +156,7 @@ class CreateProjectViewModelTest {
         projects.failWith = IllegalStateException("disk full")
         val vm = viewModel()
 
+        vm.onNameChanged("Boom")
         vm.onCreateProject()
 
         assertFalse(vm.state.value.creating)

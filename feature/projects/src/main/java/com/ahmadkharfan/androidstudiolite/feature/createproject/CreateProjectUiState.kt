@@ -21,13 +21,14 @@ const val LANG_KOTLIN = "kotlin"
 const val LANG_JAVA = "java"
 
 const val DEFAULT_TEMPLATE_ID = "empty-compose"
+const val DEFAULT_PROJECT_NAME = "MyApplication"
 
 @Immutable
 data class CreateProjectUiState(
     val step: Int = 0,
     val templates: List<CreateProjectTemplateUiModel> = emptyList(),
     val selectedTemplateId: String? = null,
-    val projectName: String = "MyApplication",
+    val projectName: String = DEFAULT_PROJECT_NAME,
     val packageName: String = "com.example.myapplication",
     val location: String = "",
     val minSdk: String = "26",

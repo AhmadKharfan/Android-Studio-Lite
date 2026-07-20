@@ -43,7 +43,15 @@ class CreateProjectViewModel(
             block = { projectRepository.existing() },
             onSuccess = { projects ->
                 existingProjects = projects
-
+                if (state.value.projectName == DEFAULT_PROJECT_NAME && !packageEdited) {
+                    val suggested = suggestDefaultName(projects)
+                    updateState {
+                        copy(
+                            projectName = suggested,
+                            packageName = derivePackage(suggested),
+                        )
+                    }
+                }
                 revalidate()
             },
         )
@@ -96,6 +104,17 @@ class CreateProjectViewModel(
     private fun derivePackage(name: String): String {
         val slug = name.lowercase().filter { it.isLetterOrDigit() }.ifBlank { "myapplication" }
         return "com.example.$slug"
+    }
+
+    private fun suggestDefaultName(existing: List<Project>): String {
+        if (existing.none { it.name.equals(DEFAULT_PROJECT_NAME, ignoreCase = true) }) {
+            return DEFAULT_PROJECT_NAME
+        }
+        var n = 2
+        while (existing.any { it.name.equals("$DEFAULT_PROJECT_NAME$n", ignoreCase = true) }) {
+            n++
+        }
+        return "$DEFAULT_PROJECT_NAME$n"
     }
 
     private fun revalidate() {
