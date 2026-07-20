@@ -405,6 +405,8 @@ private fun EditorEditingRow(
                 onCloseProject = { interactionListener.onCloseProject() },
                 selectedVariant = uiState.selectedVariant,
                 onSelectVariant = { interactionListener.onSelectVariant(it) },
+                availableVariants = uiState.availableVariants,
+                runModulePath = uiState.runModulePath,
                 isLoadingFileTree = uiState.isLoadingFileTree,
             )
         }
@@ -566,6 +568,8 @@ private fun EditorDrawerOverlay(
         onCloseProject = { interactionListener.onCloseProject() },
         selectedVariant = uiState.selectedVariant,
         onSelectVariant = { interactionListener.onSelectVariant(it) },
+        availableVariants = uiState.availableVariants,
+        runModulePath = uiState.runModulePath,
         isLoadingFileTree = uiState.isLoadingFileTree,
         modifier = Modifier.fillMaxSize(),
     )

@@ -13,14 +13,10 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-private val VARIANT_OPTIONS = listOf(
-    AslDropdownOption("debug", "debug"),
-    AslDropdownOption("release", "release"),
-)
-
 /**
  * Build-variant picker. The selected variant is owned by the editor (it drives Run), so this panel is
  * stateless: it reflects [selectedVariant] and reports changes through [onSelectVariant].
+ * [variants] comes from the project’s Android application module (including product-flavor combos).
  */
 @Composable
 fun VariantsRoute(
@@ -28,18 +24,24 @@ fun VariantsRoute(
     onSelectVariant: (String) -> Unit,
     onClose: () -> Unit,
     module: String = "app",
+    variants: List<String> = listOf("debug", "release"),
 ) {
     val colors = AslTheme.colors
+    val options = variants
+        .ifEmpty { listOf("debug", "release") }
+        .map { AslDropdownOption(it, it) }
+    val isDebugish = selectedVariant.contains("debug", ignoreCase = true) &&
+        !selectedVariant.contains("release", ignoreCase = true)
     AslToolWindowPanel(title = "Build Variants", width = rememberAslToolWindowWidth(), onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
             AslDropdown(
                 label = module,
                 value = selectedVariant,
-                options = VARIANT_OPTIONS,
+                options = options,
                 onValueChange = onSelectVariant,
             )
             Text(
-                text = if (selectedVariant == "debug") {
+                text = if (isDebugish) {
                     "Debug builds keep debugging symbols and are not optimized. Run installs this variant."
                 } else {
                     "Release builds are minified and optimized for distribution. Run installs this variant (release signing required)."

@@ -50,7 +50,6 @@ private val BOTTOM_PANEL_TABS = listOf(
 )
 private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val GUTTER_DEBOUNCE_MS = 300L
-private const val APP_MODULE_PATH = ":app"
 private const val DEFAULT_BOTTOM_PANEL_HEIGHT_DP = 260f
 
 private fun expandedBottomPanelHeight(current: Float): Float =
@@ -58,10 +57,12 @@ private fun expandedBottomPanelHeight(current: Float): Float =
 
 /**
  * How long a run may go with NO [BuildEvent] before it's declared failed. Rolling: each event resets
- * it, so it only trips on genuine silence (dead worker, dropped stream). Generous enough to never
- * trip on a normal build's quiet configuration phase, but bounded so a stuck build can't spin forever.
+ * it, so it only trips on genuine silence (dead worker, dropped stream). Large multi-module / KMP
+ * projects can spend many quiet minutes resolving dependencies and configuring; the worker also
+ * emits progress heartbeats (~30s) while Gradle is alive, so this is a backstop for a truly dead
+ * stream — not a bound on configure duration.
  */
-private const val BUILD_INACTIVITY_TIMEOUT_MS = 120_000L
+private const val BUILD_INACTIVITY_TIMEOUT_MS = 900_000L
 
 /** An install attempt held while the user decides whether to uninstall the conflicting package. */
 private data class PendingInstall(val apk: File, val applicationId: String)
@@ -247,15 +248,49 @@ class EditorViewModel(
             block = {
                 val root = java.io.File(projectPath)
                 if (!gradleProjectReader.isGradleProject(root)) {
-                    com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY
+                    SyncSymbolsResult(
+                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
+                        runModulePath = ":app",
+                        availableVariants = listOf("debug", "release"),
+                        selectedVariant = state.value.selectedVariant,
+                    )
                 } else {
                     val model = gradleProjectReader.read(root).model
-                    com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model)
+                    val app = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                        .resolveAppModule(model)
+                    val variants = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                        .availableVariantNames(app)
+                    // Remap bare/stale names (e.g. "debug") onto the Android Studio-like default
+                    // (developmentDebug). Keep an already-valid concrete selection the user picked.
+                    val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                        .resolveSelectedVariant(app, state.value.selectedVariant)
+                    SyncSymbolsResult(
+                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model),
+                        runModulePath = app?.path ?: ":app",
+                        availableVariants = variants,
+                        selectedVariant = selected,
+                    )
                 }
             },
-            onSuccess = { index -> updateState { copy(projectIndex = index) } },
+            onSuccess = { result ->
+                updateState {
+                    copy(
+                        projectIndex = result.index,
+                        runModulePath = result.runModulePath,
+                        availableVariants = result.availableVariants,
+                        selectedVariant = result.selectedVariant,
+                    )
+                }
+            },
         )
     }
+
+    private data class SyncSymbolsResult(
+        val index: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex,
+        val runModulePath: String,
+        val availableVariants: List<String>,
+        val selectedVariant: String,
+    )
 
     private suspend fun onExternalFileEvent(event: FileChangeEvent) {
         when (event) {
@@ -538,6 +573,8 @@ class EditorViewModel(
     override fun onCancelBuild() = cancelBuild()
     override fun onBuildRelease() {
         val kind = if (state.value.buildOutputAab) BuildKind.BUNDLE else BuildKind.ASSEMBLE
+        // Package the release sibling of the current Run selection (e.g. stagingDebug → stagingRelease)
+        // without switching Build Variants off debug.
         startBuild(variant = "release", kind = kind, install = false)
     }
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
@@ -1089,11 +1126,40 @@ class EditorViewModel(
                 }
                 buildRunCoordinator.ensureDebugKeystore()
 
+                // Resolve the real application module + variant (KMP often uses :composeApp and
+                // flavored debug variants like developmentDebug — not hardcoded :app / debug).
+                val projectModel = runCatching { gradleProjectReader.read(root).model }.getOrNull()
+                val appModule = projectModel?.let {
+                    com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.resolveAppModule(it)
+                }
+                val modulePath = appModule?.path
+                    ?: state.value.runModulePath.takeIf { it.isNotBlank() }
+                    ?: ":app"
+                val resolvedVariant = when {
+                    // "Build APK (release)" → release sibling of the current Run flavor, not a
+                    // permanent switch of Build Variants onto release.
+                    !install && variant.equals("release", ignoreCase = true) ->
+                        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                            .resolveReleaseVariant(appModule, state.value.selectedVariant)
+                    else ->
+                        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                            .resolveVariant(appModule, variant)
+                }
+                val available = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+                    .availableVariantNames(appModule)
+                updateState {
+                    copy(
+                        selectedVariant = if (install) resolvedVariant else selectedVariant,
+                        runModulePath = modulePath,
+                        availableVariants = available,
+                    )
+                }
+
                 // Backstop for a build that goes silent (worker dies before, or during, streaming):
                 // without this the console could sit at "Preparing…"/"Starting build…" forever.
                 launchInactivityWatchdog()
 
-                val request = BuildRequest(root, APP_MODULE_PATH, variant, kind)
+                val request = BuildRequest(root, modulePath, resolvedVariant, kind)
                 buildRunCoordinator.build(request).collect { event -> onBuildEvent(event) }
                 buildWatchdogJob?.cancel()
 
@@ -1156,7 +1222,7 @@ class EditorViewModel(
                 val timeoutMsg = if (offline) {
                     "You're offline — connect to the internet and try again."
                 } else {
-                    "Build stopped responding — check your internet connection and tap Run to try again."
+                    "Build stopped responding — no progress for several minutes. Tap Run to try again."
                 }
                 updateState {
                     copy(
@@ -1197,17 +1263,37 @@ class EditorViewModel(
 
     private suspend fun installArtifact(console: BuildConsoleState) {
         val artifact = console.artifact
-        if (artifact == null || artifact.kind != BuildEvent.ArtifactKind.APK) {
-            updateState { copy(snackbarMessage = "Build succeeded") }
+        if (artifact == null) {
+            updateState {
+                copy(
+                    snackbarMessage = "Build succeeded but no APK was downloaded — open Build Output for details",
+                )
+            }
+            return
+        }
+        if (artifact.kind != BuildEvent.ArtifactKind.APK) {
+            updateState {
+                copy(snackbarMessage = "Build succeeded — ${artifact.kind.name} can't be installed on-device")
+            }
+            return
+        }
+        if (artifact.name.contains("unsigned", ignoreCase = true)) {
+            updateState {
+                copy(
+                    snackbarMessage = "Build produced an unsigned release APK — use a debug variant or add a release keystore",
+                )
+            }
             return
         }
         val apk = File(artifact.path)
         if (!apk.isFile) {
-            updateState { copy(snackbarMessage = "Build succeeded — install skipped (no APK on disk)") }
+            updateState {
+                copy(snackbarMessage = "Build succeeded — APK download incomplete, tap Run to try again")
+            }
             return
         }
         val applicationId = projectRootPath
-            ?.let { buildRunCoordinator.resolveApplicationId(File(it), APP_MODULE_PATH) }
+            ?.let { buildRunCoordinator.resolveApplicationId(File(it), state.value.runModulePath) }
         runInstall(apk, applicationId)
     }
 

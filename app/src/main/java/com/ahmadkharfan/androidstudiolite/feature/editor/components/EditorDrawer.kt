@@ -114,6 +114,8 @@ fun EditorDrawer(
     onCloseProject: () -> Unit,
     selectedVariant: String,
     onSelectVariant: (String) -> Unit,
+    availableVariants: List<String> = listOf("debug", "release"),
+    runModulePath: String = ":app",
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
 ) {
@@ -186,6 +188,8 @@ fun EditorDrawer(
                     onOpenGitConflicts = onOpenGitConflicts,
                     selectedVariant = selectedVariant,
                     onSelectVariant = onSelectVariant,
+                    availableVariants = availableVariants,
+                    runModulePath = runModulePath,
                     isLoadingFileTree = isLoadingFileTree,
                 )
             }
@@ -224,6 +228,8 @@ fun EditorDockedPanel(
     onCloseProject: () -> Unit,
     selectedVariant: String,
     onSelectVariant: (String) -> Unit,
+    availableVariants: List<String> = listOf("debug", "release"),
+    runModulePath: String = ":app",
     modifier: Modifier = Modifier,
     isLoadingFileTree: Boolean = false,
 ) {
@@ -259,6 +265,8 @@ fun EditorDockedPanel(
                 onOpenGitConflicts = onOpenGitConflicts,
                 selectedVariant = selectedVariant,
                 onSelectVariant = onSelectVariant,
+                availableVariants = availableVariants,
+                runModulePath = runModulePath,
                 isLoadingFileTree = isLoadingFileTree,
             )
         }
@@ -310,6 +318,8 @@ private fun EditorToolPanelContent(
     onOpenGitConflicts: () -> Unit,
     selectedVariant: String,
     onSelectVariant: (String) -> Unit,
+    availableVariants: List<String> = listOf("debug", "release"),
+    runModulePath: String = ":app",
     isLoadingFileTree: Boolean = false,
 ) {
     // Rail tabs slide vertically in the direction of travel (down the rail → from below).
@@ -392,6 +402,8 @@ private fun EditorToolPanelContent(
                 selectedVariant = selectedVariant,
                 onSelectVariant = onSelectVariant,
                 onClose = onDismiss,
+                module = runModulePath.removePrefix(":").ifBlank { "app" },
+                variants = availableVariants,
             )
             EditorRailTool.Assets -> AssetsRoute(
                 projectId = projectId,

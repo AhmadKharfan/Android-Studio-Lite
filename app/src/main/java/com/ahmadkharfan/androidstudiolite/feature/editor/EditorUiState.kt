@@ -133,6 +133,10 @@ data class EditorUiState(
     val editorThemeId: String = "darcula",
     val editorFontFamily: String = "jetbrains",
     val selectedVariant: String = "debug",
+    /** Concrete Gradle variants for the run module (e.g. developmentDebug); drives the Variants picker. */
+    val availableVariants: List<String> = listOf("debug", "release"),
+    /** Gradle path of the Android application module used for Run (e.g. `:composeApp`). */
+    val runModulePath: String = ":app",
     /** When true, the release build produces an .aab bundle instead of an .apk (Build & Run setting). */
     val buildOutputAab: Boolean = false,
     val caretLine: Int = 0,
