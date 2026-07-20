@@ -26,6 +26,7 @@ class ProjectPackagerTest {
         writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj\"")
         writeFile(project, "app/build.gradle.kts", "plugins {}")
         writeFile(project, "app/src/main/java/A.kt", "class A")
+        writeFile(project, "app/src/main/java/B.java", "class B {}")
         writeFile(project, "app/src/main/AndroidManifest.xml", "<manifest/>")
 
         writeFile(project, "build/outputs/app.apk", "binary")
@@ -43,6 +44,7 @@ class ProjectPackagerTest {
         assertTrue(entries.contains("settings.gradle.kts"))
         assertTrue(entries.contains("app/build.gradle.kts"))
         assertTrue(entries.contains("app/src/main/java/A.kt"))
+        assertTrue(entries.contains("app/src/main/java/B.java"))
         assertTrue(entries.contains("app/src/main/AndroidManifest.xml"))
 
         assertFalse(entries.any { it.startsWith("build/") })
