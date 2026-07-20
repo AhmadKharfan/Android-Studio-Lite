@@ -25,6 +25,10 @@ data class VariantModel(
     val name: String,
     val buildType: String,
     val flavors: List<String> = emptyList(),
+    /** Exact Gradle task paths when supplied by an authoritative model sync. */
+    val assembleTaskPath: String? = null,
+    val bundleTaskPath: String? = null,
+    val debuggable: Boolean? = null,
 )
 
 data class SourceSetModel(

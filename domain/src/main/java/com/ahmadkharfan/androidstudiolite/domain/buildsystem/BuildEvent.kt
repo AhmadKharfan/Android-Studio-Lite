@@ -24,7 +24,14 @@ sealed interface BuildEvent {
         val column: Int? = null,
     ) : BuildEvent
 
-    data class ArtifactProduced(val file: File, val kind: ArtifactKind) : BuildEvent
+    data class ArtifactProduced(
+        val file: File,
+        val kind: ArtifactKind,
+        val sizeBytes: Long? = null,
+        val sha256: String? = null,
+        val signed: Boolean? = null,
+        val certificateSha256: String? = null,
+    ) : BuildEvent
 
     data class Finished(val success: Boolean, val durationMillis: Long) : BuildEvent
 
