@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml
 
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlParser
 
 /** Completion candidates for an XML caret, plus the source range a chosen item replaces. */
 data class XmlCompletionResult(val items: List<CompletionItem>, val replaceStart: Int, val replaceEnd: Int)

@@ -1,6 +1,9 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml
 
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
+import com.ahmadkharfan.androidstudiolite.core.xml.ParsedXml
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlNode
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlNodeType
 
 /** What the caret is positioned to complete. */
 enum class XmlCompletionKind { TAG_NAME, ATTRIBUTE_NAME, ATTRIBUTE_VALUE, TEXT, UNKNOWN }
