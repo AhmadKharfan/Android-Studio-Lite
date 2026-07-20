@@ -176,13 +176,6 @@ fun buildSettingsSearchIndex(
             onClick = onOpenBuildRun,
         ),
         SettingsSearchEntry(
-            title = "Build from Git remote when available",
-            breadcrumb = "$buildRun · Build source",
-            keywords = "git clone remote upload zip",
-            icon = "hammer",
-            onClick = onOpenBuildRun,
-        ),
-        SettingsSearchEntry(
             title = "Debug keystore",
             breadcrumb = "$buildRun · Signing",
             keywords = "signing certificate debug",
