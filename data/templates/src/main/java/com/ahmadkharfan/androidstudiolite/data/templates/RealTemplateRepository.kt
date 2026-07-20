@@ -8,13 +8,14 @@ class RealTemplateRepository(
 ) : TemplateRepository {
 
     override suspend fun getTemplates(): List<ProjectTemplate> =
-        registry.templates.map { it.metadata.toProjectTemplate() }
+        registry.templates.map { it.toProjectTemplate() }
 }
 
-private fun TemplateMetadata.toProjectTemplate() = ProjectTemplate(
-    id = id,
-    name = name,
-    description = description,
-    thumbnail = thumbnail,
-    tags = tags,
+private fun Template.toProjectTemplate() = ProjectTemplate(
+    id = metadata.id,
+    name = metadata.name,
+    description = metadata.description,
+    thumbnail = metadata.thumbnail,
+    tags = metadata.tags,
+    supportsJava = supportsJava,
 )

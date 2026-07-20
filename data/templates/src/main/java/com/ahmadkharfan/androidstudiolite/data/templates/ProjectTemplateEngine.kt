@@ -14,11 +14,10 @@ class ProjectTemplateEngine(
             ?: throw IllegalArgumentException("Unknown template: ${spec.templateId}")
 
 
-        val effective = if (spec.language == TemplateLanguage.JAVA && !template.supportsJava) {
-            spec.copy(language = TemplateLanguage.KOTLIN)
-        } else {
-            spec
-        }.copy(packageName = spec.packageName.ifBlank { "com.example.app" })
+        require(spec.language != TemplateLanguage.JAVA || template.supportsJava) {
+            "${template.metadata.name} requires Kotlin"
+        }
+        val effective = spec.copy(packageName = spec.packageName.ifBlank { "com.example.app" })
 
         val recipe = ProjectRecipe(effective)
         template.assemble(effective, recipe)
