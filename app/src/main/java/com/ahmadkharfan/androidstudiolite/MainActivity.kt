@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.PendingInstallPrompt
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
@@ -86,14 +85,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // If install is waiting and the system sheet never appeared (common when backgrounded),
-        // present it now that we have a foreground activity. Debounced inside PendingInstallPrompt.
-        if (PendingInstallPrompt.shouldAutoPresent()) {
-            PendingInstallPrompt.recordLaunchAttempt()
-            startActivity(
-                Intent(this, InstallConfirmActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
-            )
+        // Only if nothing else has claimed the install sheet yet (e.g. user returned to the app
+        // without tapping the notification). claimForLaunch prevents a second dialog when the
+        // notification trampoline already opened it.
+        val confirm = PendingInstallPrompt.claimForLaunch() ?: return
+        runCatching {
+            startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }
 

@@ -170,8 +170,10 @@ class ApkInstaller(private val context: Context) {
                         // Single path: foreground → show the system sheet once; background → one
                         // heads-up notification. Doing both caused two popups / two notifications.
                         if (isAppInForeground()) {
-                            PendingInstallPrompt.recordLaunchAttempt()
-                            runCatching { context.startActivity(Intent(labeled)) }
+                            val confirmToShow = PendingInstallPrompt.claimForLaunch()
+                            if (confirmToShow != null) {
+                                runCatching { context.startActivity(confirmToShow) }
+                            }
                         } else {
                             InstallPromptNotifier(context).notifyReady(apkLabel)
                         }
