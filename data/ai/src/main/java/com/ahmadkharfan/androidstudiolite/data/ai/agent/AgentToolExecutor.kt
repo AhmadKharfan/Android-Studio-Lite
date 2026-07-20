@@ -19,7 +19,7 @@ class AgentToolExecutor(
     private val gradleProjectReader: GradleProjectReader,
 ) {
 
-    suspend fun kotlinSourcePackagePrefix(projectId: String): String? =
+    suspend fun sourcePackagePrefix(projectId: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val root = projectRoot(projectId)
@@ -27,13 +27,37 @@ class AgentToolExecutor(
                     module.type == ModuleType.ANDROID_APP || module.path == ":app"
                 } ?: return@runCatching null
                 val pkg = appModule.applicationId?.takeIf { it.isNotBlank() } ?: return@runCatching null
-                val kotlinRoot = appModule.sourceSets.firstOrNull { it.name == "main" }?.kotlinDirs?.firstOrNull()
+                val sourceRoot = appModule.sourceSets.firstOrNull { it.name == "main" }?.let { sourceSet ->
+                    sourceSet.javaDirs.firstOrNull() ?: sourceSet.kotlinDirs.firstOrNull()
+                }
+                    ?: appModule.sourceSets.firstOrNull()?.javaDirs?.firstOrNull()
                     ?: appModule.sourceSets.firstOrNull()?.kotlinDirs?.firstOrNull()
                     ?: File(appModule.moduleDir, "src/main/java")
-                val relativeRoot = relativePath(root, kotlinRoot).trimEnd('/')
+                val relativeRoot = relativePath(root, sourceRoot).trimEnd('/')
                 "$relativeRoot/${pkg.replace('.', '/')}/"
             }.getOrNull()
         }
+
+    suspend fun projectLanguage(projectId: String): String = withContext(Dispatchers.IO) {
+        runCatching {
+            val root = projectRoot(projectId)
+            var java = false
+            var kotlin = false
+            root.walkTopDown()
+                .onEnter { it.name !in IGNORED_DIRS }
+                .filter(File::isFile)
+                .forEach { file ->
+                    java = java || file.extension.equals("java", ignoreCase = true)
+                    kotlin = kotlin || file.extension.equals("kt", ignoreCase = true)
+                }
+            when {
+                java && kotlin -> "Java + Kotlin"
+                java -> "Java"
+                kotlin -> "Kotlin"
+                else -> "Unknown"
+            }
+        }.getOrDefault("Unknown")
+    }
 
     suspend fun projectRoot(projectId: String): File =
         withContext(Dispatchers.IO) { projectPathResolver(projectId).canonicalFile }
@@ -80,12 +104,12 @@ class AgentToolExecutor(
 
     fun normalizeAction(root: File, action: AgentAction): AgentAction = when (action) {
         is AgentAction.CreateFile -> {
-            val path = normalizeKotlinSourcePath(root, action.path, action.content)
+            val path = normalizeSourcePath(root, action.path, action.content)
             val content = AgentContentSanitizer.sanitizeFileContent(path, action.content)
             action.copy(path = path, content = content)
         }
         is AgentAction.EditFile -> {
-            val path = normalizeKotlinSourcePath(root, action.path, action.content)
+            val path = normalizeSourcePath(root, action.path, action.content)
             val content = AgentContentSanitizer.sanitizeFileContent(path, action.content)
             action.copy(path = path, content = content)
         }
@@ -217,23 +241,28 @@ class AgentToolExecutor(
         file.canonicalFile.relativeToOrNull(root.canonicalFile)?.path?.replace('\\', '/')
             ?: file.absolutePath
 
-    private fun normalizeKotlinSourcePath(root: File, path: String, content: String): String {
+    private fun normalizeSourcePath(root: File, path: String, content: String): String {
         val cleaned = path.trim().removePrefix("./").trimStart('/')
         val fileName = File(cleaned).name
-        if (!fileName.endsWith(".kt")) return cleaned
+        if (!fileName.endsWith(".kt", ignoreCase = true) && !fileName.endsWith(".java", ignoreCase = true)) {
+            return cleaned
+        }
         val pkg = PACKAGE_REGEX.find(content)?.groupValues?.get(1) ?: return cleaned
-        val kotlinRoot = detectKotlinSourceRoot(root, cleaned)
-        val expected = "$kotlinRoot/${pkg.replace('.', '/')}/$fileName"
+        val sourceRoot = detectSourceRoot(root, cleaned)
+        val expected = "$sourceRoot/${pkg.replace('.', '/')}/$fileName"
         if (cleaned == expected) return cleaned
         val segments = cleaned.removeSuffix(fileName).trimEnd('/').substringAfterLast('/', "")
         if (segments.isEmpty() || !segments.contains('.')) return expected
         return cleaned
     }
 
-    private fun detectKotlinSourceRoot(root: File, path: String): String {
-        val marker = "src/main/java"
-        val idx = path.indexOf(marker)
-        if (idx >= 0) return path.substring(0, idx + marker.length)
+    private fun detectSourceRoot(root: File, path: String): String {
+        for (marker in listOf("src/main/java", "src/main/kotlin")) {
+            val idx = path.indexOf(marker)
+            if (idx >= 0) return path.substring(0, idx + marker.length)
+        }
+        val appModule = File(root, "app")
+        if (appModule.isDirectory) return "app/src/main/java"
         return "app/src/main/java"
     }
 

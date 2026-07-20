@@ -26,25 +26,31 @@ object AgentProtocol {
         projectOutline: String,
         activeFilePath: String?,
         mode: ChatMode = ChatMode.AGENT,
-        kotlinSourcePackagePrefix: String? = null,
+        sourcePackagePrefix: String? = null,
+        projectLanguage: String = "Unknown",
     ): String {
         val instructions = userInstructions.trim()
         val readOnly = mode != ChatMode.AGENT
+        val languageGuidance = when (projectLanguage) {
+            "Java" -> "Preserve this project's Java language. Do not introduce Kotlin or Compose unless the user asks."
+            "Java + Kotlin" -> "This is a mixed Java/Kotlin project. Match the language of the surrounding component."
+            else -> "Prefer the project's existing language and UI toolkit."
+        }
         return buildString {
             when (mode) {
                 ChatMode.AGENT -> appendLine(
                     "You are an autonomous Android coding agent embedded in Android Studio Lite. You can read " +
-                        "and modify the user's open project by calling file tools. Prefer Kotlin and Jetpack Compose.",
+                        "and modify the user's open project by calling file tools. $languageGuidance",
                 )
                 ChatMode.ASK -> appendLine(
                     "You are a READ-ONLY Android assistant embedded in Android Studio Lite. You answer questions " +
                         "about the user's open project. You may inspect files but MUST NOT modify anything. " +
-                        "Prefer Kotlin and Jetpack Compose.",
+                        languageGuidance,
                 )
                 ChatMode.PLAN -> appendLine(
                     "You are a READ-ONLY planning assistant embedded in Android Studio Lite. You investigate the " +
                         "user's open project and produce a clear, step-by-step implementation plan. You MUST NOT " +
-                        "modify anything. Prefer Kotlin and Jetpack Compose. Format the plan as markdown with " +
+                        "modify anything. $languageGuidance Format the plan as markdown with " +
                         "headings and a task list using `- [ ]` checkboxes for each step.",
                 )
             }
@@ -104,10 +110,10 @@ object AgentProtocol {
                 appendLine()
                 appendLine("The user currently has this file open: $activeFilePath")
             }
-            if (!kotlinSourcePackagePrefix.isNullOrBlank()) {
+            if (!sourcePackagePrefix.isNullOrBlank()) {
                 appendLine()
-                appendLine("KOTLIN SOURCE ROOT (use this prefix for all new Kotlin files):")
-                appendLine(kotlinSourcePackagePrefix)
+                appendLine("SOURCE PACKAGE ROOT (use this prefix for new Java or Kotlin source files):")
+                appendLine(sourcePackagePrefix)
             }
             appendLine()
             appendLine("PROJECT FILES (partial):")
@@ -322,8 +328,8 @@ object AgentProtocol {
             "using file tools only — use escaped \\n and \\\" inside file content."
 
     fun implementPlanPrompt(planMarkdown: String): String =
-        "Implement the plan below step by step using file tools. Put every new Kotlin file under " +
-            "the KOTLIN SOURCE ROOT from the system prompt. Complete all checklist items, then send " +
+        "Implement the plan below step by step using file tools. Put every new source file under " +
+            "the SOURCE PACKAGE ROOT from the system prompt. Complete all checklist items, then send " +
             "a final markdown summary.\n\n$planMarkdown"
 
     fun implementPlanRetryPrompt(userMessage: String): String =

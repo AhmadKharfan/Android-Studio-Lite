@@ -277,4 +277,20 @@ class Y {}"}]}"""
         assertTrue(prompt.contains("plan"))
         assertFalse(prompt.contains("edit_file"))
     }
+
+    @Test
+    fun `Java project prompt preserves Java instead of preferring Kotlin`() {
+        val prompt = AgentProtocol.systemPrompt(
+            "",
+            "outline",
+            "app/src/main/java/example/MainActivity.java",
+            ChatMode.AGENT,
+            "app/src/main/java/example/",
+            "Java",
+        )
+
+        assertTrue(prompt.contains("Preserve this project's Java language"))
+        assertTrue(prompt.contains("SOURCE PACKAGE ROOT"))
+        assertFalse(prompt.contains("Prefer Kotlin"))
+    }
 }
