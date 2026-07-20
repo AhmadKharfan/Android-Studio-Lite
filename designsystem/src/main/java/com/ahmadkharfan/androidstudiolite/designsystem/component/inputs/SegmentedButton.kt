@@ -30,7 +30,12 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-data class AslSegmentedOption(val label: String, val value: String, val icon: String? = null)
+data class AslSegmentedOption(
+    val label: String,
+    val value: String,
+    val icon: String? = null,
+    val enabled: Boolean = true,
+)
 
 @Composable
 fun AslSegmentedButton(
@@ -61,9 +66,10 @@ fun AslSegmentedButton(
                 )
             }
             val selected = option.value == value
+            val optionEnabled = !disabled && option.enabled
             val fg by animateColorAsState(
                 targetValue = when {
-                    disabled -> colors.textDisabled
+                    !optionEnabled -> colors.textDisabled
                     selected -> colors.accentPrimary
                     else -> colors.textSecondary
                 },
@@ -71,7 +77,7 @@ fun AslSegmentedButton(
                 label = "segmentFg",
             )
             val segmentBg by animateColorAsState(
-                targetValue = if (!disabled && selected) colors.accentPrimaryContainer else Color.Transparent,
+                targetValue = if (optionEnabled && selected) colors.accentPrimaryContainer else Color.Transparent,
                 animationSpec = AslMotion.standardSpec(),
                 label = "segmentBg",
             )
@@ -82,7 +88,7 @@ fun AslSegmentedButton(
                     .background(segmentBg)
                     .selectable(
                         selected = selected,
-                        enabled = !disabled,
+                        enabled = optionEnabled,
                         role = Role.RadioButton,
                         onClick = { onValueChange(option.value) },
                     )
