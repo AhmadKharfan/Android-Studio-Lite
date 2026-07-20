@@ -102,6 +102,9 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
         progressMessage = "Starting build…",
     )
 
+    // Persistence hint for the client — does not change console UI state.
+    is BuildEvent.RemoteBuildBound -> this
+
     is BuildEvent.Progress -> copy(progressMessage = event.message)
 
     is BuildEvent.TaskStarted -> upsertTask(event.taskPath, result = null)

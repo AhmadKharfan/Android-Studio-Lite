@@ -1,7 +1,13 @@
 package com.ahmadkharfan.androidstudiolite.di
 
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager
+import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildStore
+import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteBuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
@@ -14,6 +20,10 @@ import kotlinx.coroutines.flow.first
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
+private val Context.activeBuildDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "active_build",
+)
+
 /**
  * Build / install / run wiring for the build UI (T11). Everything here targets only the [BuildSystem]
  * interface. The app builds server-side, so [BuildSystem] is bound to [RemoteBuildSystem], which
@@ -23,6 +33,7 @@ import org.koin.dsl.module
  * notifier, and coordinator around it are backend-agnostic.
  */
 val buildRunModule = module {
+    single<ActiveBuildRepository> { ActiveBuildStore(androidContext().activeBuildDataStore) }
     single<BuildSystem> {
         val preferences = get<PreferencesRepository>()
         val gitRepository = get<GitRepository>()
@@ -49,6 +60,7 @@ val buildRunModule = module {
             apkInstaller = get(),
             gradleReader = get(),
             notifier = get(),
+            activeBuildStore = get(),
         )
     }
 }
