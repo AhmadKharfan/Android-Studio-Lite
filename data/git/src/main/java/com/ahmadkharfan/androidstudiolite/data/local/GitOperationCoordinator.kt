@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Serializes mutating JGit commands per canonical repository directory. */
 class GitOperationCoordinator : GitOperationMonitor {
     private val entries = ConcurrentHashMap<String, Entry>()
     private val nextId = AtomicLong(0)

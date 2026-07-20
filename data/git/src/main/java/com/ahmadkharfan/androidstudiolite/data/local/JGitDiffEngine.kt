@@ -29,7 +29,6 @@ import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.util.io.EolStreamTypeUtil
 import java.io.ByteArrayOutputStream
 
-/** Content-oriented Git diff implementation, deliberately independent from patch text formatting. */
 internal class JGitDiffEngine {
 
     fun indexToWorktree(repo: Repository, path: String, force: Boolean): GitFileDiff {

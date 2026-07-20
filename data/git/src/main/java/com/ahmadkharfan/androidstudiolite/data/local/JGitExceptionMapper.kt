@@ -4,7 +4,6 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.errors.LockFailedException
 
-/** Converts JGit implementation failures into stable, redacted domain errors. */
 internal object JGitExceptionMapper {
     private val authMarkers = listOf("auth", "not authorized", "unauthorized", "401", "403", "credential")
 

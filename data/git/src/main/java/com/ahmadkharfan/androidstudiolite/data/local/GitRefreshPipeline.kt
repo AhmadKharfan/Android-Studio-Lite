@@ -23,7 +23,6 @@ internal data class RefreshRequest(
     val completion: CompletableDeferred<Unit>? = null,
 )
 
-/** Coalesces status triggers and cancels a superseded scan through its JGit progress monitor. */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 internal class GitRefreshPipeline(
     scope: CoroutineScope,
@@ -37,8 +36,8 @@ internal class GitRefreshPipeline(
     )
 
     init {
-        // UNDISTPATCHED starts collector setup immediately; replay=1 also protects the first request
-        // while transformLatest installs its internal collector under a test dispatcher/cold start.
+
+
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             requests
                 .transformLatest { request ->
@@ -51,9 +50,8 @@ internal class GitRefreshPipeline(
                         scan(request.includeIgnored, monitor)
                         request.completion?.complete(Unit)
                     } catch (cancelled: kotlinx.coroutines.CancellationException) {
-                        // A newer request superseded this scan. Its caller only asked for a fresh
-                        // state, which the newer scan will provide, so do not turn coalescing into an
-                        // application error.
+
+
                         request.completion?.complete(Unit)
                         throw cancelled
                     } catch (error: Throwable) {

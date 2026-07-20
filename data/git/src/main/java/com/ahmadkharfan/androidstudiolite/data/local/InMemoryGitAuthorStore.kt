@@ -5,7 +5,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/** Lightweight default for JVM callers; production replaces it with [DataStoreGitAuthorStore]. */
 class InMemoryGitAuthorStore(initial: GitAuthorConfig? = null) : GitAuthorStore {
     private val state = MutableStateFlow(initial)
     override fun observe(): Flow<GitAuthorConfig?> = state

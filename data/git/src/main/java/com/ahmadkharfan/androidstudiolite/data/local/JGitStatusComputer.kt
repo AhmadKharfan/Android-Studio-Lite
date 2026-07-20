@@ -27,7 +27,6 @@ import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import org.eclipse.jgit.treewalk.FileTreeIterator
 import org.eclipse.jgit.util.io.DisabledOutputStream
 
-/** Computes one complete, immutable repository read model from fresh JGit iterators. */
 internal class JGitStatusComputer {
     fun compute(
         repoDir: File,
@@ -94,7 +93,6 @@ internal class JGitStatusComputer {
         }
     }
 
-    /** RenameDetector is quadratic/content-heavy on huge change sets; large scans stay add+delete. */
     private fun detectStagedRenames(repo: Repository, monitor: ProgressMonitor): List<DiffEntry> {
         val entries = DiffFormatter(DisabledOutputStream.INSTANCE).use { formatter ->
             formatter.setRepository(repo)
@@ -162,7 +160,6 @@ internal class JGitStatusComputer {
     }
 }
 
-/** Opens normal repos and linked worktrees whose `.git` entry is a gitdir pointer file. */
 internal fun openRepositoryOrNull(repoDir: File): Repository? = runCatching {
     FileRepositoryBuilder()
         .readEnvironment()

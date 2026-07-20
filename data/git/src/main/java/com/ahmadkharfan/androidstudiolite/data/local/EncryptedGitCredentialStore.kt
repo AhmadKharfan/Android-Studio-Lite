@@ -11,10 +11,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-/**
- * [GitCredentialStore] backed by [EncryptedSharedPreferences] (AES-256 over a Keystore-held master
- * key). Personal access tokens never touch plaintext prefs or disk-readable storage.
- */
 class EncryptedGitCredentialStore(context: Context) : GitCredentialStore {
 
     private val prefs: SharedPreferences by lazy {

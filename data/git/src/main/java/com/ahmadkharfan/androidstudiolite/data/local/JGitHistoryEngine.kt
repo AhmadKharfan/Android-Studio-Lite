@@ -31,7 +31,6 @@ import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import org.eclipse.jgit.treewalk.TreeWalk
 import java.io.ByteArrayOutputStream
 
-/** Read-only history operations kept separate from the mutating repository command surface. */
 internal class JGitHistoryEngine {
 
     fun log(repo: Repository, cursor: String?, limit: Int): GitLogPage {

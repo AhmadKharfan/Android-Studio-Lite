@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.data.local
 
 import java.net.URI
 
-/** Removes HTTP(S) user-info so credentials never escape through models or exception messages. */
 object GitUrlRedactor {
     private val embeddedUserInfo = Regex("""(?i)(https?://)[^/@\s]+@""")
 
