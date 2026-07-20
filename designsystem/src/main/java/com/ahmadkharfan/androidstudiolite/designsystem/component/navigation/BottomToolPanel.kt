@@ -60,7 +60,6 @@ private val PanelOpenGestureThreshold = 14.dp
 private val PanelCollapseThreshold = 72.dp
 private val PanelFreeZoneMargin = 36.dp
 
-/** BottomToolPanel.jsx — JetBrains docked panel: drag handle + tab row + resizable content. */
 @Composable
 fun AslBottomToolPanel(
     tabs: List<AslBottomPanelTab>,
@@ -244,10 +243,6 @@ fun AslBottomToolPanel(
     }
 }
 
-/**
- * State 1 = collapsed (0). State 2 = [defaultHeightPx]. Above state 2 = free resize.
- * A small upward swipe from collapsed opens straight to state 2.
- */
 private fun settleBottomPanelHeightPx(
     currentHeightPx: Float,
     dragStartHeightPx: Float,

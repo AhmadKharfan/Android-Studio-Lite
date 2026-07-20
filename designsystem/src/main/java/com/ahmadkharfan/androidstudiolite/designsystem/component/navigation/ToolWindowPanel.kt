@@ -26,17 +26,12 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * Shared width for every editor tool window (Project, Git, AI Agent, Variants, Assets). Matches the
- * Project explorer: wide enough to read paths, but capped so the editor stays visible on phones.
- */
 @Composable
 fun rememberAslToolWindowWidth(): Dp {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.toFloat()
     return minOf(screenWidthDp * 0.72f, 320f).dp
 }
 
-/** ToolWindowPanel.jsx — 48dp header (title + actions) + scrollable content. */
 @Composable
 fun AslToolWindowPanel(
     title: String,

@@ -29,10 +29,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** Button.jsx — primary (accent fill), secondary (outlined), tertiary (text), destructive (error fill). */
 enum class AslButtonVariant { Primary, Secondary, Tertiary, Destructive }
 
-/** md = 40dp (toolbar density), lg = 48dp (hub / thumb zone). */
 enum class AslButtonSize(val height: Dp) {
     Md(40.dp), Lg(48.dp),
 }

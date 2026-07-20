@@ -6,14 +6,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
-/** tokens/typography.css tracking tokens, reused by ad-hoc text styles (e.g. section overlines)
- *  that don't have a dedicated M3 typography role. */
 object AslLetterSpacing {
     val label = 0.01f.em
     val overline = 0.08f.em
 }
 
-/** tokens/typography.css — Sans roles mapped 1:1 onto M3 [Typography]. */
 val AslTypography = Typography(
     displayLarge = TextStyle(fontFamily = AslSansFontFamily, fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 40.sp),
     displayMedium = TextStyle(fontFamily = AslSansFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 34.sp),
@@ -36,8 +33,6 @@ val AslTypography = Typography(
     labelSmall = TextStyle(fontFamily = AslSansFontFamily, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = AslLetterSpacing.label),
 )
 
-/** tokens/typography.css — Mono "code" roles. No M3 typography slot exists for these, so they're
- *  exposed separately and used by the editor canvas, terminal, build output, and log rows. */
 data class AslCodeTypography(
     val codeBody: TextStyle,
     val codeSmall: TextStyle,

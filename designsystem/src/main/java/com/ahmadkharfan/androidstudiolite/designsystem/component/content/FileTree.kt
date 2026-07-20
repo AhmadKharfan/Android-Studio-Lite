@@ -62,7 +62,6 @@ data class AslFileTreeNode(
     val git: AslGitStatus? = null,
 )
 
-/** FileTree.jsx — 36dp rows, indent guides, expand chevrons, git-status tint. */
 @Composable
 fun AslFileTree(
     items: List<AslFileTreeNode>,
@@ -76,9 +75,8 @@ fun AslFileTree(
     onFocus: (AslFileTreeNode) -> Unit = {},
     onAction: (AslFileTreeNode, AslFileTreeAction) -> Unit = { _, _ -> },
 ) {
-    // Horizontal scroll so deeply-indented rows and long file names are fully readable instead of
-    // being ellipsized. Each row is at least as wide as the visible panel, so clicking anywhere on
-    // the row selects/toggles it; long rows can still grow beyond that and pan horizontally.
+
+
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val viewportWidth = maxWidth
         val treeWidth = maxOf(viewportWidth, estimatedTreeWidth(items))
@@ -170,8 +168,8 @@ private fun AslFileTreeRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isDir) {
-                // Rotate a single chevron rather than swapping icons, so the toggle reads as one
-                // continuous turn instead of a snap between two unrelated glyphs.
+
+
                 val rotation by animateFloatAsState(
                     targetValue = if (expanded) 90f else 0f,
                     animationSpec = AslMotion.standardSpec(),
@@ -193,8 +191,8 @@ private fun AslFileTreeRow(
                 tint = if (isDir) colors.textSecondary else colors.textTertiary,
             )
             androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
-            // No weight/ellipsis: the name lays out at full width on one line so the whole name is
-            // visible when the tree is scrolled horizontally.
+
+
             Text(
                 text = node.name,
                 style = MaterialTheme.typography.bodySmall,

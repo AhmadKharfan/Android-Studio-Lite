@@ -20,7 +20,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslSnackbarTone { Neutral, Success, Error }
 
-/** Snackbar.jsx — bottom toast, inverse surface, optional icon + accent action. */
 @Composable
 fun AslSnackbar(
     message: String,

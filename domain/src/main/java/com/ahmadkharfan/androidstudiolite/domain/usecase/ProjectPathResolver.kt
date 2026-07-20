@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.domain.usecase
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import java.io.File
 
-/** Resolves an open project's working tree from its registered, authoritative path. */
 class ProjectPathResolver(
     private val projectRepository: ProjectRepository,
 ) {

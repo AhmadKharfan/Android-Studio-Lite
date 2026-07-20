@@ -39,7 +39,6 @@ private val languageColors = mapOf(
     "Compose" to Color(0xFF4285F4),
 )
 
-/** ProjectCard.jsx — hub project card: initial tile, name + language badge, mono path, last-opened. */
 @Composable
 fun AslProjectCard(
     name: String,

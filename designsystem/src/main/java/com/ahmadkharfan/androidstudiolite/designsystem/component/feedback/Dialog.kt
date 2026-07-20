@@ -34,7 +34,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslDialogVariant { Alert, Confirm, Input }
 
-/** Dialog.jsx — centered modal: alert (1-2 buttons), confirm (destructive accent), input (embedded field). */
 @Composable
 fun AslDialog(
     title: String,
@@ -50,7 +49,7 @@ fun AslDialog(
 ) {
     val colors = AslTheme.colors
     Dialog(onDismissRequest = onDismiss) {
-        // Play a scale+fade entrance the first time the dialog is composed.
+
         val transitionState = remember { MutableTransitionState(false).apply { targetState = true } }
         AnimatedVisibility(
             visibleState = transitionState,
@@ -70,8 +69,8 @@ fun AslDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(text = title, style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
-                // Middle content scrolls when it's tall (long file lists, wordy warnings) so the action
-                // buttons below always stay reachable on small screens.
+
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

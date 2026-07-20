@@ -31,7 +31,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslFileTab(val id: String, val name: String, val icon: String? = null, val modified: Boolean = false)
 
-/** FileTabBar.jsx — scrollable file tab bar, modified dot, close, accent underline on active. */
 @Composable
 fun AslFileTabBar(
     tabs: List<AslFileTab>,

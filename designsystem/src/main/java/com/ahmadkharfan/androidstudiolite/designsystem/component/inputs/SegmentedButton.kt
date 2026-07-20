@@ -32,7 +32,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslSegmentedOption(val label: String, val value: String, val icon: String? = null)
 
-/** SegmentedButton.jsx — connected segmented button, single-select, 40dp (e.g. Light/Dark/System). */
 @Composable
 fun AslSegmentedButton(
     options: List<AslSegmentedOption>,

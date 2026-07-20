@@ -41,15 +41,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * New-project wizard template tile: a portrait thumbnail of the layout the template produces, with
- * its name centered underneath — the shape android-code-studio and Android Studio both use, where the
- * picture does the identifying and the name confirms it.
- *
- * Accent border + check badge mark the selection (ASL's own affordance).
- *
- * @param thumbnail drawable resource for the artwork; null falls back to the [icon] glyph.
- */
 @Composable
 fun AslTemplateCard(
     name: String,
@@ -100,8 +91,8 @@ fun AslTemplateCard(
                 contentAlignment = Alignment.Center,
             ) {
                 if (thumbnail != null) {
-                    // The artwork is portrait, so bound it by height and let width follow — otherwise
-                    // it shrinks to a stamp adrift in the tile.
+
+
                     Image(
                         painter = painterResource(thumbnail),
                         contentDescription = null,

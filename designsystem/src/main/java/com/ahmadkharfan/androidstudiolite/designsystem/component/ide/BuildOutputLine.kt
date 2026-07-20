@@ -20,7 +20,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslTaskStatus { Success, Failed, Running, Skipped }
 
-/** BuildOutputLine.jsx — Gradle build-output row: tree indent, status glyph, right-aligned duration. */
 @Composable
 fun AslBuildOutputLine(
     text: String,

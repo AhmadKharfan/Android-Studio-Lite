@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** CircularProgress.jsx — small inline spinner, 20dp default. */
 @Composable
 fun AslCircularProgress(
     modifier: Modifier = Modifier,

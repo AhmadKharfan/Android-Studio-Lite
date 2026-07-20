@@ -21,7 +21,6 @@ sealed interface AslOverflowMenuEntry {
     data object Divider : AslOverflowMenuEntry
 }
 
-/** OverflowMenu.jsx — 3-dot overflow menu with compact popup rows. */
 @Composable
 fun AslOverflowMenu(
     items: List<AslOverflowMenuEntry>,

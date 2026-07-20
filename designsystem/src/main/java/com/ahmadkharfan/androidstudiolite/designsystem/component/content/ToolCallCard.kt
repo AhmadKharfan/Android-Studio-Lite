@@ -32,10 +32,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslToolCallState { Pending, Running, Done, Failed, Rejected }
 
-/**
- * A single agent file operation surfaced in the chat: an icon + summary, a status chip, an optional
- * diff preview, and — when [state] is [AslToolCallState.Pending] — Approve/Reject actions.
- */
 @Composable
 fun AslToolCallCard(
     title: String,
@@ -173,7 +169,6 @@ private enum class DiffKind(val marker: String) { Added("+ "), Removed("- "), Co
 
 private data class DiffLine(val kind: DiffKind, val text: String)
 
-/** A compact LCS line diff. When [old] is null every new line is an addition (a freshly created file). */
 private fun computeLineDiff(old: String?, new: String): List<DiffLine> {
     val newLines = new.split("\n")
     if (old == null) {

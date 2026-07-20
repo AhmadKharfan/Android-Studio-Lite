@@ -29,7 +29,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** ListItem.jsx — general list row: one/two-line, leading icon, trailing slot, hairline divider. */
 @Composable
 fun AslListItem(
     title: String,
@@ -57,7 +56,7 @@ fun AslListItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = if (subtitle != null) 60.dp else 48.dp)
-                // Scale encloses the whole row so the press "give" covers its background too.
+
                 .then(if (clickableRow) Modifier.pressScale(interactionSource) else Modifier)
                 .background(background)
                 .then(

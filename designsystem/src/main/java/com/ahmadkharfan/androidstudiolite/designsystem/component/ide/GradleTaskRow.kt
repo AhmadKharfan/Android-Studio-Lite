@@ -20,7 +20,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** GradleTaskRow.jsx — selectable Gradle task row: checkbox, mono task path, group label, duration. */
 @Composable
 fun AslGradleTaskRow(
     name: String,

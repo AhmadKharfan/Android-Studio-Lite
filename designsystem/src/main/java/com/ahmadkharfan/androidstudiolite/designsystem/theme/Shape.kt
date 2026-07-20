@@ -4,8 +4,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-/** tokens/shape.css — JetBrains New UI rounding. Exposed per-radius since components need
- *  xs/sm/md/lg/xl/full independently, not just M3's small/medium/large/extraLarge buckets. */
 object AslShape {
     val none = RoundedCornerShape(0.dp)
     val xs = RoundedCornerShape(4.dp)

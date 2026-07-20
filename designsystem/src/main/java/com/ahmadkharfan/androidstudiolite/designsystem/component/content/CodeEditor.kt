@@ -36,7 +36,6 @@ data class AslCodeLine(
     val active: Boolean = false,
 )
 
-/** CodeEditor.jsx — static editor chrome mock: gutter (line №, git bars, breakpoints) + syntax-colored content. */
 @Composable
 fun AslCodeEditor(
     lines: List<AslCodeLine>,

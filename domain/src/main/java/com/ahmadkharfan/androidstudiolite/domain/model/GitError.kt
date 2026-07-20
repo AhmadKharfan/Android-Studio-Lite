@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.domain.model
 
-/** User-actionable failures produced by Git operations. */
 sealed class GitException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class Auth(message: String, cause: Throwable? = null) : GitException(message, cause)
     class Network(message: String, cause: Throwable? = null) : GitException(message, cause)

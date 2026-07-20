@@ -28,7 +28,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslDropdownOption(val label: String, val value: String)
 
-/** Dropdown.jsx — exposed dropdown menu: 40dp field opening a compact option popup. */
 @Composable
 fun AslDropdown(
     options: List<AslDropdownOption>,

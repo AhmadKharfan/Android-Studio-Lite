@@ -16,7 +16,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslLogLevel { VERBOSE, DEBUG, INFO, WARN, ERROR }
 
-/** LogLine.jsx — single logcat-style row: time, [LEVEL], optional tag, message. */
 @Composable
 fun AslLogLine(
     time: String,

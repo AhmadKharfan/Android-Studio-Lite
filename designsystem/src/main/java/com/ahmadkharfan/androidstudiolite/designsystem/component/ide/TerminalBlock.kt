@@ -26,7 +26,6 @@ enum class AslTerminalLineKind { Stdout, Stderr, Cmd, Success }
 
 data class AslTerminalLine(val text: String, val kind: AslTerminalLineKind = AslTerminalLineKind.Stdout)
 
-/** TerminalBlock.jsx — always-dark bg, emerald prompt, colored stdout/stderr streams. Stateless renderer. */
 @Composable
 fun AslTerminalBlock(
     lines: List<AslTerminalLine>,

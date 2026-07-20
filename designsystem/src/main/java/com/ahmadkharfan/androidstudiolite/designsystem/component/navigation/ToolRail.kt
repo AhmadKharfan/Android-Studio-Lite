@@ -32,7 +32,6 @@ sealed interface AslToolRailEntry {
     data object Divider : AslToolRailEntry
 }
 
-/** ToolRail.jsx — vertical 48dp tool-window rail. Active = 3dp accent left bar + accent container. */
 @Composable
 fun AslToolRail(
     items: List<AslToolRailEntry>,

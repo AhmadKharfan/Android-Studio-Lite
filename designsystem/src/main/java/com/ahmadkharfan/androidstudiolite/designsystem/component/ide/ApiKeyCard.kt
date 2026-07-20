@@ -30,7 +30,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslApiKeyStatus { None, Valid, Invalid }
 
-/** ApiKeyCard.jsx — AI-provider API key card: header, masked key field with reveal, Test button. */
 @Composable
 fun AslApiKeyCard(
     provider: String,

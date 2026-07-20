@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** LinearProgress.jsx — 4dp track, determinate (0-100) or indeterminate (null value). */
 @Composable
 fun AslLinearProgress(
     modifier: Modifier = Modifier,

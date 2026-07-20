@@ -16,7 +16,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** Fab.jsx — extended FAB, the thumb-zone primary action ("Quick Run"). One per screen, max. */
 @Composable
 fun AslFab(
     onClick: () -> Unit,

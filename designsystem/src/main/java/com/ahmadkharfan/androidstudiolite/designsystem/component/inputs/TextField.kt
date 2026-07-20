@@ -41,7 +41,6 @@ import kotlinx.coroutines.launch
 
 enum class AslTextFieldType { Text, Password, Email, Url, Number }
 
-/** TextField.jsx — outlined text field, 40dp, label above, helper/error below. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AslTextField(

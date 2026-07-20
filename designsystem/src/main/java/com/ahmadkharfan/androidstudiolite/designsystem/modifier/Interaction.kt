@@ -9,12 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 
-/**
- * Springs the element down slightly while [interactionSource] reports a press, then back on release —
- * a subtle, tactile "give" for cards, tiles and buttons. Place this early in the modifier chain (before
- * `background`/`border`) so the scale encloses the whole surface, and pass the same [interactionSource]
- * to the element's `clickable` so press state stays in sync with the ripple.
- */
 @Composable
 fun Modifier.pressScale(
     interactionSource: InteractionSource,

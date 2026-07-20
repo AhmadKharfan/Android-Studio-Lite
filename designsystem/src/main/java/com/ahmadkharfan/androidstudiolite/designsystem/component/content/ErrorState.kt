@@ -27,7 +27,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** ErrorState.jsx — blocking error state: error-tinted icon, explanation, optional mono detail, Retry CTA. */
 @Composable
 fun AslErrorState(
     title: String,

@@ -29,18 +29,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
-/**
- * Git operations over a real on-disk working tree. Every mutating call is scoped to a repository
- * root ([repoDir]). Implementations run all I/O off the main thread and surface failures as thrown
- * exceptions (callers use [com.ahmadkharfan.androidstudiolite.core.BaseViewModel.tryToExecute]).
- */
 interface GitRepository {
 
-    /**
-     * Clone [url] into the caller-owned [destination], emitting transport progress. Project
-     * registration is deliberately handled outside this repository. [credentials] are used for
-     * private HTTPS remotes and, when non-null, persisted for later fetch/push.
-     */
     fun clone(
         url: String,
         destination: File,
@@ -48,22 +38,16 @@ interface GitRepository {
         credentials: GitCredentials?,
     ): Flow<CloneProgress>
 
-    /** Hot state of the repository status, updated on [refresh] and after mutating calls. */
     fun observeState(repoDir: File): StateFlow<GitState>
 
-    /** Recompute status for [repoDir] and push it to [observeState] subscribers. */
     suspend fun refresh(repoDir: File, includeIgnored: Boolean = false)
 
-    /** Immediate refresh used when the app returns to the foreground. */
     suspend fun onAppForegrounded(repoDir: File) = refresh(repoDir)
 
-    /** Unstaged content difference for [path], with large content rendered only when [force] is true. */
     suspend fun diffIndexToWorktree(repoDir: File, path: String, force: Boolean = false): GitFileDiff
 
-    /** Staged content difference for [path]. */
     suspend fun diffHeadToIndex(repoDir: File, path: String, force: Boolean = false): GitFileDiff
 
-    /** Change introduced by [commitId] relative to its first parent. */
     suspend fun diffCommitToParent(
         repoDir: File,
         commitId: String,
@@ -71,29 +55,22 @@ interface GitRepository {
         force: Boolean = false,
     ): GitFileDiff
 
-    /** Diff unsaved editor text against the index without writing the buffer to disk. */
     suspend fun diffIndexToBuffer(repoDir: File, path: String, buffer: String): GitFileDiff
 
-    /** Apply an index-to-worktree [hunk] to the index, leaving the working tree untouched. */
     suspend fun stageHunk(repoDir: File, path: String, hunk: GitDiffHunk)
 
-    /** Reverse a HEAD-to-index [hunk] from the index, leaving the working tree untouched. */
     suspend fun unstageHunk(repoDir: File, path: String, hunk: GitDiffHunk)
 
-    /** Stage [path] (git add), including deletions. */
     suspend fun stage(repoDir: File, path: String)
 
-    /** Unstage [path] (git reset HEAD -- path), keeping working-tree contents. */
     suspend fun unstage(repoDir: File, path: String)
 
     suspend fun stageAll(repoDir: File)
 
     suspend fun unstageAll(repoDir: File)
 
-    /** Remember the in-progress commit message so it survives status refreshes. */
     suspend fun setCommitMessage(repoDir: File, message: String)
 
-    /** Commit exactly the staged changes, or amend `HEAD` when [amend] is true. Returns the id. */
     suspend fun commit(repoDir: File, amend: Boolean = false): String
 
     suspend fun getAuthorConfig(repoDir: File): GitAuthorConfigState
@@ -104,7 +81,6 @@ interface GitRepository {
 
     suspend fun branches(repoDir: File): List<GitBranch>
 
-    /** Create [name]; when [checkout] is true, switch to it. */
     suspend fun createBranch(repoDir: File, name: String, checkout: Boolean = true)
 
     suspend fun checkout(repoDir: File, name: String)
@@ -192,24 +168,15 @@ interface GitRepository {
 
     suspend fun upstreamOf(repoDir: File, branch: String): GitUpstream?
 
-    /** Push the current branch to its remote, resolving stored credentials for the remote. */
     suspend fun push(repoDir: File, setUpstreamIfMissing: Boolean = true): GitSyncResult
 
-    /** Force push guarded by the currently-known remote-tracking ref. Never fetches implicitly. */
     suspend fun pushForceWithLease(repoDir: File): GitSyncResult
 
-    /** Pull (fetch + merge) the current branch from its remote. */
     suspend fun pull(repoDir: File, mode: PullMode = PullMode.MERGE): GitSyncResult
 
     suspend fun isRepository(repoDir: File): Boolean
 
-    /**
-     * The remote URL + current branch to build [repoDir] from server-side (via Git clone), or null
-     * when [repoDir] isn't a repo, has no HEAD branch (detached/unborn), or the branch's remote has no
-     * URL. Prefers the current branch's tracking remote, falling back to `origin`.
-     */
     suspend fun remoteInfo(repoDir: File): GitRemoteInfo?
 
-    /** Initialise a new empty repository at [repoDir]. */
     suspend fun init(repoDir: File)
 }

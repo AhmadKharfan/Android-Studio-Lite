@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** Switch.jsx — M3-proportioned track (44x26), accent when on. Label left, control right. */
 @Composable
 fun AslSwitch(
     checked: Boolean,

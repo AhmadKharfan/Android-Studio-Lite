@@ -21,7 +21,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslDiffKind { Added, Removed, Modified, Context }
 
-/** DiffLine.jsx — single unified-diff row: gutter bar, two line-number columns, sign glyph, code text. */
 @Composable
 fun AslDiffLine(
     kind: AslDiffKind,
@@ -29,10 +28,6 @@ fun AslDiffLine(
     modifier: Modifier = Modifier,
     oldNo: Int? = null,
     newNo: Int? = null,
-    /**
-     * When true the code text is laid out at its full intrinsic width and never ellipsised, so the
-     * row can live inside a shared horizontal scroll container and pan together with every other row.
-     */
     noWrap: Boolean = false,
 ) {
     val colors = AslTheme.colors
@@ -88,8 +83,8 @@ fun AslDiffLine(
             maxLines = 1,
             softWrap = false,
             overflow = if (noWrap) TextOverflow.Clip else TextOverflow.Ellipsis,
-            // In no-wrap mode the text keeps its full intrinsic width (no weight), so a parent
-            // horizontal scroll can pan the whole block; otherwise it fills and ellipsises.
+
+
             modifier = if (noWrap) Modifier.padding(end = 12.dp) else Modifier.weight(1f),
         )
     }

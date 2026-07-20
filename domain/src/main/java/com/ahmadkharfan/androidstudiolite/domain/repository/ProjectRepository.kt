@@ -9,37 +9,20 @@ import java.io.File
 interface ProjectRepository {
     fun observeRecentProjects(): Flow<List<Project>>
 
-    /**
-     * One-shot snapshot of the registered projects, used by the create-project wizard to reject a
-     * name or package that's already taken rather than silently suffixing the directory.
-     */
     suspend fun existing(): List<Project> = observeRecentProjects().first()
 
-    /**
-     * Generates a project from [spec] (template + all wizard options) on disk and registers it.
-     * This is the primary entry point; the legacy three-argument overload delegates here with
-     * default options.
-     */
     suspend fun createProject(spec: NewProjectSpec): Project
 
-    /** Convenience overload used by callers that only carry a template id (defaults for everything else). */
     suspend fun createProject(name: String, packageName: String, templateId: String): Project =
         createProject(NewProjectSpec(name = name, packageName = packageName, templateId = templateId))
-    /** Registers an existing directory without copying it. Non-Gradle directories are valid projects. */
     suspend fun registerExistingProject(path: File): Project
 
     suspend fun openProject(id: String): Project
     suspend fun deleteProject(id: String)
     suspend fun renameProject(id: String, newName: String)
 
-    /**
-     * Copies the Gradle project rooted at [sourcePath] (typically picked from external storage) into the
-     * on-device projects directory, registers it in the recent list, and returns it. Fails if the source
-     * is not a recognizable project (no `settings.gradle[.kts]`).
-     */
     suspend fun importProject(sourcePath: String): Project =
         throw UnsupportedOperationException()
 
-    /** Marks the project no longer active; a no-op for stores that only track recency. */
     suspend fun closeProject(id: String) {}
 }

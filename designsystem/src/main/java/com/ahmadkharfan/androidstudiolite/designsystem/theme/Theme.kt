@@ -11,8 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 
-/** M3-aligned subset of the token set — everything else (editor/syntax/terminal/semantic
- *  warning-info-success) lives only in [AslColorScheme] since M3 has no slot for it. */
 private fun colorScheme(colors: AslColorScheme, dark: Boolean): ColorScheme {
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(
@@ -39,7 +37,6 @@ private fun colorScheme(colors: AslColorScheme, dark: Boolean): ColorScheme {
     )
 }
 
-/** Namespaced accessors mirroring the design's own token vocabulary, alongside [MaterialTheme]. */
 object AslTheme {
     val colors: AslColorScheme
         @Composable get() = LocalAslColors.current
@@ -48,10 +45,6 @@ object AslTheme {
         @Composable get() = AslCode
 }
 
-/**
- * Root theme. Dark is the primary theme for this product; it follows the system setting by
- * default but callers (e.g. a settings screen) can force either mode via [darkTheme].
- */
 @Composable
 fun AslAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -67,10 +60,8 @@ fun AslAppTheme(
             shapes = AslShapes,
         ) {
             AslSystemBarStyle(darkTheme = darkTheme)
-            // Paints the themed background behind the whole app *before* any screen renders, so
-            // in-flight nav transitions (sliding/fading between screens) never expose the raw
-            // (always-light) Android window background — without this, that flash reads as a
-            // stray light "ripple" through the content, worst in dark mode.
+
+
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background,

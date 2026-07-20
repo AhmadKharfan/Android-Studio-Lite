@@ -22,7 +22,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.aslBordered
 
-/** FindBar.jsx — floats over the editor's top edge: query field, match counter, prev/next/close. */
 @Composable
 fun AslFindBar(
     query: String,

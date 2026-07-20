@@ -19,17 +19,16 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslStatus { Building, Syncing, Indexing, Success, Failed }
 
-private data class StatusSpec(val label: String, val icon: String, val busy: Boolean)
+private data class StatusSpec(val label: String, val icon: String, val isBusy: Boolean)
 
 private fun spec(status: AslStatus): StatusSpec = when (status) {
-    AslStatus.Building -> StatusSpec("Building", "hammer", busy = true)
-    AslStatus.Syncing -> StatusSpec("Syncing", "refresh-cw", busy = true)
-    AslStatus.Indexing -> StatusSpec("Indexing", "database", busy = true)
-    AslStatus.Success -> StatusSpec("Success", "check", busy = false)
-    AslStatus.Failed -> StatusSpec("Failed", "x", busy = false)
+    AslStatus.Building -> StatusSpec("Building", "hammer", isBusy = true)
+    AslStatus.Syncing -> StatusSpec("Syncing", "refresh-cw", isBusy = true)
+    AslStatus.Indexing -> StatusSpec("Indexing", "database", isBusy = true)
+    AslStatus.Success -> StatusSpec("Success", "check", isBusy = false)
+    AslStatus.Failed -> StatusSpec("Failed", "x", isBusy = false)
 }
 
-/** StatusChip.jsx — live-state chip: building/syncing/indexing (spinner) · success/failed (icon). */
 @Composable
 fun AslStatusChip(
     status: AslStatus = AslStatus.Success,
@@ -53,7 +52,7 @@ fun AslStatusChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (s.busy) {
+        if (s.isBusy) {
             AslCircularProgress(size = 12.dp, thickness = 2.dp, color = fg)
         } else {
             AslIcon(name = s.icon, size = 13.dp, tint = fg)

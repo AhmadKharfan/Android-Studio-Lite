@@ -31,17 +31,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import kotlin.math.abs
 
-/**
- * WizardStepper.jsx — horizontal steps with connector lines (project wizard 1-4).
- *
- * Every visual (connector fill, circle fill/outline, halo ring, glyph, label colour) is driven off a
- * single continuous [progress] cursor rather than independent per-property animations, so the whole
- * row moves in lockstep. This also fixes the case where each step lives on its own screen/navigation
- * destination (onboarding): a plain `animateColorAsState` has nothing to animate *from* the first time
- * a new destination composes already at its final `current` value, so it used to just snap in. Here
- * [progress] is seeded one step behind `current` on first composition and animates forward immediately,
- * so the "become active → become done" motion plays even on a freshly-mounted screen.
- */
 @Composable
 fun AslWizardStepper(
     steps: List<String>,
@@ -58,7 +47,7 @@ fun AslWizardStepper(
     Row(modifier = modifier, verticalAlignment = Alignment.Top) {
         steps.forEachIndexed { index, step ->
             if (index > 0) {
-                // Fills as progress sweeps from (index - 1) to index.
+
                 val connectorAmount = (p - (index - 1)).coerceIn(0f, 1f)
                 Box(
                     modifier = Modifier
@@ -68,11 +57,11 @@ fun AslWizardStepper(
                         .background(lerp(colors.borderDefault, colors.accentPrimary, connectorAmount)),
                 )
             }
-            // filled: 0 while untouched, 1 once progress has reached (or passed) this step.
+
             val filled = (p - index + 1f).coerceIn(0f, 1f)
-            // done: 0 while this is the active/upcoming step, 1 once progress has moved past it.
+
             val done = (p - index).coerceIn(0f, 1f)
-            // halo: peaks at 1 exactly when progress sits on this step, fades out on either side.
+
             val halo = (1f - abs(p - index)).coerceIn(0f, 1f)
 
             Column(
@@ -87,8 +76,8 @@ fun AslWizardStepper(
                         .border(4.dp * halo, colors.accentPrimaryContainer, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Number and check are cross-dissolved off the same `done` value — no separate
-                    // Crossfade/AnimatedVisibility needed, so there's nothing else to fall out of sync.
+
+
                     Text(
                         text = "${index + 1}",
                         style = MaterialTheme.typography.labelMedium,

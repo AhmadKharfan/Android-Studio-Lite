@@ -1,10 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.domain.model
 
-/**
- * A single tool the agent can invoke. Paths are always project-relative; the executor resolves them
- * against the project root and rejects anything that escapes it. Read-only actions ([ListDir],
- * [ReadFile], [Search]) never require approval; the rest mutate the working tree.
- */
 sealed interface AgentAction {
     val tool: String
 
@@ -51,7 +46,6 @@ sealed interface AgentAction {
         }
 }
 
-/** Outcome of running an [AgentAction], fed back to the model as the next turn's context. */
 data class AgentToolResult(
     val action: AgentAction,
     val ok: Boolean,

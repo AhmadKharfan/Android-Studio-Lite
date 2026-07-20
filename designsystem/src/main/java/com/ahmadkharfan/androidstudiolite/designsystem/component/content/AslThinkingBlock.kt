@@ -35,10 +35,6 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * Cursor-style collapsible reasoning block. Auto-expands while [streaming] and collapses when done;
- * the user can toggle manually afterward.
- */
 @Composable
 fun AslThinkingBlock(
     text: String,

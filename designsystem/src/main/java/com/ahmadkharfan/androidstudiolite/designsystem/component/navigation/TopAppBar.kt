@@ -24,14 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * TopAppBar.jsx — standard 56dp hub bar: back + title (+subtitle) + actions.
- *
- * When placed directly in a `Scaffold`'s `topBar` slot on an edge-to-edge screen, set
- * [applyStatusBarInset] so the bar's background fills the status-bar area and its controls sit below
- * the system clock/icons instead of overlapping them. Callers that render the bar inside padded
- * Scaffold content (which already consumes the top inset) leave it `false` to avoid double padding.
- */
 @Composable
 fun AslTopAppBar(
     title: String,
@@ -48,8 +40,8 @@ fun AslTopAppBar(
             .background(colors.bgBase)
             .then(
                 if (applyStatusBarInset) {
-                    // Background is already applied, so the fill extends under the status bar while the
-                    // row content is inset below it — including horizontal cutouts in landscape.
+
+
                     Modifier.windowInsetsPadding(
                         WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                     )

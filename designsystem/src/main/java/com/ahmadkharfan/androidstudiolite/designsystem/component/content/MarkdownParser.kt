@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.content
 
-/** Lightweight block-level markdown model used by [AslMarkdownText]. */
 sealed interface MdBlock {
     data class Heading(val level: Int, val text: String) : MdBlock
     data class Paragraph(val text: String) : MdBlock
@@ -12,7 +11,6 @@ sealed interface MdBlock {
 
 data class MdListItem(val text: String, val checked: Boolean? = null)
 
-/** Parses a subset of markdown into [MdBlock]s for Compose rendering. */
 object MarkdownParser {
 
     private val heading = Regex("""^(#{1,6})\s+(.*)$""")
@@ -40,7 +38,7 @@ object MarkdownParser {
                         body.append(lines[i])
                         i++
                     }
-                    if (i < lines.size) i++ // closing fence
+                    if (i < lines.size) i++
                     blocks.add(MdBlock.Code(lang, body.toString()))
                 }
                 hr.matches(trimmed) -> {

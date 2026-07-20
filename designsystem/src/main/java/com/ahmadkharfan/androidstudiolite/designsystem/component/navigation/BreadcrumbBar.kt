@@ -22,7 +22,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** BreadcrumbBar.jsx — compact 28dp path strip under the file tabs: app > src > main > MainActivity.kt */
 @Composable
 fun AslBreadcrumbBar(
     segments: List<String>,

@@ -20,7 +20,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslMemoryChartTone { Normal, Warning, Error }
 
-/** MemoryChartMini.jsx — compact heap sparkline: label, value/max, and a mini trend line. */
 @Composable
 fun AslMemoryChartMini(
     label: String,

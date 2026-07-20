@@ -27,7 +27,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 enum class AslChipKind { Filter, Input, Assist, Status }
 enum class AslChipStatus { Neutral, Success, Error, Warning, Info }
 
-/** Chip.jsx — full-radius pill, 32dp. filter (selectable) | input (removable) | assist (icon action) | status (colored). */
 @Composable
 fun AslChip(
     label: String,

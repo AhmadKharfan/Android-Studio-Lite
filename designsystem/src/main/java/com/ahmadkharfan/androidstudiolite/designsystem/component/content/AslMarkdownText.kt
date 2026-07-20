@@ -33,10 +33,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * Renders a subset of markdown (headings, lists, task lists, quotes, fenced code, bold/italic/code/links)
- * using the app's design tokens. No external markdown library.
- */
 @Composable
 fun AslMarkdownText(
     markdown: String,

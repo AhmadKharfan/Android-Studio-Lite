@@ -17,7 +17,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslBottomSheetSize { Peek, Half, Full }
 
-/** BottomSheet.jsx — modal bottom sheet with drag pill, optional title, scrim dismiss. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AslBottomSheet(

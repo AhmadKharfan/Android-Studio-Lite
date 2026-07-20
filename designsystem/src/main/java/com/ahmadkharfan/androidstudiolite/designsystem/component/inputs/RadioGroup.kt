@@ -40,7 +40,6 @@ data class AslRadioOption(
     val disabled: Boolean = false,
 )
 
-/** RadioGroup.jsx — vertical list of 40dp rows, optional per-option description. */
 @Composable
 fun AslRadioGroup(
     options: List<AslRadioOption>,
@@ -121,13 +120,13 @@ private fun RadioDot(
         animationSpec = AslMotion.standardSpec(),
         label = "radioBorderColor",
     )
-    // The inner ring thickness grows from a hairline outline to a filled centre when selected.
+
     val ringWidth by animateDpAsState(
         targetValue = if (selected) 5.5.dp else 1.5.dp,
         animationSpec = AslMotion.standardSpec(),
         label = "radioRing",
     )
-    // A circular-clipped area carries the ripple so it renders as a clean circle, never a square.
+
     Box(
         modifier = modifier
             .size(36.dp)

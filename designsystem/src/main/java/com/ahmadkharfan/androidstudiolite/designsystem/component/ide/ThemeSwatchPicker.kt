@@ -29,7 +29,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslThemeSwatch(val id: String, val name: String, val colors: List<Color>)
 
-/** ThemeSwatchPicker.jsx — 40dp color circles (solid or multi-color pie), accent ring + check when selected. */
 @Composable
 fun AslThemeSwatchPicker(
     swatches: List<AslThemeSwatch>,

@@ -5,7 +5,6 @@ sealed interface ProjectNameValidation {
     data class Invalid(val reason: String) : ProjectNameValidation
 }
 
-/** Mirrors Android Studio's project-name rules (non-empty, starts with a letter). */
 fun validateProjectName(name: String): ProjectNameValidation = when {
     name.isBlank() -> ProjectNameValidation.Invalid("Project name can't be empty")
     !name.first().isLetter() -> ProjectNameValidation.Invalid("Name must start with a letter")
@@ -13,14 +12,6 @@ fun validateProjectName(name: String): ProjectNameValidation = when {
     else -> ProjectNameValidation.Valid
 }
 
-/**
- * Validates an Android applicationId/namespace the way AGP does, so an invalid package fails in the
- * wizard rather than at `:app:processDebugManifest` on the build server, minutes later.
- *
- * Rules: at least two dot-separated segments (AGP requires a qualified id), each segment lowercase,
- * starting with a letter, made of letters/digits/underscore, and not a Java keyword (segments become
- * package/directory names in generated sources).
- */
 fun validatePackageName(packageName: String): ProjectNameValidation {
     val segments = packageName.split('.')
     return when {

@@ -26,7 +26,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** EditorToolbar.jsx — compact 48dp editor toolbar: tool-window trigger, project name, actions, accent Run pill, overflow. */
 @Composable
 fun AslEditorToolbar(
     modifier: Modifier = Modifier,

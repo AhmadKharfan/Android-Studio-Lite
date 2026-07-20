@@ -12,7 +12,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-/** Clones into the projects directory, then registers the resulting working tree for opening. */
 class CloneProjectUseCase(
     private val projectsDir: () -> File,
     private val gitRepository: GitRepository,
@@ -38,8 +37,6 @@ class CloneProjectUseCase(
             registered = true
             emit(CloneProgress(fraction = 1f, message = "Done", clonedProjectId = project.id))
         } catch (cause: CancellationException) {
-            // Before registration the destination is use-case-owned and safe to remove. Once the
-            // registry committed it, retaining the directory avoids a dangling recent-project entry.
             if (!registered) destination.deleteRecursively()
             throw cause
         }
@@ -57,7 +54,6 @@ class CloneProjectUseCase(
         url.trim().trimEnd('/').substringAfterLast('/').removeSuffix(".git").ifBlank { "repository" }
 }
 
-/** Registration failed after cloning; [clonedDirectory] is intentionally retained for recovery. */
 class CloneRegistrationException(
     val clonedDirectory: File,
     cause: Throwable,

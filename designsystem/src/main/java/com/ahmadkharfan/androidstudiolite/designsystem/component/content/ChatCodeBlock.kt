@@ -25,7 +25,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** ChatCodeBlock.jsx — code block embedded in an AI chat reply, with Copy + Apply actions. */
 @Composable
 fun AslChatCodeBlock(
     code: String,

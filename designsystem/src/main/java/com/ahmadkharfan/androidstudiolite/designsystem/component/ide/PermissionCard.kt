@@ -30,7 +30,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** PermissionCard.jsx — onboarding permission card: icon, title, why-needed copy, Grant button / Granted state. */
 @Composable
 fun AslPermissionCard(
     title: String,
@@ -41,8 +40,8 @@ fun AslPermissionCard(
     onGrant: () -> Unit = {},
 ) {
     val colors = AslTheme.colors
-    // Single continuous cursor drives the chip colour and icon cross-dissolve in lockstep (same
-    // pattern as AslWizardStepper) so they can never land out of sync with each other.
+
+
     val progress = remember { Animatable(if (granted) 1f else 0f) }
     LaunchedEffect(granted) {
         progress.animateTo(if (granted) 1f else 0f, animationSpec = AslMotion.standardSpec(320))
@@ -74,9 +73,8 @@ fun AslPermissionCard(
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
-            // The button (taller) and "Granted" label (shorter) differ in height, so the fade alone
-            // would still end in a hard size snap the instant the outgoing content leaves composition —
-            // animateContentSize smooths that final resize into the same motion as the cross-dissolve.
+
+
             Box(modifier = Modifier.animateContentSize(AslMotion.standardSpec())) {
                 AslStateCrossfade(targetState = granted, label = "permCta") { isGranted ->
                     if (isGranted) {

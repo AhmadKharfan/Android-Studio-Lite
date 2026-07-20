@@ -28,7 +28,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslSkeletonVariant { List, Editor }
 
-/** Skeleton.jsx — pulsing placeholder: "list" (avatar+lines rows) or "editor" (gutter+code lines). */
 @Composable
 fun AslSkeleton(
     modifier: Modifier = Modifier,

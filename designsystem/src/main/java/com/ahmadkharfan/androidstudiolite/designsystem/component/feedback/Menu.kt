@@ -17,11 +17,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/**
- * Shared popup menu shell used everywhere (file-tree context menu, overflow ⋮, create +, select
- * fields, split-button chevrons). Matches the Project explorer long-press / create-menu look:
- * rounded surface, strong border, compact rows with leading icons.
- */
 @Composable
 fun AslDropdownMenu(
     expanded: Boolean,
@@ -46,7 +41,6 @@ fun AslDropdownMenu(
     )
 }
 
-/** A single row inside [AslDropdownMenu]. */
 @Composable
 fun AslDropdownMenuItem(
     label: String,
@@ -85,7 +79,6 @@ fun AslDropdownMenuItem(
     )
 }
 
-/** Separator between groups of actions in [AslDropdownMenu]. */
 @Composable
 fun AslDropdownMenuDivider() {
     HorizontalDivider()

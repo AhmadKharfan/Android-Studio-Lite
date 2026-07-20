@@ -6,10 +6,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-/**
- * Keeps the Android system status/navigation bar icon colors in sync with the app theme:
- * light icons on dark backgrounds, dark icons on light backgrounds.
- */
 @Composable
 fun AslSystemBarStyle(darkTheme: Boolean) {
     val view = LocalView.current

@@ -28,7 +28,6 @@ private fun toneIcon(tone: AslBannerTone): String = when (tone) {
     AslBannerTone.Success -> "check-circle-2"
 }
 
-/** Banner.jsx — inline info/warning/error/success strip, optional action + dismiss. */
 @Composable
 fun AslBanner(
     message: String,

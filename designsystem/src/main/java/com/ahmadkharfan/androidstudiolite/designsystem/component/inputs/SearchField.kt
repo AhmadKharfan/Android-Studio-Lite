@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/** SearchField.jsx — search leading icon, clear trailing button, optional filter-chip row below. */
 @Composable
 fun AslSearchField(
     value: String,

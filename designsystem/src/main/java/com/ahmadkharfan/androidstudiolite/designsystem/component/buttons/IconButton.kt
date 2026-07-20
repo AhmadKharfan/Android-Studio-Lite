@@ -29,7 +29,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** IconButton.jsx — 40dp touch target, 20dp glyph, JetBrains toolbar density. */
 enum class AslIconButtonVariant { Ghost, Filled, Outlined }
 
 @Composable

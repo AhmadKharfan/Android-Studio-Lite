@@ -18,7 +18,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslBadgeTone { Error, Accent, Neutral }
 
-/** Badge.jsx — notification count dot for rail icons and tabs. Omit count for a bare 8dp dot. */
 @Composable
 fun AslBadge(
     modifier: Modifier = Modifier,

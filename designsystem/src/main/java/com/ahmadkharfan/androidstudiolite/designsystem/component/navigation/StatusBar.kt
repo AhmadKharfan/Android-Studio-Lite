@@ -43,7 +43,6 @@ sealed interface AslStatusBarEntry {
     data object Spacer : AslStatusBarEntry
 }
 
-/** StatusBar.jsx — 28dp bottom status strip: sync, branch, line:col, encoding, memory. */
 @Composable
 fun AslStatusBar(
     items: List<AslStatusBarEntry>,

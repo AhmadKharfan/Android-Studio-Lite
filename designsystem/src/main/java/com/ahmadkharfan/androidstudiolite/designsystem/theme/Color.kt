@@ -3,12 +3,6 @@ package com.ahmadkharfan.androidstudiolite.designsystem.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/**
- * Full Android Studio Lite color token set (tokens/colors.css). Only the subset with a direct
- * M3 slot (accent, surfaces, text, error) is also mapped onto [androidx.compose.material3.ColorScheme]
- * in Theme.kt — editor/syntax/terminal/warning/info/success tokens have no M3 equivalent and are
- * only reachable through [AslTheme.colors].
- */
 data class AslColorScheme(
     val bgBase: Color,
     val bgElevated: Color,
@@ -170,10 +164,6 @@ val AslDarkColors = AslColorScheme(
 
 val LocalAslColors = staticCompositionLocalOf { AslDarkColors }
 
-/**
- * The accent-only slice of [AslColorScheme]. The "Accent" setting swaps just these slots, leaving
- * surfaces, text, editor and semantic (success/warning/error) tokens untouched.
- */
 data class AslAccentColors(
     val accentPrimary: Color,
     val accentPrimaryContainer: Color,
@@ -189,14 +179,12 @@ private val FjordLight = AslAccentColors(Color(0xFF3B82F6), Color(0xFFE5EEFD), C
 private val AmberDark = AslAccentColors(Color(0xFFFBBF24), Color(0xFF3D3323), Color(0xFF2A1E08), Color(0xFFFCCB4A), Color(0xFFE0A91E))
 private val AmberLight = AslAccentColors(Color(0xFFF59E0B), Color(0xFFFDF2DD), Color(0xFF3A2E10), Color(0xFFDB8C08), Color(0xFFC27C06))
 
-/** Resolves the accent palette for the given accent id (falls back to emerald) and theme mode. */
 fun accentColorsFor(accentId: String, dark: Boolean): AslAccentColors = when (accentId) {
     "fjord" -> if (dark) FjordDark else FjordLight
     "amber" -> if (dark) AmberDark else AmberLight
     else -> if (dark) EmeraldDark else EmeraldLight
 }
 
-/** Returns a copy of this scheme with its accent slots replaced by [accent]. */
 fun AslColorScheme.withAccent(accent: AslAccentColors): AslColorScheme = copy(
     accentPrimary = accent.accentPrimary,
     accentPrimaryContainer = accent.accentPrimaryContainer,

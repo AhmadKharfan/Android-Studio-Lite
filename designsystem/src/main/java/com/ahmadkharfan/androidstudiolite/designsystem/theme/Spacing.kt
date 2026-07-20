@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.designsystem.theme
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** tokens/spacing.css — the 4dp spacing scale. */
 object AslSpacing {
     val space1: Dp = 4.dp
     val space2: Dp = 8.dp
@@ -17,7 +16,6 @@ object AslSpacing {
     val space16: Dp = 64.dp
 }
 
-/** tokens/spacing.css — fixed layout metrics used across IDE chrome. */
 object AslMetrics {
     val touchMin: Dp = 48.dp
     val iconButton: Dp = 40.dp

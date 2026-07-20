@@ -27,7 +27,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslSplitButtonItem(val label: String, val icon: String? = null)
 
-/** SplitButton.jsx — accent primary action + chevron opening a task menu (Run ▾ assembleDebug…). */
 @Composable
 fun AslSplitButton(
     label: String,

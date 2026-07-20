@@ -13,9 +13,7 @@ interface PreferencesRepository {
     suspend fun setAccent(id: String)
     suspend fun setAutoOpenLastProject(enabled: Boolean)
 
-    /** Sets the editor color scheme if the user has never chosen one explicitly. */
     suspend fun ensureEditorThemeDefault(isDarkUi: Boolean)
 
-    /** Generic updater for simple settings fields that don't warrant a dedicated setter + use case. */
     suspend fun update(transform: (AppPreferences) -> AppPreferences)
 }

@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** Slider.jsx — slider with a label + live value readout (e.g. editor font size). */
 @Composable
 fun AslSlider(
     value: Float,

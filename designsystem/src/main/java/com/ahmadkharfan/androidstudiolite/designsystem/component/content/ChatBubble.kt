@@ -17,7 +17,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslChatRole { User, Ai }
 
-/** ChatBubble.jsx — asymmetric-corner message bubble; the "tail" corner points at the sender. */
 @Composable
 fun AslChatBubble(
     role: AslChatRole,

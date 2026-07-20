@@ -34,7 +34,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** Checkbox.jsx — 18dp box inside a ≥40dp touch row. */
 @Composable
 fun AslCheckbox(
     checked: Boolean,
@@ -79,7 +78,7 @@ fun AslCheckbox(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Circular-clipped ripple area around the square box → a clean circular ripple, never a square.
+
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -112,8 +111,6 @@ fun AslCheckbox(
     }
 }
 
-/** The tick/dash glyph, scaled + faded in when the box turns on. Extracted so [AnimatedVisibility]
- *  resolves to the top-level overload rather than an enclosing Row/Box scope's extension. */
 @Composable
 private fun CheckMark(
     visible: Boolean,

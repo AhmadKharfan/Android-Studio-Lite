@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.designsystem.editor
 import androidx.annotation.ColorInt
 import com.ahmadkharfan.androidstudiolite.domain.model.EditorColorScheme
 
-/** Visual tokens for the code editor, shared by editor and settings preview surfaces. */
 data class EditorPalette(
     @ColorInt val canvas: Int,
     @ColorInt val gutter: Int,

@@ -7,7 +7,6 @@ fun interface WorkspaceWriteHandler {
     suspend fun prepare()
 }
 
-/** Gives the open editor a chance to persist buffers before Git replaces working-tree files. */
 interface WorkspaceWriteGate {
     suspend fun prepareForWorktreeMutation(root: File)
     fun register(root: File, handler: WorkspaceWriteHandler): Closeable

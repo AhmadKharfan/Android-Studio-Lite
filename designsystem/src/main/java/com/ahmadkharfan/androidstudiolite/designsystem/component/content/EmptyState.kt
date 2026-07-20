@@ -23,7 +23,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
-/** EmptyState.jsx — centered empty state: circled icon, title, subtitle, primary (+secondary) CTA. */
 @Composable
 fun AslEmptyState(
     title: String,

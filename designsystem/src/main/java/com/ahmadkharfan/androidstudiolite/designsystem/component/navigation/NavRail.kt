@@ -26,7 +26,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 data class AslNavRailItem(val id: String, val icon: String, val label: String)
 
-/** NavRail.jsx — compact 72dp navigation rail, icon + label (sub-navigation inside Git/AI panels). */
 @Composable
 fun AslNavRail(
     items: List<AslNavRailItem>,

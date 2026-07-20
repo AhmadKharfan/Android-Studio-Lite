@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.domain.model
 
-/** A mutating Git operation currently owning a repository's exclusive operation slot. */
 data class ActiveOperation(
     val id: Long,
     val type: GitOperationType,
@@ -10,7 +9,6 @@ data class ActiveOperation(
     val cancellable: Boolean = false,
 )
 
-/** Mutating operations serialized per repository working tree. */
 enum class GitOperationType(val defaultLabel: String) {
     STAGE("Staging"),
     UNSTAGE("Unstaging"),
