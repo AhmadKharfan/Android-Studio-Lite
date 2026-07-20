@@ -20,10 +20,6 @@ import java.net.URI
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 
-/**
- * Drives the in-editor git panel against the open project's registered working tree. All git work is
- * delegated to [gitRepository], which runs it off the main thread.
- */
 class GitPanelViewModel(
     private val projectId: String,
     private val projectPathResolver: ProjectPathResolver,
@@ -68,7 +64,7 @@ class GitPanelViewModel(
             onCollect = { operation ->
                 updateState {
                     copy(
-                        busy = operation != null,
+                        isBusy = operation != null,
                         operationLabel = operation?.message ?: operation?.label,
                         operationProgress = operation?.progress,
                         operationCancellable = operation?.cancellable == true,
@@ -99,7 +95,7 @@ class GitPanelViewModel(
                         unstagedChanges = sections.unstaged,
                         untrackedChanges = sections.untracked,
                         commitMessage = state.commitMessage,
-                        committing = state.committing,
+                        isCommitting = state.isCommitting,
                         ahead = state.ahead,
                         behind = state.behind,
                         repositoryState = state.repositoryState,
@@ -135,25 +131,25 @@ class GitPanelViewModel(
     }
 
     override fun onStage(path: String) {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         tryToExecute(block = { gitRepository.stage(repoDir, path) }, onError = ::showError)
     }
 
     override fun onUnstage(path: String) {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         tryToExecute(block = { gitRepository.unstage(repoDir, path) }, onError = ::showError)
     }
 
     override fun onStageAll() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         tryToExecute(block = { gitRepository.stageAll(repoDir) }, onError = ::showError)
     }
 
     override fun onUnstageAll() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         tryToExecute(block = { gitRepository.unstageAll(repoDir) }, onError = ::showError)
     }
@@ -167,7 +163,7 @@ class GitPanelViewModel(
     override fun onCommit() {
         if (!state.value.canCommit) return
         val repoDir = repoDir ?: return
-        updateState { copy(committing = true) }
+        updateState { copy(isCommitting = true) }
         tryToExecute(
             block = {
                 stageForCommit(repoDir)
@@ -176,28 +172,23 @@ class GitPanelViewModel(
             onSuccess = { id ->
                 updateState {
                     copy(
-                        committing = false,
+                        isCommitting = false,
                         selectedPath = null,
                         diffLines = emptyList(),
                         statusMessage = "Committed ${id.take(7)}",
                     )
                 }
             },
-            onError = { updateState { copy(committing = false, statusMessage = gitErrorMessage(it)) } },
+            onError = { updateState { copy(isCommitting = false, statusMessage = gitErrorMessage(it)) } },
         )
     }
 
     override fun onCommitAndPush() {
         if (!state.value.canCommit) return
-        // Ensure remote auth BEFORE committing so the retry re-enters cleanly without double-committing.
-        ensureRemoteAuth { doCommitAndPush() }
+
+        ensureRemoteAuth { commitAndPush() }
     }
 
-    /**
-     * Ensures the index has something to commit. If files are already staged we commit those (git's
-     * usual behaviour). Otherwise we stage the ticked files, or — when nothing is ticked — every
-     * change, so the user can just type a message and hit Commit without a separate staging step.
-     */
     private suspend fun stageForCommit(repoDir: File) {
         val current = state.value
         if (current.stagedChanges.isNotEmpty()) return
@@ -207,11 +198,11 @@ class GitPanelViewModel(
         toStage.forEach { gitRepository.stage(repoDir, it) }
     }
 
-    private fun doCommitAndPush() {
+    private fun commitAndPush() {
         if (!state.value.canCommit) return
         val repoDir = repoDir ?: return
         var committedId: String? = null
-        updateState { copy(committing = true) }
+        updateState { copy(isCommitting = true) }
         val job = tryToExecute(
             block = {
                 stageForCommit(repoDir)
@@ -227,7 +218,7 @@ class GitPanelViewModel(
                 }
             },
             onSuccess = { id ->
-                updateState { copy(committing = false, statusMessage = "Committed and pushed ${id.take(7)}") }
+                updateState { copy(isCommitting = false, statusMessage = "Committed and pushed ${id.take(7)}") }
             },
             onError = { error ->
                 val message = if (error is CommitSucceededPushFailed) {
@@ -235,7 +226,7 @@ class GitPanelViewModel(
                 } else {
                     gitErrorMessage(error)
                 }
-                updateState { copy(committing = false, statusMessage = message) }
+                updateState { copy(isCommitting = false, statusMessage = message) }
             },
         )
         job.invokeOnCompletion { error ->
@@ -243,7 +234,7 @@ class GitPanelViewModel(
                 val id = committedId
                 updateState {
                     copy(
-                        committing = false,
+                        isCommitting = false,
                         statusMessage = id?.let { "Committed ${it.take(7)}, but push was cancelled" }
                             ?: "Operation cancelled",
                     )
@@ -290,19 +281,19 @@ class GitPanelViewModel(
     override fun onDismissAuthorDialog() = updateState { copy(authorDialogVisible = false) }
 
     override fun onPush() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         ensureRemoteAuth { sync("Push") { gitRepository.push(repoDir) } }
     }
 
     override fun onFetch() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         ensureRemoteAuth { sync("Fetch") { gitRepository.fetch(repoDir) } }
     }
 
     override fun onPull() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         val mode = state.value.pullMode
         ensureRemoteAuth { sync("Pull") { gitRepository.pull(repoDir, mode) } }
@@ -369,8 +360,8 @@ class GitPanelViewModel(
         val repoDir = repoDir ?: return
         val editing = state.value.editingRemoteName
         val url = state.value.remoteUrl.trim()
-        // The dialog only asks for a URL: adding always targets "origin". If origin already exists,
-        // update its URL rather than failing on a duplicate the user can't rename.
+
+
         val urlError = if (isSupportedRemoteUrl(url)) null else "Use an http(s):// or file:// URL"
         if (urlError != null) {
             updateState { copy(remoteUrlError = urlError) }
@@ -563,7 +554,7 @@ class GitPanelViewModel(
     }
 
     override fun onStageSelected() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         val paths = state.value.selectedPaths.filter { path ->
             state.value.unstagedChanges.any { it.path == path } ||
@@ -578,7 +569,7 @@ class GitPanelViewModel(
     }
 
     override fun onUnstageSelected() {
-        if (state.value.busy) return
+        if (state.value.isBusy) return
         val repoDir = repoDir ?: return
         val paths = state.value.selectedPaths.filter { path ->
             state.value.stagedChanges.any { it.path == path }
@@ -597,7 +588,7 @@ class GitPanelViewModel(
         updateState { copy(pendingRestorePaths = paths) }
     }
 
-    // --- Unified GitHub / token auth, delegated to the shared controller ---
+
     override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
     override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
     override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
@@ -606,13 +597,8 @@ class GitPanelViewModel(
 
     private fun showError(error: Throwable) = updateState { copy(statusMessage = gitErrorMessage(error)) }
 
-    /**
-     * Every remote operation requires GitHub credentials. Resolves the origin host and, when no token
-     * is stored for it, opens the auth prompt first (retrying [run] once signed in). A `file://` or
-     * absent remote (host == null) needs no auth and runs immediately.
-     */
     private fun ensureRemoteAuth(run: () -> Unit) {
-        if (state.value.syncing || state.value.busy) return
+        if (state.value.isSyncing || state.value.isBusy) return
         tryToExecute(
             block = { resolveRemoteHost() },
             onSuccess = { host ->
@@ -631,17 +617,17 @@ class GitPanelViewModel(
     }
 
     private fun sync(label: String, block: suspend () -> com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult) {
-        if (state.value.syncing || state.value.busy) return
-        updateState { copy(syncing = true) }
+        if (state.value.isSyncing || state.value.isBusy) return
+        updateState { copy(isSyncing = true) }
         syncJob = tryToExecute(
             block = block,
             onSuccess = { result ->
-                updateState { copy(syncing = false, statusMessage = "$label: ${result.detail}") }
+                updateState { copy(isSyncing = false, statusMessage = "$label: ${result.detail}") }
             },
             onError = { error ->
-                updateState { copy(syncing = false) }
+                updateState { copy(isSyncing = false) }
                 if (error is GitException.Auth) {
-                    // Token missing/expired despite the pre-check: re-prompt and retry once provided.
+
                     tryToExecute(
                         block = { resolveRemoteHost() },
                         onSuccess = { host -> authController.open(host) { sync(label, block) } },
@@ -654,7 +640,7 @@ class GitPanelViewModel(
         )
         syncJob?.invokeOnCompletion { error ->
             if (error is CancellationException) {
-                updateState { copy(syncing = false, statusMessage = "Operation cancelled") }
+                updateState { copy(isSyncing = false, statusMessage = "Operation cancelled") }
             }
         }
     }

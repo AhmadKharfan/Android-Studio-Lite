@@ -40,17 +40,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Which credential the auth dialog is collecting: a GitHub account sign-in or a raw token. */
 enum class GitAuthMode { SignIn, Token }
 
-/** The device/user code shown while a GitHub device-flow sign-in is in progress. */
 @Immutable
 data class GitHubDeviceCodeUi(val userCode: String, val verificationUri: String)
 
-/**
- * State for the unified git auth dialog, shared by the git panel and the branches/tags screen. A
- * single [visible] prompt collects credentials for [host] either via GitHub sign-in or a token.
- */
 @Immutable
 data class GitAuthPromptState(
     val visible: Boolean = false,
@@ -58,14 +52,12 @@ data class GitAuthPromptState(
     val gitHubAvailable: Boolean = false,
     val mode: GitAuthMode = GitAuthMode.SignIn,
     val token: String = "",
-    val busy: Boolean = false,
+    val isBusy: Boolean = false,
     val device: GitHubDeviceCodeUi? = null,
-    /** True for a brief moment after auth succeeds, so the dialog can confirm before closing. */
     val succeeded: Boolean = false,
     val error: String? = null,
 )
 
-/** Callbacks the auth dialog raises; implemented by the git ViewModels via [GitAuthController]. */
 interface GitAuthPromptActions {
     fun onAuthModeChanged(mode: GitAuthMode)
     fun onAuthTokenChanged(token: String)
@@ -74,14 +66,6 @@ interface GitAuthPromptActions {
     fun onDismissAuthPrompt()
 }
 
-/**
- * Owns the auth-prompt state machine and the GitHub device flow for a ViewModel. It never touches
- * [androidx.lifecycle.ViewModel] directly: the host passes a coroutine [scope] and an [emit] sink
- * that pushes new [GitAuthPromptState]s into the ViewModel's UI state.
- *
- * On success (token saved for [GitAuthPromptState.host] or minted via GitHub sign-in) the pending
- * retry — the git operation that needed auth — is re-invoked.
- */
 class GitAuthController(
     private val scope: CoroutineScope,
     private val credentialStore: GitCredentialStore,
@@ -96,10 +80,8 @@ class GitAuthController(
 
     val isGitHubSignInAvailable: Boolean get() = authenticator.isConfigured
 
-    /** True when [host] already has a stored token (no prompt needed). */
     fun hasCredentials(host: String?): Boolean = host != null && credentialStore.hasCredentials(host)
 
-    /** Opens the prompt for [host]; [retry] runs once credentials are provided. */
     fun open(host: String?, retry: () -> Unit) {
         pendingRetry = retry
         cancelJobs()
@@ -115,7 +97,7 @@ class GitAuthController(
 
     override fun onAuthModeChanged(mode: GitAuthMode) {
         if (mode != GitAuthMode.SignIn) deviceJob?.cancel().also { deviceJob = null }
-        set { copy(mode = mode, error = null, device = null, busy = false, succeeded = false) }
+        set { copy(mode = mode, error = null, device = null, isBusy = false, succeeded = false) }
     }
 
     override fun onAuthTokenChanged(token: String) = set { copy(token = token, error = null) }
@@ -135,26 +117,26 @@ class GitAuthController(
             set { copy(mode = GitAuthMode.Token, error = "GitHub sign-in isn't configured on this build — use an access token.") }
             return
         }
-        // Ignore taps while a sign-in is already in flight, otherwise each tap mints a fresh code and
-        // the user ends up authorizing a stale one that never completes.
-        if (current.busy || current.device != null || current.succeeded) return
+
+
+        if (current.isBusy || current.device != null || current.succeeded) return
         deviceJob?.cancel()
         deviceJob = scope.launch {
             authenticator.authenticate().collect { step ->
                 when (step) {
-                    GitHubDeviceAuthState.RequestingCode -> set { copy(busy = true, error = null, device = null, succeeded = false) }
+                    GitHubDeviceAuthState.RequestingCode -> set { copy(isBusy = true, error = null, device = null, succeeded = false) }
                     is GitHubDeviceAuthState.AwaitingAuthorization ->
-                        set { copy(busy = true, error = null, device = GitHubDeviceCodeUi(step.userCode, step.verificationUri)) }
+                        set { copy(isBusy = true, error = null, device = GitHubDeviceCodeUi(step.userCode, step.verificationUri)) }
                     is GitHubDeviceAuthState.Success -> onAuthorized()
-                    is GitHubDeviceAuthState.Error -> set { copy(busy = false, device = null, error = step.message) }
+                    is GitHubDeviceAuthState.Error -> set { copy(isBusy = false, device = null, error = step.message) }
                 }
             }
         }
     }
 
     override fun onDismissAuthPrompt() {
-        // If the user taps "Done" on the success screen before the auto-close fires, still run the
-        // pending git operation (e.g. the fetch that triggered the prompt).
+
+
         if (current.succeeded) {
             closeAndRetry()
             return
@@ -164,11 +146,10 @@ class GitAuthController(
         set { GitAuthPromptState(gitHubAvailable = authenticator.isConfigured) }
     }
 
-    /** GitHub approved the sign-in: show a brief "Connected" confirmation, then close and retry. */
     private fun onAuthorized() {
         deviceJob?.cancel()
         deviceJob = null
-        set { copy(busy = false, device = null, succeeded = true, error = null) }
+        set { copy(isBusy = false, device = null, succeeded = true, error = null) }
         closeJob?.cancel()
         closeJob = scope.launch {
             delay(1100)
@@ -197,7 +178,6 @@ class GitAuthController(
     }
 }
 
-/** The unified git auth dialog: GitHub account sign-in and/or a personal access token. */
 @Composable
 fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
     if (!state.visible) return
@@ -209,7 +189,7 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
     val confirmLabel = when {
         state.succeeded -> "Done"
         state.mode == GitAuthMode.Token -> "Save & retry"
-        state.busy || state.device != null -> "Waiting…"
+        state.isBusy || state.device != null -> "Waiting…"
         else -> "Sign in"
     }
     AslDialog(
@@ -222,8 +202,8 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
             when {
                 state.succeeded -> actions.onDismissAuthPrompt()
                 state.mode == GitAuthMode.Token -> actions.onSubmitAuthToken()
-                // While a code is showing / polling, the confirm button is a no-op (see controller)
-                // so repeated taps don't mint new codes.
+
+
                 else -> actions.onStartGitHubSignIn()
             }
         },

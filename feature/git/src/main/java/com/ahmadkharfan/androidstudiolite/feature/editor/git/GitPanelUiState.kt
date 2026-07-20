@@ -42,14 +42,14 @@ data class GitPanelUiState(
     val selectedDiffTarget: GitDiffTarget = GitDiffTarget.INDEX_TO_WORKTREE,
     val diffLines: List<GitDiffLineUiModel> = emptyList(),
     val commitMessage: String = "",
-    val committing: Boolean = false,
+    val isCommitting: Boolean = false,
     val authorDialogVisible: Boolean = false,
     val authorName: String = "",
     val authorEmail: String = "",
     val ahead: Int? = null,
     val behind: Int? = null,
-    val syncing: Boolean = false,
-    val busy: Boolean = false,
+    val isSyncing: Boolean = false,
+    val isBusy: Boolean = false,
     val operationLabel: String? = null,
     val operationProgress: Float? = null,
     val operationCancellable: Boolean = false,
@@ -64,7 +64,6 @@ data class GitPanelUiState(
     val remoteUrl: String = "",
     val remoteNameError: String? = null,
     val remoteUrlError: String? = null,
-    /** Shown before/after a remote op needs auth: collect a GitHub sign-in or token, then retry. */
     val authPrompt: GitAuthPromptState = GitAuthPromptState(),
     val pendingRemoteRemoval: String? = null,
     val statusMessage: String? = null,
@@ -79,22 +78,15 @@ data class GitPanelUiState(
     val bootstrapVisible: Boolean = false,
     val bootstrapInitialCommit: Boolean = true,
     val bootstrapMessage: String = "Initial commit",
-    /** Paths the user has ticked for a bulk stage/unstage/revert. Pruned to the live change set. */
     val selectedPaths: Set<String> = emptySet(),
 ) {
     val hasChanges: Boolean get() =
         conflicts.isNotEmpty() || stagedChanges.isNotEmpty() ||
             unstagedChanges.isNotEmpty() || untrackedChanges.isNotEmpty()
-    /**
-     * Commit is allowed when there's a message, no conflicts and something to commit. "Something" is
-     * any staged change, or — for convenience — any unstaged/untracked change (the panel auto-stages
-     * the selected files, or all changes when none are ticked, right before committing).
-     */
     val canCommit: Boolean get() = commitMessage.isNotBlank() && conflicts.isEmpty() &&
         (stagedChanges.isNotEmpty() || unstagedChanges.isNotEmpty() || untrackedChanges.isNotEmpty()) &&
-        !committing && !busy
+        !isCommitting && !isBusy
 
-    /** Distinct paths across every section (a path may be both staged and modified). */
     val allChangePaths: Set<String> get() =
         buildSet {
             stagedChanges.forEach { add(it.path) }
@@ -109,10 +101,9 @@ data class GitPanelUiState(
     val selectionCount: Int get() = selectedPaths.size
     val hasSelection: Boolean get() = selectedPaths.isNotEmpty()
     val allSelected: Boolean get() = allChangePaths.isNotEmpty() && selectedPaths.containsAll(allChangePaths)
-    /** Selection actions are only offered when they can act on at least one selected file. */
-    val canStageSelection: Boolean get() = !busy && selectedPaths.any { it in unstagedOrUntrackedPaths }
-    val canUnstageSelection: Boolean get() = !busy && selectedPaths.any { it in stagedPaths }
-    val canRevertSelection: Boolean get() = !busy && selectedPaths.any { it in revertablePaths }
+    val canStageSelection: Boolean get() = !isBusy && selectedPaths.any { it in unstagedOrUntrackedPaths }
+    val canUnstageSelection: Boolean get() = !isBusy && selectedPaths.any { it in stagedPaths }
+    val canRevertSelection: Boolean get() = !isBusy && selectedPaths.any { it in revertablePaths }
     fun revertableSelection(): List<String> = selectedPaths.filter { it in revertablePaths }
 }
 

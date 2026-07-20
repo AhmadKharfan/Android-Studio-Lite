@@ -19,7 +19,7 @@ class GitConflictViewModel(
     projectId: String,
     projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-) : BaseViewModel<GitConflictUiState, Nothing>(GitConflictUiState()) {
+) : BaseViewModel<GitConflictUiState, Nothing>(GitConflictUiState()), GitConflictInteractionListener {
     private var root: File? = null
 
     init {
@@ -40,10 +40,10 @@ class GitConflictViewModel(
         )
     }
 
-    fun acceptOurs(path: String) = mutate { gitRepository.resolveAcceptOurs(requireRoot(), path) }
-    fun acceptTheirs(path: String) = mutate { gitRepository.resolveAcceptTheirs(requireRoot(), path) }
+    override fun acceptOurs(path: String) = mutate { gitRepository.resolveAcceptOurs(requireRoot(), path) }
+    override fun acceptTheirs(path: String) = mutate { gitRepository.resolveAcceptTheirs(requireRoot(), path) }
 
-    fun markResolved(path: String, allowMarkers: Boolean = false) {
+    override fun markResolved(path: String, allowMarkers: Boolean) {
         val entry = state.value.entries.firstOrNull { it.path == path } ?: return
         if (!allowMarkers && entry.worktree.hasConflictMarkers()) {
             updateState { copy(markerOverridePath = path) }
@@ -53,7 +53,7 @@ class GitConflictViewModel(
         mutate { gitRepository.markResolved(requireRoot(), path) }
     }
 
-    fun dismissMarkerWarning() = updateState { copy(markerOverridePath = null) }
+    override fun dismissMarkerWarning() = updateState { copy(markerOverridePath = null) }
 
     private fun mutate(block: suspend () -> Unit) {
         updateState { copy(loading = true, error = null) }

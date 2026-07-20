@@ -27,7 +27,7 @@ class GitHistoryViewModel(
     requestedPath: String?,
     private val projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-) : BaseViewModel<GitHistoryUiState, Nothing>(GitHistoryUiState()) {
+) : BaseViewModel<GitHistoryUiState, Nothing>(GitHistoryUiState()), GitHistoryInteractionListener {
     private var repoDir: File? = null
     private var path: String? = null
     private val graphComputer = GitGraphLaneComputer()
@@ -48,13 +48,13 @@ class GitHistoryViewModel(
         )
     }
 
-    fun loadNext() {
+    override fun loadNext() {
         val cursor = state.value.nextCursor ?: return
         if (state.value.loading || state.value.loadingMore) return
         load(cursor)
     }
 
-    fun select(commitId: String) {
+    override fun select(commitId: String) {
         val root = repoDir ?: return
         tryToExecute(
             block = { gitRepository.commitDetails(root, commitId) },
@@ -63,9 +63,9 @@ class GitHistoryViewModel(
         )
     }
 
-    fun clearSelection() = updateState { copy(selected = null) }
+    override fun clearSelection() = updateState { copy(selected = null) }
 
-    fun deepen() {
+    override fun deepen() {
         val root = repoDir ?: return
         updateState { copy(loading = true, error = null) }
         tryToExecute(
@@ -75,7 +75,7 @@ class GitHistoryViewModel(
         )
     }
 
-    fun reset(commitId: String, mode: GitResetMode) {
+    override fun reset(commitId: String, mode: GitResetMode) {
         val root = repoDir ?: return
         updateState { copy(loading = true, error = null) }
         tryToExecute(
@@ -85,7 +85,7 @@ class GitHistoryViewModel(
         )
     }
 
-    fun toggleGraph() {
+    override fun toggleGraph() {
         graphExplicitlySelected = true
         updateState { copy(graphEnabled = !graphEnabled) }
     }

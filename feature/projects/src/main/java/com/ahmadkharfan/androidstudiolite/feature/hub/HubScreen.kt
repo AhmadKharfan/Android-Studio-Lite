@@ -80,7 +80,7 @@ fun HubRoute(
 
     LaunchedEffect(pickedFolder) {
         pickedFolder?.let { path ->
-            viewModel.handlePickedFolder(path)
+            viewModel.onFolderPicked(path)
             onPickedFolderConsumed()
         }
     }
@@ -110,27 +110,27 @@ fun HubRoute(
 
     HubSheetHost(
         uiState = uiState,
-        viewModel = viewModel,
+        interactionListener = viewModel,
         onOpenProject = onOpenProject,
         onCreateProject = onCreateProject,
         onBrowseFolder = onBrowseFolder,
     )
 
-    HubDialogHost(uiState = uiState, viewModel = viewModel, onBrowseFolder = onBrowseFolder)
+    HubDialogHost(uiState = uiState, interactionListener = viewModel, onBrowseFolder = onBrowseFolder)
 
-    HubProjectMenuHost(uiState = uiState, viewModel = viewModel, onOpenProject = onOpenProject)
+    HubProjectMenuHost(uiState = uiState, interactionListener = viewModel, onOpenProject = onOpenProject)
 }
 
 @Composable
 private fun HubProjectMenuHost(
     uiState: HubUiState,
-    viewModel: HubViewModel,
+    interactionListener: HubInteractionListener,
     onOpenProject: (String) -> Unit,
 ) {
     val colors = AslTheme.colors
     uiState.projectMenu?.let { project ->
         AslBottomSheet(
-            onDismiss = { viewModel.dismissProjectMenu() },
+            onDismiss = { interactionListener.onDismissProjectMenu() },
             title = project.name,
             size = AslBottomSheetSize.Peek,
         ) {
@@ -138,19 +138,19 @@ private fun HubProjectMenuHost(
                 AslListItem(
                     title = stringResource(R.string.hub_project_menu_open),
                     icon = "folder-open",
-                    onClick = { viewModel.dismissProjectMenu(); onOpenProject(project.id) },
+                    onClick = { interactionListener.onDismissProjectMenu(); onOpenProject(project.id) },
                 )
                 AslListItem(
                     title = stringResource(R.string.hub_project_menu_rename),
                     icon = "pencil",
-                    onClick = { viewModel.requestRenameProject() },
+                    onClick = { interactionListener.onRequestRenameProject() },
                 )
                 AslListItem(
                     title = stringResource(R.string.hub_project_menu_delete),
                     icon = "trash-2",
                     iconColor = colors.error,
                     divider = false,
-                    onClick = { viewModel.requestDeleteProject() },
+                    onClick = { interactionListener.onRequestDeleteProject() },
                 )
             }
         }
@@ -160,22 +160,22 @@ private fun HubProjectMenuHost(
 @Composable
 private fun HubSheetHost(
     uiState: HubUiState,
-    viewModel: HubViewModel,
+    interactionListener: HubInteractionListener,
     onOpenProject: (String) -> Unit,
     onCreateProject: () -> Unit,
     onBrowseFolder: () -> Unit,
 ) {
     when (uiState.sheet) {
         HubSheetUiState.OpenProject -> OpenProjectRoute(
-            onDismiss = { viewModel.dismissSheet() },
-            onProjectSelected = { id -> viewModel.dismissSheet(); onOpenProject(id) },
-            onBrowseOtherLocation = { viewModel.dismissSheet(); onBrowseFolder() },
-            onCreateProject = { viewModel.dismissSheet(); onCreateProject() },
-            onCloneRepository = { viewModel.onCloneRepository() },
+            onDismiss = { interactionListener.onDismissSheet() },
+            onProjectSelected = { id -> interactionListener.onDismissSheet(); onOpenProject(id) },
+            onBrowseOtherLocation = { interactionListener.onDismissSheet(); onBrowseFolder() },
+            onCreateProject = { interactionListener.onDismissSheet(); onCreateProject() },
+            onCloneRepository = { interactionListener.onCloneRepository() },
         )
         HubSheetUiState.CloneRepo -> CloneRepoRoute(
-            onDismiss = { viewModel.dismissSheet() },
-            onCloned = { id -> viewModel.dismissSheet(); onOpenProject(id) },
+            onDismiss = { interactionListener.onDismissSheet() },
+            onCloned = { id -> interactionListener.onDismissSheet(); onOpenProject(id) },
         )
         HubSheetUiState.None -> Unit
     }
@@ -184,7 +184,7 @@ private fun HubSheetHost(
 @Composable
 private fun HubDialogHost(
     uiState: HubUiState,
-    viewModel: HubViewModel,
+    interactionListener: HubInteractionListener,
     onBrowseFolder: () -> Unit,
 ) {
     when (val dialog = uiState.dialog) {
@@ -193,26 +193,26 @@ private fun HubDialogHost(
             body = "${dialog.projectName}\n${dialog.path}",
             confirmLabel = stringResource(R.string.action_open),
             cancelLabel = stringResource(R.string.action_not_now),
-            onConfirm = { viewModel.confirmResumeDialog() },
-            onDismiss = { viewModel.dismissResumeDialog() },
+            onConfirm = { interactionListener.onConfirmResumeDialog() },
+            onDismiss = { interactionListener.onDismissResumeDialog() },
         )
         is HubDialogUiState.InvalidFolder -> AslDialog(
             title = stringResource(R.string.hub_dialog_invalid_folder_title),
             body = stringResource(R.string.hub_dialog_invalid_folder_body, dialog.path),
             confirmLabel = stringResource(R.string.action_choose_another),
             cancelLabel = stringResource(R.string.action_cancel),
-            onConfirm = { viewModel.confirmInvalidFolderDialog(onReopenPicker = onBrowseFolder) },
-            onDismiss = { viewModel.dismissInvalidFolderDialog() },
+            onConfirm = { interactionListener.onConfirmInvalidFolderDialog(onReopenPicker = onBrowseFolder) },
+            onDismiss = { interactionListener.onDismissInvalidFolderDialog() },
         )
         is HubDialogUiState.RenameProject -> {
             var name by remember(dialog.id) { mutableStateOf(dialog.currentName) }
             AslDialog(
                 title = stringResource(R.string.hub_rename_project_title),
-                onDismiss = { viewModel.dismissProjectDialog() },
+                onDismiss = { interactionListener.onDismissProjectDialog() },
                 variant = AslDialogVariant.Input,
                 confirmLabel = stringResource(R.string.action_rename),
                 cancelLabel = stringResource(R.string.action_cancel),
-                onConfirm = { viewModel.confirmRenameProject(name) },
+                onConfirm = { interactionListener.onConfirmRenameProject(name) },
                 inputContent = {
                     AslTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.hub_rename_project_label))
                 },
@@ -224,8 +224,8 @@ private fun HubDialogHost(
             variant = AslDialogVariant.Confirm,
             confirmLabel = stringResource(R.string.action_delete),
             cancelLabel = stringResource(R.string.action_cancel),
-            onConfirm = { viewModel.confirmDeleteProject() },
-            onDismiss = { viewModel.dismissProjectDialog() },
+            onConfirm = { interactionListener.onConfirmDeleteProject() },
+            onDismiss = { interactionListener.onDismissProjectDialog() },
         )
         HubDialogUiState.None -> Unit
     }
@@ -320,8 +320,8 @@ private fun HubResumeBanner(
     uiState: HubUiState,
     interactionListener: HubInteractionListener,
 ) {
-    // Animate the resume banner in/out; retain the last project so its name stays rendered
-    // while the banner collapses away after dismissal.
+
+
     val resume = uiState.resumeProject
     var lastResume by remember { mutableStateOf(resume) }
     if (resume != null) lastResume = resume

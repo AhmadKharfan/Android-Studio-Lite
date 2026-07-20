@@ -51,21 +51,21 @@ class HubViewModel(
         updateState { copy(projectMenu = project) }
     }
 
-    fun dismissProjectMenu() {
+    override fun onDismissProjectMenu() {
         updateState { copy(projectMenu = null) }
     }
 
-    fun requestRenameProject() {
+    override fun onRequestRenameProject() {
         val project = state.value.projectMenu ?: return
         updateState { copy(projectMenu = null, dialog = HubDialogUiState.RenameProject(project.id, project.name)) }
     }
 
-    fun requestDeleteProject() {
+    override fun onRequestDeleteProject() {
         val project = state.value.projectMenu ?: return
         updateState { copy(projectMenu = null, dialog = HubDialogUiState.DeleteProject(project.id, project.name)) }
     }
 
-    fun confirmRenameProject(newName: String) {
+    override fun onConfirmRenameProject(newName: String) {
         val dialog = state.value.dialog as? HubDialogUiState.RenameProject ?: return
         val trimmed = newName.trim()
         updateState { copy(dialog = HubDialogUiState.None) }
@@ -73,13 +73,13 @@ class HubViewModel(
         viewModelScope.launch { runCatching { projectRepository.renameProject(dialog.id, trimmed) } }
     }
 
-    fun confirmDeleteProject() {
+    override fun onConfirmDeleteProject() {
         val dialog = state.value.dialog as? HubDialogUiState.DeleteProject ?: return
         updateState { copy(dialog = HubDialogUiState.None) }
         viewModelScope.launch { runCatching { projectRepository.deleteProject(dialog.id) } }
     }
 
-    fun dismissProjectDialog() {
+    override fun onDismissProjectDialog() {
         updateState { copy(dialog = HubDialogUiState.None) }
     }
 
@@ -108,11 +108,11 @@ class HubViewModel(
         emitEffect(HubEffect.NavigateToPreferences)
     }
 
-    fun dismissSheet() {
+    override fun onDismissSheet() {
         updateState { copy(sheet = HubSheetUiState.None) }
     }
 
-    fun confirmResumeDialog() {
+    override fun onConfirmResumeDialog() {
         val dialog = state.value.dialog
         if (dialog is HubDialogUiState.ResumeProject) {
             emitEffect(HubEffect.NavigateToProject(dialog.projectId))
@@ -120,12 +120,11 @@ class HubViewModel(
         showNextDialog(state.value.resumeProject)
     }
 
-    fun dismissResumeDialog() {
+    override fun onDismissResumeDialog() {
         showNextDialog(state.value.resumeProject)
     }
 
-    /** Validates a folder picked via [com.ahmadkharfan.androidstudiolite.feature.folderpicker] against known project paths. */
-    fun handlePickedFolder(path: String) {
+    override fun onFolderPicked(path: String) {
         val leafName = path.substringAfterLast('/')
         val match = state.value.recentProjects.firstOrNull { it.path.substringAfterLast('/') == leafName }
         if (match != null) {
@@ -135,16 +134,15 @@ class HubViewModel(
         }
     }
 
-    fun dismissInvalidFolderDialog() {
+    override fun onDismissInvalidFolderDialog() {
         updateState { copy(dialog = HubDialogUiState.None) }
     }
 
-    fun confirmInvalidFolderDialog(onReopenPicker: () -> Unit) {
+    override fun onConfirmInvalidFolderDialog(onReopenPicker: () -> Unit) {
         updateState { copy(dialog = HubDialogUiState.None) }
         onReopenPicker()
     }
 
-    /** Shows the resume dialog once, if there's a resume candidate. */
     private fun showNextDialog(resume: HubProjectUiModel?) {
         val next = if (resume != null && !resumeDialogShown) {
             resumeDialogShown = true

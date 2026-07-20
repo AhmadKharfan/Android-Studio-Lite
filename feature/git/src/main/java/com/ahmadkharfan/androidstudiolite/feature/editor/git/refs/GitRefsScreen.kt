@@ -59,12 +59,16 @@ fun GitRefsRoute(
     onBack: () -> Unit,
     viewModel: GitRefsViewModel = koinViewModel { parametersOf(projectId, mode) },
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    GitRefsScreen(state, viewModel, onBack)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    GitRefsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
-private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, onBack: () -> Unit) {
+private fun GitRefsScreen(
+    uiState: GitRefsUiState,
+    interactionListener: GitRefsInteractionListener,
+    onBack: () -> Unit,
+) {
     var createOpen by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
@@ -75,7 +79,7 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
     var deleteTag by remember { mutableStateOf<GitTag?>(null) }
     var dropStash by remember { mutableStateOf<GitStash?>(null) }
     var popStash by remember { mutableStateOf<GitStash?>(null) }
-    val title = when (state.mode) {
+    val title = when (uiState.mode) {
         GitRefsMode.BRANCHES -> "Branches"
         GitRefsMode.TAGS -> "Tags"
         GitRefsMode.STASHES -> "Stashes"
@@ -87,55 +91,55 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
                 onBack = onBack,
                 applyStatusBarInset = true,
                 actions = {
-                    if (state.mode == GitRefsMode.TAGS && state.tags.isNotEmpty()) {
+                    if (uiState.mode == GitRefsMode.TAGS && uiState.tags.isNotEmpty()) {
                         AslButton(
                             label = "Push all",
-                            onClick = viewModel::pushAllTags,
+                            onClick = interactionListener::pushAllTags,
                             variant = AslButtonVariant.Tertiary,
-                            disabled = state.loading,
+                            disabled = uiState.loading,
                         )
                     }
                     AslButton(
-                        label = when (state.mode) {
+                        label = when (uiState.mode) {
                             GitRefsMode.STASHES -> "Stash changes"
                             GitRefsMode.BRANCHES -> "New branch"
                             GitRefsMode.TAGS -> "New"
                         },
                         onClick = { name = ""; message = ""; createOpen = true },
                         variant = AslButtonVariant.Tertiary,
-                        disabled = state.loading,
+                        disabled = uiState.loading,
                     )
                 },
             )
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (state.error != null) {
+            if (uiState.error != null) {
                 Text(
-                    state.error,
+                    uiState.error,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            if (state.loading) AslLinearProgress(label = "Updating $title", modifier = Modifier.padding(12.dp))
-            when (state.mode) {
+            if (uiState.loading) AslLinearProgress(label = "Updating $title", modifier = Modifier.padding(12.dp))
+            when (uiState.mode) {
                 GitRefsMode.BRANCHES -> BranchList(
-                    state = state,
-                    viewModel = viewModel,
+                    state = uiState,
+                    interactionListener = interactionListener,
                     onRename = { branch -> name = branch.name; rename = branch },
                     onDelete = { deleteBranch = it },
                     onMerge = { mergeBranch = it },
                 )
-                GitRefsMode.TAGS -> TagList(state.tags, viewModel, { deleteTag = it })
-                GitRefsMode.STASHES -> StashList(state.stashes, viewModel, { popStash = it }, { dropStash = it })
+                GitRefsMode.TAGS -> TagList(uiState.tags, interactionListener, { deleteTag = it })
+                GitRefsMode.STASHES -> StashList(uiState.stashes, interactionListener, { popStash = it }, { dropStash = it })
             }
         }
     }
 
     if (createOpen) {
         AslDialog(
-            title = when (state.mode) {
+            title = when (uiState.mode) {
                 GitRefsMode.BRANCHES -> "Create branch"
                 GitRefsMode.TAGS -> "Create tag"
                 GitRefsMode.STASHES -> "Stash changes"
@@ -145,18 +149,18 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
             cancelLabel = "Cancel",
             onDismiss = { createOpen = false },
             onConfirm = {
-                when (state.mode) {
-                    GitRefsMode.BRANCHES -> viewModel.createBranch(name)
-                    GitRefsMode.TAGS -> viewModel.createTag(name, message)
-                    GitRefsMode.STASHES -> viewModel.createStash(message, includeUntracked)
+                when (uiState.mode) {
+                    GitRefsMode.BRANCHES -> interactionListener.createBranch(name)
+                    GitRefsMode.TAGS -> interactionListener.createTag(name, message)
+                    GitRefsMode.STASHES -> interactionListener.createStash(message, includeUntracked)
                 }
                 createOpen = false
             },
             inputContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (state.mode != GitRefsMode.STASHES) AslTextField(name, { name = it }, label = "Name")
-                    if (state.mode != GitRefsMode.BRANCHES) AslTextField(message, { message = it }, label = "Message")
-                    if (state.mode == GitRefsMode.STASHES) {
+                    if (uiState.mode != GitRefsMode.STASHES) AslTextField(name, { name = it }, label = "Name")
+                    if (uiState.mode != GitRefsMode.BRANCHES) AslTextField(message, { message = it }, label = "Message")
+                    if (uiState.mode == GitRefsMode.STASHES) {
                         AslCheckbox(includeUntracked, { includeUntracked = it }, label = "Include untracked files")
                     }
                 }
@@ -170,7 +174,7 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
             confirmLabel = "Rename",
             cancelLabel = "Cancel",
             onDismiss = { rename = null },
-            onConfirm = { viewModel.renameBranch(branch.name, name); rename = null },
+            onConfirm = { interactionListener.renameBranch(branch.name, name); rename = null },
             inputContent = { AslTextField(name, { name = it }, label = "New name") },
         )
     }
@@ -178,7 +182,7 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
         ConfirmDelete(
             title = "Delete ${branch.name}?",
             body = "The branch ref will be removed. Commits not reachable elsewhere may eventually be lost.",
-            confirm = { viewModel.deleteBranch(branch.name); deleteBranch = null },
+            confirm = { interactionListener.deleteBranch(branch.name); deleteBranch = null },
             dismiss = { deleteBranch = null },
         )
     }
@@ -190,23 +194,23 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
             confirmLabel = "Merge",
             cancelLabel = "Cancel",
             onDismiss = { mergeBranch = null },
-            onConfirm = { viewModel.merge(branch.name); mergeBranch = null },
+            onConfirm = { interactionListener.merge(branch.name); mergeBranch = null },
         )
     }
-    state.forceDeleteCandidate?.let { branch ->
+    uiState.forceDeleteCandidate?.let { branch ->
         ConfirmDelete(
             title = "Force delete $branch?",
             body = "This branch contains commits not merged into the current branch.",
-            confirm = { viewModel.deleteBranch(branch, force = true) },
-            dismiss = viewModel::dismissForceDelete,
+            confirm = { interactionListener.deleteBranch(branch, force = true) },
+            dismiss = interactionListener::dismissForceDelete,
         )
     }
-    GitHubAuthDialog(state.authPrompt, viewModel)
+    GitHubAuthDialog(uiState.authPrompt, interactionListener)
     deleteTag?.let { tag ->
         ConfirmDelete(
             title = "Delete tag ${tag.name}?",
             body = "This deletes the local tag. A separately-pushed remote tag is unchanged.",
-            confirm = { viewModel.deleteTag(tag.name); deleteTag = null },
+            confirm = { interactionListener.deleteTag(tag.name); deleteTag = null },
             dismiss = { deleteTag = null },
         )
     }
@@ -218,14 +222,14 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
             confirmLabel = "Pop",
             cancelLabel = "Cancel",
             onDismiss = { popStash = null },
-            onConfirm = { viewModel.popStash(stash.index); popStash = null },
+            onConfirm = { interactionListener.popStash(stash.index); popStash = null },
         )
     }
     dropStash?.let { stash ->
         ConfirmDelete(
             title = "Drop stash@{${stash.index}}?",
             body = "This permanently removes the stashed changes.",
-            confirm = { viewModel.dropStash(stash.index); dropStash = null },
+            confirm = { interactionListener.dropStash(stash.index); dropStash = null },
             dismiss = { dropStash = null },
         )
     }
@@ -234,7 +238,7 @@ private fun GitRefsScreen(state: GitRefsUiState, viewModel: GitRefsViewModel, on
 @Composable
 private fun BranchList(
     state: GitRefsUiState,
-    viewModel: GitRefsViewModel,
+    interactionListener: GitRefsInteractionListener,
     onRename: (GitBranch) -> Unit,
     onDelete: (GitBranch) -> Unit,
     onMerge: (GitBranch) -> Unit,
@@ -245,13 +249,13 @@ private fun BranchList(
     LaunchedEffect(state.syncMessage) {
         if (state.syncMessage != null) {
             delay(4000)
-            viewModel.dismissSyncMessage()
+            interactionListener.dismissSyncMessage()
         }
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Fetch/pull/push for the current branch live here (not the compact Changes toolbar), plus
-        // ahead/behind at a glance — this screen is the one-stop place for branch + sync actions.
+
+
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 state.behind?.takeIf { it > 0 }?.let { AslChip(label = "↓$it", kind = AslChipKind.Status, status = AslChipStatus.Info) }
@@ -264,11 +268,11 @@ private fun BranchList(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                AslIconButton(icon = "refresh-cw", contentDescription = "Fetch", onClick = viewModel::fetch, size = 32.dp, iconSize = 16.dp, disabled = state.syncing)
-                AslIconButton(icon = "download", contentDescription = "Pull (merge)", onClick = { viewModel.pull(PullMode.MERGE) }, size = 32.dp, iconSize = 16.dp, disabled = state.syncing)
-                AslIconButton(icon = "upload", contentDescription = "Push", onClick = viewModel::push, size = 32.dp, iconSize = 16.dp, disabled = state.syncing)
+                AslIconButton(icon = "refresh-cw", contentDescription = "Fetch", onClick = interactionListener::fetch, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
+                AslIconButton(icon = "download", contentDescription = "Pull (merge)", onClick = { interactionListener.pull(PullMode.MERGE) }, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
+                AslIconButton(icon = "upload", contentDescription = "Push", onClick = interactionListener::push, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
             }
-            if (state.syncing) AslLinearProgress(modifier = Modifier.padding(top = 6.dp))
+            if (state.isSyncing) AslLinearProgress(modifier = Modifier.padding(top = 6.dp))
             AslTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -305,7 +309,7 @@ private fun BranchList(
                         ),
                     ) { label ->
                         when (label) {
-                            "Publish" -> viewModel.publish(branch.name)
+                            "Publish" -> interactionListener.publish(branch.name)
                             "Rename" -> onRename(branch)
                         }
                     }
@@ -326,9 +330,9 @@ private fun BranchList(
                         ),
                     ) { label ->
                         when (label) {
-                            "Checkout" -> viewModel.checkout(branch)
+                            "Checkout" -> interactionListener.checkout(branch)
                             "Merge into current" -> onMerge(branch)
-                            "Publish" -> viewModel.publish(branch.name)
+                            "Publish" -> interactionListener.publish(branch.name)
                             "Rename" -> onRename(branch)
                             "Delete" -> onDelete(branch)
                         }
@@ -341,7 +345,7 @@ private fun BranchList(
                     BranchActionRow(
                         branch = branch,
                         entries = listOf(AslOverflowMenuEntry.Item("Checkout", icon = "git-branch")),
-                    ) { label -> if (label == "Checkout") viewModel.checkout(branch) }
+                    ) { label -> if (label == "Checkout") interactionListener.checkout(branch) }
                 }
             }
         }
@@ -358,8 +362,6 @@ private fun SectionLabel(text: String) {
     )
 }
 
-/** One branch row: name + current/ahead badge, and a kebab menu instead of an always-visible button
- *  row — keeps rows compact and matches Android Studio's "select, then act" branch list. */
 @Composable
 private fun BranchActionRow(
     branch: GitBranch,
@@ -378,12 +380,12 @@ private fun BranchActionRow(
 }
 
 @Composable
-private fun TagList(tags: List<GitTag>, viewModel: GitRefsViewModel, onDelete: (GitTag) -> Unit) {
+private fun TagList(tags: List<GitTag>, interactionListener: GitRefsInteractionListener, onDelete: (GitTag) -> Unit) {
     if (tags.isEmpty()) return AslEmptyState("No tags", modifier = Modifier.fillMaxSize(), icon = "tag")
     LazyColumn(Modifier.fillMaxSize()) {
         items(tags, key = { it.name }) { tag ->
             RefRow(tag.name, if (tag.annotated) tag.message ?: "Annotated" else "Lightweight") {
-                AslButton("Push", { viewModel.pushTag(tag.name) }, variant = AslButtonVariant.Tertiary)
+                AslButton("Push", { interactionListener.pushTag(tag.name) }, variant = AslButtonVariant.Tertiary)
                 AslButton("Delete", { onDelete(tag) }, variant = AslButtonVariant.Tertiary)
             }
         }
@@ -393,7 +395,7 @@ private fun TagList(tags: List<GitTag>, viewModel: GitRefsViewModel, onDelete: (
 @Composable
 private fun StashList(
     stashes: List<GitStash>,
-    viewModel: GitRefsViewModel,
+    interactionListener: GitRefsInteractionListener,
     onPop: (GitStash) -> Unit,
     onDrop: (GitStash) -> Unit,
 ) {
@@ -401,7 +403,7 @@ private fun StashList(
     LazyColumn(Modifier.fillMaxSize()) {
         items(stashes, key = { it.id }) { stash ->
             RefRow("stash@{${stash.index}}", stash.message) {
-                AslButton("Apply", { viewModel.applyStash(stash.index) }, variant = AslButtonVariant.Tertiary)
+                AslButton("Apply", { interactionListener.applyStash(stash.index) }, variant = AslButtonVariant.Tertiary)
                 AslButton("Pop", { onPop(stash) }, variant = AslButtonVariant.Tertiary)
                 AslButton("Drop", { onDrop(stash) }, variant = AslButtonVariant.Tertiary)
             }

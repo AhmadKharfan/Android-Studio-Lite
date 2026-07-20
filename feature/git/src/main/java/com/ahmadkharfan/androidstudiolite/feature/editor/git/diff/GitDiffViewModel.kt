@@ -25,7 +25,7 @@ class GitDiffViewModel(
     private val commitId: String?,
     private val projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-) : BaseViewModel<GitDiffUiState, Nothing>(GitDiffUiState(path, target)) {
+) : BaseViewModel<GitDiffUiState, Nothing>(GitDiffUiState(path, target)), GitDiffInteractionListener {
 
     private var repoDir: File? = null
 
@@ -40,13 +40,13 @@ class GitDiffViewModel(
         )
     }
 
-    fun setSideBySide(enabled: Boolean) = updateState { copy(sideBySide = enabled) }
+    override fun setSideBySide(enabled: Boolean) = updateState { copy(sideBySide = enabled) }
 
-    fun showAnyway() = load(force = true)
+    override fun showAnyway() = load(force = true)
 
-    fun stage(hunk: GitDiffHunk) = updateHunk(hunk, unstage = false)
+    override fun stage(hunk: GitDiffHunk) = updateHunk(hunk, unstage = false)
 
-    fun unstage(hunk: GitDiffHunk) = updateHunk(hunk, unstage = true)
+    override fun unstage(hunk: GitDiffHunk) = updateHunk(hunk, unstage = true)
 
     private fun updateHunk(hunk: GitDiffHunk, unstage: Boolean) {
         val root = repoDir ?: return

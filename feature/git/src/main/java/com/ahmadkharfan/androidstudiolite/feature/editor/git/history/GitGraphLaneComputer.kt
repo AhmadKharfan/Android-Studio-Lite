@@ -17,7 +17,6 @@ data class GitGraphRow(
 
 data class GitGraphPage(val rows: List<GitGraphRow>, val nextCursor: GitGraphCursor)
 
-/** Assigns stable, bounded graph lanes while carrying unresolved parents between history pages. */
 class GitGraphLaneComputer(private val maxLanes: Int = 8) {
     init { require(maxLanes >= 2) }
 

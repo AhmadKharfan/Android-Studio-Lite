@@ -14,7 +14,6 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptActions
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptState
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
@@ -30,9 +29,8 @@ data class GitRefsUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val forceDeleteCandidate: String? = null,
-    /** Result banner for the current-branch sync actions (fetch/pull/push/merge); auto-dismissed. */
     val syncMessage: String? = null,
-    val syncing: Boolean = false,
+    val isSyncing: Boolean = false,
     val ahead: Int? = null,
     val behind: Int? = null,
     val authPrompt: GitAuthPromptState = GitAuthPromptState(),
@@ -47,7 +45,7 @@ class GitRefsViewModel(
     private val authenticator: GitHubDeviceAuthenticator,
 ) : BaseViewModel<GitRefsUiState, Nothing>(
     GitRefsUiState(mode, authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
-), GitAuthPromptActions {
+), GitRefsInteractionListener {
     private data class LoadedRefs(
         val branches: List<GitBranch> = emptyList(),
         val tags: List<GitTag> = emptyList(),
@@ -105,18 +103,18 @@ class GitRefsViewModel(
         )
     }
 
-    fun checkout(branch: GitBranch) = runMutation {
+    override fun checkout(branch: GitBranch) = runMutation {
         if (branch.isRemote) gitRepository.checkoutRemoteBranch(requireRoot(), branch.name)
         else gitRepository.checkout(requireRoot(), branch.name)
     }
 
-    fun createBranch(name: String) = runMutation { gitRepository.createBranch(requireRoot(), name.trim()) }
+    override fun createBranch(name: String) = runMutation { gitRepository.createBranch(requireRoot(), name.trim()) }
 
-    fun renameBranch(oldName: String, newName: String) = runMutation {
+    override fun renameBranch(oldName: String, newName: String) = runMutation {
         gitRepository.renameBranch(requireRoot(), oldName, newName.trim())
     }
 
-    fun deleteBranch(name: String, force: Boolean = false) = runMutation(
+    override fun deleteBranch(name: String, force: Boolean) = runMutation(
         block = { gitRepository.deleteBranch(requireRoot(), name, force) },
         onError = { error ->
             updateState {
@@ -129,14 +127,13 @@ class GitRefsViewModel(
         },
     )
 
-    fun dismissForceDelete() = updateState { copy(forceDeleteCandidate = null) }
+    override fun dismissForceDelete() = updateState { copy(forceDeleteCandidate = null) }
 
-    fun publish(name: String) {
+    override fun publish(name: String) {
         ensureRemoteAuth { syncOp(retry = { publish(name) }) { gitRepository.publishBranch(requireRoot(), name).detail } }
     }
 
-    /** Merges [name] into the current branch. Conflicts leave the working tree for the Changes panel. */
-    fun merge(name: String) {
+    override fun merge(name: String) {
         updateState { copy(loading = true, error = null, syncMessage = null) }
         tryToExecute(
             block = { gitRepository.merge(requireRoot(), name) },
@@ -148,39 +145,34 @@ class GitRefsViewModel(
         )
     }
 
-    fun fetch() {
+    override fun fetch() {
         ensureRemoteAuth { syncOp(retry = ::fetch) { gitRepository.fetch(requireRoot()).detail } }
     }
 
-    fun pull(mode: PullMode) {
+    override fun pull(mode: PullMode) {
         ensureRemoteAuth { syncOp(retry = { pull(mode) }) { gitRepository.pull(requireRoot(), mode).detail } }
     }
 
-    fun push() {
+    override fun push() {
         ensureRemoteAuth { syncOp(retry = ::push) { gitRepository.push(requireRoot()).detail } }
     }
 
-    /** Runs a network sync, re-prompting for credentials (then retrying) when it fails auth. */
     private fun syncOp(retry: () -> Unit, block: suspend () -> String) {
-        if (state.value.syncing) return
-        updateState { copy(syncing = true, error = null, syncMessage = null) }
+        if (state.value.isSyncing) return
+        updateState { copy(isSyncing = true, error = null, syncMessage = null) }
         tryToExecute(
             block = block,
-            onSuccess = { detail -> updateState { copy(syncing = false, syncMessage = detail) }; refresh() },
+            onSuccess = { detail -> updateState { copy(isSyncing = false, syncMessage = detail) }; refresh() },
             onError = { error ->
-                updateState { copy(syncing = false) }
+                updateState { copy(isSyncing = false) }
                 if (error is GitException.Auth) promptForAuth(retry)
                 else updateState { copy(error = gitErrorMessage(error)) }
             },
         )
     }
 
-    /**
-     * Requires GitHub credentials before any remote op. When the origin host has no stored token the
-     * auth prompt opens first, retrying [run] once signed in; a local/file remote runs immediately.
-     */
     private fun ensureRemoteAuth(run: () -> Unit) {
-        if (state.value.syncing) return
+        if (state.value.isSyncing) return
         tryToExecute(
             block = { resolveRemoteHost() },
             onSuccess = { host ->
@@ -211,31 +203,31 @@ class GitRefsViewModel(
     override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
     override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
 
-    fun dismissSyncMessage() = updateState { copy(syncMessage = null) }
+    override fun dismissSyncMessage() = updateState { copy(syncMessage = null) }
 
-    fun createTag(name: String, message: String?) = runMutation {
+    override fun createTag(name: String, message: String?) = runMutation {
         gitRepository.createTag(requireRoot(), name.trim(), message?.takeIf { it.isNotBlank() })
     }
 
-    fun deleteTag(name: String) = runMutation { gitRepository.deleteTag(requireRoot(), name) }
+    override fun deleteTag(name: String) = runMutation { gitRepository.deleteTag(requireRoot(), name) }
 
-    fun pushTag(name: String) = ensureRemoteAuth {
+    override fun pushTag(name: String) = ensureRemoteAuth {
         runMutation { gitRepository.pushTag(requireRoot(), name) }
     }
 
-    fun pushAllTags() = ensureRemoteAuth {
+    override fun pushAllTags() = ensureRemoteAuth {
         runMutation { gitRepository.pushAllTags(requireRoot()) }
     }
 
-    fun createStash(message: String?, includeUntracked: Boolean) = runMutation {
+    override fun createStash(message: String?, includeUntracked: Boolean) = runMutation {
         gitRepository.stashCreate(requireRoot(), message?.takeIf { it.isNotBlank() }, includeUntracked)
     }
 
-    fun applyStash(index: Int) = runMutation { gitRepository.stashApply(requireRoot(), index) }
+    override fun applyStash(index: Int) = runMutation { gitRepository.stashApply(requireRoot(), index) }
 
-    fun popStash(index: Int) = runMutation { gitRepository.stashPop(requireRoot(), index) }
+    override fun popStash(index: Int) = runMutation { gitRepository.stashPop(requireRoot(), index) }
 
-    fun dropStash(index: Int) = runMutation { gitRepository.stashDrop(requireRoot(), index) }
+    override fun dropStash(index: Int) = runMutation { gitRepository.stashDrop(requireRoot(), index) }
 
     private fun runMutation(
         onError: (Throwable) -> Unit = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },

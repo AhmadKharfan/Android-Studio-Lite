@@ -74,20 +74,17 @@ fun GitDiffRoute(
     onBack: () -> Unit,
     viewModel: GitDiffViewModel = koinViewModel { parametersOf(projectId, path, target, commitId.orEmpty()) },
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    GitDiffScreen(state, onBack, viewModel::setSideBySide, viewModel::showAnyway, viewModel::stage, viewModel::unstage)
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    GitDiffScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
 @Composable
 private fun GitDiffScreen(
-    state: GitDiffUiState,
+    uiState: GitDiffUiState,
+    interactionListener: GitDiffInteractionListener,
     onBack: () -> Unit,
-    onLayoutChanged: (Boolean) -> Unit,
-    onShowAnyway: () -> Unit,
-    onStage: (GitDiffHunk) -> Unit,
-    onUnstage: (GitDiffHunk) -> Unit,
 ) {
-    // Let the narrow diff be rotated to landscape for more width (the file paths/lines are wide).
+
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     var landscape by rememberSaveable { mutableStateOf(false) }
@@ -102,8 +99,8 @@ private fun GitDiffScreen(
     Scaffold(
         topBar = {
             AslTopAppBar(
-                title = state.path.substringAfterLast('/'),
-                subtitle = state.path.middleEllipsis(),
+                title = uiState.path.substringAfterLast('/'),
+                subtitle = uiState.path.middleEllipsis(),
                 onBack = onBack,
                 applyStatusBarInset = true,
                 actions = {
@@ -127,41 +124,41 @@ private fun GitDiffScreen(
                         AslSegmentedOption("Unified", "unified", icon = "align-left"),
                         AslSegmentedOption("Side-by-side", "split", icon = "layout"),
                     ),
-                    value = if (state.sideBySide) "split" else "unified",
-                    onValueChange = { onLayoutChanged(it == "split") },
+                    value = if (uiState.sideBySide) "split" else "unified",
+                    onValueChange = { interactionListener.setSideBySide(it == "split") },
                 )
             }
             HorizontalDivider()
             when {
-                state.loading -> AslLinearProgress(label = "Computing diff", modifier = Modifier.padding(16.dp))
-                state.error != null -> AslEmptyState(
+                uiState.loading -> AslLinearProgress(label = "Computing diff", modifier = Modifier.padding(16.dp))
+                uiState.error != null -> AslEmptyState(
                     title = "Couldn't show diff",
                     icon = "triangle-alert",
-                    subtitle = state.error,
+                    subtitle = uiState.error,
                     modifier = Modifier.fillMaxSize(),
                 )
-                state.diff?.isBinary == true -> AslEmptyState(
+                uiState.diff?.isBinary == true -> AslEmptyState(
                     title = "Binary file",
                     icon = "file",
                     subtitle = "Binary content cannot be displayed or partially staged.",
                     modifier = Modifier.fillMaxSize(),
                 )
-                state.diff?.tooLarge == true -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
+                uiState.diff?.tooLarge == true -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
                     AslEmptyState(
                         title = "Diff is large",
                         icon = "triangle-alert",
                         subtitle = "Files over 512 KiB or 20,000 lines are hidden to keep the editor responsive.",
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    AslButton("Show anyway", onShowAnyway, modifier = Modifier.padding(16.dp))
+                    AslButton("Show anyway", interactionListener::showAnyway, modifier = Modifier.padding(16.dp))
                 }
-                state.diff?.hunks?.isEmpty() == true -> AslEmptyState(
+                uiState.diff?.hunks?.isEmpty() == true -> AslEmptyState(
                     title = "No differences",
                     icon = "check",
                     subtitle = "This side of the file matches its Git comparison target.",
                     modifier = Modifier.fillMaxSize(),
                 )
-                state.diff != null -> DiffContent(state, onStage, onUnstage)
+                uiState.diff != null -> DiffContent(uiState, interactionListener::stage, interactionListener::unstage)
             }
         }
     }
@@ -181,12 +178,6 @@ private fun ColumnScope.DiffContent(
     }
 }
 
-/**
- * Unified diff as a single block: it scrolls vertically as a whole and pans horizontally as one
- * piece (all code lines share [hScroll], sized to the widest line so dragging anywhere moves the
- * entire block). Hunk headers stay full-width and pinned to the viewport so their stage/unstage
- * buttons remain reachable regardless of horizontal scroll.
- */
 @Composable
 private fun ColumnScope.UnifiedDiff(
     diff: com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff,
@@ -214,8 +205,8 @@ private fun ColumnScope.UnifiedDiff(
                 onUnstage = onUnstage,
                 modifier = Modifier.onGloballyPositioned { headerOffsets[index] = it.boundsInParent().top.toInt() },
             )
-            // Same shared horizontal scroll for every hunk block so the whole diff pans as one piece;
-            // width(IntrinsicSize.Max) sizes the block to its widest line so short lines drag too.
+
+
             Column(Modifier.horizontalScroll(hScroll).width(IntrinsicSize.Max)) {
                 hunk.lines.forEach { line ->
                     AslDiffLine(
@@ -231,11 +222,6 @@ private fun ColumnScope.UnifiedDiff(
     }
 }
 
-/**
- * Side-by-side diff. Each pane pans horizontally as one piece (all its cells share one scroll, sized
- * to the widest line) and both panes scroll vertically together inside the shared outer scroll. Hunk
- * headers stay full-width and pinned so their stage/unstage buttons remain reachable.
- */
 @Composable
 private fun ColumnScope.SideBySideDiff(
     diff: com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff,
@@ -259,7 +245,6 @@ private fun ColumnScope.SideBySideDiff(
     }
 }
 
-/** One column of a side-by-side hunk: a half-width viewport whose content pans horizontally. */
 @Composable
 private fun DiffPaneColumn(
     cells: List<GitDiffLine?>,
@@ -384,7 +369,6 @@ private fun GitDiffKind.toUiKind() = when (this) {
     GitDiffKind.CONTEXT -> AslDiffKind.Context
 }
 
-/** Next/previous hunk header pixel offset relative to the current vertical scroll position. */
 private fun targetOffset(offsets: Map<Int, Int>, current: Int, next: Boolean): Int? {
     val sorted = offsets.values.sorted()
     return if (next) sorted.firstOrNull { it > current + 1 } else sorted.lastOrNull { it < current - 1 }

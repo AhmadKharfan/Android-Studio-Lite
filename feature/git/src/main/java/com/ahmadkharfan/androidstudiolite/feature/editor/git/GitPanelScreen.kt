@@ -115,8 +115,8 @@ private fun GitPanelScreen(
     onOpenStashes: () -> Unit,
     onOpenConflicts: () -> Unit,
 ) {
-    // Inside a sub-view (Remotes/Submodules) the header icon means "back to changes", not "close the
-    // drawer" — show a back arrow there so it isn't mistaken for exiting Git entirely.
+
+
     val inSubView = uiState.remotesVisible || uiState.submodulesVisible
     AslToolWindowPanel(
         title = when {
@@ -141,7 +141,7 @@ private fun GitPanelScreen(
                     onClick = onOpenBranches,
                     size = 32.dp,
                     iconSize = 16.dp,
-                    disabled = uiState.busy,
+                    disabled = uiState.isBusy,
                 )
                 GitActionsOverflowMenu(
                     uiState = uiState,
@@ -173,8 +173,8 @@ private fun GitPanelScreen(
             SubmodulesView(uiState, interactionListener)
             return@AslToolWindowPanel
         }
-        // Slide between the changes list (master) and a file's diff (detail); each pane keeps its own
-        // state through the animation so going back doesn't flash an empty, already-cleared diff.
+
+
         AslSlideContent(
             targetState = uiState,
             contentKey = { it.selectedPath != null },
@@ -280,7 +280,7 @@ private fun GitChangesHeader(
         }
     }
     val statusText = uiState.operationLabel ?: uiState.statusMessage
-    if (statusText != null || uiState.busy) {
+    if (statusText != null || uiState.isBusy) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp)) {
             if (statusText != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -303,7 +303,7 @@ private fun GitChangesHeader(
                     }
                 }
             }
-            if (uiState.busy) {
+            if (uiState.isBusy) {
                 AslLinearProgress(value = uiState.operationProgress, modifier = Modifier.padding(top = 4.dp, end = 4.dp))
             }
         }
@@ -331,7 +331,7 @@ private fun GitChangesHeader(
                         label = "Stage",
                         icon = "plus",
                         kind = AslChipKind.Filter,
-                        disabled = uiState.busy,
+                        disabled = uiState.isBusy,
                         onClick = interactionListener::onStageSelected,
                     )
                 }
@@ -340,7 +340,7 @@ private fun GitChangesHeader(
                         label = "Unstage",
                         icon = "minus",
                         kind = AslChipKind.Filter,
-                        disabled = uiState.busy,
+                        disabled = uiState.isBusy,
                         onClick = interactionListener::onUnstageSelected,
                     )
                 }
@@ -349,7 +349,7 @@ private fun GitChangesHeader(
                         label = "Revert",
                         icon = "rotate-ccw",
                         kind = AslChipKind.Filter,
-                        disabled = uiState.busy,
+                        disabled = uiState.isBusy,
                         onClick = interactionListener::onRevertSelected,
                     )
                 }
@@ -357,7 +357,7 @@ private fun GitChangesHeader(
                     label = "Clear",
                     icon = "x",
                     kind = AslChipKind.Assist,
-                    disabled = uiState.busy,
+                    disabled = uiState.isBusy,
                     onClick = interactionListener::onClearSelection,
                 )
             } else {
@@ -379,7 +379,7 @@ private fun GitChangesHeader(
                         label = "Select",
                         icon = "circle-check",
                         kind = AslChipKind.Filter,
-                        disabled = uiState.busy,
+                        disabled = uiState.isBusy,
                         onClick = interactionListener::onSelectAllChanges,
                     )
                 }
@@ -398,19 +398,19 @@ private fun GitActionsOverflowMenu(
 ) {
     AslOverflowMenu(
         items = listOf(
-            AslOverflowMenuEntry.Item("Push", icon = "upload", disabled = uiState.busy),
-            AslOverflowMenuEntry.Item("Fetch", icon = "refresh-cw", disabled = uiState.busy),
-            AslOverflowMenuEntry.Item("Pull (merge)", icon = "download", disabled = uiState.busy),
-            AslOverflowMenuEntry.Item("Pull (rebase)", icon = "download", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Push", icon = "upload", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item("Fetch", icon = "refresh-cw", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item("Pull (merge)", icon = "download", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item("Pull (rebase)", icon = "download", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Git author", icon = "user", disabled = uiState.busy),
-            AslOverflowMenuEntry.Item("Remotes", icon = "globe", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Git author", icon = "user", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item("Remotes", icon = "globe", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Commit history", icon = "history", disabled = uiState.busy),
-            AslOverflowMenuEntry.Item("Stashes", icon = "package", disabled = uiState.busy),
+            AslOverflowMenuEntry.Item("Commit history", icon = "history", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item("Stashes", icon = "package", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Clean untracked files", icon = "trash-2", disabled = uiState.busy, destructive = true),
-            AslOverflowMenuEntry.Item("Force push (with lease)", icon = "upload", disabled = uiState.busy, destructive = true),
+            AslOverflowMenuEntry.Item("Clean untracked files", icon = "trash-2", disabled = uiState.isBusy, destructive = true),
+            AslOverflowMenuEntry.Item("Force push (with lease)", icon = "upload", disabled = uiState.isBusy, destructive = true),
         ),
         onSelect = { item, _ ->
             when (item.label) {
@@ -455,13 +455,13 @@ private fun SubmodulesView(
                 label = "Init",
                 onClick = interactionListener::onInitSubmodules,
                 variant = AslButtonVariant.Secondary,
-                disabled = uiState.busy,
+                disabled = uiState.isBusy,
                 modifier = Modifier.weight(1f),
             )
             AslButton(
                 label = "Update",
                 onClick = interactionListener::onUpdateSubmodules,
-                disabled = uiState.busy,
+                disabled = uiState.isBusy,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -534,10 +534,10 @@ private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPa
             color = MaterialTheme.colorScheme.error,
         )
         if (uiState.repositoryState == GitRepositoryState.REBASING) {
-            AslButton("Continue", interactionListener::onContinueOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.busy)
+            AslButton("Continue", interactionListener::onContinueOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
         }
         if (uiState.repositoryState != GitRepositoryState.BISECTING) {
-            AslButton("Abort", interactionListener::onRequestAbortOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.busy)
+            AslButton("Abort", interactionListener::onRequestAbortOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
         }
     }
 }
@@ -643,7 +643,7 @@ private fun GitChangeSection(
     SectionHeader(
         title = title,
         count = changes.size,
-        onToggleSection = if (uiState.busy) null else {
+        onToggleSection = if (uiState.isBusy) null else {
             { select -> interactionListener.onToggleSectionSelect(paths, select) }
         },
         sectionSelected = allSelected,
@@ -660,7 +660,7 @@ private fun GitChangeSection(
                 AslCheckbox(
                     checked = checked,
                     onCheckedChange = { interactionListener.onToggleSelect(change.path) },
-                    disabled = uiState.busy,
+                    disabled = uiState.isBusy,
                 )
             },
             trailing = { GitStatusBadge(change.status) },
@@ -739,15 +739,15 @@ private fun GitCommitBox(
             onValueChange = { interactionListener.onCommitMessageChanged(it) },
             placeholder = "Commit message",
         )
-        // Stacked, full-width actions: at the panel's ~280dp width a side-by-side pair forces
-        // "Commit & push" onto two lines. Commit is the primary action; push-too is secondary below it.
+
+
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             AslButton(
                 label = "Commit",
                 onClick = { interactionListener.onCommit() },
                 icon = "git-commit",
                 modifier = Modifier.fillMaxWidth(),
-                loading = uiState.committing,
+                loading = uiState.isCommitting,
                 disabled = !uiState.canCommit,
             )
             AslButton(
@@ -811,7 +811,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                 icon = "plus",
                 onClick = interactionListener::onAddRemote,
                 variant = AslButtonVariant.Tertiary,
-                disabled = uiState.busy,
+                disabled = uiState.isBusy,
             )
         }
         HorizontalDivider(color = AslTheme.colors.borderSubtle)
@@ -840,7 +840,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                                     onClick = { interactionListener.onEditRemote(remote.name) },
                                     size = 28.dp,
                                     iconSize = 14.dp,
-                                    disabled = uiState.busy,
+                                    disabled = uiState.isBusy,
                                 )
                                 AslIconButton(
                                     icon = "trash-2",
@@ -848,7 +848,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                                     onClick = { interactionListener.onRequestRemoveRemote(remote.name) },
                                     size = 28.dp,
                                     iconSize = 14.dp,
-                                    disabled = uiState.busy,
+                                    disabled = uiState.isBusy,
                                 )
                             }
                         },
@@ -871,8 +871,8 @@ private fun RemoteEditorDialog(uiState: GitPanelUiState, interactionListener: Gi
         onConfirm = interactionListener::onSaveRemote,
         inputContent = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Adding always creates/updates "origin" — only the URL. Credentials are collected
-                // separately (on push/pull or in Settings → Git & GitHub) and stored per host.
+
+
                 AslTextField(
                     value = uiState.remoteUrl,
                     onValueChange = interactionListener::onRemoteUrlChanged,
@@ -916,8 +916,8 @@ private fun DiffView(
             )
         }
         HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-        // Both-direction scroll: the whole code block pans horizontally as one piece (shared
-        // horizontal scroll, sized to the widest line) and scrolls vertically as usual.
+
+
         val vScroll = rememberScrollState()
         val hScroll = rememberScrollState()
         Column(modifier = Modifier.weight(1f).verticalScroll(vScroll)) {

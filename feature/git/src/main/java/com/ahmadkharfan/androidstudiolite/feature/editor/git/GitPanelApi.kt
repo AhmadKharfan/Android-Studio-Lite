@@ -3,7 +3,6 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git
 import androidx.compose.runtime.Composable
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 
-/** Public editor integration point for the Git feature panel. */
 interface GitPanelApi {
     @Composable
     fun Panel(

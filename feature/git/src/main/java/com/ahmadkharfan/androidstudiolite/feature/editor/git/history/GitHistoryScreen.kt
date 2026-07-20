@@ -61,35 +61,25 @@ fun GitHistoryRoute(
     path: String?,
     onBack: () -> Unit,
     onOpenDiff: (path: String, commitId: String) -> Unit,
-    // Pass a non-null path (empty = full history); Koin's parametersOf must not carry a null, and the
-    // factory reads it as a String.
+
+
     viewModel: GitHistoryViewModel = koinViewModel { parametersOf(projectId, path.orEmpty()) },
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
     GitHistoryScreen(
-        state = state,
+        uiState = uiState,
+        interactionListener = viewModel,
         onBack = onBack,
-        onLoadNext = viewModel::loadNext,
-        onSelect = viewModel::select,
-        onCloseDetails = viewModel::clearSelection,
-        onDeepen = viewModel::deepen,
         onOpenDiff = onOpenDiff,
-        onReset = viewModel::reset,
-        onToggleGraph = viewModel::toggleGraph,
     )
 }
 
 @Composable
 private fun GitHistoryScreen(
-    state: GitHistoryUiState,
+    uiState: GitHistoryUiState,
+    interactionListener: GitHistoryInteractionListener,
     onBack: () -> Unit,
-    onLoadNext: () -> Unit,
-    onSelect: (String) -> Unit,
-    onCloseDetails: () -> Unit,
-    onDeepen: () -> Unit,
     onOpenDiff: (String, String) -> Unit,
-    onReset: (String, GitResetMode) -> Unit,
-    onToggleGraph: () -> Unit,
 ) {
     var resetCommit by remember { mutableStateOf<String?>(null) }
     var resetMode by remember { mutableStateOf(GitResetMode.MIXED) }
@@ -97,15 +87,15 @@ private fun GitHistoryScreen(
     Scaffold(
         topBar = {
             AslTopAppBar(
-                title = if (state.path == null) "Git history" else "File history",
-                subtitle = state.path?.middleEllipsis(),
-                onBack = if (state.selected == null) onBack else onCloseDetails,
+                title = if (uiState.path == null) "Git history" else "File history",
+                subtitle = uiState.path?.middleEllipsis(),
+                onBack = if (uiState.selected == null) onBack else interactionListener::clearSelection,
                 applyStatusBarInset = true,
                 actions = {
-                    if (state.selected == null && state.path == null) {
+                    if (uiState.selected == null && uiState.path == null) {
                         AslButton(
-                            label = if (state.graphEnabled) "Graph on" else "Graph off",
-                            onClick = onToggleGraph,
+                            label = if (uiState.graphEnabled) "Graph on" else "Graph off",
+                            onClick = interactionListener::toggleGraph,
                             variant = AslButtonVariant.Tertiary,
                         )
                     }
@@ -115,21 +105,21 @@ private fun GitHistoryScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.loading -> AslLinearProgress(label = "Loading history", modifier = Modifier.padding(16.dp))
-                state.error != null && state.commits.isEmpty() -> AslEmptyState(
+                uiState.loading -> AslLinearProgress(label = "Loading history", modifier = Modifier.padding(16.dp))
+                uiState.error != null && uiState.commits.isEmpty() -> AslEmptyState(
                     title = "Couldn't load history",
-                    subtitle = state.error,
+                    subtitle = uiState.error,
                     icon = "triangle-alert",
                     modifier = Modifier.fillMaxSize(),
                 )
-                state.selected != null -> CommitDetails(state.selected, onOpenDiff)
-                state.commits.isEmpty() -> AslEmptyState(
+                uiState.selected != null -> CommitDetails(uiState.selected, onOpenDiff)
+                uiState.commits.isEmpty() -> AslEmptyState(
                     title = "No commits",
                     subtitle = "Commit changes to start repository history.",
                     icon = "git-commit",
                     modifier = Modifier.fillMaxSize(),
                 )
-                else -> HistoryList(state, onLoadNext, onSelect, onDeepen, { commit ->
+                else -> HistoryList(uiState, interactionListener::loadNext, interactionListener::select, interactionListener::deepen, { commit ->
                     resetCommit = commit
                     resetMode = GitResetMode.MIXED
                     resetConfirmation = ""
@@ -152,7 +142,7 @@ private fun GitHistoryScreen(
             onDismiss = { resetCommit = null },
             onConfirm = {
                 if (resetMode != GitResetMode.HARD || resetConfirmation == "RESET") {
-                    onReset(commit, resetMode)
+                    interactionListener.reset(commit, resetMode)
                     resetCommit = null
                 }
             },
