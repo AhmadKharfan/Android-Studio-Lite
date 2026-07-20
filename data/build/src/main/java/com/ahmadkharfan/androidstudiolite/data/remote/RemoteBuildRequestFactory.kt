@@ -76,7 +76,10 @@ internal object RemoteBuildRequestFactory {
      * Covers bare `release` and flavored names like `developmentRelease` / `paidRelease`.
      */
     fun isReleaseVariant(variantName: String): Boolean =
-        com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.isReleaseVariant(variantName)
+        variantName.trim().let { name ->
+            name.equals("release", ignoreCase = true) ||
+                (!name.contains("debug", ignoreCase = true) && name.endsWith("release", ignoreCase = true))
+        }
 
     /**
      * The release-signing payload for [config], or null when there's no usable release keystore (the

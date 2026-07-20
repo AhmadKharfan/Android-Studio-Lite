@@ -1,8 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.data.gradle.parse
 
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlNode
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlNodeType
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlParser
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlNode
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlNodeType
+import com.ahmadkharfan.androidstudiolite.core.xml.XmlParser
 
 /** The bits of an `AndroidManifest.xml` that matter for static project understanding. */
 data class ManifestInfo(
