@@ -56,6 +56,8 @@ import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.SupportAgent
 import androidx.compose.material.icons.outlined.ToggleOff
 import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material.icons.outlined.VolunteerActivism
+import androidx.compose.material.icons.outlined.CallMerge
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Code
@@ -178,6 +180,8 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "type" to Icons.Outlined.TextFields,
     "gem" to Icons.Outlined.Diamond,
     "github" to Icons.Outlined.Code,
+    "heart-handshake" to Icons.Outlined.VolunteerActivism,
+    "git-pull-request" to Icons.Outlined.CallMerge,
     "arrow-up-right" to Icons.Outlined.NorthEast,
     "mail" to Icons.Outlined.Mail,
     "align-left" to Icons.AutoMirrored.Outlined.FormatAlignLeft,
