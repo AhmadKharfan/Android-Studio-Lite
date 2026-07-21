@@ -29,11 +29,8 @@ class PtyProcess private constructor(
     fun destroy() {
         if (closed) return
         closed = true
-        try {
-            NativePty.nativeDestroy(master.fd, pid)
-        } finally {
-            runCatching { master.close() }
-        }
+        val fd = runCatching { master.detachFd() }.getOrDefault(-1)
+        NativePty.nativeDestroy(fd, pid)
     }
 
     companion object {

@@ -146,8 +146,8 @@ class ProotEnvironment(private val context: Context) {
     fun areBootstrapPackagesInstalled(): Boolean =
         packagesBootstrappedMarker.exists() || File(rootfsDir, "usr/bin/git").exists()
 
-    fun runGuestCommand(script: String): Int {
-        if (!isInstalled()) return -1
+    fun runGuestCommand(script: String): GuestCommandResult {
+        if (!isInstalled()) return GuestCommandResult(exitCode = -1, output = "")
         prepareRuntime()
         val argv = shellCommand(null).toMutableList().apply {
             add("-c")
@@ -158,8 +158,10 @@ class ProotEnvironment(private val context: Context) {
         environment().forEach { (key, value) -> pb.environment()[key] = value }
         pb.redirectErrorStream(true)
         return pb.start().let { process ->
-            process.inputStream.use { it.readBytes() }
-            process.waitFor()
+            val output = process.inputStream.use { it.readBytes() }.toString(Charsets.UTF_8)
+            GuestCommandResult(exitCode = process.waitFor(), output = output)
         }
     }
 }
+
+data class GuestCommandResult(val exitCode: Int, val output: String)

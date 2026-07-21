@@ -134,10 +134,22 @@ class LinuxBootstrapInstaller(
 
     private fun bootstrapPackages() {
         _state.value = LinuxInstallState.BootstrappingPackages
-        val exit = proot.runGuestCommand(LinuxBootstrapPackages.apkInstallScript())
-        if (exit != 0) {
+        val result = proot.runGuestCommand(LinuxBootstrapPackages.apkInstallScript())
+        if (result.exitCode != 0) {
+            android.util.Log.w(
+                "LinuxBootstrap",
+                "apk bootstrap failed (exit ${result.exitCode})\n${result.output.trim().takeLast(4000)}",
+            )
+            val detail = result.output.lineSequence()
+                .map { it.trim() }
+                .lastOrNull { it.isNotEmpty() }
+                ?.take(200)
+                .orEmpty()
             throw IllegalStateException(
-                "Couldn't install terminal tools (exit $exit). Check your internet and try again.",
+                buildString {
+                    append("Couldn't install terminal tools (exit ${result.exitCode}). Check your internet and try again.")
+                    if (detail.isNotEmpty()) append("\n").append(detail)
+                },
             )
         }
         proot.packagesBootstrappedMarker.writeText("ok")
