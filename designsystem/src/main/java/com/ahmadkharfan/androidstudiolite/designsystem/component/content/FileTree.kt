@@ -1,11 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.content
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -22,22 +17,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalDensity
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
@@ -45,8 +44,9 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import androidx.compose.material3.MaterialTheme
 
 enum class AslGitStatus(val letter: String) { Modified("M"), Added("A"), Deleted("D"), Untracked("?"), Conflicted("!") }
 
@@ -54,12 +54,19 @@ enum class AslFileTreeAction {
     NewFile, NewFolder, Rename, Copy, Paste, Delete, ShowHistory, Blame, AddToGitignore,
 }
 
+@Immutable
 data class AslFileTreeNode(
     val id: String,
     val name: String,
     val children: List<AslFileTreeNode>? = null,
     val icon: String? = null,
     val git: AslGitStatus? = null,
+)
+
+@Immutable
+private data class FlatTreeRow(
+    val node: AslFileTreeNode,
+    val depth: Int,
 )
 
 @Composable
@@ -76,7 +83,16 @@ fun AslFileTree(
     onFocus: (AslFileTreeNode) -> Unit = {},
     onAction: (AslFileTreeNode, AslFileTreeAction) -> Unit = { _, _ -> },
 ) {
+    val latestOnToggle by rememberUpdatedState(onToggle)
+    val latestOnSelect by rememberUpdatedState(onSelect)
+    val latestOnFocus by rememberUpdatedState(onFocus)
+    val latestOnAction by rememberUpdatedState(onAction)
+    val handleToggle = remember { { id: String -> latestOnToggle(id) } }
+    val handleSelect = remember { { node: AslFileTreeNode -> latestOnSelect(node) } }
+    val handleFocus = remember { { node: AslFileTreeNode -> latestOnFocus(node) } }
+    val handleAction = remember { { node: AslFileTreeNode, action: AslFileTreeAction -> latestOnAction(node, action) } }
 
+    val flatRows = remember(items, expandedIds) { flattenVisibleRows(items, expandedIds) }
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val viewportWidth = maxWidth
@@ -87,21 +103,23 @@ fun AslFileTree(
                 .widthIn(min = treeWidth)
                 .padding(vertical = 4.dp),
         ) {
-            items.forEach { node ->
-                AslFileTreeRow(
-                    node = node,
-                    depth = 0,
-                    expandedIds = expandedIds,
-                    selectedId = selectedId,
-                    rowWidth = treeWidth,
-                    actionsEnabled = actionsEnabled,
-                    canPaste = canPaste,
-                    selectDirectories = selectDirectories,
-                    onToggle = onToggle,
-                    onSelect = onSelect,
-                    onFocus = onFocus,
-                    onAction = onAction,
-                )
+            flatRows.forEach { row ->
+                key(row.node.id) {
+                    AslFileTreeRow(
+                        node = row.node,
+                        depth = row.depth,
+                        expanded = row.node.id in expandedIds,
+                        selected = row.node.id == selectedId,
+                        rowWidth = treeWidth,
+                        actionsEnabled = actionsEnabled,
+                        canPaste = canPaste,
+                        selectDirectories = selectDirectories,
+                        onToggle = handleToggle,
+                        onSelect = handleSelect,
+                        onFocus = handleFocus,
+                        onAction = handleAction,
+                    )
+                }
             }
         }
     }
@@ -111,8 +129,8 @@ fun AslFileTree(
 private fun AslFileTreeRow(
     node: AslFileTreeNode,
     depth: Int,
-    expandedIds: Set<String>,
-    selectedId: String?,
+    expanded: Boolean,
+    selected: Boolean,
     rowWidth: Dp,
     actionsEnabled: Boolean,
     canPaste: Boolean,
@@ -124,8 +142,6 @@ private fun AslFileTreeRow(
 ) {
     val colors = AslTheme.colors
     val isDir = node.children != null
-    val expanded = node.id in expandedIds
-    val selected = node.id == selectedId
     val density = LocalDensity.current
     var menuOpen by remember { mutableStateOf(false) }
     var menuAnchor by remember { mutableStateOf(DpOffset.Zero) }
@@ -147,8 +163,11 @@ private fun AslFileTreeRow(
                     Modifier.pointerInput(node.id, actionsEnabled) {
                         detectTapGestures(
                             onTap = {
-                                onFocus(node)
-                                if (isDir) onToggle(node.id) else onSelect(node)
+                                if (isDir) {
+                                    onToggle(node.id)
+                                } else {
+                                    onSelect(node)
+                                }
                             },
                             onLongPress = if (actionsEnabled) {
                                 { position ->
@@ -206,7 +225,7 @@ private fun AslFileTreeRow(
             } else {
                 Box(modifier = Modifier.width(14.dp))
             }
-            androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(6.dp))
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -243,7 +262,7 @@ private fun AslFileTreeRow(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = node.git.letter,
-                        style = com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode.codeTiny,
+                        style = AslCode.codeTiny,
                         color = gitTint(node.git, colors),
                     )
                 }
@@ -269,32 +288,6 @@ private fun AslFileTreeRow(
             }
         }
     }
-    if (isDir) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(AslMotion.enterSpec()) + fadeIn(AslMotion.enterSpec()),
-            exit = shrinkVertically(AslMotion.exitSpec()) + fadeOut(AslMotion.exitSpec()),
-        ) {
-            Column {
-                node.children!!.forEach { child ->
-                    AslFileTreeRow(
-                        node = child,
-                        depth = depth + 1,
-                        expandedIds = expandedIds,
-                        selectedId = selectedId,
-                        rowWidth = rowWidth,
-                        actionsEnabled = actionsEnabled,
-                        canPaste = canPaste,
-                        selectDirectories = selectDirectories,
-                        onToggle = onToggle,
-                        onSelect = onSelect,
-                        onFocus = onFocus,
-                        onAction = onAction,
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -305,23 +298,38 @@ private fun AslFileTreeActionMenu(
     onDismiss: () -> Unit,
     onSelect: (AslFileTreeAction) -> Unit,
 ) {
+    val latestOnSelect by rememberUpdatedState(onSelect)
+    val dismiss = remember(onDismiss) { onDismiss }
     AslDropdownMenu(
         expanded = true,
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         offset = if (openUpward) DpOffset(0.dp, (-8).dp) else DpOffset.Zero,
     ) {
         if (isDirectory) {
-            AslDropdownMenuItem(label = "New file", icon = "file-plus-2", onClick = { onSelect(AslFileTreeAction.NewFile) })
-            AslDropdownMenuItem(label = "New folder", icon = "folder", onClick = { onSelect(AslFileTreeAction.NewFolder) })
+            AslDropdownMenuItem(label = "New file", icon = "file-plus-2", onClick = { latestOnSelect(AslFileTreeAction.NewFile) })
+            AslDropdownMenuItem(label = "New folder", icon = "folder", onClick = { latestOnSelect(AslFileTreeAction.NewFolder) })
             if (canPaste) {
-                AslDropdownMenuItem(label = "Paste", icon = "copy", onClick = { onSelect(AslFileTreeAction.Paste) })
+                AslDropdownMenuItem(label = "Paste", icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Paste) })
             }
             AslDropdownMenuDivider()
         }
-        AslDropdownMenuItem(label = "Rename", icon = "pencil", onClick = { onSelect(AslFileTreeAction.Rename) })
-        AslDropdownMenuItem(label = "Copy", icon = "copy", onClick = { onSelect(AslFileTreeAction.Copy) })
+        AslDropdownMenuItem(label = "Rename", icon = "pencil", onClick = { latestOnSelect(AslFileTreeAction.Rename) })
+        AslDropdownMenuItem(label = "Copy", icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Copy) })
         AslDropdownMenuDivider()
-        AslDropdownMenuItem(label = "Delete", icon = "trash-2", destructive = true, onClick = { onSelect(AslFileTreeAction.Delete) })
+        AslDropdownMenuItem(label = "Delete", icon = "trash-2", destructive = true, onClick = { latestOnSelect(AslFileTreeAction.Delete) })
+    }
+}
+
+private fun flattenVisibleRows(
+    items: List<AslFileTreeNode>,
+    expandedIds: Set<String>,
+    depth: Int = 0,
+): List<FlatTreeRow> = buildList {
+    items.forEach { node ->
+        add(FlatTreeRow(node, depth))
+        if (node.children != null && node.id in expandedIds) {
+            addAll(flattenVisibleRows(node.children, expandedIds, depth + 1))
+        }
     }
 }
 
@@ -346,7 +354,7 @@ private fun estimateTreeWidth(nodes: List<AslFileTreeNode>, depth: Int): Dp {
     return widest
 }
 
-private fun gitTint(status: AslGitStatus, colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme): Color = when (status) {
+private fun gitTint(status: AslGitStatus, colors: AslColorScheme): Color = when (status) {
     AslGitStatus.Modified -> colors.info
     AslGitStatus.Added -> colors.success
     AslGitStatus.Deleted -> colors.error
