@@ -60,6 +60,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropd
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
@@ -133,7 +134,6 @@ private fun AiAgentSettingsScreen(
                         )
                     }
                 }
-                AiAgentInstructionsField(uiState = uiState, interactionListener = interactionListener, colors = colors)
             }
         }
     }
@@ -196,6 +196,9 @@ private fun AiAgentProviderSection(
         ) { isExpanded ->
             if (isExpanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (provider.requiresBaseUrl) {
+                        AiAgentBaseUrlField(provider = provider, interactionListener = interactionListener, colors = colors)
+                    }
                     AslApiKeyCard(
                         provider = provider.name,
                         providerIcon = provider.icon,
@@ -317,55 +320,33 @@ private fun AiAgentModelPicker(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AiAgentInstructionsField(
-    uiState: AiAgentUiState,
+private fun AiAgentBaseUrlField(
+    provider: AiProviderUiModel,
     interactionListener: AiAgentInteractionListener,
     colors: AslColorScheme,
 ) {
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val scope = rememberCoroutineScope()
-    var draft by remember { mutableStateOf(uiState.instructions) }
-    var focused by remember { mutableStateOf(false) }
-    val commitChange by rememberUpdatedState(interactionListener::onInstructionsChanged)
-
-    LaunchedEffect(uiState.instructions) {
-        if (!focused) draft = uiState.instructions
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            if (focused) commitChange(draft)
-        }
-    }
-
-    Column {
-        Text(
-            text = stringResource(CommonR.string.ai_agent_instructions),
-            style = MaterialTheme.typography.labelMedium,
-            color = colors.textSecondary,
-            modifier = Modifier.padding(bottom = 6.dp),
-        )
-        BasicTextField(
+    var draft by remember(provider.baseUrl) { mutableStateOf(provider.baseUrl) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, AslShape.lg)
+            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .padding(16.dp),
+    ) {
+        AslTextField(
             value = draft,
             onValueChange = { draft = it },
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textSecondary),
-            cursorBrush = SolidColor(colors.accentPrimary),
-            modifier = Modifier
-                .fillMaxWidth()
-                .bringIntoViewRequester(bringIntoViewRequester)
-                .onFocusChanged {
-                    focused = it.isFocused
-                    if (it.isFocused) {
-                        scope.launch { bringIntoViewRequester.bringIntoView() }
-                    } else {
-                        commitChange(draft)
-                    }
+            label = stringResource(CommonR.string.ai_agent_base_url),
+            placeholder = stringResource(CommonR.string.ai_agent_base_url_placeholder),
+            helper = stringResource(CommonR.string.ai_agent_base_url_helper),
+            type = AslTextFieldType.Url,
+            modifier = Modifier.fillMaxWidth(),
+            onFocusChanged = { focused ->
+                if (!focused && draft.trim() != provider.baseUrl) {
+                    interactionListener.onBaseUrlChanged(provider.id, draft.trim())
                 }
-                .background(colors.bgElevated, AslShape.md)
-                .border(1.dp, colors.borderStrong, AslShape.md)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+            },
         )
     }
 }

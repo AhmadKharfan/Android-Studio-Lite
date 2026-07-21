@@ -18,7 +18,6 @@ class AiAgentViewModel(
                     copy(
                         enabled = settings.enabled,
                         providers = settings.providers.map { it.toUiModel() },
-                        instructions = settings.instructions,
                         autoApply = settings.autoApply,
                     )
                 }
@@ -41,16 +40,16 @@ class AiAgentViewModel(
         }
     }
 
-    override fun onInstructionsChanged(instructions: String) {
-        viewModelScope.launch { aiAgentRepository.setInstructions(instructions) }
-    }
-
     override fun onToggleAutoApply(enabled: Boolean) {
         viewModelScope.launch { aiAgentRepository.setAutoApply(enabled) }
     }
 
     override fun onModelChanged(providerId: String, model: String) {
         viewModelScope.launch { aiAgentRepository.setModel(providerId, model) }
+    }
+
+    override fun onBaseUrlChanged(providerId: String, url: String) {
+        viewModelScope.launch { aiAgentRepository.setBaseUrl(providerId, url) }
     }
 
     override fun onRefreshModels(providerId: String) {
@@ -68,5 +67,7 @@ class AiAgentViewModel(
         keyError = keyError,
         availableModels = availableModels,
         selectedModel = selectedModel,
+        baseUrl = baseUrl,
+        requiresBaseUrl = requiresBaseUrl,
     )
 }

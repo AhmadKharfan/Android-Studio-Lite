@@ -8,9 +8,12 @@ data class AiProviderDefinition(
     val featured: Boolean = false,
     val defaultModel: String,
     val curatedModels: List<String>,
+    val requiresBaseUrl: Boolean = false,
 )
 
 object AiProviderCatalog {
+    const val CUSTOM_ID = "custom"
+
     val all: List<AiProviderDefinition> = listOf(
         AiProviderDefinition(
             id = "anthropic",
@@ -59,6 +62,15 @@ object AiProviderCatalog {
             description = "xAI API",
             defaultModel = "grok-2-latest",
             curatedModels = listOf("grok-2-latest", "grok-beta"),
+        ),
+        AiProviderDefinition(
+            id = CUSTOM_ID,
+            name = "Custom",
+            icon = "server",
+            description = "OpenAI-compatible endpoint",
+            defaultModel = "",
+            curatedModels = emptyList(),
+            requiresBaseUrl = true,
         ),
     )
 

@@ -91,6 +91,9 @@
     <string name="ai_agent_enable">Enable AI Agent</string>
     <string name="ai_agent_auto_apply">Auto-apply changes (no confirmation)</string>
     <string name="ai_agent_instructions">Instructions</string>
+    <string name="ai_agent_base_url">Base URL</string>
+    <string name="ai_agent_base_url_placeholder">https://api.example.com</string>
+    <string name="ai_agent_base_url_helper">OpenAI-compatible endpoint. We append /v1/chat/completions.</string>
     <string name="ai_chat_title">AI Agent</string>
     <string name="ai_chat_input_hint">Ask the AI agent…</string>
     <string name="ai_chat_send">Send</string>
@@ -155,8 +158,6 @@
     <string name="about_open_source_title">Open source</string>
     <string name="about_open_source_body">Android Studio Lite is free software, built in the open. Star the repo, file an issue, or open a pull request. Every contribution helps.</string>
     <string name="about_contribute">Contribute on GitHub</string>
-    <string name="about_license">Free software · GPLv3 license</string>
-
     <!-- Onboarding -->
     <string name="onboarding_welcome_title">Welcome to\nAndroid Studio Lite</string>
     <string name="onboarding_welcome_subtitle">Build real Android apps from your device.</string>

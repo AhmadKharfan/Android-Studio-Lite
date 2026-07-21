@@ -13,6 +13,8 @@ data class AiProviderConfig(
     val keyError: String? = null,
     val availableModels: List<String> = emptyList(),
     val selectedModel: String = "",
+    val baseUrl: String = "",
+    val requiresBaseUrl: Boolean = false,
 )
 
 data class AiAgentSettings(

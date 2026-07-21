@@ -13,6 +13,8 @@ interface AiAgentRepository {
 
     suspend fun setModel(providerId: String, model: String)
 
+    suspend fun setBaseUrl(providerId: String, url: String)
+
     suspend fun setActiveProvider(providerId: String)
 
     suspend fun refreshModels(providerId: String)

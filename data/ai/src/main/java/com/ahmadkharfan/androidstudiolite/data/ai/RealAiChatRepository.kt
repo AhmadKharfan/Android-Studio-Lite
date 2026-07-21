@@ -494,7 +494,14 @@ class RealAiChatRepository(
 
         val raw = runCatching {
             withContext(Dispatchers.IO) {
-                gateway.chatRawStream(provider.id, apiKey, model, system, turns) { delta ->
+                gateway.chatRawStream(
+                    provider.id,
+                    apiKey,
+                    model,
+                    system,
+                    turns,
+                    provider.baseUrl.takeIf { it.isNotBlank() },
+                ) { delta ->
                     extractor.feed(delta)
                 }
             }

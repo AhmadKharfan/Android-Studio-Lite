@@ -15,12 +15,13 @@ data class AiProviderUiModel(
     val keyError: String? = null,
     val availableModels: List<String> = emptyList(),
     val selectedModel: String = "",
+    val baseUrl: String = "",
+    val requiresBaseUrl: Boolean = false,
 )
 
 @Immutable
 data class AiAgentUiState(
     val enabled: Boolean = true,
     val providers: List<AiProviderUiModel> = emptyList(),
-    val instructions: String = "",
     val autoApply: Boolean = false,
 )

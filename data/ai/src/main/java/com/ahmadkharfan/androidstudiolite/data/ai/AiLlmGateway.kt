@@ -27,12 +27,13 @@ class AiLlmGateway(
     private val httpClient: OkHttpClient = defaultClient(),
 ) {
 
-    fun testKey(providerId: String, apiKey: String) {
+    fun testKey(providerId: String, apiKey: String, baseUrl: String? = null) {
         require(apiKey.isNotBlank()) { "API key is empty" }
         when (providerId) {
             "anthropic" -> anthropicTest(apiKey)
             "gemini" -> geminiTest(apiKey)
-            "openai", "deepseek", "grok" -> openAiCompatTest(providerId, apiKey)
+            "openai", "deepseek", "grok", AiProviderCatalog.CUSTOM_ID ->
+                openAiCompatTest(providerId, apiKey, baseUrl)
             else -> throw AiLlmException("Unknown provider: $providerId")
         }
     }
@@ -55,13 +56,15 @@ class AiLlmGateway(
         model: String,
         systemPrompt: String,
         turns: List<LlmChatTurn>,
+        baseUrl: String? = null,
     ): String {
         require(apiKey.isNotBlank()) { "API key is empty" }
         val resolvedModel = model.ifBlank { AiProviderCatalog.defaultModel(providerId) }
         return when (providerId) {
             "anthropic" -> anthropicChat(apiKey, resolvedModel, systemPrompt, turns)
             "gemini" -> geminiChat(apiKey, resolvedModel, systemPrompt, turns)
-            "openai", "deepseek", "grok" -> openAiCompatChat(providerId, apiKey, resolvedModel, systemPrompt, turns)
+            "openai", "deepseek", "grok", AiProviderCatalog.CUSTOM_ID ->
+                openAiCompatChat(providerId, apiKey, resolvedModel, systemPrompt, turns, baseUrl)
             else -> throw AiLlmException("Unknown provider: $providerId")
         }
     }
@@ -72,6 +75,7 @@ class AiLlmGateway(
         model: String,
         systemPrompt: String,
         turns: List<LlmChatTurn>,
+        baseUrl: String? = null,
         onDelta: (String) -> Unit,
     ): String {
         require(apiKey.isNotBlank()) { "API key is empty" }
@@ -87,15 +91,15 @@ class AiLlmGateway(
             when (providerId) {
                 "anthropic" -> anthropicStream(apiKey, resolvedModel, systemPrompt, turns, emit)
                 "gemini" -> geminiStream(apiKey, resolvedModel, systemPrompt, turns, emit)
-                "openai", "deepseek", "grok" ->
-                    openAiCompatStream(providerId, apiKey, resolvedModel, systemPrompt, turns, emit)
+                "openai", "deepseek", "grok", AiProviderCatalog.CUSTOM_ID ->
+                    openAiCompatStream(providerId, apiKey, resolvedModel, systemPrompt, turns, emit, baseUrl)
                 else -> throw AiLlmException("Unknown provider: $providerId")
             }
         } catch (e: Exception) {
             AiAgentLog.w("Stream", "streaming error provider=$providerId accumulated=${accumulated.length}", e)
 
             if (accumulated.isEmpty()) {
-                val full = chatRaw(providerId, apiKey, resolvedModel, systemPrompt, turns)
+                val full = chatRaw(providerId, apiKey, resolvedModel, systemPrompt, turns, baseUrl)
                 if (full.isNotEmpty()) onDelta(full)
                 return full
             }
@@ -104,13 +108,14 @@ class AiLlmGateway(
         return accumulated.toString().ifBlank { throw AiLlmException("Empty response from $providerId") }
     }
 
-    fun listModels(providerId: String, apiKey: String): List<String> {
+    fun listModels(providerId: String, apiKey: String, baseUrl: String? = null): List<String> {
         if (apiKey.isBlank()) return emptyList()
         return runCatching {
             when (providerId) {
                 "anthropic" -> anthropicModels(apiKey)
                 "gemini" -> geminiModels(apiKey)
-                "openai", "deepseek", "grok" -> openAiCompatModels(providerId, apiKey)
+                "openai", "deepseek", "grok", AiProviderCatalog.CUSTOM_ID ->
+                    openAiCompatModels(providerId, apiKey, baseUrl)
                 else -> emptyList()
             }
         }.getOrDefault(emptyList())
@@ -212,9 +217,9 @@ class AiLlmGateway(
             .ifBlank { throw AiLlmException("Empty response from Gemini") }
     }
 
-    private fun openAiCompatTest(providerId: String, apiKey: String) {
+    private fun openAiCompatTest(providerId: String, apiKey: String, baseUrl: String? = null) {
         val request = Request.Builder()
-            .url("${openAiBaseUrl(providerId)}/v1/models")
+            .url("${openAiBaseUrl(providerId, baseUrl)}/v1/models")
             .header("Authorization", "Bearer $apiKey")
             .get()
             .build()
@@ -244,9 +249,9 @@ class AiLlmGateway(
             .filter { it.startsWith("gemini") }
     }
 
-    private fun openAiCompatModels(providerId: String, apiKey: String): List<String> {
+    private fun openAiCompatModels(providerId: String, apiKey: String, baseUrl: String? = null): List<String> {
         val request = Request.Builder()
-            .url("${openAiBaseUrl(providerId)}/v1/models")
+            .url("${openAiBaseUrl(providerId, baseUrl)}/v1/models")
             .header("Authorization", "Bearer $apiKey")
             .get()
             .build()
@@ -260,6 +265,7 @@ class AiLlmGateway(
         model: String,
         systemPrompt: String,
         turns: List<LlmChatTurn>,
+        baseUrl: String? = null,
     ): String {
         val messages = buildList {
             add(OpenAiMessage("system", systemPrompt.ifBlank { DEFAULT_SYSTEM }))
@@ -273,7 +279,7 @@ class AiLlmGateway(
             OpenAiChatRequest(model = model, messages = messages),
         )
         val request = Request.Builder()
-            .url("${openAiBaseUrl(providerId)}/v1/chat/completions")
+            .url("${openAiBaseUrl(providerId, baseUrl)}/v1/chat/completions")
             .header("Authorization", "Bearer $apiKey")
             .post(body.toRequestBody(JSON))
             .build()
@@ -374,6 +380,7 @@ class AiLlmGateway(
         systemPrompt: String,
         turns: List<LlmChatTurn>,
         onDelta: (String) -> Unit,
+        baseUrl: String? = null,
     ) {
         val messages = buildList {
             add(OpenAiMessage("system", systemPrompt.ifBlank { DEFAULT_SYSTEM }))
@@ -387,7 +394,7 @@ class AiLlmGateway(
             OpenAiStreamRequest(model = model, messages = messages, stream = true),
         )
         val request = Request.Builder()
-            .url("${openAiBaseUrl(providerId)}/v1/chat/completions")
+            .url("${openAiBaseUrl(providerId, baseUrl)}/v1/chat/completions")
             .header("Authorization", "Bearer $apiKey")
             .post(body.toRequestBody(JSON))
             .build()
@@ -441,9 +448,14 @@ class AiLlmGateway(
         }.getOrDefault(body.take(200)).let { "HTTP $code: $it" }
     }
 
-    private fun openAiBaseUrl(providerId: String): String = when (providerId) {
+    private fun openAiBaseUrl(providerId: String, customBaseUrl: String? = null): String = when (providerId) {
         "deepseek" -> "https://api.deepseek.com"
         "grok" -> "https://api.x.ai"
+        AiProviderCatalog.CUSTOM_ID -> {
+            val normalized = customBaseUrl?.trim()?.trimEnd('/').orEmpty()
+            if (normalized.isBlank()) throw AiLlmException("Set a base URL for the custom provider")
+            normalized
+        }
         else -> "https://api.openai.com"
     }
 

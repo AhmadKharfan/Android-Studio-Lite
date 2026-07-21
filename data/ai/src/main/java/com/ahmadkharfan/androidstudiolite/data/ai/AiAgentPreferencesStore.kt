@@ -15,6 +15,7 @@ data class AiAgentPreferences(
     val autoApply: Boolean = false,
     val activeProviderId: String = "",
     val models: Map<String, String> = emptyMap(),
+    val customBaseUrl: String = "",
 )
 
 class AiAgentPreferencesStore(
@@ -35,6 +36,7 @@ class AiAgentPreferencesStore(
                 .filterKeys { it.name.startsWith(MODEL_PREFIX) }
                 .mapKeys { it.key.name.removePrefix(MODEL_PREFIX) }
                 .mapValues { it.value.toString() },
+            customBaseUrl = prefs[CUSTOM_BASE_URL] ?: "",
         )
     }
 
@@ -68,11 +70,18 @@ class AiAgentPreferencesStore(
         }
     }
 
+    suspend fun setCustomBaseUrl(url: String) {
+        dataStore.edit { prefs ->
+            if (url.isBlank()) prefs.remove(CUSTOM_BASE_URL) else prefs[CUSTOM_BASE_URL] = url
+        }
+    }
+
     private companion object {
         val ENABLED = booleanPreferencesKey("ai_agent_enabled")
         val AUTO_APPLY = booleanPreferencesKey("ai_agent_auto_apply")
         val INSTRUCTIONS = stringPreferencesKey("ai_agent_instructions")
         val ACTIVE_PROVIDER = stringPreferencesKey("ai_agent_active_provider")
+        val CUSTOM_BASE_URL = stringPreferencesKey("ai_custom_base_url")
         const val STATUS_PREFIX = "ai_key_status_"
         const val MODEL_PREFIX = "ai_model_"
 

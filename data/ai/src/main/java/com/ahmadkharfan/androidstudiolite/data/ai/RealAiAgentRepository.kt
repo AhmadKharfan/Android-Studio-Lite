@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 
@@ -55,9 +56,15 @@ class RealAiAgentRepository(
             preferencesStore.setKeyStatus(providerId, "invalid")
             return
         }
+        val baseUrl = customBaseUrlFor(providerId)
+        if (providerId == AiProviderCatalog.CUSTOM_ID && baseUrl.isBlank()) {
+            keyErrors.value = keyErrors.value + (providerId to "Enter a base URL first.")
+            preferencesStore.setKeyStatus(providerId, "invalid")
+            return
+        }
         testingProviders.value = testingProviders.value + providerId
         val result = withContext(Dispatchers.IO) {
-            runCatching { gateway.testKey(providerId, key) }
+            runCatching { gateway.testKey(providerId, key, baseUrl) }
         }
         keyErrors.value = if (result.isSuccess) {
             keyErrors.value - providerId
@@ -81,6 +88,11 @@ class RealAiAgentRepository(
         preferencesStore.setModel(providerId, model)
     }
 
+    override suspend fun setBaseUrl(providerId: String, url: String) {
+        if (providerId != AiProviderCatalog.CUSTOM_ID) return
+        preferencesStore.setCustomBaseUrl(url.trim())
+    }
+
     override suspend fun setActiveProvider(providerId: String) {
         preferencesStore.setActiveProvider(providerId)
     }
@@ -88,11 +100,16 @@ class RealAiAgentRepository(
     override suspend fun refreshModels(providerId: String) {
         val key = keyStore.getKey(providerId)
         if (key.isBlank()) return
-        val models = withContext(Dispatchers.IO) { gateway.listModels(providerId, key) }
+        val baseUrl = customBaseUrlFor(providerId)
+        if (providerId == AiProviderCatalog.CUSTOM_ID && baseUrl.isBlank()) return
+        val models = withContext(Dispatchers.IO) { gateway.listModels(providerId, key, baseUrl) }
         if (models.isNotEmpty()) {
             fetchedModels.value = fetchedModels.value + (providerId to models)
         }
     }
+
+    private suspend fun customBaseUrlFor(providerId: String): String =
+        if (providerId == AiProviderCatalog.CUSTOM_ID) preferencesStore.observe().first().customBaseUrl else ""
 
     private fun buildSettings(
         prefs: AiAgentPreferences,
@@ -128,6 +145,8 @@ class RealAiAgentRepository(
                     keyError = errors[def.id]?.takeIf { status == ApiKeyStatus.INVALID },
                     availableModels = availableModels,
                     selectedModel = selectedModel,
+                    baseUrl = if (def.requiresBaseUrl) prefs.customBaseUrl else "",
+                    requiresBaseUrl = def.requiresBaseUrl,
                 )
             },
         )

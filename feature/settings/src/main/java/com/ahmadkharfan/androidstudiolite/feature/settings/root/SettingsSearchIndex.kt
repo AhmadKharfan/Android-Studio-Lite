@@ -145,13 +145,6 @@ private fun aiAgentSearchEntries(onOpen: () -> Unit): List<SettingsSearchEntry> 
             onClick = onOpen,
         ),
         SettingsSearchEntry(
-            title = stringResource(CommonR.string.ai_agent_instructions),
-            breadcrumb = aiAgent,
-            keywords = "system prompt rules",
-            icon = "sparkles",
-            onClick = onOpen,
-        ),
-        SettingsSearchEntry(
             title = stringResource(CommonR.string.ai_chat_model),
             breadcrumb = aiAgent,
             keywords = "llm model provider",
