@@ -12,6 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 import com.ahmadkharfan.androidstudiolite.domain.model.EditorColorScheme
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class DataStorePreferencesRepository(
@@ -51,6 +52,16 @@ class DataStorePreferencesRepository(
         dataStore.edit { prefs ->
             prefs.writeAppPreferences(transform(prefs.toAppPreferences()))
         }
+    }
+
+    override suspend fun setSelectedVariant(projectId: String, variant: String) {
+        if (projectId.isBlank() || variant.isBlank()) return
+        dataStore.edit { prefs -> prefs[selectedVariantKey(projectId)] = variant }
+    }
+
+    override suspend fun getSelectedVariant(projectId: String): String? {
+        if (projectId.isBlank()) return null
+        return dataStore.data.first()[selectedVariantKey(projectId)]?.takeIf { it.isNotBlank() }
     }
 
     private fun Preferences.toAppPreferences(): AppPreferences {
@@ -97,5 +108,7 @@ class DataStorePreferencesRepository(
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
         val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")
         val PREFER_GIT_SOURCE = booleanPreferencesKey("prefer_git_source")
+
+        fun selectedVariantKey(projectId: String) = stringPreferencesKey("selected_variant::$projectId")
     }
 }
