@@ -95,7 +95,7 @@ fun AslNavHost(
                 .getStateFlow<String?>("picked_folder", null)
                 .collectAsState()
             CreateProjectRoute(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStack(Routes.CREATE_PROJECT, inclusive = true) },
                 onCreated = { id ->
                     navController.navigate(Routes.editor(id)) { popUpTo(Routes.HUB) }
                 },
