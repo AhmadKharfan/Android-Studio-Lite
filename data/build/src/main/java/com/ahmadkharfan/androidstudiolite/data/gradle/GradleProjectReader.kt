@@ -6,6 +6,7 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDiagnostic
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDsl
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedAndroidBlock
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedBuildScript
+import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedPlugin
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependency
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependencyKind
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.VersionCatalog
@@ -28,6 +29,7 @@ data class GradleProjectReadResult(
     val gradleVersion: String?,
     val catalog: VersionCatalog?,
     val gradleProperties: Map<String, String>,
+    val agpVersion: String? = null,
 )
 
 class GradleProjectReader {
@@ -71,9 +73,11 @@ class GradleProjectReader {
             )
         }
 
-        val modules = moduleDirs.map { (path, dir) ->
+        val read = moduleDirs.map { (path, dir) ->
             readModule(path, dir, projectRoot, catalog, diagnostics)
         }
+        val modules = read.map { it.module }
+        val agpVersion = AgpVersionResolver.resolve(catalog, read.flatMap { it.plugins })
 
         return GradleProjectReadResult(
             model = ProjectModel(name = rootName, rootDir = projectRoot, modules = modules),
@@ -81,9 +85,11 @@ class GradleProjectReader {
             gradleVersion = gradleVersion,
             catalog = catalog,
             gradleProperties = gradleProps,
+            agpVersion = agpVersion,
         )
     }
 
+    private data class ReadModule(val module: ModuleModel, val plugins: List<ParsedPlugin>)
 
     private fun readModule(
         path: String,
@@ -91,7 +97,7 @@ class GradleProjectReader {
         projectRoot: File,
         catalog: VersionCatalog?,
         diagnostics: MutableList<GradleDiagnostic>,
-    ): ModuleModel {
+    ): ReadModule {
         val name = if (path == ":") projectRoot.name else path.trimStart(':').substringAfterLast(':')
         val buildFile = firstExisting(dir, "build.gradle.kts", "build.gradle")
         if (buildFile == null) {
@@ -99,7 +105,7 @@ class GradleProjectReader {
                 "Module $path has no build.gradle(.kts).", "gradle.noBuildScript",
                 DiagnosticSeverity.WARNING, relPath(projectRoot, dir),
             )
-            return ModuleModel(path, name, ModuleType.UNKNOWN, dir)
+            return ReadModule(ModuleModel(path, name, ModuleType.UNKNOWN, dir), emptyList())
         }
 
         val dsl = if (buildFile.name.endsWith(".kts")) GradleDsl.KOTLIN else GradleDsl.GROOVY
@@ -117,15 +123,18 @@ class GradleProjectReader {
         val variants = variantsOf(path, script.android)
         val sourceSets = sourceSetsOf(dir, script.android)
 
-        return ModuleModel(
-            path = path,
-            name = name,
-            type = type,
-            moduleDir = dir,
-            variants = variants,
-            sourceSets = sourceSets,
-            dependencies = deps,
-            applicationId = applicationIdOf(type, script.android),
+        return ReadModule(
+            ModuleModel(
+                path = path,
+                name = name,
+                type = type,
+                moduleDir = dir,
+                variants = variants,
+                sourceSets = sourceSets,
+                dependencies = deps,
+                applicationId = applicationIdOf(type, script.android),
+            ),
+            script.plugins,
         )
     }
 
@@ -140,9 +149,30 @@ class GradleProjectReader {
 
             if (plugin.fromCatalog) catalog?.findPlugin(plugin.id)?.id ?: plugin.id else plugin.id
         }
+
+        when {
+            ids.any { it == "com.android.application" } -> return ModuleType.ANDROID_APP
+            ids.any { it == "com.android.library" || it == "com.android.dynamic-feature" } ->
+                return ModuleType.ANDROID_LIBRARY
+        }
+
+        val lowerIds = ids.map { it.lowercase() }
+        if (lowerIds.any { it.contains("android") && it.contains("application") && !it.contains("test") }) {
+            return ModuleType.ANDROID_APP
+        }
+        if (lowerIds.any { it.contains("android") && it.contains("library") }) {
+            return ModuleType.ANDROID_LIBRARY
+        }
+
+        script.android?.let { android ->
+            return if (android.applicationId != null || android.productFlavors.isNotEmpty()) {
+                ModuleType.ANDROID_APP
+            } else {
+                ModuleType.ANDROID_LIBRARY
+            }
+        }
+
         return when {
-            ids.any { it == "com.android.application" } -> ModuleType.ANDROID_APP
-            ids.any { it == "com.android.library" || it == "com.android.dynamic-feature" } -> ModuleType.ANDROID_LIBRARY
             ids.any { it == "java-library" || it == "java" || it == "org.jetbrains.kotlin.jvm" } -> ModuleType.JVM
             else -> ModuleType.UNKNOWN
         }
@@ -214,20 +244,56 @@ class GradleProjectReader {
 
 
         val buildTypes = effectiveBuildTypes(android.buildTypes)
-        val flavors = android.productFlavors
-        if (flavors.isEmpty()) {
+        if (android.productFlavors.isEmpty()) {
             return buildTypes.map { bt ->
                 val cap = bt.replaceFirstChar { it.uppercase() }
                 VariantModel(name = bt, buildType = bt, assembleTaskPath = task("assemble$cap"), bundleTaskPath = task("bundle$cap"))
             }
         }
-        return flavors.flatMap { flavor ->
+
+        val flavorCombos = flavorCombinations(android)
+        return flavorCombos.flatMap { combo ->
             buildTypes.map { bt ->
-                val name = flavor + bt.replaceFirstChar { c -> c.uppercase() }
+                val flavorSegment = combo.mapIndexed { index, flavor ->
+                    if (index == 0) flavor.replaceFirstChar { it.lowercase() }
+                    else flavor.replaceFirstChar { it.uppercase() }
+                }.joinToString("")
+                val name = flavorSegment + bt.replaceFirstChar { it.uppercase() }
                 val cap = name.replaceFirstChar { it.uppercase() }
-                VariantModel(name = name, buildType = bt, flavors = listOf(flavor), assembleTaskPath = task("assemble$cap"), bundleTaskPath = task("bundle$cap"))
+                VariantModel(
+                    name = name,
+                    buildType = bt,
+                    flavors = combo,
+                    assembleTaskPath = task("assemble$cap"),
+                    bundleTaskPath = task("bundle$cap"),
+                )
             }
         }
+    }
+
+    internal fun flavorCombinations(android: ParsedAndroidBlock): List<List<String>> {
+        val flavors = android.productFlavors
+        if (flavors.isEmpty()) return emptyList()
+
+        val groups = LinkedHashMap<String, MutableList<String>>()
+        for (dimension in android.flavorDimensions) groups.getOrPut(dimension) { ArrayList() }
+        val singleDimension = android.flavorDimensions.singleOrNull()
+        for (flavor in flavors) {
+            val dimension = android.flavorDimensionOf[flavor]
+                ?: singleDimension
+                ?: android.flavorDimensions.firstOrNull()
+                ?: IMPLICIT_DIMENSION
+            groups.getOrPut(dimension) { ArrayList() }.add(flavor)
+        }
+
+        val orderedGroups = groups.values.filter { it.isNotEmpty() }
+        if (orderedGroups.isEmpty()) return emptyList()
+
+        var combos: List<List<String>> = listOf(emptyList())
+        for (group in orderedGroups) {
+            combos = combos.flatMap { prefix -> group.map { prefix + it } }
+        }
+        return combos
     }
 
     internal fun effectiveBuildTypes(declared: List<String>): List<String> {
@@ -313,4 +379,8 @@ class GradleProjectReader {
 
     private fun relPath(root: File, file: File): String =
         runCatching { file.relativeTo(root).path }.getOrDefault(file.path)
+
+    private companion object {
+        const val IMPLICIT_DIMENSION = "__implicit__"
+    }
 }
