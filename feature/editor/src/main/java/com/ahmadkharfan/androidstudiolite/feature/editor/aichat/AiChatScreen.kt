@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import com.ahmadkharfan.androidstudiolite.feature.editor.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStaggeredAppear
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
@@ -92,7 +92,7 @@ private fun AiChatScreen(
     onOpenAiAgentSettings: () -> Unit,
 ) {
     AslToolWindowPanel(
-        title = stringResource(R.string.ai_chat_title),
+        title = stringResource(CommonR.string.ai_chat_title),
         width = rememberAslToolWindowWidth(),
         onClose = onClose,
         scrollable = false,
@@ -105,12 +105,12 @@ private fun AiChatScreen(
             )
             AslIconButton(
                 icon = "plus",
-                contentDescription = stringResource(R.string.ai_chat_new_chat),
+                contentDescription = stringResource(CommonR.string.ai_chat_new_chat),
                 onClick = { interactionListener.onNewChat() },
             )
             AslIconButton(
                 icon = "history",
-                contentDescription = stringResource(R.string.ai_chat_history),
+                contentDescription = stringResource(CommonR.string.ai_chat_history),
                 active = uiState.showHistory,
                 onClick = { interactionListener.onToggleHistory() },
             )
@@ -130,9 +130,9 @@ private fun AiChatScreen(
             if (!configured) {
                 AslEmptyState(
                     icon = "sparkles",
-                    title = stringResource(R.string.ai_chat_no_provider_title),
-                    subtitle = stringResource(R.string.ai_chat_no_provider_sub),
-                    actionLabel = stringResource(R.string.ai_chat_open_settings),
+                    title = stringResource(CommonR.string.ai_chat_no_provider_title),
+                    subtitle = stringResource(CommonR.string.ai_chat_no_provider_sub),
+                    actionLabel = stringResource(CommonR.string.ai_chat_open_settings),
                     onAction = onOpenAiAgentSettings,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -161,7 +161,7 @@ private fun PlanReviewSheet(
     val colors = AslTheme.colors
     AslBottomSheet(
         onDismiss = { interactionListener.onDismissPlanReview() },
-        title = stringResource(R.string.ai_plan_review_sheet_title),
+        title = stringResource(CommonR.string.ai_plan_review_sheet_title),
     ) {
         Column(
             modifier = Modifier
@@ -170,22 +170,22 @@ private fun PlanReviewSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(R.string.ai_plan_review_sheet_subtitle),
+                text = stringResource(CommonR.string.ai_plan_review_sheet_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textSecondary,
             )
             AslTextField(
                 value = uiState.planReviewInput,
                 onValueChange = { interactionListener.onPlanReviewInputChanged(it) },
-                placeholder = stringResource(R.string.ai_plan_review_sheet_placeholder),
+                placeholder = stringResource(CommonR.string.ai_plan_review_sheet_placeholder),
             )
             Text(
-                text = stringResource(R.string.ai_plan_review_sheet_hint),
+                text = stringResource(CommonR.string.ai_plan_review_sheet_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.textTertiary,
             )
             AslButton(
-                label = stringResource(R.string.ai_plan_review_submit),
+                label = stringResource(CommonR.string.ai_plan_review_submit),
                 icon = "search",
                 onClick = { interactionListener.onSubmitPlanReview() },
                 disabled = uiState.sending,
@@ -203,7 +203,7 @@ private fun ChatControlsSheet(
     val colors = AslTheme.colors
     AslBottomSheet(
         onDismiss = { interactionListener.onDismissControls() },
-        title = stringResource(R.string.ai_chat_controls_title),
+        title = stringResource(CommonR.string.ai_chat_controls_title),
     ) {
         Column(
             modifier = Modifier
@@ -213,15 +213,15 @@ private fun ChatControlsSheet(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = stringResource(R.string.ai_chat_mode),
+                    text = stringResource(CommonR.string.ai_chat_mode),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.textSecondary,
                 )
                 AslSegmentedButton(
                     options = listOf(
-                        AslSegmentedOption(stringResource(R.string.ai_chat_mode_agent), ChatMode.AGENT.name, "wrench"),
-                        AslSegmentedOption(stringResource(R.string.ai_chat_mode_ask), ChatMode.ASK.name, "message-square"),
-                        AslSegmentedOption(stringResource(R.string.ai_chat_mode_plan), ChatMode.PLAN.name, "list"),
+                        AslSegmentedOption(stringResource(CommonR.string.ai_chat_mode_agent), ChatMode.AGENT.name, "wrench"),
+                        AslSegmentedOption(stringResource(CommonR.string.ai_chat_mode_ask), ChatMode.ASK.name, "message-square"),
+                        AslSegmentedOption(stringResource(CommonR.string.ai_chat_mode_plan), ChatMode.PLAN.name, "list"),
                     ),
                     value = uiState.mode.name,
                     onValueChange = { interactionListener.onModeSelected(ChatMode.valueOf(it)) },
@@ -236,7 +236,7 @@ private fun ChatControlsSheet(
 
             if (uiState.providers.size > 1) {
                 AslDropdown(
-                    label = stringResource(R.string.ai_chat_provider),
+                    label = stringResource(CommonR.string.ai_chat_provider),
                     options = uiState.providers.map { AslDropdownOption(it.name, it.id) },
                     value = uiState.providerId,
                     onValueChange = { interactionListener.onProviderSelected(it) },
@@ -246,14 +246,14 @@ private fun ChatControlsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = stringResource(R.string.ai_chat_model),
+                        text = stringResource(CommonR.string.ai_chat_model),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
                     AslIconButton(
                         icon = "refresh-cw",
-                        contentDescription = stringResource(R.string.ai_chat_refresh_models),
+                        contentDescription = stringResource(CommonR.string.ai_chat_refresh_models),
                         size = 32.dp,
                         iconSize = 16.dp,
                         onClick = { interactionListener.onRefreshModels() },
@@ -271,7 +271,7 @@ private fun ChatControlsSheet(
 
             AslSwitch(
                 label = stringResource(
-                    if (uiState.autoApply) R.string.ai_chat_auto_apply_on else R.string.ai_chat_auto_apply_off,
+                    if (uiState.autoApply) CommonR.string.ai_chat_auto_apply_on else CommonR.string.ai_chat_auto_apply_off,
                 ),
                 checked = uiState.autoApply,
                 onCheckedChange = { interactionListener.onToggleAutoApply(it) },
@@ -288,11 +288,11 @@ private fun ChatCustomModelField(current: String, onApply: (String) -> Unit) {
         AslTextField(
             value = text,
             onValueChange = { text = it },
-            placeholder = stringResource(R.string.ai_chat_custom_model),
+            placeholder = stringResource(CommonR.string.ai_chat_custom_model),
             modifier = Modifier.weight(1f),
         )
         AslButton(
-            label = stringResource(R.string.ai_chat_set_model),
+            label = stringResource(CommonR.string.ai_chat_set_model),
             onClick = { if (text.isNotBlank()) onApply(text.trim()) },
             variant = AslButtonVariant.Secondary,
             disabled = text.isBlank() || text == current,
@@ -309,8 +309,8 @@ private fun ChatHistoryList(
     if (uiState.threads.isEmpty()) {
         AslEmptyState(
             icon = "history",
-            title = stringResource(R.string.ai_chat_history_empty_title),
-            subtitle = stringResource(R.string.ai_chat_history_empty_sub),
+            title = stringResource(CommonR.string.ai_chat_history_empty_title),
+            subtitle = stringResource(CommonR.string.ai_chat_history_empty_sub),
             modifier = Modifier.fillMaxSize(),
         )
         return
@@ -370,7 +370,7 @@ private fun ChatHistoryRow(
         }
         AslIconButton(
             icon = "trash-2",
-            contentDescription = stringResource(R.string.ai_chat_delete_chat),
+            contentDescription = stringResource(CommonR.string.ai_chat_delete_chat),
             size = 32.dp,
             iconSize = 16.dp,
             onClick = onDelete,
@@ -421,8 +421,8 @@ private fun ChatMessageList(
                         AslThinkingBlock(
                             text = message.text,
                             streaming = message.streaming,
-                            thinkingLabel = stringResource(R.string.ai_chat_thinking),
-                            thoughtLabel = stringResource(R.string.ai_chat_thought),
+                            thinkingLabel = stringResource(CommonR.string.ai_chat_thinking),
+                            thoughtLabel = stringResource(CommonR.string.ai_chat_thought),
                         )
                     else -> ChatMessageBubble(message = message, interactionListener = interactionListener)
                 }
@@ -431,7 +431,7 @@ private fun ChatMessageList(
 
         if (uiState.sending && !hasLiveContent) {
             Text(
-                text = stringResource(R.string.ai_chat_typing),
+                text = stringResource(CommonR.string.ai_chat_typing),
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.textTertiary,
             )
@@ -454,12 +454,12 @@ private fun ChatInputRow(
         AslTextField(
             value = uiState.input,
             onValueChange = { interactionListener.onInputChanged(it) },
-            placeholder = stringResource(R.string.ai_chat_input_hint),
+            placeholder = stringResource(CommonR.string.ai_chat_input_hint),
             modifier = Modifier.weight(1f),
         )
         AslIconButton(
             icon = "send",
-            contentDescription = stringResource(R.string.ai_chat_send),
+            contentDescription = stringResource(CommonR.string.ai_chat_send),
             onClick = { interactionListener.onSend() },
             disabled = uiState.input.isBlank() || uiState.sending,
         )
@@ -475,8 +475,8 @@ private fun ToolCallMessage(toolCall: ChatToolCallUiModel, interactionListener: 
         diffOld = toolCall.diffOld,
         diffNew = toolCall.diffNew,
         result = toolCall.resultText,
-        approveLabel = stringResource(R.string.ai_tool_approve),
-        rejectLabel = stringResource(R.string.ai_tool_reject),
+        approveLabel = stringResource(CommonR.string.ai_tool_approve),
+        rejectLabel = stringResource(CommonR.string.ai_tool_reject),
         onApprove = { interactionListener.onApproveTool(toolCall.id) },
         onReject = { interactionListener.onRejectTool(toolCall.id) },
     )
@@ -504,15 +504,15 @@ private fun ToolCallStatus.toCardState(): AslToolCallState = when (this) {
 }
 
 private fun ChatMode.labelRes(): Int = when (this) {
-    ChatMode.AGENT -> R.string.ai_chat_mode_agent
-    ChatMode.ASK -> R.string.ai_chat_mode_ask
-    ChatMode.PLAN -> R.string.ai_chat_mode_plan
+    ChatMode.AGENT -> CommonR.string.ai_chat_mode_agent
+    ChatMode.ASK -> CommonR.string.ai_chat_mode_ask
+    ChatMode.PLAN -> CommonR.string.ai_chat_mode_plan
 }
 
 private fun ChatMode.descriptionRes(): Int = when (this) {
-    ChatMode.AGENT -> R.string.ai_chat_mode_agent_desc
-    ChatMode.ASK -> R.string.ai_chat_mode_ask_desc
-    ChatMode.PLAN -> R.string.ai_chat_mode_plan_desc
+    ChatMode.AGENT -> CommonR.string.ai_chat_mode_agent_desc
+    ChatMode.ASK -> CommonR.string.ai_chat_mode_ask_desc
+    ChatMode.PLAN -> CommonR.string.ai_chat_mode_plan_desc
 }
 
 @Composable
@@ -567,7 +567,7 @@ private fun PlanActionRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AslButton(
-            label = stringResource(R.string.ai_plan_review),
+            label = stringResource(CommonR.string.ai_plan_review),
             variant = AslButtonVariant.Secondary,
             icon = "search",
             onClick = onReview,
@@ -575,7 +575,7 @@ private fun PlanActionRow(
             modifier = Modifier.weight(1f),
         )
         AslButton(
-            label = stringResource(R.string.ai_plan_build),
+            label = stringResource(CommonR.string.ai_plan_build),
             variant = AslButtonVariant.Primary,
             icon = "hammer",
             onClick = onBuild,

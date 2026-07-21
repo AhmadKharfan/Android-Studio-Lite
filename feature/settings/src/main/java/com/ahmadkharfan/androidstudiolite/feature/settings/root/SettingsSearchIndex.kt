@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.settings.root
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.ahmadkharfan.androidstudiolite.feature.settings.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.data.ai.AiProviderCatalog
 
 data class SettingsSearchEntry(
@@ -28,37 +28,37 @@ fun buildSettingsSearchIndex(
     onOpenGitAuth: () -> Unit,
     onOpenAbout: () -> Unit,
 ): List<SettingsSearchEntry> {
-    val general = stringResource(R.string.settings_general)
-    val editor = stringResource(R.string.settings_editor)
-    val aiAgent = stringResource(R.string.settings_ai_agent)
-    val buildRun = stringResource(R.string.settings_build_run)
-    val gitAuth = stringResource(R.string.settings_git_auth)
-    val about = stringResource(R.string.settings_about)
+    val general = stringResource(CommonR.string.settings_general)
+    val editor = stringResource(CommonR.string.settings_editor)
+    val aiAgent = stringResource(CommonR.string.settings_ai_agent)
+    val buildRun = stringResource(CommonR.string.settings_build_run)
+    val gitAuth = stringResource(CommonR.string.settings_git_auth)
+    val about = stringResource(CommonR.string.settings_about)
 
     return listOf(
         SettingsSearchEntry(
             title = general,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_general_sub),
+            breadcrumb = stringResource(CommonR.string.settings_section_configure),
+            keywords = stringResource(CommonR.string.settings_general_sub),
             icon = "sliders-horizontal",
             onClick = onOpenGeneral,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.general_ui_mode),
+            title = stringResource(CommonR.string.general_ui_mode),
             breadcrumb = general,
             keywords = "theme light dark system appearance mode",
             icon = "sliders-horizontal",
             onClick = onOpenGeneral,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.general_accent),
+            title = stringResource(CommonR.string.general_accent),
             breadcrumb = general,
             keywords = "color emerald fjord amber accent",
             icon = "sliders-horizontal",
             onClick = onOpenGeneral,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.general_auto_open_last),
+            title = stringResource(CommonR.string.general_auto_open_last),
             breadcrumb = general,
             keywords = "startup resume last project open",
             icon = "sliders-horizontal",
@@ -67,8 +67,8 @@ fun buildSettingsSearchIndex(
 
         SettingsSearchEntry(
             title = editor,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_editor_sub),
+            breadcrumb = stringResource(CommonR.string.settings_section_configure),
+            keywords = stringResource(CommonR.string.settings_editor_sub),
             icon = "file-code",
             onClick = onOpenEditor,
         ),
@@ -110,34 +110,34 @@ fun buildSettingsSearchIndex(
 
         SettingsSearchEntry(
             title = aiAgent,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_ai_agent_sub),
+            breadcrumb = stringResource(CommonR.string.settings_section_configure),
+            keywords = stringResource(CommonR.string.settings_ai_agent_sub),
             icon = "sparkles",
             onClick = onOpenAiAgent,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.ai_agent_enable),
+            title = stringResource(CommonR.string.ai_agent_enable),
             breadcrumb = aiAgent,
             keywords = "agent chat assistant",
             icon = "sparkles",
             onClick = onOpenAiAgent,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.ai_agent_auto_apply),
+            title = stringResource(CommonR.string.ai_agent_auto_apply),
             breadcrumb = aiAgent,
             keywords = "confirm apply changes tools",
             icon = "sparkles",
             onClick = onOpenAiAgent,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.ai_agent_instructions),
+            title = stringResource(CommonR.string.ai_agent_instructions),
             breadcrumb = aiAgent,
             keywords = "system prompt rules",
             icon = "sparkles",
             onClick = onOpenAiAgent,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.ai_chat_model),
+            title = stringResource(CommonR.string.ai_chat_model),
             breadcrumb = aiAgent,
             keywords = "llm model provider",
             icon = "sparkles",
@@ -163,8 +163,8 @@ fun buildSettingsSearchIndex(
     } + listOf(
         SettingsSearchEntry(
             title = buildRun,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_build_run_sub),
+            breadcrumb = stringResource(CommonR.string.settings_section_configure),
+            keywords = stringResource(CommonR.string.settings_build_run_sub),
             icon = "hammer",
             onClick = onOpenBuildRun,
         ),
@@ -199,8 +199,8 @@ fun buildSettingsSearchIndex(
 
         SettingsSearchEntry(
             title = gitAuth,
-            breadcrumb = stringResource(R.string.settings_section_configure),
-            keywords = stringResource(R.string.settings_git_auth_sub),
+            breadcrumb = stringResource(CommonR.string.settings_section_configure),
+            keywords = stringResource(CommonR.string.settings_git_auth_sub),
             icon = "git-branch",
             onClick = onOpenGitAuth,
         ),
@@ -228,20 +228,20 @@ fun buildSettingsSearchIndex(
 
         SettingsSearchEntry(
             title = about,
-            breadcrumb = stringResource(R.string.settings_section_advanced),
+            breadcrumb = stringResource(CommonR.string.settings_section_advanced),
             keywords = "version app info",
             icon = "info",
             onClick = onOpenAbout,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.about_github),
+            title = stringResource(CommonR.string.about_github),
             breadcrumb = about,
-            keywords = stringResource(R.string.about_github_sub),
+            keywords = stringResource(CommonR.string.about_github_sub),
             icon = "github",
             onClick = onOpenAbout,
         ),
         SettingsSearchEntry(
-            title = stringResource(R.string.about_contributors),
+            title = stringResource(CommonR.string.about_contributors),
             breadcrumb = about,
             keywords = "contributors credits",
             icon = "users",

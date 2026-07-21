@@ -15,7 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
@@ -73,16 +73,16 @@ private fun buildSettingsSections(
     onOpenAbout: () -> Unit,
 ): List<Pair<String, List<SettingsRow>>> {
     val configureRows = listOf(
-        SettingsRow(stringResource(R.string.settings_general), stringResource(R.string.settings_general_sub), "sliders-horizontal", onOpenGeneral),
-        SettingsRow(stringResource(R.string.settings_editor), stringResource(R.string.settings_editor_sub), "file-code", onOpenEditor),
-        SettingsRow(stringResource(R.string.settings_ai_agent), stringResource(R.string.settings_ai_agent_sub), "sparkles", onOpenAiAgent),
-        SettingsRow(stringResource(R.string.settings_build_run), stringResource(R.string.settings_build_run_sub), "hammer", onOpenBuildRun),
-        SettingsRow(stringResource(R.string.settings_git_auth), stringResource(R.string.settings_git_auth_sub), "git-branch", onOpenGitAuth),
+        SettingsRow(stringResource(CommonR.string.settings_general), stringResource(CommonR.string.settings_general_sub), "sliders-horizontal", onOpenGeneral),
+        SettingsRow(stringResource(CommonR.string.settings_editor), stringResource(CommonR.string.settings_editor_sub), "file-code", onOpenEditor),
+        SettingsRow(stringResource(CommonR.string.settings_ai_agent), stringResource(CommonR.string.settings_ai_agent_sub), "sparkles", onOpenAiAgent),
+        SettingsRow(stringResource(CommonR.string.settings_build_run), stringResource(CommonR.string.settings_build_run_sub), "hammer", onOpenBuildRun),
+        SettingsRow(stringResource(CommonR.string.settings_git_auth), stringResource(CommonR.string.settings_git_auth_sub), "git-branch", onOpenGitAuth),
     )
     val advancedRows = listOf(
-        SettingsRow(stringResource(R.string.settings_about), null, "info", onOpenAbout),
+        SettingsRow(stringResource(CommonR.string.settings_about), null, "info", onOpenAbout),
     )
-    return listOf(stringResource(R.string.settings_section_configure) to configureRows, stringResource(R.string.settings_section_advanced) to advancedRows)
+    return listOf(stringResource(CommonR.string.settings_section_configure) to configureRows, stringResource(CommonR.string.settings_section_advanced) to advancedRows)
 }
 
 @Composable
@@ -121,7 +121,7 @@ private fun SettingsRootScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            AslTopAppBar(title = stringResource(R.string.settings_title), onBack = onBack)
+            AslTopAppBar(title = stringResource(CommonR.string.settings_title), onBack = onBack)
             SettingsRootContent(
                 uiState = uiState,
                 interactionListener = interactionListener,
@@ -151,7 +151,7 @@ private fun SettingsRootContent(
         AslSearchField(
             value = uiState.query,
             onValueChange = { interactionListener.onQueryChanged(it) },
-            placeholder = stringResource(R.string.settings_search_placeholder),
+            placeholder = stringResource(CommonR.string.settings_search_placeholder),
         )
         if (uiState.query.isBlank()) {
             sections.forEach { (header, rows) ->
@@ -163,9 +163,9 @@ private fun SettingsRootContent(
                 .distinctBy { "${it.title}\n${it.breadcrumb}" }
                 .map { it.toRow() }
             if (results.isEmpty()) {
-                HubSectionHeader(stringResource(R.string.settings_search_no_results))
+                HubSectionHeader(stringResource(CommonR.string.settings_search_no_results))
             } else {
-                SettingsRowGroup(header = stringResource(R.string.settings_search_results), rows = results, colors = colors)
+                SettingsRowGroup(header = stringResource(CommonR.string.settings_search_results), rows = results, colors = colors)
             }
         }
     }

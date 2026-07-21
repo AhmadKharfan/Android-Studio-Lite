@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.hub
 
 import android.content.Context
-import com.ahmadkharfan.androidstudiolite.feature.projects.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
@@ -172,8 +172,8 @@ class HubViewModel(
 private fun greetingForNow(context: Context): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when {
-        hour < 12 -> context.getString(R.string.greeting_morning)
-        hour < 18 -> context.getString(R.string.greeting_afternoon)
-        else -> context.getString(R.string.greeting_evening)
+        hour < 12 -> context.getString(CommonR.string.greeting_morning)
+        hour < 18 -> context.getString(CommonR.string.greeting_afternoon)
+        else -> context.getString(CommonR.string.greeting_evening)
     }
 }

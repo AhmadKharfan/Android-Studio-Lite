@@ -48,7 +48,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.feature.settings.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
@@ -154,14 +154,14 @@ private fun AiAgentEnableToggle(
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
-            label = stringResource(R.string.ai_agent_enable),
+            label = stringResource(CommonR.string.ai_agent_enable),
             checked = uiState.enabled,
             onCheckedChange = { interactionListener.onToggleEnabled(it) },
             modifier = Modifier.fillMaxWidth(),
         )
         HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
         AslSwitch(
-            label = stringResource(R.string.ai_agent_auto_apply),
+            label = stringResource(CommonR.string.ai_agent_auto_apply),
             checked = uiState.autoApply,
             onCheckedChange = { interactionListener.onToggleAutoApply(it) },
             modifier = Modifier.fillMaxWidth(),
@@ -281,14 +281,14 @@ private fun AiAgentModelPicker(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(R.string.ai_chat_model),
+                text = stringResource(CommonR.string.ai_chat_model),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
             AslIconButton(
                 icon = "refresh-cw",
-                contentDescription = stringResource(R.string.ai_chat_refresh_models),
+                contentDescription = stringResource(CommonR.string.ai_chat_refresh_models),
                 size = 32.dp,
                 iconSize = 16.dp,
                 onClick = { interactionListener.onRefreshModels(provider.id) },
@@ -305,11 +305,11 @@ private fun AiAgentModelPicker(
             AslTextField(
                 value = custom,
                 onValueChange = { custom = it },
-                placeholder = stringResource(R.string.ai_chat_custom_model),
+                placeholder = stringResource(CommonR.string.ai_chat_custom_model),
                 modifier = Modifier.weight(1f),
             )
             AslButton(
-                label = stringResource(R.string.ai_chat_set_model),
+                label = stringResource(CommonR.string.ai_chat_set_model),
                 onClick = { if (custom.isNotBlank()) interactionListener.onModelChanged(provider.id, custom.trim()) },
                 variant = AslButtonVariant.Secondary,
                 disabled = custom.isBlank() || custom == provider.selectedModel,
@@ -343,7 +343,7 @@ private fun AiAgentInstructionsField(
 
     Column {
         Text(
-            text = stringResource(R.string.ai_agent_instructions),
+            text = stringResource(CommonR.string.ai_agent_instructions),
             style = MaterialTheme.typography.labelMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),

@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
@@ -52,7 +52,7 @@ private fun GeneralScreen(
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = stringResource(R.string.general_title), onBack = onBack)
+            AslTopAppBar(title = stringResource(CommonR.string.general_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -61,13 +61,13 @@ private fun GeneralScreen(
                     .padding(16.dp),
             ) {
                 val swatches = listOf(
-                    AslThemeSwatch("emerald", stringResource(R.string.general_accent_emerald), listOf(Color(0xFF10B981))),
-                    AslThemeSwatch("fjord", stringResource(R.string.general_accent_fjord), listOf(Color(0xFF3B82F6))),
-                    AslThemeSwatch("amber", stringResource(R.string.general_accent_amber), listOf(Color(0xFFF59E0B))),
+                    AslThemeSwatch("emerald", stringResource(CommonR.string.general_accent_emerald), listOf(Color(0xFF10B981))),
+                    AslThemeSwatch("fjord", stringResource(CommonR.string.general_accent_fjord), listOf(Color(0xFF3B82F6))),
+                    AslThemeSwatch("amber", stringResource(CommonR.string.general_accent_amber), listOf(Color(0xFFF59E0B))),
                 )
                 GeneralUiModeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 AslThemeSwatchPicker(
-                    label = stringResource(R.string.general_accent),
+                    label = stringResource(CommonR.string.general_accent),
                     swatches = swatches,
                     value = uiState.accentId,
                     onValueChange = { interactionListener.onAccentChanged(it) },
@@ -85,12 +85,12 @@ private fun GeneralUiModeSection(
     interactionListener: GeneralInteractionListener,
     colors: AslColorScheme,
 ) {
-    Text(text = stringResource(R.string.general_ui_mode), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
+    Text(text = stringResource(CommonR.string.general_ui_mode), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
     AslSegmentedButton(
         options = listOf(
-            AslSegmentedOption(stringResource(R.string.general_theme_light), "light", "sun"),
-            AslSegmentedOption(stringResource(R.string.general_theme_dark), "dark", "moon"),
-            AslSegmentedOption(stringResource(R.string.general_theme_system), "system", "monitor"),
+            AslSegmentedOption(stringResource(CommonR.string.general_theme_light), "light", "sun"),
+            AslSegmentedOption(stringResource(CommonR.string.general_theme_dark), "dark", "moon"),
+            AslSegmentedOption(stringResource(CommonR.string.general_theme_system), "system", "monitor"),
         ),
         value = uiState.themeMode.name.lowercase(),
         onValueChange = { interactionListener.onThemeModeChanged(it.uppercase().let(AppThemeMode::valueOf)) },
@@ -113,7 +113,7 @@ private fun GeneralTogglesSection(
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
-            label = stringResource(R.string.general_auto_open_last),
+            label = stringResource(CommonR.string.general_auto_open_last),
             checked = uiState.autoOpenLastProject,
             onCheckedChange = { interactionListener.onToggleAutoOpenLastProject(it) },
             modifier = Modifier.fillMaxWidth(),

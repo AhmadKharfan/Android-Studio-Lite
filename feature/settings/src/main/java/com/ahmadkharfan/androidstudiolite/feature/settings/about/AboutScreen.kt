@@ -30,7 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmadkharfan.androidstudiolite.feature.settings.BuildConfig
-import com.ahmadkharfan.androidstudiolite.feature.settings.R
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
@@ -63,7 +63,7 @@ private fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = stringResource(R.string.about_title), onBack = onBack)
+            AslTopAppBar(title = stringResource(CommonR.string.about_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -74,7 +74,7 @@ private fun AboutScreen(onBack: () -> Unit) {
             ) {
                 AboutHeader(colors = colors)
                 Text(
-                    text = stringResource(R.string.about_description),
+                    text = stringResource(CommonR.string.about_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -87,7 +87,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                     onOpenContributors = { context.openExternal("$REPO_URL/graphs/contributors") },
                 )
                 Text(
-                    text = stringResource(R.string.about_license),
+                    text = stringResource(CommonR.string.about_license),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                     textAlign = TextAlign.Center,
@@ -123,18 +123,18 @@ private fun AboutHeader(colors: AslColorScheme) {
             )
         }
         Text(
-            text = stringResource(R.string.app_name),
+            text = stringResource(CommonR.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = stringResource(R.string.app_tagline),
+            text = stringResource(CommonR.string.app_tagline),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
         )
         AslChip(
-            label = stringResource(R.string.about_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+            label = stringResource(CommonR.string.about_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
             kind = AslChipKind.Status,
         )
     }
@@ -155,19 +155,19 @@ private fun OpenSourceCard(colors: AslColorScheme, onContribute: () -> Unit) {
         ) {
             AslIcon(name = "heart-handshake", size = 18.dp, tint = colors.accentPrimary)
             Text(
-                text = stringResource(R.string.about_open_source_title),
+                text = stringResource(CommonR.string.about_open_source_title),
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.textPrimary,
             )
         }
         Text(
-            text = stringResource(R.string.about_open_source_body),
+            text = stringResource(CommonR.string.about_open_source_body),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),
         )
         AslButton(
-            label = stringResource(R.string.about_contribute),
+            label = stringResource(CommonR.string.about_contribute),
             onClick = onContribute,
             variant = AslButtonVariant.Primary,
             icon = "git-pull-request",
@@ -189,15 +189,15 @@ private fun AboutLinksCard(
             .border(1.dp, colors.borderDefault, AslShape.lg),
     ) {
         AslListItem(
-            title = stringResource(R.string.about_github),
-            subtitle = stringResource(R.string.about_github_sub),
+            title = stringResource(CommonR.string.about_github),
+            subtitle = stringResource(CommonR.string.about_github_sub),
             icon = "github",
             trailing = { AslIcon(name = "arrow-up-right", size = 16.dp, tint = colors.textTertiary) },
             onClick = onOpenRepo,
         )
         AslListItem(
-            title = stringResource(R.string.about_contributors),
-            subtitle = stringResource(R.string.about_contributors_sub),
+            title = stringResource(CommonR.string.about_contributors),
+            subtitle = stringResource(CommonR.string.about_contributors_sub),
             icon = "users",
             divider = false,
             trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
