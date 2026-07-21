@@ -31,7 +31,7 @@ class BuildNotifier(private val context: Context) {
 
         val seconds = durationMillis?.let { it / 1000.0 }
         val title = when {
-            success && installFollows -> "Build successful — tap to install"
+            success && installFollows -> "Build successful. Tap to install"
             success -> "Build successful"
             else -> "Build failed"
         }

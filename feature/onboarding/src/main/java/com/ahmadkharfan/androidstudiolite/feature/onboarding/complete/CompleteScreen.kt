@@ -65,7 +65,7 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                     modifier = Modifier.padding(top = 18.dp),
                 )
                 Text(
-                    text = "Create a project and hit Run — it builds on the cloud service and installs here.",
+                    text = "Create a project and hit Run. It builds in the cloud and installs here.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,

@@ -40,7 +40,7 @@ class InstallPromptNotifier(private val context: Context) {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Build successful — tap to install")
+            .setContentTitle("Build successful. Tap to install")
             .setContentText(apkLabel)
             .setStyle(
                 NotificationCompat.BigTextStyle()

@@ -353,8 +353,8 @@ class RealAiChatRepository(
                         reconcileFinalTurn(session, thoughtId, answerId, "", mode)
                         appendAiMessage(
                             session,
-                            "Applied **$toolsRun** change(s). Some steps could not be parsed — " +
-                                "tap **Continue** or say \"continue implementation\" to finish the plan.",
+                            "Applied **$toolsRun** change(s). Some steps could not be parsed. " +
+                                "Tap **Continue** or say \"continue implementation\" to finish the plan.",
                         )
                         return
                     }
@@ -813,8 +813,8 @@ class RealAiChatRepository(
         fun welcomeMessage() = ChatMessage(
             id = WELCOME_ID,
             role = ChatRole.AI,
-            text = "Hi! I'm the Android Studio Lite agent. I can read and edit files in this project — " +
-                "ask me to create a screen, fix a bug, or refactor something.",
+            text = "Hi! I'm the Android Studio Lite agent. I can read and edit files in this project. " +
+                "Ask me to create a screen, fix a bug, or refactor something.",
             timestamp = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()),
         )
     }

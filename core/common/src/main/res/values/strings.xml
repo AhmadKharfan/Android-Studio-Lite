@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Android Studio Lite</string>
-    <string name="app_tagline">Simply, an IDE for Android</string>
+    <string name="app_tagline">Build Android apps on your phone</string>
     <string name="default_user_name">Developer</string>
 
     <!-- Common actions -->
@@ -52,12 +52,12 @@
     <string name="hub_open_project">Open project</string>
     <string name="hub_open_project_sub">Browse device storage</string>
     <string name="hub_clone_repo">Clone repository</string>
-    <string name="hub_clone_repo_sub">GitHub, GitLab or any URL</string>
+    <string name="hub_clone_repo_sub">GitHub, GitLab, or any URL</string>
     <string name="hub_resume_banner">Resume %1$s where you left off?</string>
     <string name="hub_invalid_project_snackbar">Not a valid Android project</string>
     <string name="hub_dialog_resume_title">Open last project?</string>
     <string name="hub_dialog_invalid_folder_title">Can\'t open folder</string>
-    <string name="hub_dialog_invalid_folder_body">%1$s has no settings.gradle — it isn\'t a valid Android project.</string>
+    <string name="hub_dialog_invalid_folder_body">%1$s has no settings.gradle, so it isn\'t a valid Android project.</string>
     <string name="hub_project_menu_open">Open</string>
     <string name="hub_project_menu_rename">Rename</string>
     <string name="hub_project_menu_delete">Delete from device</string>
@@ -100,8 +100,8 @@
     <string name="ai_chat_no_provider_title">No AI provider configured</string>
     <string name="ai_chat_no_provider_sub">Add and validate an API key in Settings to start chatting.</string>
     <string name="ai_chat_open_settings">Open AI Agent settings</string>
-    <string name="ai_chat_auto_apply_on">Auto-apply on — tap to require approval</string>
-    <string name="ai_chat_auto_apply_off">Approval required — tap to auto-apply</string>
+    <string name="ai_chat_auto_apply_on">Auto-apply is on. Tap to require approval first.</string>
+    <string name="ai_chat_auto_apply_off">Changes need approval. Tap to auto-apply.</string>
     <string name="ai_tool_approve">Approve</string>
     <string name="ai_tool_reject">Reject</string>
     <string name="ai_chat_new_chat">New chat</string>
@@ -116,7 +116,7 @@
     <string name="ai_chat_mode_plan">Plan</string>
     <string name="ai_chat_mode_agent_desc">Reads and edits files to complete the task.</string>
     <string name="ai_chat_mode_ask_desc">Answers questions about the project. Never edits files.</string>
-    <string name="ai_chat_mode_plan_desc">Investigates and writes a step-by-step plan. Never edits files.</string>
+    <string name="ai_chat_mode_plan_desc">Investigates the code and writes a plan. Never edits files.</string>
     <string name="ai_chat_provider">Provider</string>
     <string name="ai_chat_model">Model</string>
     <string name="ai_chat_custom_model">Custom model id</string>
@@ -129,7 +129,7 @@
     <string name="ai_plan_review_sheet_title">Review plan</string>
     <string name="ai_plan_review_sheet_subtitle">Tell the AI what to look for. Leave blank for a general review.</string>
     <string name="ai_plan_review_sheet_placeholder">e.g. Check navigation setup, ViewModel scope, and test coverage…</string>
-    <string name="ai_plan_review_sheet_hint">Review runs in Ask mode — read-only, no file edits.</string>
+    <string name="ai_plan_review_sheet_hint">Reviews run in Ask mode (read-only, no file edits).</string>
     <string name="ai_plan_review_submit">Start review</string>
 
     <!-- General settings -->
@@ -153,7 +153,7 @@
     <string name="about_description">A lightweight Android IDE for building and editing projects on device. Builds run on a remote server; you edit, commit, and iterate locally.</string>
     <string name="about_version">v%1$s · build %2$d</string>
     <string name="about_open_source_title">Open source</string>
-    <string name="about_open_source_body">Android Studio Lite is free software, built in the open. Star the repo, file an issue, or open a pull request — every contribution helps.</string>
+    <string name="about_open_source_body">Android Studio Lite is free software, built in the open. Star the repo, file an issue, or open a pull request. Every contribution helps.</string>
     <string name="about_contribute">Contribute on GitHub</string>
     <string name="about_license">Free software · GPLv3 license</string>
 
@@ -161,9 +161,9 @@
     <string name="onboarding_welcome_title">Welcome to\nAndroid Studio Lite</string>
     <string name="onboarding_welcome_subtitle">Build real Android apps from your device.</string>
     <string name="onboarding_bullet_builds_title">Gradle builds</string>
-    <string name="onboarding_bullet_builds_text">Builds run on the cloud service; APKs install straight to your device.</string>
+    <string name="onboarding_bullet_builds_text">Build in the cloud and install the APK on your device.</string>
     <string name="onboarding_bullet_code_title">Code intelligence</string>
     <string name="onboarding_bullet_code_text">Completion and navigation for Kotlin &amp; Java.</string>
-    <string name="onboarding_bullet_git_ai_title">Git &amp; AI built-in</string>
+    <string name="onboarding_bullet_git_ai_title">Git &amp; AI built in</string>
     <string name="onboarding_bullet_git_ai_text">Clone, commit, and generate code with the AI agent.</string>
 </resources>

@@ -105,7 +105,7 @@ private fun CloneRepoForm(
         onValueChange = { interactionListener.onBranchChanged(it) },
         label = "Branch",
         placeholder = "main",
-        helper = "Optional — defaults to the remote's default branch",
+        helper = "Optional. Leave blank to use the remote's default branch.",
     )
     CloneRepoOptions(uiState = uiState, interactionListener = interactionListener)
     AslButton(

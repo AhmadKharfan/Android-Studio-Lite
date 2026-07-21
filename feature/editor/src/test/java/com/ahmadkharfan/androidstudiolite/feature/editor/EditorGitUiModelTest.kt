@@ -41,7 +41,7 @@ class EditorGitUiModelTest {
         ).toEditorGitUiModel()
 
         assertEquals("HEAD (abc1234)", detached.statusText)
-        assertEquals("feature — Merging", merging.statusText)
+        assertEquals("feature, Merging", merging.statusText)
     }
 
     @Test

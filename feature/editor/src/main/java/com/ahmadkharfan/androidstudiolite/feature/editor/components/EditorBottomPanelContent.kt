@@ -18,9 +18,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
-import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
-import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslBuildOutputLine
@@ -38,14 +36,12 @@ import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTermina
 fun EditorBottomPanelContent(
     activeTabId: String,
     buildConsole: BuildConsoleState,
-    operationRunning: Boolean = buildConsole.isRunning,
     modifier: Modifier = Modifier,
     projectRootPath: String = "",
-    onCancelBuild: () -> Unit = {},
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
 ) {
     when (activeTabId) {
-        "build" -> BuildTab(buildConsole, operationRunning, onCancelBuild, onJumpToBuildProblem, modifier)
+        "build" -> BuildTab(buildConsole, onJumpToBuildProblem, modifier)
         "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
         else -> AslEmptyState(
             icon = "terminal",
@@ -59,8 +55,6 @@ fun EditorBottomPanelContent(
 @Composable
 private fun BuildTab(
     console: BuildConsoleState,
-    operationRunning: Boolean,
-    onCancelBuild: () -> Unit,
     onJumpToBuildProblem: (BuildProblem) -> Unit,
     modifier: Modifier,
 ) {
@@ -79,8 +73,6 @@ private fun BuildTab(
     Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
         BuildStatusHeader(
             console = console,
-            operationRunning = operationRunning,
-            onCancelBuild = onCancelBuild,
             onCopyAll = { clipboard.setText(AnnotatedString(console.toClipboardText())) },
         )
 
@@ -176,7 +168,7 @@ private fun BuildConsoleState.toClipboardText(): String = buildString {
             if (group.module.isNotEmpty()) appendLine(group.module)
             group.tasks.forEach { task ->
                 append("  ").append(task.name)
-                task.result?.let { append(" — ").append(it.name) }
+                task.result?.let { append(" ").append(it.name) }
                 appendLine()
             }
         }
@@ -191,8 +183,6 @@ private fun BuildConsoleState.toClipboardText(): String = buildString {
 @Composable
 private fun BuildStatusHeader(
     console: BuildConsoleState,
-    operationRunning: Boolean,
-    onCancelBuild: () -> Unit,
     onCopyAll: () -> Unit,
 ) {
     val colors = AslTheme.colors
@@ -200,7 +190,7 @@ private fun BuildStatusHeader(
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             val (label, tint) = when (console.status) {
                 BuildStatus.Running -> (console.progressMessage ?: "Building…") to colors.info
@@ -222,21 +212,12 @@ private fun BuildStatusHeader(
             }
             val hasContent = console.problems.isNotEmpty() || console.taskGroups.isNotEmpty() || console.logs.isNotEmpty()
             if (hasContent) {
-                AslButton(
-                    label = "Copy",
-                    onClick = onCopyAll,
-                    variant = AslButtonVariant.Secondary,
-                    size = AslButtonSize.Md,
+                AslIconButton(
                     icon = "copy",
-                )
-            }
-            if (operationRunning) {
-                AslButton(
-                    label = "Cancel",
-                    onClick = onCancelBuild,
-                    variant = AslButtonVariant.Secondary,
-                    size = AslButtonSize.Md,
-                    icon = "x",
+                    contentDescription = "Copy build output",
+                    onClick = onCopyAll,
+                    size = 32.dp,
+                    iconSize = 16.dp,
                 )
             }
         }

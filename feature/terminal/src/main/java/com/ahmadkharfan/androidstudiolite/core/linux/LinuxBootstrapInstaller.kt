@@ -126,7 +126,7 @@ class LinuxBootstrapInstaller(
                 _state.value = LinuxInstallState.Installed
             } catch (t: Throwable) {
                 _state.value = LinuxInstallState.Failed(
-                    t.message ?: "Couldn't install terminal tools — check your internet and retry.",
+                    t.message ?: "Couldn't install terminal tools. Check your internet and retry.",
                 )
             }
         }

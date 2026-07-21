@@ -169,7 +169,7 @@ class RemoteBuildSystem(
 
             val existing = runCatching { client.buildStatus(buildId) }.getOrNull()
             if (existing != null && isTerminalBuildStatus(existing.status)) {
-                send(BuildEvent.Progress("Build finished — collecting results…"))
+                send(BuildEvent.Progress("Build finished. Collecting results…"))
                 emitTerminalFromStatus(buildId, existing, startedAt)
                 return@channelFlow
             }
@@ -284,7 +284,7 @@ class RemoteBuildSystem(
                                 "Re-open the project to reconnect, or tap Run to start a new build."
                         } else {
                             "Lost connection to the build server before the build finished. " +
-                                "The build may still be running on the server — re-open the project to reconnect, " +
+                                "The build may still be running on the server. Re-open the project to reconnect, " +
                                 "or tap Run to try again."
                         },
                     ),
@@ -406,10 +406,10 @@ class RemoteBuildSystem(
                     code == "quota_exceeded" || "quota" in err.message.lowercase() ||
                         "build time" in err.message.lowercase() ->
                         return msg
-                            ?: "You've used today's build time for this device. Quota resets at midnight UTC — try again tomorrow."
+                            ?: "You've used today's build time for this device. Quota resets at midnight UTC. Try again tomorrow."
                     err.httpStatus == 429 || code == "rate_limited" ->
                         return msg
-                            ?: "Too many builds right now — wait a moment and try again."
+                            ?: "Too many builds right now. Wait a moment and try again."
                 }
             }
         }
@@ -418,13 +418,13 @@ class RemoteBuildSystem(
         for (err in chain) {
             when (err) {
                 is java.net.UnknownHostException ->
-                    return "You're offline or DNS failed — check your internet connection and try again."
+                    return "You're offline or DNS failed. Check your internet connection and try again."
                 is java.net.ConnectException ->
-                    return "Can't reach the build server — check your internet connection and try again."
+                    return "Can't reach the build server. Check your internet connection and try again."
                 is java.net.NoRouteToHostException ->
-                    return "No network route to the build server — check your internet connection."
+                    return "No network route to the build server. Check your internet connection."
                 is java.net.SocketTimeoutException ->
-                    return "Build server timed out — check your internet connection and try again."
+                    return "Build server timed out. Check your internet connection and try again."
             }
         }
         val message = chain.mapNotNull { it.message?.takeIf(String::isNotBlank) }.firstOrNull().orEmpty()
@@ -436,12 +436,12 @@ class RemoteBuildSystem(
                 "software caused connection abort" in lower ||
                 "connection refused" in lower ||
                 lower == "network error" ->
-                "You're offline or can't reach the build server — check your internet connection and try again."
+                "You're offline or can't reach the build server. Check your internet connection and try again."
             message.contains("PROTOCOL_ERROR", ignoreCase = true) ||
                 message.contains("stream was reset", ignoreCase = true) ->
-                "Connection to the build server was interrupted — check your internet and try again."
+                "Connection to the build server was interrupted. Check your internet and try again."
             message.isNotBlank() -> message
-            else -> "Build failed — check your internet connection and try again."
+            else -> "Build failed. Check your internet connection and try again."
         }
     }
 

@@ -6,27 +6,27 @@ import org.junit.Test
 
 class GitErrorMessageMapperTest {
     @Test fun `auth error is actionable`() = assertEquals(
-        "Authentication failed — check your token in settings",
+        "Authentication failed. Check your token in settings.",
         gitErrorMessage(GitException.Auth("denied")),
     )
 
     @Test fun `non fast forward suggests pull`() = assertEquals(
-        "Remote has new commits — pull first",
+        "Remote has new commits. Pull first.",
         gitErrorMessage(GitException.NonFastForward("rejected")),
     )
 
     @Test fun `merge conflict points to conflict section`() = assertEquals(
-        "Merge produced conflicts — resolve them in the Conflicts section",
+        "Merge produced conflicts. Resolve them in the Conflicts section.",
         gitErrorMessage(GitException.MergeConflict("conflict")),
     )
 
     @Test fun `repository lock suggests retry`() = assertEquals(
-        "Repository is busy/locked — retry",
+        "Repository is busy. Try again.",
         gitErrorMessage(GitException.RepositoryLocked("locked")),
     )
 
     @Test fun `stale lease suggests fetch`() = assertEquals(
-        "Force push lease is stale — fetch first",
+        "Force push lease is stale. Fetch first.",
         gitErrorMessage(GitException.StaleLease("changed")),
     )
 }

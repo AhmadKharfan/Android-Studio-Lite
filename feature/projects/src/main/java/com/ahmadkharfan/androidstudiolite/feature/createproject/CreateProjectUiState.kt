@@ -13,9 +13,9 @@ data class CreateProjectTemplateUiModel(
 data class SdkOption(val value: String, val label: String)
 
 val MIN_SDK_OPTIONS = listOf(
-    SdkOption("24", "API 24 — Android 7.0"),
-    SdkOption("26", "API 26 — Android 8.0"),
-    SdkOption("30", "API 30 — Android 11"),
+    SdkOption("24", "API 24 (Android 7.0)"),
+    SdkOption("26", "API 26 (Android 8.0)"),
+    SdkOption("30", "API 30 (Android 11)"),
 )
 
 const val LANG_KOTLIN = "kotlin"

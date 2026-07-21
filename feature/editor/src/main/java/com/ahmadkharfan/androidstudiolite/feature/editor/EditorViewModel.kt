@@ -135,7 +135,7 @@ class EditorViewModel(
                         snackbarMessage = when (execution.installState) {
                             InstallExecutionState.Preparing -> "Installing…"
                             InstallExecutionState.AwaitingConfirmation ->
-                                "Waiting for install confirmation — check notifications if needed"
+                                "Waiting for install confirmation. Check notifications if needed."
                             InstallExecutionState.Installed -> "Installed successfully"
                             InstallExecutionState.Failed -> execution.installFailureReason ?: "Installation failed"
                             InstallExecutionState.None -> snackbarMessage
@@ -654,6 +654,9 @@ class EditorViewModel(
             copy(findCurrentMatch = findController.previousMatch(findMatchCount, findCurrentMatch))
         }
     }
+    override fun onToggleMarkdownPreview() {
+        updateState { copy(markdownPreview = !markdownPreview) }
+    }
     override fun onToggleAutocompleteDemo() {
         updateState { copy(autocompletePopupVisible = !autocompletePopupVisible) }
     }
@@ -1048,7 +1051,7 @@ class EditorViewModel(
     }
 
     private fun showOfflineBuildFailure() {
-        val offlineMsg = "You're offline — connect to the internet and try again."
+        val offlineMsg = "You're offline. Connect to the internet and try again."
         updateState {
             copy(
                 running = false,
@@ -1164,7 +1167,7 @@ class EditorViewModel(
 
     private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
         val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
-            text = "Preflight: " + warnings.joinToString("; ") { "${it.title} — ${it.detail}" },
+            text = "Preflight: " + warnings.joinToString("; ") { "${it.title}: ${it.detail}" },
             isError = warnings.any { it.severity == PreflightSeverity.BLOCKER },
         )
         updateState { copy(buildConsole = buildConsole.copy(logs = listOf(prefix) + buildConsole.logs)) }
@@ -1180,7 +1183,7 @@ class EditorViewModel(
         updateState {
             copy(
                 installConflict = null,
-                snackbarMessage = "Install cancelled — the installed app is signed differently",
+                snackbarMessage = "Install cancelled. The installed app is signed differently.",
             )
         }
     }
@@ -1232,6 +1235,7 @@ class EditorViewModel(
         id = id,
         name = name,
         children = children?.map { it.toUiModel() },
+        icon = if (children != null) null else fileIconFor(name),
         gitStatus = layeredGitStatus(id) ?: gitStatus,
     )
 

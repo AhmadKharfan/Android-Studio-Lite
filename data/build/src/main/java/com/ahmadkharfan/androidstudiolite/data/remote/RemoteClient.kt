@@ -253,13 +253,13 @@ class RemoteClient(
         for (err in chain) {
             when (err) {
                 is java.net.UnknownHostException ->
-                    return "You're offline or DNS failed — check your internet connection and try again."
+                    return "You're offline or DNS failed. Check your internet connection and try again."
                 is java.net.ConnectException ->
-                    return "Can't reach the build server — check your internet connection and try again."
+                    return "Can't reach the build server. Check your internet connection and try again."
                 is java.net.NoRouteToHostException ->
-                    return "No network route to the build server — check your internet connection."
+                    return "No network route to the build server. Check your internet connection."
                 is java.net.SocketTimeoutException ->
-                    return "Build server timed out — check your internet connection and try again."
+                    return "Build server timed out. Check your internet connection and try again."
             }
         }
         val message = e.message.orEmpty().lowercase()
@@ -268,9 +268,9 @@ class RemoteClient(
                 "failed to connect" in message ||
                 "network is unreachable" in message ||
                 "connection refused" in message ->
-                "You're offline or can't reach the build server — check your internet connection and try again."
+                "You're offline or can't reach the build server. Check your internet connection and try again."
             e.message.isNullOrBlank() ->
-                "Network error — check your internet connection and try again."
+                "Network error. Check your internet connection and try again."
             else -> e.message!!
         }
     }

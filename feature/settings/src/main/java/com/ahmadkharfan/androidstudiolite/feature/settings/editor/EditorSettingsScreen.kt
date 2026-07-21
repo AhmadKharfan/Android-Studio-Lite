@@ -187,7 +187,7 @@ private fun EditorColorSchemeSection(
     )
     if (!EditorPalette.isDarkScheme(colorSchemeId)) {
         Text(
-            text = "Light scheme — editor stays bright even in dark UI mode.",
+            text = "Light scheme keeps the editor bright even in dark UI mode.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
             modifier = Modifier.padding(top = 8.dp),

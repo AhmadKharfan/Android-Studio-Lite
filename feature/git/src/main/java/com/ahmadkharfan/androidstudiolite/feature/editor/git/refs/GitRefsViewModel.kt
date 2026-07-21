@@ -248,7 +248,7 @@ private fun String.integrationMessage(status: GitIntegrationStatus): String = wh
     GitIntegrationStatus.FAST_FORWARD -> "fast-forwarded current branch to $this"
     GitIntegrationStatus.MERGED -> "merged $this into the current branch"
     GitIntegrationStatus.ALREADY_UP_TO_DATE -> "already up to date with $this"
-    GitIntegrationStatus.CONFLICTS -> "produced conflicts — resolve them in the Changes panel"
+    GitIntegrationStatus.CONFLICTS -> "produced conflicts. Resolve them in the Changes panel."
     GitIntegrationStatus.ABORTED_FF_ONLY -> "aborted: $this can't be fast-forwarded"
     GitIntegrationStatus.APPLIED, GitIntegrationStatus.ABORTED -> "finished ($status)"
 }

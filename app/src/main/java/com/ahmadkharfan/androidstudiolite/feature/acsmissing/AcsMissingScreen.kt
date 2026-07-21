@@ -47,7 +47,7 @@ private fun AcsMissingScreen(onExit: () -> Unit) {
         }
         AslDialog(
             title = "Build components missing",
-            body = "This build of Android Studio Lite is missing its ACS core components — it may be an unofficial copy. Reinstall from an official source to continue.",
+            body = "This build of Android Studio Lite is missing its ACS core components. It may be an unofficial copy. Reinstall from an official source to continue.",
             confirmLabel = "Get official build",
             cancelLabel = "Exit",
             onConfirm = {},

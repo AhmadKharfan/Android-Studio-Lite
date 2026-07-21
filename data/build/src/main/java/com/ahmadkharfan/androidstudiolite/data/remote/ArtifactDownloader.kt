@@ -32,7 +32,7 @@ class ArtifactDownloader(
                 client.download(artifact.url, dest)
                 if (!dest.isFile || dest.length() == 0L) {
                     dest.delete()
-                    throw RemoteException(0, "NETWORK", "Downloaded APK was empty — retrying…")
+                    throw RemoteException(0, "NETWORK", "Downloaded APK was empty. Retrying…")
                 }
                 if (expectedSizeBytes != null && dest.length() != expectedSizeBytes) {
                     dest.delete()

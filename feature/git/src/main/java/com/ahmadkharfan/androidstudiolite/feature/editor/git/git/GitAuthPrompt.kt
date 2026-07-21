@@ -114,7 +114,7 @@ class GitAuthController(
 
     override fun onStartGitHubSignIn() {
         if (!authenticator.isConfigured) {
-            set { copy(mode = GitAuthMode.Token, error = "GitHub sign-in isn't configured on this build — use an access token.") }
+            set { copy(mode = GitAuthMode.Token, error = "GitHub sign-in isn't configured on this build. Use an access token.") }
             return
         }
 

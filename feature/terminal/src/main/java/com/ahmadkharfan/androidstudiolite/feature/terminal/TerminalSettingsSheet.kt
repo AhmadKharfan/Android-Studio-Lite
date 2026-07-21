@@ -51,7 +51,7 @@ fun TerminalSettingsSheet(
                     text = when {
                         linux.installed -> "Linux userland: installed (Alpine via proot)"
                         linux.isBusy -> linux.phase ?: "Installing Linux userland…"
-                        else -> "Linux userland: not installed — install to run apk, git, python, gcc, etc."
+                        else -> "Linux userland not installed. Install to run apk, git, python, gcc, etc."
                     },
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,

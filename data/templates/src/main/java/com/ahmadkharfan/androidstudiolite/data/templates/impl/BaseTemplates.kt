@@ -13,7 +13,7 @@ object NoActivityTemplate : Template {
     override val metadata = TemplateMetadata(
         id = "no-activity",
         name = "No Activity",
-        description = "An empty app module — add your own entry point.",
+        description = "An empty app module. Add your own entry point.",
         thumbnail = "template_no_activity",
         tags = listOf("Views"),
     )

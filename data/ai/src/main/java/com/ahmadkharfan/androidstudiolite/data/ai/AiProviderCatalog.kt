@@ -16,7 +16,7 @@ object AiProviderCatalog {
             id = "anthropic",
             name = "Anthropic",
             icon = "sparkles",
-            description = "Claude · default provider",
+            description = "Claude (default provider)",
             defaultModel = "claude-3-5-sonnet-latest",
             curatedModels = listOf(
                 "claude-3-5-sonnet-latest",

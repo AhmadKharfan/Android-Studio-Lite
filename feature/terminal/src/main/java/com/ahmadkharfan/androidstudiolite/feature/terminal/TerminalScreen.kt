@@ -202,7 +202,7 @@ private fun TerminalLinuxBanner(
                     text = when {
                         linux.isBusy -> linux.phase ?: "Installing Linux…"
                         linux.error != null -> "Linux tools install failed"
-                        else -> "Enable full Linux — apk, python, git, gcc and more"
+                        else -> "Enable full Linux: apk, python, git, gcc, and more"
                     },
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,

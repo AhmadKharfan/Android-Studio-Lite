@@ -119,6 +119,7 @@ data class EditorUiState(
     val findQuery: String = "",
     val findMatchCount: Int = 0,
     val findCurrentMatch: Int = 0,
+    val markdownPreview: Boolean = true,
     val isLoadingFileTree: Boolean = true,
     val autocompletePopupVisible: Boolean = false,
     val editorFontSize: Int = 13,
@@ -174,7 +175,7 @@ internal fun GitState.toEditorGitUiModel(): EditorGitUiModel {
         statusText = buildString {
             append(head)
             if (pending > 0) append(" ●")
-            operation?.let { append(" — ").append(it) }
+            operation?.let { append(", ").append(it) }
         },
         pendingChangeCount = pending,
     )
