@@ -370,7 +370,7 @@ class BuildRunCoordinator(
             val read = gradleReader.read(projectRoot)
             ToolchainVersions(
                 gradle = read.gradleVersion,
-                agp = read.catalog?.let { c -> AGP_VERSION_KEYS.firstNotNullOfOrNull { c.versions[it] } },
+                agp = read.agpVersion,
                 jdkMajor = TOOLCHAIN_JDK_MAJOR,
             )
         }.getOrDefault(ToolchainVersions(jdkMajor = TOOLCHAIN_JDK_MAJOR))
@@ -491,7 +491,6 @@ class BuildRunCoordinator(
 
     private companion object {
         const val TOOLCHAIN_JDK_MAJOR = 17
-        val AGP_VERSION_KEYS = listOf("agp", "androidGradlePlugin", "android-gradle-plugin", "android")
         const val ACTIVE_BUILD_MAX_AGE_MS = 2_100_000L
         const val INSTALL_OBSERVER_TIMEOUT_MS = 600_000L
     }
