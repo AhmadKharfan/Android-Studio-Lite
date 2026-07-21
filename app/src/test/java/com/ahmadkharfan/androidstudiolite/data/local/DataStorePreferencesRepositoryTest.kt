@@ -66,6 +66,20 @@ class DataStorePreferencesRepositoryTest {
     }
 
     @Test
+    fun `selected variant is remembered per project across a simulated relaunch`() {
+        withRepository { repo ->
+            repo.setSelectedVariant("proj-a", "fdroidRelease")
+            repo.setSelectedVariant("proj-b", "gplayDebug")
+        }
+
+        withRepository { repo ->
+            assertEquals("fdroidRelease", repo.getSelectedVariant("proj-a"))
+            assertEquals("gplayDebug", repo.getSelectedVariant("proj-b"))
+            assertEquals(null, repo.getSelectedVariant("proj-unknown"))
+        }
+    }
+
+    @Test
     fun `generic update persists every field across a simulated relaunch`() {
         val expected = AppPreferences(
             themeMode = AppThemeMode.LIGHT,
