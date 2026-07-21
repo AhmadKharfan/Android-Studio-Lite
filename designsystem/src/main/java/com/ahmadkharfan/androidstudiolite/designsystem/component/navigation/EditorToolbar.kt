@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +69,7 @@ fun AslEditorToolbar(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
                     .height(36.dp)
+                    .clip(AslShape.full)
                     .background(if (running) colors.error else colors.accentPrimary, AslShape.full)
                     .clickable(onClick = onRun)
                     .padding(horizontal = 14.dp),

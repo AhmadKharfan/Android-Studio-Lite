@@ -101,7 +101,7 @@ fun AslSwitch(
         ) {
             Box(
                 modifier = Modifier
-                    .offset(x = thumbOffset, y = 3.dp)
+                    .offset(x = thumbOffset, y = 4.dp)
                     .size(18.dp)
                     .background(thumbColor, CircleShape),
             )
