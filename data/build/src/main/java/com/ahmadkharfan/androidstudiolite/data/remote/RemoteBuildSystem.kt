@@ -77,7 +77,15 @@ class RemoteBuildSystem(
                 RemoteJson.decodeFromString<WireProjectModel>(modelFile.readText()),
                 projectRoot,
             )
-        }.getOrElse { gradleReader.read(projectRoot).model }
+        }.getOrElse { error ->
+            android.util.Log.w(
+                "RemoteBuildSystem",
+                "Gradle model sync failed; using static project parse. Variant/flavor detection " +
+                    "may be incomplete for this project.",
+                error,
+            )
+            gradleReader.read(projectRoot).model
+        }
     }
 
     override fun build(request: BuildRequest): Flow<BuildEvent> = channelFlow {
