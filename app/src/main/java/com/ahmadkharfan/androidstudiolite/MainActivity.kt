@@ -31,10 +31,11 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.view.EditorVolumeKeyDis
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalVolumeKeyDispatcher
 import com.ahmadkharfan.androidstudiolite.navigation.AslNavHost
 import com.ahmadkharfan.androidstudiolite.navigation.Routes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
-import java.io.File
 
 class MainActivity : ComponentActivity() {
     private val preferencesRepository: PreferencesRepository by inject()
@@ -51,22 +52,25 @@ class MainActivity : ComponentActivity() {
         openProjectId = intent.projectIdExtra()
 
         lifecycleScope.launch {
-            val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
-            if (!onboardingComplete) {
-                startDestination = Routes.ONBOARDING_WELCOME
-                return@launch
-            }
-
-            if (openProjectId == null) {
-                val prefs = preferencesRepository.observePreferences().first()
-                if (prefs.autoOpenLastProject) {
-                    val last = projectRepository.observeRecentProjects().first()
-                        .filter { File(it.path).isDirectory }
-                        .maxByOrNull { it.lastOpenedMillis ?: 0L }
-                    if (last != null) openProjectId = last.id
+            val routing = withContext(Dispatchers.IO) {
+                val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
+                if (!onboardingComplete) {
+                    return@withContext Routes.ONBOARDING_WELCOME to null
                 }
+
+                var projectId = openProjectId
+                if (projectId == null) {
+                    val prefs = preferencesRepository.observePreferences().first()
+                    if (prefs.autoOpenLastProject) {
+                        val last = projectRepository.observeRecentProjects().first()
+                            .maxByOrNull { it.lastOpenedMillis ?: 0L }
+                        if (last != null) projectId = last.id
+                    }
+                }
+                Routes.HUB to projectId
             }
-            startDestination = Routes.HUB
+            openProjectId = routing.second
+            startDestination = routing.first
         }
 
         enableEdgeToEdge(

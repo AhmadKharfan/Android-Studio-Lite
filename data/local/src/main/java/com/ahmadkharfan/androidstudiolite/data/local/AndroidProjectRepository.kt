@@ -13,6 +13,7 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -26,9 +27,11 @@ class AndroidProjectRepository(
 ) : ProjectRepository {
 
     override fun observeRecentProjects(): Flow<List<Project>> =
-        dataStore.data.map { prefs ->
-            decode(prefs[KEY].orEmpty()).filter { File(it.path).isDirectory }
-        }
+        dataStore.data
+            .map { prefs ->
+                decode(prefs[KEY].orEmpty()).filter { File(it.path).isDirectory }
+            }
+            .flowOn(Dispatchers.IO)
 
     override suspend fun createProject(spec: NewProjectSpec): Project =
         withContext(Dispatchers.IO) {
