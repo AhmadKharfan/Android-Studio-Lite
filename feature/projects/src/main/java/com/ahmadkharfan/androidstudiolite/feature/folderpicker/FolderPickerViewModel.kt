@@ -14,20 +14,7 @@ class FolderPickerViewModel(
     private var breadcrumbBase: List<String> = emptyList()
 
     init {
-        tryToExecute(
-            block = { fileSystemRepository.getFolderTree() },
-            onSuccess = { tree ->
-                rootItems = tree.items
-                breadcrumbBase = tree.breadcrumb
-                updateState {
-                    copy(
-                        breadcrumb = tree.breadcrumb,
-                        items = tree.items.map(::toUiNode),
-                        expandedIds = setOf("projects"),
-                    )
-                }
-            },
-        )
+        loadTree()
     }
 
     override fun onToggleFolder(id: String) {
@@ -40,12 +27,101 @@ class FolderPickerViewModel(
 
     override fun onSelectFolder(id: String) {
         updateState {
-            copy(selectedId = id, selectedPath = buildPath(id))
+            copy(
+                selectedId = id,
+                selectedPath = buildPath(id),
+                createFolderError = null,
+            )
         }
     }
 
+    override fun onStartCreateFolder() {
+        updateState {
+            copy(
+                creatingFolder = true,
+                newFolderName = "",
+                createFolderError = null,
+            )
+        }
+    }
+
+    override fun onCancelCreateFolder() {
+        updateState {
+            copy(
+                creatingFolder = false,
+                newFolderName = "",
+                createFolderError = null,
+            )
+        }
+    }
+
+    override fun onNewFolderNameChanged(name: String) {
+        updateState {
+            copy(newFolderName = name, createFolderError = null)
+        }
+    }
+
+    override fun onConfirmCreateFolder() {
+        val name = state.value.newFolderName.trim()
+        if (name.isBlank()) {
+            updateState { copy(createFolderError = "Enter a folder name") }
+            return
+        }
+        if (name.contains('/') || name.contains('\\')) {
+            updateState { copy(createFolderError = "Folder name cannot contain slashes") }
+            return
+        }
+        val parentPath = state.value.selectedId ?: browseRootPath()
+        tryToExecute(
+            block = { fileSystemRepository.createDirectory(parentPath, name) },
+            onSuccess = { newPath ->
+                loadTree(
+                    expandParentId = parentPath,
+                    selectId = newPath,
+                    creatingFolder = false,
+                    newFolderName = "",
+                )
+            },
+            onError = { error ->
+                updateState {
+                    copy(createFolderError = error.message ?: "Could not create folder")
+                }
+            },
+        )
+    }
+
+    private fun loadTree(
+        expandParentId: String? = null,
+        selectId: String? = null,
+        creatingFolder: Boolean = false,
+        newFolderName: String = "",
+    ) {
+        tryToExecute(
+            block = { fileSystemRepository.getFolderTree() },
+            onSuccess = { tree ->
+                rootItems = tree.items
+                breadcrumbBase = tree.breadcrumb
+                updateState {
+                    copy(
+                        breadcrumb = tree.breadcrumb,
+                        items = tree.items.map(::toUiNode),
+                        expandedIds = if (expandParentId != null) expandedIds + expandParentId else expandedIds,
+                        selectedId = selectId ?: selectedId,
+                        selectedPath = selectId?.let(::buildPath) ?: selectedPath,
+                        creatingFolder = creatingFolder,
+                        newFolderName = newFolderName,
+                        createFolderError = null,
+                    )
+                }
+            },
+        )
+    }
+
+    private fun browseRootPath(): String =
+        breadcrumbBase.joinToString(separator = "/", prefix = "/")
+
     private fun buildPath(id: String): String? {
-        val chain = findChain(rootItems, id) ?: return null
+        val chain = findChain(rootItems, id) ?: return id.takeIf { it.startsWith("/") }
         return (breadcrumbBase + chain.map { it.name }).joinToString(separator = "/", prefix = "/")
     }
 
