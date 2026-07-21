@@ -241,9 +241,7 @@ class EditorViewModel(
                         selectedVariant = "",
                     )
                 } else {
-                    val localModel = gradleProjectReader.read(root).model
-                    val model = runCatching { buildRunCoordinator.syncProject(root) }
-                        .getOrDefault(localModel)
+                    val model = gradleProjectReader.read(root).model
                     authoritativeProjectModel = root.absolutePath to model
                     val app = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .resolveAppModule(model)
@@ -257,7 +255,7 @@ class EditorViewModel(
                     val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
                         .resolveSelectedVariant(app, remembered)
                     SyncSymbolsResult(
-                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(localModel),
+                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model),
                         runModulePath = app?.path.orEmpty(),
                         availableVariants = variants,
                         selectedVariant = selected,
@@ -1121,13 +1119,10 @@ class EditorViewModel(
     )
 
     private suspend fun resolveBuildTargets(root: File, variant: String, kind: BuildKind, install: Boolean): BuildTargets? {
-        // Build from the same authoritative model used by sync. The local reader is only a
-        // fallback for an unavailable backend and must not replace flavor-aware task paths.
         val projectModel = authoritativeProjectModel
             ?.takeIf { it.first == root.absolutePath }
             ?.second
-            ?: runCatching { buildRunCoordinator.syncProject(root) }
-                .recoverCatching { gradleProjectReader.read(root).model }
+            ?: runCatching { gradleProjectReader.read(root).model }
                 .getOrNull()
                 ?.also { authoritativeProjectModel = root.absolutePath to it }
         val appModule = projectModel?.let {
