@@ -10,4 +10,7 @@ data class FolderPickerUiState(
     val expandedIds: Set<String> = emptySet(),
     val selectedId: String? = null,
     val selectedPath: String? = null,
+    val creatingFolder: Boolean = false,
+    val newFolderName: String = "",
+    val createFolderError: String? = null,
 )
