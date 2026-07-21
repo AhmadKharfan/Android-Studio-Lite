@@ -117,6 +117,9 @@ import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.LocalContentColor
@@ -174,6 +177,9 @@ private val iconMap: Map<String, ImageVector> = mapOf(
     "file-cog" to Icons.AutoMirrored.Outlined.Article,
     "file-plus-2" to Icons.AutoMirrored.Outlined.NoteAdd,
     "scroll-text" to Icons.Outlined.Description,
+    "palette" to Icons.Outlined.Palette,
+    "audio-file" to Icons.Outlined.AudioFile,
+    "video-file" to Icons.Outlined.VideoFile,
     "stethoscope" to Icons.Outlined.BugReport,
     "sparkles" to Icons.Outlined.AutoAwesome,
     "image" to Icons.Outlined.Image,

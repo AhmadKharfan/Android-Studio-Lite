@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
+import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslFileIcons
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
@@ -245,9 +246,12 @@ private fun AslFileTreeRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AslIcon(
-                    name = node.icon ?: if (isDir) (if (expanded) "folder-open" else "folder") else "file-code",
+                    name = node.icon ?: if (isDir) (if (expanded) "folder-open" else "folder") else "file",
                     size = 16.dp,
-                    tint = if (isDir) colors.textSecondary else colors.textTertiary,
+                    tint = when {
+                        isDir -> colors.textSecondary
+                        else -> AslFileIcons.tintFor(node.name, colors)
+                    },
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(

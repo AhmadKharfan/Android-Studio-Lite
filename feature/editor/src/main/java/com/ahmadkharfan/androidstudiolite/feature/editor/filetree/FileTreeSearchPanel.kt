@@ -21,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearc
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.fileIconFor
 
 @Composable
 fun FileTreeSearchPanel(
@@ -81,7 +82,8 @@ fun FileTreeSearchPanel(
                         AslListItem(
                             title = match.name,
                             subtitle = match.relativePath,
-                            icon = match.icon ?: if (match.isDirectory) "folder" else "file-code",
+                            icon = match.icon
+                                ?: if (match.isDirectory) "folder" else fileIconFor(match.name),
                             divider = true,
                             onClick = {
                                 if (match.isDirectory) {

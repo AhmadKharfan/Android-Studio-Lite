@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslCodeLine
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslCodeSpan
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
+import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslFileIcons
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexer
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxToken
@@ -41,11 +42,5 @@ private fun buildSpans(line: String, tokens: List<SyntaxToken>): List<AslCodeSpa
     if (cursor < line.length) spans.add(AslCodeSpan(line.substring(cursor), null))
     return spans
 }
-fun fileIconFor(name: String): String {
-    val lower = name.lowercase()
-    return when {
-        lower.endsWith(".gradle") || lower.endsWith(".gradle.kts") || lower.contains("gradle") -> "file-cog"
-        lower.endsWith(".kt") || lower.endsWith(".kts") || lower.endsWith(".java") || lower.endsWith(".xml") -> "file-code"
-        else -> "file-text"
-    }
-}
+
+fun fileIconFor(name: String): String = AslFileIcons.iconFor(name)

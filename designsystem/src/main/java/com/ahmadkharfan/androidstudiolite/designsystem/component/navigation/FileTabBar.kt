@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslFileIcons
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -101,7 +102,7 @@ private fun AslFileTabItem(
                 AslIcon(
                     name = tab.icon,
                     size = 15.dp,
-                    tint = if (active) colors.accentPrimary else colors.textTertiary,
+                    tint = AslFileIcons.tintFor(tab.name, colors),
                 )
                 Spacer(Modifier.width(7.dp))
             }
