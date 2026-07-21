@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,17 +24,21 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -50,7 +55,12 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.DEFAULT_COLOR
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalCell
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalScreen
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
@@ -58,6 +68,9 @@ private const val FONT_SP = 13f
 private const val LINE_HEIGHT_RATIO = 1.30f
 private const val AUTOSCROLL_INTERVAL_MS = 40L
 private const val TYPING_PLACE_SLACK_COLS = 2
+private const val SCROLL_FLING_FRICTION = 0.94f
+private const val SCROLL_FLING_MIN_VELOCITY = 80f
+private const val SCROLL_FLING_FRAME_MS = 16L
 
 private data class TerminalSelection(
     val anchorRow: Int,
@@ -128,6 +141,8 @@ fun TerminalEmulatorView(
     var selAnchorPx by remember { mutableStateOf<Offset?>(null) }
     var pastePos by remember { mutableStateOf<Offset?>(null) }
     var inputHost by remember { mutableStateOf<TerminalInputEditText?>(null) }
+    val scope = rememberCoroutineScope()
+    var flingJob by remember { mutableStateOf<Job?>(null) }
 
     val maxOffset = screen.scrollback.size
     LaunchedEffect(maxOffset) {
@@ -142,6 +157,8 @@ fun TerminalEmulatorView(
     }
 
     fun resetToLive() {
+        flingJob?.cancel()
+        flingJob = null
         scrollOffset = 0f
         isBrowsing = false
         indicatorRow = screen.cursorRow.coerceIn(0, (screen.rows - 1).coerceAtLeast(0))
@@ -195,9 +212,30 @@ fun TerminalEmulatorView(
         scrollOffset = next
         if (next > 0f) {
             isBrowsing = true
-            indicatorRow = if (deltaY > 0) 0 else screenState.value.rows - 1
+            indicatorRow = if (deltaY > 0) 0 else (screenState.value.rows - 1).coerceAtLeast(0)
         } else {
-            resetToLive()
+            flingJob?.cancel()
+            flingJob = null
+            isBrowsing = false
+            indicatorRow = screenState.value.cursorRow.coerceIn(0, (screenState.value.rows - 1).coerceAtLeast(0))
+            indicatorCol = screenState.value.cursorCol.coerceIn(0, (screenState.value.cols - 1).coerceAtLeast(0))
+        }
+    }
+
+    fun flingScroll(velocityY: Float) {
+        flingJob?.cancel()
+        if (abs(velocityY) < SCROLL_FLING_MIN_VELOCITY) return
+        if (screenState.value.scrollback.isEmpty()) return
+        flingJob = scope.launch {
+            var velocity = velocityY
+            while (isActive && abs(velocity) >= SCROLL_FLING_MIN_VELOCITY) {
+                applyScrollDrag(velocity * (SCROLL_FLING_FRAME_MS / 1000f))
+                velocity *= SCROLL_FLING_FRICTION
+                val historyMax = screenState.value.scrollback.size.toFloat()
+                if (scrollOffset <= 0f || scrollOffset >= historyMax) break
+                delay(SCROLL_FLING_FRAME_MS)
+            }
+            flingJob = null
         }
     }
 
@@ -309,6 +347,7 @@ fun TerminalEmulatorView(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
+            .clipToBounds()
             .background(background),
     ) {
         val cols = (constraints.maxWidth / charWidthPx).toInt().coerceIn(1, 400)
@@ -434,12 +473,14 @@ fun TerminalEmulatorView(
 
 
                     if (maxOffset > 0) {
-                        val trackW = 4f
-                        val trackX = size.width - trackW - 2f
+                        val trackW = 6f
+                        val trackX = size.width - trackW - 3f
                         val fraction = 1f - (scrollOffset / maxOffset.coerceAtLeast(1))
-                        val thumbH = (size.height * screen.rows / (maxOffset + screen.rows)).coerceAtLeast(16f)
+                        val thumbH = (size.height * screen.rows / (maxOffset + screen.rows)).coerceAtLeast(24f)
                         val thumbTop = (size.height - thumbH) * fraction
-                        paint.color = cursorColor.copy(alpha = 0.55f).toArgb()
+                        paint.color = cursorColor.copy(alpha = 0.35f).toArgb()
+                        native.drawRect(trackX, 0f, trackX + trackW, size.height, paint)
+                        paint.color = cursorColor.copy(alpha = 0.85f).toArgb()
                         native.drawRect(trackX, thumbTop, trackX + trackW, thumbTop + thumbH, paint)
                     }
                 }
@@ -451,13 +492,13 @@ fun TerminalEmulatorView(
                 onVolumeKey = ::moveIndicator,
                 requestKeyboardOnAttach = requestKeyboardOnAttach,
                 onViewReady = { inputHost = it },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.size(1.dp),
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
+                    .pointerInput(lineHeightPx) {
                         awaitPointerEventScope {
                             suspend fun AwaitPointerEventScope.runSelectionDrag(
                                 pointerId: PointerId,
@@ -493,7 +534,10 @@ fun TerminalEmulatorView(
                             }
 
                             while (true) {
-                                val down = awaitFirstDown(requireUnconsumed = true)
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                down.consume()
+                                flingJob?.cancel()
+                                flingJob = null
                                 val startPos = down.position
                                 val activeSel = selection
                                 val grabbed = if (activeSel != null) {
@@ -539,16 +583,28 @@ fun TerminalEmulatorView(
                                     "drag" -> {
                                         selection = null
                                         pastePos = null
+                                        val tracker = VelocityTracker()
+                                        tracker.addPosition(down.uptimeMillis, startPos)
                                         var lastY = startPos.y
+                                        var lastVelocityY = 0f
                                         while (true) {
                                             val e = awaitPointerEvent()
                                             val c = e.changes.firstOrNull { it.id == down.id } ?: break
-                                            if (!c.pressed) break
+                                            tracker.addPosition(c.uptimeMillis, c.position)
+                                            if (!c.pressed) {
+                                                lastVelocityY = tracker.calculateVelocity().y
+                                                break
+                                            }
                                             c.consume()
+                                            val scroll = e.changes.firstOrNull()?.scrollDelta
+                                            if (scroll != null && scroll.y != 0f) {
+                                                applyScrollDrag(scroll.y)
+                                            }
                                             val dy = c.position.y - lastY
                                             lastY = c.position.y
                                             applyScrollDrag(dy)
                                         }
+                                        flingScroll(lastVelocityY)
                                     }
                                     "tap" -> {
                                         when {
@@ -568,6 +624,19 @@ fun TerminalEmulatorView(
                                     }
                                     else -> Unit
                                 }
+                            }
+                        }
+                    }
+                    .pointerInput(lineHeightPx) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Main)
+                                val scroll = event.changes.firstOrNull()?.scrollDelta ?: continue
+                                if (scroll.y == 0f) continue
+                                event.changes.forEach { it.consume() }
+                                flingJob?.cancel()
+                                flingJob = null
+                                applyScrollDrag(scroll.y)
                             }
                         }
                     },

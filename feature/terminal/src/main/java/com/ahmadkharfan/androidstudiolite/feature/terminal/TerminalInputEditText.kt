@@ -9,6 +9,7 @@ import android.view.ActionMode
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputConnectionWrapper
@@ -64,6 +65,8 @@ class TerminalInputEditText @JvmOverloads constructor(
         outAttrs.imeOptions = outAttrs.imeOptions or EditorInfo.IME_FLAG_NO_EXTRACT_UI
         return TerminalInputConnection(base)
     }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean = false
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
