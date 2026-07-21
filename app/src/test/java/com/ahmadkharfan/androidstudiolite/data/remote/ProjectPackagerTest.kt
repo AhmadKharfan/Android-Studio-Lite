@@ -58,6 +58,71 @@ class ProjectPackagerTest {
     }
 
     @Test
+    fun `keeps a real source module named build but drops generated build dirs`() = runBlocking {
+        val project = tmp.newFolder("feat-build")
+        writeFile(project, "settings.gradle.kts", "include(\":feature:build\", \":app\")")
+
+        writeFile(project, "feature/build/build.gradle.kts", "plugins { id(\"com.android.library\") }")
+        writeFile(project, "feature/build/src/main/java/Widget.kt", "class Widget")
+        writeFile(project, "feature/build/src/main/AndroidManifest.xml", "<manifest/>")
+        writeFile(project, "feature/build/build/intermediates/gen.bin", "binary")
+        writeFile(project, "feature/build/.gradle/cache.bin", "binary")
+
+        writeFile(project, "app/build.gradle.kts", "plugins {}")
+        writeFile(project, "app/src/main/java/A.kt", "class A")
+        writeFile(project, "app/build/outputs/app.apk", "binary")
+        writeFile(project, "build/reports/index.html", "<x/>")
+        writeFile(project, "build-tools/Tool.kt", "class Tool")
+        writeFile(project, "builder/Builder.kt", "class Builder")
+
+        val dest = File(tmp.root, "out-featurebuild/source.zip")
+        ProjectPackager().packageProject(project, dest)
+        val entries = ZipFile(dest).use { zf -> zf.entries().toList().map { it.name } }
+
+        assertTrue("module build script must be uploaded", entries.contains("feature/build/build.gradle.kts"))
+        assertTrue("module sources must be uploaded", entries.contains("feature/build/src/main/java/Widget.kt"))
+        assertTrue(entries.contains("feature/build/src/main/AndroidManifest.xml"))
+
+        assertFalse("nested generated build dir must be excluded", entries.any { it.startsWith("feature/build/build/") })
+        assertFalse(entries.any { it.startsWith("feature/build/.gradle/") })
+
+        assertFalse(entries.any { it.startsWith("app/build/") })
+        assertFalse(entries.any { it.startsWith("build/") })
+
+        assertTrue(entries.contains("build-tools/Tool.kt"))
+        assertTrue(entries.contains("builder/Builder.kt"))
+        assertTrue(entries.contains("app/src/main/java/A.kt"))
+    }
+
+    @Test
+    fun `a build dir with only src is treated as a source module`() = runBlocking {
+        val project = tmp.newFolder("build-with-src")
+        writeFile(project, "settings.gradle.kts", "include(\":build\")")
+        writeFile(project, "build/src/main/java/Only.kt", "class Only")
+
+        val dest = File(tmp.root, "out-buildsrc/source.zip")
+        ProjectPackager().packageProject(project, dest)
+        val entries = ZipFile(dest).use { zf -> zf.entries().toList().map { it.name } }
+        assertTrue(entries.contains("build/src/main/java/Only.kt"))
+    }
+
+    @Test
+    fun `a source change inside a real build module invalidates the cached archive`() = runBlocking {
+        val project = tmp.newFolder("fp-build-module")
+        writeFile(project, "settings.gradle.kts", "include(\":feature:build\")")
+        writeFile(project, "feature/build/build.gradle.kts", "plugins {}")
+        writeFile(project, "feature/build/src/main/java/A.kt", "class A")
+        val cache = tmp.newFolder("fp-cache")
+
+        ProjectPackager().packageProjectCached(project, cache)
+        cachedZip(cache).setLastModified(0L)
+
+        writeFile(project, "feature/build/src/main/java/A.kt", "class A { val x = 1 }")
+        val second = ProjectPackager().packageProjectCached(project, cache)
+        assertTrue("editing a real build module must re-zip", second.lastModified() > 0L)
+    }
+
+    @Test
     fun `preserves file contents`() = runBlocking {
         val project = tmp.newFolder("proj2")
         writeFile(project, "settings.gradle.kts", "rootProject.name = \"proj2\"")
