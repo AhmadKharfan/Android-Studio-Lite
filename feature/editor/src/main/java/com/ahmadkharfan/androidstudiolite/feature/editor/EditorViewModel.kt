@@ -146,7 +146,7 @@ class EditorViewModel(
         tryToExecute(
             block = {
                 val project = projectRepository.openProject(projectId)
-                val nodes = fileTreeRepository.getFileTree(projectId)
+                val nodes = fileTreeRepository.getFileTree(project.path)
                 Triple(project.name, project.path, nodes)
             },
             onSuccess = { (projectName, projectPath, nodes) ->
@@ -715,7 +715,7 @@ class EditorViewModel(
     }
 
     private suspend fun refreshFileTree(expandIds: Set<String> = emptySet()) {
-        runCatching { fileTreeRepository.getFileTree(projectId) }
+        runCatching { fileTreeRepository.getFileTree(projectRootPath ?: projectId) }
             .onSuccess { nodes ->
                 updateState {
                     copy(
