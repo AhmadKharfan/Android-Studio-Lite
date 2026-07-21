@@ -25,6 +25,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerRoute
 import com.ahmadkharfan.androidstudiolite.feature.hub.HubRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteRoute
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.howitworks.HowItWorksRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsRoute
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.welcome.WelcomeRoute
 import com.ahmadkharfan.androidstudiolite.feature.settings.about.AboutRoute
@@ -61,9 +62,12 @@ fun AslNavHost(
         popExitTransition = { aslPopExit() },
     ) {
         composable(Routes.ONBOARDING_WELCOME) {
-            WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
+            WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_HOW_IT_WORKS) })
         }
 
+        composable(Routes.ONBOARDING_HOW_IT_WORKS) {
+            HowItWorksRoute(onContinue = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
+        }
 
         composable(Routes.ONBOARDING_PERMISSIONS) {
             PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_COMPLETE) })

@@ -43,7 +43,7 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 24.dp, vertical = 12.dp),
         ) {
-            AslWizardStepper(steps = ONBOARDING_STEPS, current = 1, modifier = Modifier.padding(horizontal = 4.dp))
+            AslWizardStepper(steps = ONBOARDING_STEPS, current = 2, modifier = Modifier.padding(horizontal = 4.dp))
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,

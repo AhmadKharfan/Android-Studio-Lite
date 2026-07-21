@@ -5,6 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 
 object Routes {
     const val ONBOARDING_WELCOME = "onboarding/welcome"
+    const val ONBOARDING_HOW_IT_WORKS = "onboarding/how-it-works"
     const val ONBOARDING_PERMISSIONS = "onboarding/permissions"
     const val ONBOARDING_COMPLETE = "onboarding/complete"
 

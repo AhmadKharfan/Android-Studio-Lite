@@ -102,7 +102,7 @@ private fun PermissionsScreen(
                 .padding(padding)
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
-            AslWizardStepper(steps = ONBOARDING_STEPS, current = 0, modifier = Modifier.padding(horizontal = 4.dp))
+            AslWizardStepper(steps = ONBOARDING_STEPS, current = 1, modifier = Modifier.padding(horizontal = 4.dp))
             PermissionsHeader(colors = colors)
             PermissionsList(
                 uiState = uiState,
