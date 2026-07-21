@@ -102,7 +102,7 @@ class EditorCompletionController {
         }
         return isTriggerChar(typedChar)
     }
-    fun accept(session: EditorSession, item: CompletionItem) {
+    fun accept(session: EditorSession, item: CompletionItem): String {
         if (session.language == EditorLanguage.Xml) {
             val (start, _) = com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
                 .replacementRangeAt(session.text, session.selection.caret, session.filePath)
@@ -110,7 +110,7 @@ class EditorCompletionController {
             val insert = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
             val caretTarget = start + if (marker >= 0) marker else insert.length
             session.replaceRange(start, session.selection.caret, insert, caret = caretTarget)
-            return
+            return insert
         }
         val context = buildContext(session)
         val marker = item.insertText.indexOf("\$0")
@@ -149,6 +149,7 @@ class EditorCompletionController {
         }
         val caretTarget = replaceStart + if (marker >= 0) marker else insert.length
         session.replaceRange(replaceStart, replaceEnd, insert, caret = caretTarget)
+        return insert
     }
     fun isTriggerChar(ch: Char): Boolean = isIdentifierChar(ch) || ch == '.'
     private fun buildLegacyContext(session: EditorSession): CompletionContext {

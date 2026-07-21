@@ -9,6 +9,7 @@ import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.text.InputType
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -89,6 +90,8 @@ class CodeEditorView(context: Context) : View(context) {
     private var completionItems: List<CompletionItem> = emptyList()
     private var completionSelected = 0
     private var completionSuppressNext = false
+    private var imeAcceptedPrefix: String? = null
+    private var imeAcceptUntilUptime = 0L
     private var signatureHelpDismissed = false
     private var signatureHelpAutoHidden = false
     private var signatureHelpCallStart = -1
@@ -553,7 +556,13 @@ class CodeEditorView(context: Context) : View(context) {
             }
         }
         when (keyCode) {
-            KeyEvent.KEYCODE_DEL -> { edit { SmartEdit.backspace(session, tabSize) }; afterTextEditTriggers(session, isBackspace = true); return true }
+            KeyEvent.KEYCODE_DEL -> {
+                activeInputConnection?.clearComposing()
+                edit { SmartEdit.backspace(session, tabSize) }
+                afterTextEditTriggers(session, isBackspace = true)
+                syncImeSelection()
+                return true
+            }
             KeyEvent.KEYCODE_ENTER -> {
                 if (completionActive && shouldAcceptCompletionOnEnter()) {
                     acceptSelectedCompletion()
@@ -644,10 +653,16 @@ class CodeEditorView(context: Context) : View(context) {
         val session = session ?: return
         val item = completionItems.getOrNull(index) ?: return
         dismissCompletion()
-        activeInputConnection?.clearComposing()
-        edit { completionController.accept(session, item) }
+        imeAcceptedPrefix = item.label
+        imeAcceptUntilUptime = SystemClock.uptimeMillis() + 800L
+        if (!isFocused) requestFocus()
         activeInputConnection?.finishComposingText()
+        activeInputConnection?.clearComposing()
+        var inserted = ""
+        edit { inserted = completionController.accept(session, item) }
+        imeAcceptedPrefix = inserted.ifEmpty { item.label }
         syncImeSelection()
+        restartIme()
         completionSuppressNext = true
     }
     private fun acceptSelectedCompletion() = acceptCompletionAt(completionSelected)
@@ -1034,18 +1049,113 @@ class CodeEditorView(context: Context) : View(context) {
     private fun syncImeSelection() {
         val session = session ?: return
         val sel = session.selection
+        val connection = activeInputConnection
+        val compStart = connection?.composingStart ?: -1
+        val compEnd = connection?.composingEnd ?: -1
         post {
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.updateSelection(this, sel.start, sel.end, -1, -1)
+            imm.updateSelection(
+                this,
+                sel.start,
+                sel.end,
+                if (compStart >= 0) compStart else -1,
+                if (compEnd >= 0) compEnd else -1,
+            )
         }
     }
+
+    private fun restartIme() {
+        post {
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.restartInput(this)
+        }
+    }
+
+    private fun wordStartBefore(text: String, caret: Int): Int {
+        var start = caret.coerceIn(0, text.length)
+        while (start > 0 && isWordChar(text[start - 1])) start--
+        return start
+    }
     private fun dp(value: Float): Float = value * densityScale
+    private fun imeAcceptActive(): Boolean =
+        imeAcceptedPrefix != null && SystemClock.uptimeMillis() < imeAcceptUntilUptime
+
+    private fun clearImeAcceptGuard() {
+        imeAcceptedPrefix = null
+        imeAcceptUntilUptime = 0L
+    }
+
+    private fun sanitizeImeCommit(value: String): String? {
+        if (!imeAcceptActive()) {
+            clearImeAcceptGuard()
+            return value
+        }
+        val accepted = imeAcceptedPrefix ?: return value.also { clearImeAcceptGuard() }
+        if (value.length == 1 && value[0] in "([{.,;:)=+-*/") {
+            clearImeAcceptGuard()
+            return value
+        }
+        if (value.startsWith(accepted)) {
+            val tail = value.removePrefix(accepted)
+            if (tail.isEmpty()) {
+                clearImeAcceptGuard()
+                syncImeSelection()
+                return null
+            }
+            val session = session
+            if (session != null) {
+                val caret = session.selection.caret
+                val before = session.text.substring(0, caret.coerceAtMost(session.text.length))
+                if (before.endsWith(accepted)) {
+                    clearImeAcceptGuard()
+                    syncImeSelection()
+                    return tail
+                }
+            }
+            clearImeAcceptGuard()
+            return tail
+        }
+        if (value.length <= accepted.length) {
+            syncImeSelection()
+            return null
+        }
+        clearImeAcceptGuard()
+        return value
+    }
+
+    private fun shouldIgnoreImeComposing(value: String): Boolean {
+        if (!imeAcceptActive()) return false
+        val accepted = imeAcceptedPrefix ?: return false
+        if (value.length <= accepted.length) return true
+        val session = session ?: return false
+        val caret = session.selection.caret
+        val before = session.text.substring(0, caret.coerceAtMost(session.text.length))
+        return before.endsWith(accepted) && value.startsWith(accepted)
+    }
+
+    private fun stripImeDuplicatePrefix(value: String, session: EditorSession): String? {
+        if (value.isEmpty() || !session.selection.isCollapsed) return value
+        val caret = session.selection.caret
+        val before = session.text.substring(0, caret.coerceAtMost(session.text.length))
+        val wordStart = wordStartBefore(session.text, caret)
+        val word = before.substring(wordStart)
+        if (word.isNotEmpty() && value.startsWith(word)) {
+            val tail = value.removePrefix(word)
+            return tail.ifEmpty { null }
+        }
+        return value
+    }
+
     private inner class CodeInputConnection : BaseInputConnection(this@CodeEditorView, false) {
-        private var composingStart = -1
-        private var composingEnd = -1
+        var composingStart = -1
+            private set
+        var composingEnd = -1
+            private set
+
         override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
             val session = session ?: return false
-            var value = text?.toString() ?: return false
+            var value = sanitizeImeCommit(text?.toString() ?: return false) ?: return true
+            value = stripImeDuplicatePrefix(value, session) ?: return true
             if (value == ". ") value = "."
             if (value == " " && session.selection.caret > 0 &&
                 session.document.charAt(session.selection.caret - 1) == '.'
@@ -1062,12 +1172,8 @@ class CodeEditorView(context: Context) : View(context) {
                 }
                 return true
             }
-            if (composingStart >= 0) {
-                val s = composingStart
-                val e = composingEnd
-                composingStart = -1; composingEnd = -1
-                edit { session.replaceRange(s, e, value, caret = s + value.length) }
-            } else if (value.length == 1) {
+            clearComposing()
+            if (value.length == 1) {
                 val c = value[0]
                 edit { SmartEdit.typeChar(session, c, tabSize) }
                 afterTextEditTriggers(session, typedChar = c)
@@ -1075,45 +1181,80 @@ class CodeEditorView(context: Context) : View(context) {
                 edit { SmartEdit.type(session, value, tabSize) }
                 dismissCompletion()
             }
+            syncImeSelection()
             return true
         }
         override fun setComposingText(text: CharSequence?, newCursorPosition: Int): Boolean {
             val session = session ?: return false
             val value = text?.toString() ?: return false
             if ('\n' in value) return false
-            val sel = session.selection
-            val start = if (composingStart >= 0) composingStart else sel.start
-            val end = if (composingStart >= 0) composingEnd else sel.end
-            edit { session.replaceRange(start, end, value, caret = start + value.length) }
-            composingStart = start
-            composingEnd = start + value.length
+            if (shouldIgnoreImeComposing(value)) {
+                syncImeSelection()
+                return true
+            }
+            if (composingStart < 0) {
+                val caret = session.selection.start
+                composingStart = wordStartBefore(session.text, caret)
+                composingEnd = caret
+            }
+            edit { session.replaceRange(composingStart, composingEnd, value, caret = composingStart + value.length) }
+            composingEnd = composingStart + value.length
             afterTextEditTriggers(session, typedChar = value.lastOrNull())
+            syncImeSelection()
             return true
         }
         fun clearComposing() {
             composingStart = -1
             composingEnd = -1
         }
-        override fun setComposingRegion(start: Int, end: Int): Boolean = false
+        override fun setComposingRegion(start: Int, end: Int): Boolean {
+            val session = session ?: return false
+            if (start < 0 || end < 0) {
+                clearComposing()
+                return true
+            }
+            composingStart = start.coerceIn(0, session.text.length)
+            composingEnd = end.coerceIn(composingStart, session.text.length)
+            return true
+        }
         override fun finishComposingText(): Boolean {
-            composingStart = -1
-            composingEnd = -1
+            clearComposing()
             return true
         }
         override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
             val session = session ?: return false
             val sel = session.selection
-            if (sel.isCollapsed && beforeLength == 1 && afterLength == 0) {
-                edit { SmartEdit.backspace(session, tabSize) }
-                afterTextEditTriggers(session, isBackspace = true)
-                return true
-            }
             val len = session.document.length
+            if (composingStart >= 0 && sel.isCollapsed && beforeLength + afterLength > 0) {
+                val deleteStart = (sel.start - beforeLength).coerceAtLeast(composingStart)
+                val deleteEnd = (sel.end + afterLength).coerceAtMost(composingEnd.coerceAtMost(len))
+                if (deleteStart < deleteEnd) {
+                    edit { session.replaceRange(deleteStart, deleteEnd, "", caret = deleteStart) }
+                    composingEnd = deleteStart
+                    if (composingEnd <= composingStart) {
+                        clearComposing()
+                    }
+                    afterTextEditTriggers(session, isBackspace = true)
+                    syncImeSelection()
+                    return true
+                }
+            }
             val start = (sel.start - beforeLength).coerceAtLeast(0)
             val end = (sel.end + afterLength).coerceAtMost(len)
-            edit { session.replaceRange(start, end, "", caret = start) }
+            if (start >= end) return true
+            clearComposing()
+            if (sel.isCollapsed && beforeLength == 1 && afterLength == 0) {
+                edit { SmartEdit.backspace(session, tabSize) }
+            } else {
+                edit { session.replaceRange(start, end, "", caret = start) }
+            }
+            afterTextEditTriggers(session, isBackspace = true)
+            syncImeSelection()
+            restartIme()
             return true
         }
+        override fun deleteSurroundingTextInCodePoints(beforeLength: Int, afterLength: Int): Boolean =
+            deleteSurroundingText(beforeLength, afterLength)
         override fun sendKeyEvent(event: KeyEvent): Boolean {
             if (event.action == KeyEvent.ACTION_DOWN) return onKeyDown(event.keyCode, event)
             return super.sendKeyEvent(event)
