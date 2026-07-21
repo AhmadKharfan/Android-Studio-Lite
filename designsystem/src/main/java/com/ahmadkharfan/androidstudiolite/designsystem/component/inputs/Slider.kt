@@ -26,6 +26,7 @@ fun AslSlider(
     steps: Int = 0,
     unit: String = "",
     disabled: Boolean = false,
+    onValueChangeFinished: (() -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
 
@@ -52,6 +53,7 @@ fun AslSlider(
         Slider(
             value = value,
             onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
             modifier = Modifier.fillMaxWidth().height(28.dp),
             enabled = !disabled,
             valueRange = valueRange,
