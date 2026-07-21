@@ -44,7 +44,7 @@ class AgentToolExecutor(
             var java = false
             var kotlin = false
             root.walkTopDown()
-                .onEnter { it.name !in IGNORED_DIRS }
+                .onEnter { !isIgnoredDir(it) }
                 .filter(File::isFile)
                 .forEach { file ->
                     java = java || file.extension.equals("java", ignoreCase = true)
@@ -199,7 +199,7 @@ class AgentToolExecutor(
         val needle = query.lowercase()
         val matches = ArrayList<String>()
         root.walkTopDown()
-            .onEnter { dir -> dir.name !in IGNORED_DIRS }
+            .onEnter { dir -> !isIgnoredDir(dir) }
             .filter { it.isFile && it.length() <= MAX_SEARCH_BYTES }
             .forEach { file ->
                 if (matches.size >= MAX_MATCHES) return@forEach
@@ -271,5 +271,22 @@ class AgentToolExecutor(
         val IGNORED_DIRS = setOf(".git", ".gradle", ".idea", "build", ".cxx", "caches", ".kotlin")
         const val MAX_SEARCH_BYTES = 512L * 1024
         const val MAX_MATCHES = 60
+
+        /**
+         * Whether to skip [dir] when walking sources. `build` is kept when it is a real source
+         * module (e.g. `:feature:build`, which has its own build script / src) and only skipped
+         * when it is a GENERATED Gradle output directory.
+         */
+        fun isIgnoredDir(dir: File): Boolean {
+            if (dir.name !in IGNORED_DIRS) return false
+            if (dir.name == "build" &&
+                (File(dir, "build.gradle.kts").isFile || File(dir, "build.gradle").isFile ||
+                    File(dir, "settings.gradle.kts").isFile || File(dir, "settings.gradle").isFile ||
+                    File(dir, "src").isDirectory)
+            ) {
+                return false
+            }
+            return true
+        }
     }
 }

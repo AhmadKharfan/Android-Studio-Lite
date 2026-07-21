@@ -59,7 +59,7 @@ class ProjectPackager(
             val children = dir.listFiles() ?: return
             for (child in children.sortedBy { it.name }) {
                 if (child.isDirectory) {
-                    if (child.name in excludedDirs) continue
+                    if (isExcludedDir(child)) continue
                     walk(child)
                 } else if (child.isFile) {
                     sb.append(relativePath(projectRoot, child))
@@ -87,7 +87,7 @@ class ProjectPackager(
         for (child in children.sortedBy { it.name }) {
             coroutineContext.ensureActive()
             if (child.isDirectory) {
-                if (child.name in excludedDirs) continue
+                if (isExcludedDir(child)) continue
                 if (child.listFiles().isNullOrEmpty()) {
 
                     zip.putNextEntry(ZipEntry(relativePath(root, child) + "/"))
@@ -108,6 +108,19 @@ class ProjectPackager(
             }
         }
     }
+
+    private fun isExcludedDir(dir: File): Boolean {
+        if (dir.name !in excludedDirs) return false
+        if (dir.name == "build" && looksLikeGradleModule(dir)) return false
+        return true
+    }
+
+    private fun looksLikeGradleModule(dir: File): Boolean =
+        File(dir, "build.gradle.kts").isFile ||
+            File(dir, "build.gradle").isFile ||
+            File(dir, "settings.gradle.kts").isFile ||
+            File(dir, "settings.gradle").isFile ||
+            File(dir, "src").isDirectory
 
     private fun relativePath(root: File, file: File): String =
         file.relativeTo(root).path.replace(File.separatorChar, '/')

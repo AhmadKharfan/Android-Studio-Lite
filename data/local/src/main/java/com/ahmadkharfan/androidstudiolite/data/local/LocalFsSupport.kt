@@ -19,7 +19,18 @@ internal object LocalFsSupport {
         )
     }
 
-    fun isIgnoredDir(file: File): Boolean = file.isDirectory && file.name in IGNORED_DIR_NAMES
+    fun isIgnoredDir(file: File): Boolean {
+        if (!file.isDirectory || file.name !in IGNORED_DIR_NAMES) return false
+        if (file.name == "build" && looksLikeGradleModule(file)) return false
+        return true
+    }
+
+    fun looksLikeGradleModule(dir: File): Boolean =
+        File(dir, "build.gradle.kts").isFile ||
+            File(dir, "build.gradle").isFile ||
+            File(dir, "settings.gradle.kts").isFile ||
+            File(dir, "settings.gradle").isFile ||
+            File(dir, "src").isDirectory
 
     fun childOf(parent: File, name: String): File {
         require(name.isNotBlank()) { "Name must not be blank" }
