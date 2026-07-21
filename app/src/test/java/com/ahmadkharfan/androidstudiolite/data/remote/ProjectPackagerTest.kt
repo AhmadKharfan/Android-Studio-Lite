@@ -95,6 +95,40 @@ class ProjectPackagerTest {
     }
 
     @Test
+    fun `preserves a source package directory literally named build`() = runBlocking {
+        val project = tmp.newFolder("pkg-build")
+        writeFile(project, "settings.gradle.kts", "include(\":feature:build\")")
+        writeFile(project, "feature/build/build.gradle.kts", "plugins { id(\"com.android.library\") }")
+        val pkg = "feature/build/src/main/kotlin/com/androidstudio/build"
+        writeFile(project, "$pkg/domain/BuildRepository.kt", "package com.androidstudio.build.domain\ninterface BuildRepository")
+        writeFile(project, "$pkg/domain/CloudBuildRepository.kt", "package com.androidstudio.build.domain\ninterface CloudBuildRepository")
+        writeFile(project, "$pkg/domain/CloudBuildPhase.kt", "package com.androidstudio.build.domain\nenum class CloudBuildPhase")
+        writeFile(project, "$pkg/data/BuildRepositoryImpl.kt", "package com.androidstudio.build.data\nclass BuildRepositoryImpl")
+        writeFile(project, "feature/build/src/main/AndroidManifest.xml", "<manifest/>")
+        writeFile(project, "feature/build/src/main/res/values/strings.xml", "<resources/>")
+        writeFile(project, "feature/build/consumer-rules.pro", "# keep")
+        writeFile(project, "feature/build/proguard-rules.pro", "# keep")
+        writeFile(project, "feature/build/build/intermediates/gen.bin", "binary")
+
+        val dest = File(tmp.root, "out-pkgbuild/source.zip")
+        ProjectPackager().packageProject(project, dest)
+        val entries = ZipFile(dest).use { zf -> zf.entries().toList().map { it.name } }
+
+        // Every source file under the `build` PACKAGE dir is preserved.
+        assertTrue(entries.contains("$pkg/domain/BuildRepository.kt"))
+        assertTrue(entries.contains("$pkg/domain/CloudBuildRepository.kt"))
+        assertTrue(entries.contains("$pkg/domain/CloudBuildPhase.kt"))
+        assertTrue(entries.contains("$pkg/data/BuildRepositoryImpl.kt"))
+        assertTrue(entries.contains("feature/build/src/main/AndroidManifest.xml"))
+        assertTrue(entries.contains("feature/build/src/main/res/values/strings.xml"))
+        assertTrue(entries.contains("feature/build/consumer-rules.pro"))
+        assertTrue(entries.contains("feature/build/proguard-rules.pro"))
+        assertTrue(entries.contains("feature/build/build.gradle.kts"))
+        // The module's generated output dir is still excluded.
+        assertFalse("generated <module>/build must be excluded", entries.any { it.startsWith("feature/build/build/") })
+    }
+
+    @Test
     fun `a build dir with only src is treated as a source module`() = runBlocking {
         val project = tmp.newFolder("build-with-src")
         writeFile(project, "settings.gradle.kts", "include(\":build\")")
