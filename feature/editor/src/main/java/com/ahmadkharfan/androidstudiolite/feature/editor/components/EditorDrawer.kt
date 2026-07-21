@@ -17,13 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
-import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslToolRailContent
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTreeAction
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
@@ -269,8 +269,9 @@ private fun EditorToolRail(
     onOpenSettings: () -> Unit,
     onCloseProject: () -> Unit,
 ) {
+    val items = remember(gitBadge) { railItems(gitBadge) }
     AslToolRail(
-        items = railItems(gitBadge),
+        items = items,
         activeId = activeId,
         onSelect = { id ->
             when (id) {
@@ -312,93 +313,129 @@ private fun EditorToolPanelContent(
 ) {
     val gitPanelApi: GitPanelApi = koinInject()
 
-    AslToolRailContent(
-        targetState = openTool,
-        indexOf = EditorRailTool::ordinal,
-        modifier = Modifier.fillMaxHeight(),
-        label = "toolPanel",
-    ) { tool ->
-        val toolWindowWidth = rememberAslToolWindowWidth()
-        when (tool) {
-            EditorRailTool.Files -> {
-                var fileTreeSearchOpen by remember { mutableStateOf(false) }
-                AslToolWindowPanel(
-                    title = "Project",
-                    width = toolWindowWidth,
-                    onClose = onDismiss,
-                    scrollable = !fileTreeSearchOpen,
-                    actions = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            AslIconButton(
-                                icon = "search",
-                                contentDescription = "Search project",
-                                onClick = { fileTreeSearchOpen = !fileTreeSearchOpen },
-                                active = fileTreeSearchOpen,
-                                size = 32.dp,
-                                iconSize = 16.dp,
-                            )
-                            FileTreeCreateMenu(onCreate = { kind -> onCreateFileTreeEntry(kind, null) })
-                        }
-                    },
-                ) {
-                    if (fileTreeSearchOpen) {
-                        FileTreeSearchPanel(
-                            fileTree = fileTree,
-                            onOpenFile = onSelectFile,
-                            onRevealFolder = onRevealFileTreeNode,
-                            onClose = { fileTreeSearchOpen = false },
-                        )
-                    } else {
-                        AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
-                            if (loading) {
-                                AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
-                            } else {
-                                AslFileTree(
-                                    items = fileTree.map { it.toAslNode() },
-                                    expandedIds = expandedFolderIds,
-                                    selectedId = selectedFileId,
-                                    actionsEnabled = true,
-                                    canPaste = canPasteFileTreeEntry,
-                                    onFocus = { onFocusFileTreeNode(it.id) },
-                                    onToggle = onToggleFolder,
-                                    onSelect = { onSelectFile(it.id, it.name) },
-                                    onAction = { node, action ->
-                                        onFileTreeAction(action.toEditorAction(), node.id, node.name, node.children != null)
-                                    },
-                                )
-                            }
-                        }
-                    }
+    when (openTool) {
+        EditorRailTool.Files -> EditorFilesToolPanel(
+            fileTree = fileTree,
+            expandedFolderIds = expandedFolderIds,
+            selectedFileId = selectedFileId,
+            canPasteFileTreeEntry = canPasteFileTreeEntry,
+            onFocusFileTreeNode = onFocusFileTreeNode,
+            onToggleFolder = onToggleFolder,
+            onSelectFile = onSelectFile,
+            onRevealFileTreeNode = onRevealFileTreeNode,
+            onCreateFileTreeEntry = onCreateFileTreeEntry,
+            onFileTreeAction = onFileTreeAction,
+            onDismiss = onDismiss,
+            isLoadingFileTree = isLoadingFileTree,
+        )
+        EditorRailTool.Git -> gitPanelApi.Panel(
+            projectId = projectId,
+            onClose = onDismiss,
+            onOpenDiff = onOpenGitDiff,
+            onOpenHistory = onOpenGitHistory,
+            onOpenBranches = onOpenGitBranches,
+            onOpenTags = onOpenGitTags,
+            onOpenStashes = onOpenGitStashes,
+            onOpenConflicts = onOpenGitConflicts,
+        )
+        EditorRailTool.AiAgent -> AiChatRoute(
+            projectId = projectId,
+            onClose = onDismiss,
+            onOpenAiAgentSettings = onOpenAiAgentSettings,
+            activeFilePath = selectedFileId,
+        )
+        EditorRailTool.Variants -> VariantsRoute(
+            selectedVariant = selectedVariant,
+            onSelectVariant = onSelectVariant,
+            onClose = onDismiss,
+            module = runModulePath.removePrefix(":").ifBlank { "app" },
+            variants = availableVariants,
+        )
+        EditorRailTool.Assets -> AssetsRoute(
+            projectId = projectId,
+            onClose = onDismiss,
+            onOpenFile = onSelectFile,
+        )
+    }
+}
+
+@Composable
+private fun EditorFilesToolPanel(
+    fileTree: List<EditorFileNodeUiModel>,
+    expandedFolderIds: Set<String>,
+    selectedFileId: String?,
+    canPasteFileTreeEntry: Boolean,
+    onFocusFileTreeNode: (String) -> Unit,
+    onToggleFolder: (String) -> Unit,
+    onSelectFile: (id: String, name: String) -> Unit,
+    onRevealFileTreeNode: (String) -> Unit,
+    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    isLoadingFileTree: Boolean,
+) {
+    val treeItems = remember(fileTree) { fileTree.map { it.toAslNode() } }
+    val latestOnFocus by rememberUpdatedState(onFocusFileTreeNode)
+    val latestOnToggle by rememberUpdatedState(onToggleFolder)
+    val latestOnSelectFile by rememberUpdatedState(onSelectFile)
+    val latestOnFileTreeAction by rememberUpdatedState(onFileTreeAction)
+    val latestOnCreate by rememberUpdatedState(onCreateFileTreeEntry)
+    val onFocus = remember { { node: AslFileTreeNode -> latestOnFocus(node.id) } }
+    val onToggle = remember { { id: String -> latestOnToggle(id) } }
+    val onSelect = remember { { node: AslFileTreeNode -> latestOnSelectFile(node.id, node.name) } }
+    val onAction = remember {
+        { node: AslFileTreeNode, action: AslFileTreeAction ->
+            latestOnFileTreeAction(action.toEditorAction(), node.id, node.name, node.children != null)
+        }
+    }
+    val onCreate = remember { { kind: EditorFileCreateKind -> latestOnCreate(kind, null) } }
+
+    var fileTreeSearchOpen by remember { mutableStateOf(false) }
+    val toolWindowWidth = rememberAslToolWindowWidth()
+    AslToolWindowPanel(
+        title = "Project",
+        width = toolWindowWidth,
+        onClose = onDismiss,
+        scrollable = !fileTreeSearchOpen,
+        actions = {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                AslIconButton(
+                    icon = "search",
+                    contentDescription = "Search project",
+                    onClick = { fileTreeSearchOpen = !fileTreeSearchOpen },
+                    active = fileTreeSearchOpen,
+                    size = 32.dp,
+                    iconSize = 16.dp,
+                )
+                FileTreeCreateMenu(onCreate = onCreate)
+            }
+        },
+    ) {
+        if (fileTreeSearchOpen) {
+            FileTreeSearchPanel(
+                fileTree = fileTree,
+                onOpenFile = onSelectFile,
+                onRevealFolder = onRevealFileTreeNode,
+                onClose = { fileTreeSearchOpen = false },
+            )
+        } else {
+            AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
+                if (loading) {
+                    AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
+                } else {
+                    AslFileTree(
+                        items = treeItems,
+                        expandedIds = expandedFolderIds,
+                        selectedId = selectedFileId,
+                        actionsEnabled = true,
+                        canPaste = canPasteFileTreeEntry,
+                        onFocus = onFocus,
+                        onToggle = onToggle,
+                        onSelect = onSelect,
+                        onAction = onAction,
+                    )
                 }
             }
-            EditorRailTool.Git -> gitPanelApi.Panel(
-                projectId = projectId,
-                onClose = onDismiss,
-                onOpenDiff = onOpenGitDiff,
-                onOpenHistory = onOpenGitHistory,
-                onOpenBranches = onOpenGitBranches,
-                onOpenTags = onOpenGitTags,
-                onOpenStashes = onOpenGitStashes,
-                onOpenConflicts = onOpenGitConflicts,
-            )
-            EditorRailTool.AiAgent -> AiChatRoute(
-                projectId = projectId,
-                onClose = onDismiss,
-                onOpenAiAgentSettings = onOpenAiAgentSettings,
-                activeFilePath = selectedFileId,
-            )
-            EditorRailTool.Variants -> VariantsRoute(
-                selectedVariant = selectedVariant,
-                onSelectVariant = onSelectVariant,
-                onClose = onDismiss,
-                module = runModulePath.removePrefix(":").ifBlank { "app" },
-                variants = availableVariants,
-            )
-            EditorRailTool.Assets -> AssetsRoute(
-                projectId = projectId,
-                onClose = onDismiss,
-                onOpenFile = onSelectFile,
-            )
         }
     }
 }
@@ -406,35 +443,40 @@ private fun EditorToolPanelContent(
 @Composable
 private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
     var open by remember { mutableStateOf(false) }
+    val latestOnCreate by rememberUpdatedState(onCreate)
+    val toggleOpen = remember { { open = !open } }
+    val dismiss = remember { { open = false } }
     Box {
         AslIconButton(
             icon = "file-plus-2",
             contentDescription = "New file or folder",
-            onClick = { open = !open },
+            onClick = toggleOpen,
             active = open,
             size = 32.dp,
             iconSize = 16.dp,
         )
-        AslDropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-        ) {
-            AslDropdownMenuItem(
-                label = "New file",
-                icon = "file-plus-2",
-                onClick = {
-                    open = false
-                    onCreate(EditorFileCreateKind.File)
-                },
-            )
-            AslDropdownMenuItem(
-                label = "New folder",
-                icon = "folder",
-                onClick = {
-                    open = false
-                    onCreate(EditorFileCreateKind.Folder)
-                },
-            )
+        if (open) {
+            AslDropdownMenu(
+                expanded = true,
+                onDismissRequest = dismiss,
+            ) {
+                AslDropdownMenuItem(
+                    label = "New file",
+                    icon = "file-plus-2",
+                    onClick = {
+                        dismiss()
+                        latestOnCreate(EditorFileCreateKind.File)
+                    },
+                )
+                AslDropdownMenuItem(
+                    label = "New folder",
+                    icon = "folder",
+                    onClick = {
+                        dismiss()
+                        latestOnCreate(EditorFileCreateKind.Folder)
+                    },
+                )
+            }
         }
     }
 }
