@@ -491,7 +491,7 @@ class BuildRunCoordinator(
 
     private companion object {
         const val TOOLCHAIN_JDK_MAJOR = 17
-        const val ACTIVE_BUILD_MAX_AGE_MS = 2_100_000L
+        const val ACTIVE_BUILD_MAX_AGE_MS = 5_760_000L // 96 min
         const val INSTALL_OBSERVER_TIMEOUT_MS = 600_000L
     }
 }

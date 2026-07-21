@@ -528,7 +528,7 @@ class RemoteBuildSystem(
     }
 
     private companion object {
-        private const val BUILD_FOLLOW_TIMEOUT_MS = 1_800_000L
+        private const val BUILD_FOLLOW_TIMEOUT_MS = 5_700_000L // 95 min
         private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
         private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
         private const val STATUS_POLL_INTERVAL_MS = 5_000L
