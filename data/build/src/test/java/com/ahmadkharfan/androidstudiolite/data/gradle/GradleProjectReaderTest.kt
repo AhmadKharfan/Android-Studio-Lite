@@ -139,6 +139,62 @@ class GradleProjectReaderTest {
     }
 
     @Test
+    fun combinesMultipleFlavorDimensionsInDeclaredOrder() {
+        val root = tmp.newFolder("multidim")
+        write(root, "settings.gradle.kts", """
+            rootProject.name = "MultiDim"
+            include(":app")
+        """.trimIndent())
+        write(root, "app/build.gradle.kts", """
+            plugins { id("com.android.application") }
+            android {
+                namespace = "com.example.multi"
+                defaultConfig { applicationId = "com.example.multi" }
+                flavorDimensions += listOf("tier", "env")
+                productFlavors {
+                    create("free") { dimension = "tier" }
+                    create("paid") { dimension = "tier" }
+                    create("prod") { dimension = "env" }
+                    create("staging") { dimension = "env" }
+                }
+            }
+        """.trimIndent())
+
+        val app = reader.read(root).model.modules.first { it.path == ":app" }
+        val names = app.variants.map { it.name }.toSet()
+        assertTrue("expected freeProdDebug in $names", names.contains("freeProdDebug"))
+        assertTrue(names.contains("paidStagingRelease"))
+        assertTrue(names.contains("freeStagingDebug"))
+        assertTrue(names.contains("paidProdRelease"))
+        assertTrue(names.none { it.startsWith("prod") || it.startsWith("staging") })
+
+        val freeProdDebug = app.variants.first { it.name == "freeProdDebug" }
+        assertEquals(":app:assembleFreeProdDebug", freeProdDebug.assembleTaskPath)
+        assertEquals(listOf("free", "prod"), freeProdDebug.flavors)
+    }
+
+    @Test
+    fun detectsAppAppliedViaConventionPluginWithNonAppModuleName() {
+        val root = tmp.newFolder("conv")
+        write(root, "settings.gradle.kts", """
+            rootProject.name = "Conv"
+            include(":mobile")
+        """.trimIndent())
+        write(root, "mobile/build.gradle.kts", """
+            plugins { id("io.acme.android-application") }
+            android {
+                namespace = "com.acme.mobile"
+                defaultConfig { applicationId = "com.acme.mobile" }
+                buildTypes { debug { }; release { } }
+            }
+        """.trimIndent())
+
+        val mobile = reader.read(root).model.modules.first { it.path == ":mobile" }
+        assertEquals(ModuleType.ANDROID_APP, mobile.type)
+        assertEquals(setOf("debug", "release"), mobile.variants.map { it.name }.toSet())
+    }
+
+    @Test
     fun effectiveBuildTypesAlwaysIncludesDebugAndRelease() {
         assertEquals(listOf("debug", "release"), reader.effectiveBuildTypes(emptyList()))
         assertEquals(listOf("debug", "release"), reader.effectiveBuildTypes(listOf("release")))
