@@ -34,8 +34,11 @@ class AiAgentViewModel(
         viewModelScope.launch { aiAgentRepository.setApiKey(providerId, key) }
     }
 
-    override fun onTestApiKey(providerId: String) {
-        viewModelScope.launch { aiAgentRepository.testApiKey(providerId) }
+    override fun onTestApiKey(providerId: String, apiKey: String?) {
+        viewModelScope.launch {
+            if (apiKey != null) aiAgentRepository.setApiKey(providerId, apiKey)
+            aiAgentRepository.testApiKey(providerId)
+        }
     }
 
     override fun onInstructionsChanged(instructions: String) {

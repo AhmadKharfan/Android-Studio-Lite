@@ -38,10 +38,11 @@ class RealAiAgentRepository(
     }
 
     override suspend fun setApiKey(providerId: String, key: String) {
-        if (key.isBlank()) {
+        val normalized = key.trim()
+        if (normalized.isBlank()) {
             keyStore.clearKey(providerId)
         } else {
-            keyStore.setKey(providerId, key.trim())
+            keyStore.setKey(providerId, normalized)
         }
         keyErrors.value = keyErrors.value - providerId
         preferencesStore.setKeyStatus(providerId, null)
