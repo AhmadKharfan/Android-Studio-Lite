@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -69,7 +70,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                     .verticalScroll(rememberScrollState())
                     .aslImePadding()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 AboutHeader(colors = colors)
                 Text(
@@ -79,13 +80,18 @@ private fun AboutScreen(onBack: () -> Unit) {
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 )
-                AboutGitHubLink(colors = colors, onOpen = { context.openExternal(REPO_URL) })
-                AslButton(
-                    label = stringResource(R.string.about_contributors),
-                    onClick = { context.openExternal("$REPO_URL/graphs/contributors") },
-                    variant = AslButtonVariant.Secondary,
-                    icon = "users",
-                    fullWidth = true,
+                OpenSourceCard(colors = colors, onContribute = { context.openExternal(REPO_URL) })
+                AboutLinksCard(
+                    colors = colors,
+                    onOpenRepo = { context.openExternal(REPO_URL) },
+                    onOpenContributors = { context.openExternal("$REPO_URL/graphs/contributors") },
+                )
+                Text(
+                    text = stringResource(R.string.about_license),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textTertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
                 )
             }
         }
@@ -135,7 +141,47 @@ private fun AboutHeader(colors: AslColorScheme) {
 }
 
 @Composable
-private fun AboutGitHubLink(colors: AslColorScheme, onOpen: () -> Unit) {
+private fun OpenSourceCard(colors: AslColorScheme, onContribute: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.accentPrimaryContainer, AslShape.lg)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AslIcon(name = "heart-handshake", size = 18.dp, tint = colors.accentPrimary)
+            Text(
+                text = stringResource(R.string.about_open_source_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textPrimary,
+            )
+        }
+        Text(
+            text = stringResource(R.string.about_open_source_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+        AslButton(
+            label = stringResource(R.string.about_contribute),
+            onClick = onContribute,
+            variant = AslButtonVariant.Primary,
+            icon = "git-pull-request",
+            fullWidth = true,
+        )
+    }
+}
+
+@Composable
+private fun AboutLinksCard(
+    colors: AslColorScheme,
+    onOpenRepo: () -> Unit,
+    onOpenContributors: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,9 +192,16 @@ private fun AboutGitHubLink(colors: AslColorScheme, onOpen: () -> Unit) {
             title = stringResource(R.string.about_github),
             subtitle = stringResource(R.string.about_github_sub),
             icon = "github",
-            divider = false,
             trailing = { AslIcon(name = "arrow-up-right", size = 16.dp, tint = colors.textTertiary) },
-            onClick = onOpen,
+            onClick = onOpenRepo,
+        )
+        AslListItem(
+            title = stringResource(R.string.about_contributors),
+            subtitle = stringResource(R.string.about_contributors_sub),
+            icon = "users",
+            divider = false,
+            trailing = { AslIcon(name = "chevron-right", size = 16.dp, tint = colors.textTertiary) },
+            onClick = onOpenContributors,
         )
     }
 }
