@@ -1,4 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.createproject
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -63,11 +64,15 @@ private fun CreateProjectScreen(
     onBrowseLocation: () -> Unit,
 ) {
     val colors = AslTheme.colors
+    val navigateBack = {
+        if (uiState.step == 0) onBack() else interactionListener.onBackStep()
+    }
+    BackHandler(onBack = navigateBack)
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).aslImePadding()) {
             AslTopAppBar(
                 title = "Create project",
-                onBack = { if (uiState.step == 0) onBack() else interactionListener.onBackStep() },
+                onBack = navigateBack,
             )
             AslWizardStepper(
                 steps = CREATE_PROJECT_STEPS,
