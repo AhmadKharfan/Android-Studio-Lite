@@ -83,6 +83,7 @@ jobs:
           ASL_RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           ASL_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ASL_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+          ASL_GITHUB_OAUTH_CLIENT_ID: ${{ vars.ASL_GITHUB_OAUTH_CLIENT_ID }}
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Locate release APK

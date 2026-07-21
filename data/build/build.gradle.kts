@@ -1,12 +1,24 @@
+import java.util.Properties
+
 plugins {
     id("asl.android.library")
     alias(libs.plugins.kotlin.serialization)
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+val buildServerUrl: String = localProperties.getProperty("asl.buildServerUrl")
+    ?: providers.environmentVariable("ASL_BUILD_SERVER_URL").orNull
+    ?: "https://build.androidstudiolite.me"
+
 android {
     namespace = "com.ahmadkharfan.androidstudiolite.data.build"
     buildFeatures { buildConfig = true }
     defaultConfig {
-        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"https://build.androidstudiolite.me\"")
+        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"$buildServerUrl\"")
     }
 }
 dependencies {

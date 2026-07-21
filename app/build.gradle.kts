@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("asl.android.application")
     alias(libs.plugins.kotlin.serialization)
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun configValue(localKey: String, environment: String, default: String): String =
+    sequenceOf(
+        localProperties.getProperty(localKey),
+        providers.environmentVariable(environment).orNull,
+    ).firstOrNull { !it.isNullOrBlank() } ?: default
 
 fun releaseCredential(property: String, environment: String): String? =
     providers.gradleProperty(property).orElse(providers.environmentVariable(environment)).orNull
@@ -37,34 +50,23 @@ android {
     defaultConfig {
         applicationId = "com.ahmadkharfan.androidstudiolite"
         minSdk = 24
-        // Builds run server-side, so nothing forces the legacy targetSdk 28 constraint any more:
-        // target a normal high SDK for a Play-compatible single-flavor app.
         targetSdk = 35
         versionCode = System.getenv("CI_VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = System.getenv("CI_VERSION_NAME") ?: "1.0"
 
-        buildConfigField("String", "DEFAULT_BUILD_SERVER_URL", "\"https://build.androidstudiolite.me\"")
-
-        // Gates Play Integrity attestation on device registration (POST /v1/devices). Off by default
-        // so dev builds without Play Services (emulators, sideloaded) still register; the server also
-        // ignores the token while PLAY_INTEGRITY_REQUIRED=false. Flip to true for a Play-signed release.
         buildConfigField("boolean", "PLAY_INTEGRITY_ENABLED", "false")
-        // Cloud project number linked to the app in Play Console (App integrity → Play Integrity API).
-        // Placeholder until the app is linked; only read when PLAY_INTEGRITY_ENABLED is true.
         buildConfigField("Long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "0L")
 
-        // GitHub OAuth App client ID used for the "Sign in with GitHub" device flow (see
-        // GitHubDeviceFlowAuthenticator). This is a PUBLIC identifier, not a secret. Create an OAuth
-        // App at GitHub → Settings → Developer settings → OAuth Apps, enable "Device Flow", and paste
-        // its "Ov23li…" Client ID here. While empty, the device flow is disabled and the auth UI only
-        // offers manual personal-access-token entry.
-        buildConfigField("String", "GITHUB_OAUTH_CLIENT_ID", "\"Ov23liwZZUUv9fXJksGe\"")
+        buildConfigField(
+            "String",
+            "GITHUB_OAUTH_CLIENT_ID",
+            "\"${configValue("asl.githubOauthClientId", "ASL_GITHUB_OAUTH_CLIENT_ID", "Ov23liwZZUUv9fXJksGe")}\"",
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
             cmake {
-                // Plain C executable; no STL needed.
                 arguments += "-DANDROID_STL=none"
             }
         }
@@ -102,21 +104,14 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-        // JGit leans on java.nio.file / java.time APIs that only exist natively from API 26; desugaring
-        // backfills them so the git integration works down to minSdk 24.
         isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    // testOptions.unitTests.isReturnDefaultValues is applied centrally by the asl.android.* convention
-    // plugin so every module's JVM tests can touch stubbed android.* APIs without a device.
     packaging {
         jniLibs {
-            // proot + its loader ship as native libs so they land in the exec-capable
-            // nativeLibraryDir; legacy packaging forces them to be extracted to disk (compressed
-            // libs loaded straight from the APK can't be executed). See ProotEnvironment.
             useLegacyPackaging = true
         }
     }
@@ -171,9 +166,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
-// Forwards -Dasl.templateCheck.out to the test JVM, which Gradle doesn't do by default. It's what
-// tools/template_build_check.sh uses to have TemplateBuildCheckGenerator emit every template for a
-// real build on the server; unset, the generator skips itself.
+
 tasks.withType<Test>().configureEach {
     System.getProperty("asl.templateCheck.out")?.let { systemProperty("asl.templateCheck.out", it) }
 }
