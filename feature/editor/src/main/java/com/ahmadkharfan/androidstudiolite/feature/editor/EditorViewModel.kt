@@ -251,8 +251,11 @@ class EditorViewModel(
                         .availableVariantNames(app)
 
 
+                    val remembered = preferencesRepository.getSelectedVariant(projectId)
+                        ?.takeIf { it.isNotBlank() }
+                        ?: state.value.selectedVariant
                     val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                        .resolveSelectedVariant(app, state.value.selectedVariant)
+                        .resolveSelectedVariant(app, remembered)
                     SyncSymbolsResult(
                         index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(localModel),
                         runModulePath = app?.path.orEmpty(),
@@ -558,7 +561,10 @@ class EditorViewModel(
         updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
     }
     override fun onRunProject() = startBuild(variant = state.value.selectedVariant, kind = BuildKind.ASSEMBLE, install = true)
-    override fun onSelectVariant(variant: String) = updateState { copy(selectedVariant = variant) }
+    override fun onSelectVariant(variant: String) {
+        updateState { copy(selectedVariant = variant) }
+        viewModelScope.launch { runCatching { preferencesRepository.setSelectedVariant(projectId, variant) } }
+    }
     override fun onCancelBuild() = cancelBuild()
     override fun onBuildRelease() {
         val kind = if (state.value.buildOutputAab) BuildKind.BUNDLE else BuildKind.ASSEMBLE
