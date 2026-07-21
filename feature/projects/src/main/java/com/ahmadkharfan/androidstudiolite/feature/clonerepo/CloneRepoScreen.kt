@@ -1,9 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.feature.clonerepo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -125,11 +126,13 @@ private fun CloneRepoOptions(
     val colors = AslTheme.colors
     Column {
         Text(text = "Options", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-        Row(
-            modifier = Modifier.padding(top = 8.dp),
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            uiState.options.forEach { option ->
+            items(uiState.options, key = { it.id }) { option ->
                 AslChip(
                     label = option.label,
                     kind = AslChipKind.Filter,
