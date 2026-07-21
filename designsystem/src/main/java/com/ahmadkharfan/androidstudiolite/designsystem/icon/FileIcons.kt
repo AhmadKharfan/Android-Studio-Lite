@@ -95,7 +95,6 @@ object AslFileIcons {
     private fun extensionOf(lowerName: String): String {
         val dot = lowerName.lastIndexOf('.')
         if (dot <= 0 || dot == lowerName.lastIndex) return ""
-        if (lowerName.endsWith(".gradle.kts")) return "gradle.kts"
         return lowerName.substring(dot + 1)
     }
 }
