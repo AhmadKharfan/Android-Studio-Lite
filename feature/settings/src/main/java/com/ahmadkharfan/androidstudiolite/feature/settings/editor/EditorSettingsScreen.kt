@@ -11,7 +11,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -58,7 +64,6 @@ private fun EditorSettingsScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    val previewPalette = EditorPalette.forScheme(uiState.colorSchemeId)
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = "Editor", onBack = onBack)
@@ -69,30 +74,31 @@ private fun EditorSettingsScreen(
                     .aslImePadding()
                     .padding(16.dp),
             ) {
-                EditorFontFamilySection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                EditorFontFamilySection(
+                    fontFamilyId = uiState.fontFamilyId,
+                    onFontFamilyChanged = interactionListener::onFontFamilyChanged,
+                    colors = colors,
+                )
                 EditorFontSizeSlider(
-                    uiState = uiState,
-                    interactionListener = interactionListener,
-                    previewCanvas = Color(previewPalette.canvas),
-                    previewText = Color(previewPalette.defaultText),
+                    fontSize = uiState.fontSize,
+                    colorSchemeId = uiState.colorSchemeId,
+                    onFontSizeChanged = interactionListener::onFontSizeChanged,
                 )
-                AslThemeSwatchPicker(
-                    label = "Color scheme",
-                    swatches = COLOR_SCHEME_SWATCHES,
-                    value = uiState.colorSchemeId,
-                    onValueChange = { interactionListener.onColorSchemeChanged(it) },
-                    modifier = Modifier.padding(top = 18.dp),
+                EditorColorSchemeSection(
+                    colorSchemeId = uiState.colorSchemeId,
+                    onColorSchemeChanged = interactionListener::onColorSchemeChanged,
+                    colors = colors,
                 )
-                if (!EditorPalette.isDarkScheme(uiState.colorSchemeId)) {
-                    Text(
-                        text = "Light scheme — editor stays bright even in dark UI mode.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textTertiary,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-                EditorTabSizeSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
-                EditorBehaviorSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                EditorTabSizeSection(
+                    tabSize = uiState.tabSize,
+                    onTabSizeChanged = interactionListener::onTabSizeChanged,
+                    colors = colors,
+                )
+                EditorBehaviorSection(
+                    autoSave = uiState.autoSave,
+                    onToggleAutoSave = interactionListener::onToggleAutoSave,
+                    colors = colors,
+                )
             }
         }
     }
@@ -100,8 +106,8 @@ private fun EditorSettingsScreen(
 
 @Composable
 private fun EditorFontFamilySection(
-    uiState: EditorSettingsUiState,
-    interactionListener: EditorSettingsInteractionListener,
+    fontFamilyId: String,
+    onFontFamilyChanged: (String) -> Unit,
     colors: AslColorScheme,
 ) {
     Text(
@@ -115,36 +121,51 @@ private fun EditorFontFamilySection(
             AslSegmentedOption("JetBrains Mono", "jetbrains"),
             AslSegmentedOption("System mono", "monospace"),
         ),
-        value = uiState.fontFamilyId,
-        onValueChange = { interactionListener.onFontFamilyChanged(it) },
+        value = fontFamilyId,
+        onValueChange = onFontFamilyChanged,
         fullWidth = true,
     )
 }
 
 @Composable
 private fun EditorFontSizeSlider(
-    uiState: EditorSettingsUiState,
-    interactionListener: EditorSettingsInteractionListener,
-    previewCanvas: Color,
-    previewText: Color,
+    fontSize: Int,
+    colorSchemeId: String,
+    onFontSizeChanged: (Int) -> Unit,
 ) {
     val colors = AslTheme.colors
+    val previewPalette = remember(colorSchemeId) { EditorPalette.forScheme(colorSchemeId) }
+    var localFontSize by remember { mutableIntStateOf(fontSize) }
+    var dragging by remember { mutableStateOf(false) }
+    val commitFontSize by rememberUpdatedState(onFontSizeChanged)
+
+    LaunchedEffect(fontSize) {
+        if (!dragging) localFontSize = fontSize
+    }
+
     Column(modifier = Modifier.padding(top = 18.dp)) {
         AslSlider(
-            value = uiState.fontSize.toFloat(),
-            onValueChange = { interactionListener.onFontSizeChanged(it.toInt()) },
+            value = localFontSize.toFloat(),
+            onValueChange = {
+                dragging = true
+                localFontSize = it.toInt()
+            },
+            onValueChangeFinished = {
+                dragging = false
+                commitFontSize(localFontSize)
+            },
             label = "Font size",
             valueRange = 10f..24f,
             unit = "sp",
         )
         Text(
             text = "val preview = \"Aa 0O 1lI\"",
-            style = AslCode.codeBody.copy(fontSize = uiState.fontSize.sp),
-            color = previewText,
+            style = AslCode.codeBody.copy(fontSize = localFontSize.sp),
+            color = Color(previewPalette.defaultText),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp)
-                .background(previewCanvas, AslShape.sm)
+                .background(Color(previewPalette.canvas), AslShape.sm)
                 .border(1.dp, colors.borderSubtle, AslShape.sm)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
@@ -152,9 +173,32 @@ private fun EditorFontSizeSlider(
 }
 
 @Composable
+private fun EditorColorSchemeSection(
+    colorSchemeId: String,
+    onColorSchemeChanged: (String) -> Unit,
+    colors: AslColorScheme,
+) {
+    AslThemeSwatchPicker(
+        label = "Color scheme",
+        swatches = COLOR_SCHEME_SWATCHES,
+        value = colorSchemeId,
+        onValueChange = onColorSchemeChanged,
+        modifier = Modifier.padding(top = 18.dp),
+    )
+    if (!EditorPalette.isDarkScheme(colorSchemeId)) {
+        Text(
+            text = "Light scheme — editor stays bright even in dark UI mode.",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textTertiary,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
+@Composable
 private fun EditorTabSizeSection(
-    uiState: EditorSettingsUiState,
-    interactionListener: EditorSettingsInteractionListener,
+    tabSize: Int,
+    onTabSizeChanged: (Int) -> Unit,
     colors: AslColorScheme,
 ) {
     Text(
@@ -168,16 +212,16 @@ private fun EditorTabSizeSection(
             AslSegmentedOption("2 spaces", "2"),
             AslSegmentedOption("4 spaces", "4"),
         ),
-        value = uiState.tabSize.toString(),
-        onValueChange = { interactionListener.onTabSizeChanged(it.toInt()) },
+        value = tabSize.toString(),
+        onValueChange = { onTabSizeChanged(it.toInt()) },
         fullWidth = true,
     )
 }
 
 @Composable
 private fun EditorBehaviorSection(
-    uiState: EditorSettingsUiState,
-    interactionListener: EditorSettingsInteractionListener,
+    autoSave: Boolean,
+    onToggleAutoSave: (Boolean) -> Unit,
     colors: AslColorScheme,
 ) {
     HubSectionHeader("Behavior")
@@ -190,8 +234,8 @@ private fun EditorBehaviorSection(
     ) {
         AslSwitch(
             label = "Auto-save",
-            checked = uiState.autoSave,
-            onCheckedChange = { interactionListener.onToggleAutoSave(it) },
+            checked = autoSave,
+            onCheckedChange = onToggleAutoSave,
             modifier = Modifier.fillMaxWidth(),
         )
     }
