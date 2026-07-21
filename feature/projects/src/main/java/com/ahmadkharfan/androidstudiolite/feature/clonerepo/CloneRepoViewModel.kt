@@ -58,6 +58,17 @@ class CloneRepoViewModel(
         )
     }
 
+    fun onClonedProjectOpened() {
+        updateState {
+            copy(
+                cloning = false,
+                progressPercent = 0,
+                progressMessage = "",
+                clonedProjectId = null,
+            )
+        }
+    }
+
     override fun onCancelClone() {
         cloneJob?.cancel()
         cloneJob = null

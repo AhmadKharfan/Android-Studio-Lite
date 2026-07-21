@@ -3,8 +3,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +37,9 @@ fun CloneRepoRoute(
     val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.clonedProjectId) {
-        uiState.clonedProjectId?.let(onCloned)
+        val clonedProjectId = uiState.clonedProjectId ?: return@LaunchedEffect
+        onCloned(clonedProjectId)
+        viewModel.onClonedProjectOpened()
     }
 
     CloneRepoScreen(
@@ -126,13 +127,14 @@ private fun CloneRepoOptions(
     val colors = AslTheme.colors
     Column {
         Text(text = "Options", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-        LazyRow(
+        FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(uiState.options, key = { it.id }) { option ->
+            uiState.options.forEach { option ->
                 AslChip(
                     label = option.label,
                     kind = AslChipKind.Filter,
