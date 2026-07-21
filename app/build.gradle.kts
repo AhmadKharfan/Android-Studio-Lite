@@ -95,7 +95,7 @@ android {
         release {
             signingConfig = signingConfigs.findByName("release")
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
@@ -141,7 +141,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -155,9 +154,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.commons.compress)
-    implementation(libs.xz)
-    implementation(libs.jgit)
     implementation(libs.androidx.security.crypto)
     implementation(libs.play.integrity)
     implementation(platform(libs.koin.bom))
@@ -167,6 +163,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.jgit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

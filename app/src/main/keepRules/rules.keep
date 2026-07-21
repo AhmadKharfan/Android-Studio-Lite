@@ -1,12 +1,66 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
-#
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# Android Studio Lite — R8 keep rules (AGP 9 keepRules)
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Application entry points & DI ---
+-keep class com.ahmadkharfan.androidstudiolite.AslApplication { *; }
+-keep class com.ahmadkharfan.androidstudiolite.MainActivity { *; }
+-keep class com.ahmadkharfan.androidstudiolite.di.** { *; }
+
+# ViewModels constructed by Koin (named constructor params)
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
+
+# --- JNI / native PTY ---
+-keepclasseswithmembernames class com.ahmadkharfan.androidstudiolite.data.local.pty.NativePty {
+    native <methods>;
+}
+
+# --- Kotlin serialization (remote build + AI protocols) ---
+-keepattributes *Annotation*, InnerClasses, EnclosingMethod, Signature
+-keep @kotlinx.serialization.Serializable class com.ahmadkharfan.androidstudiolite.** { *; }
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers class * {
+    *** Companion;
+}
+-keepclasseswithmembers class * {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# --- JGit ---
+-keep class org.eclipse.jgit.** { *; }
+-dontwarn org.eclipse.jgit.**
+
+# --- OkHttp / Okio ---
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+
+# --- AndroidX Security (EncryptedSharedPreferences) ---
+-keep class androidx.security.crypto.** { *; }
+
+# --- Play Integrity (optional; enabled via BuildConfig flag) ---
+-keep class com.google.android.play.core.integrity.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# --- Apache Commons Compress (terminal bootstrap tar.xz) ---
+-dontwarn org.apache.commons.**
+-keep class org.apache.commons.compress.** { *; }
+
+# --- Compose runtime stability ---
+-keep class androidx.compose.runtime.** { *; }
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+}
+
+# --- Parcelable / enum values used across modules ---
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# --- Suppress benign warnings from desugaring / transitive libs ---
+-dontwarn java.lang.invoke.**
+-dontwarn javax.annotation.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.slf4j.**
