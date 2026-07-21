@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorBottomPanelContent
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDockedPanel
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDrawer
+import com.ahmadkharfan.androidstudiolite.feature.editor.components.MarkdownPreviewPane
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import java.io.File
 
@@ -327,7 +329,11 @@ private fun EditorTopBar(
             },
             onMenu = { interactionListener.onToggleMenu() },
             actions = {
-                EditorToolbarEditActions(interactionListener = interactionListener)
+                EditorToolbarEditActions(
+                    interactionListener = interactionListener,
+                    showMarkdownPreviewToggle = activeTab?.language == EditorLanguage.Markdown,
+                    markdownPreview = uiState.markdownPreview,
+                )
             },
             overflowItems = overflowItems,
             onOverflowSelect = onOverflowSelect,
@@ -345,11 +351,22 @@ private fun EditorTopBar(
 }
 
 @Composable
-private fun EditorToolbarEditActions(interactionListener: EditorInteractionListener) {
+private fun EditorToolbarEditActions(
+    interactionListener: EditorInteractionListener,
+    showMarkdownPreviewToggle: Boolean = false,
+    markdownPreview: Boolean = true,
+) {
     val onUndo = remember(interactionListener) { { interactionListener.onUndo() } }
     val onRedo = remember(interactionListener) { { interactionListener.onRedo() } }
     AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = onUndo)
     AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = onRedo)
+    if (showMarkdownPreviewToggle) {
+        AslIconButton(
+            icon = if (markdownPreview) "code" else "eye",
+            contentDescription = if (markdownPreview) "Edit markdown" else "Preview markdown",
+            onClick = { interactionListener.onToggleMarkdownPreview() },
+        )
+    }
 }
 
 @Composable
@@ -465,23 +482,32 @@ private fun EditorCodeSurface(
             }
             val activeSession = sessionFor(activeTab?.id)
             if (activeTab != null && activeSession != null) {
-                AslEditableCodeEditor(
-                    session = activeSession,
-                    fontSizeSp = uiState.editorFontSize,
-                    tabSize = uiState.editorTabSize,
-                    colorSchemeId = uiState.editorThemeId,
-                    fontFamilyId = uiState.editorFontFamily,
-                    onEdited = { onEdited(activeTab.id) },
-                    onCaretMoved = onCaretMoved,
-                    gitLineStatus = activeTab.gitLineStatus,
-                    breakpoints = activeTab.breakpoints,
-                    findQuery = if (uiState.findBarOpen) uiState.findQuery else "",
-                    findCurrentMatch = uiState.findCurrentMatch,
-                    revealNonce = uiState.editorRevealNonce,
-                    revealOffset = uiState.editorRevealOffset,
-                    projectIndex = uiState.projectIndex,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                )
+                val showMarkdownPreview = activeTab.language == EditorLanguage.Markdown &&
+                    uiState.markdownPreview
+                if (showMarkdownPreview) {
+                    MarkdownPreviewPane(
+                        markdown = activeSession.text,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                } else {
+                    AslEditableCodeEditor(
+                        session = activeSession,
+                        fontSizeSp = uiState.editorFontSize,
+                        tabSize = uiState.editorTabSize,
+                        colorSchemeId = uiState.editorThemeId,
+                        fontFamilyId = uiState.editorFontFamily,
+                        onEdited = { onEdited(activeTab.id) },
+                        onCaretMoved = onCaretMoved,
+                        gitLineStatus = activeTab.gitLineStatus,
+                        breakpoints = activeTab.breakpoints,
+                        findQuery = if (uiState.findBarOpen) uiState.findQuery else "",
+                        findCurrentMatch = uiState.findCurrentMatch,
+                        revealNonce = uiState.editorRevealNonce,
+                        revealOffset = uiState.editorRevealOffset,
+                        projectIndex = uiState.projectIndex,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
             } else {
                 Box(modifier = Modifier.weight(1f).fillMaxSize())
             }
@@ -517,9 +543,7 @@ private fun EditorBottomToolSection(
         EditorBottomPanelContent(
             activeTabId = uiState.activeBottomTabId,
             buildConsole = uiState.buildConsole,
-            operationRunning = uiState.running,
             projectRootPath = uiState.projectRootPath,
-            onCancelBuild = { interactionListener.onCancelBuild() },
             onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
         )
     }

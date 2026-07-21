@@ -39,5 +39,6 @@ interface EditorInteractionListener {
     fun onFindQueryChanged(query: String)
     fun onFindNext()
     fun onFindPrevious()
+    fun onToggleMarkdownPreview()
     fun onToggleAutocompleteDemo()
 }

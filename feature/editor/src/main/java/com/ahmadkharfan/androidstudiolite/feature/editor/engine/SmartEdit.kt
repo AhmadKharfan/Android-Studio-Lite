@@ -15,7 +15,8 @@ object SmartEdit {
         val doc = session.document
         val sel = session.selection
         if (!sel.isCollapsed) {
-            val close = OPEN_TO_CLOSE[ch] ?: if (ch in QUOTES && session.language != EditorLanguage.Plain) ch else null
+            val close = OPEN_TO_CLOSE[ch]
+                ?: if (ch in QUOTES && session.language.supportsSmartQuotes) ch else null
             if (close != null) {
                 val selected = doc.substring(sel.start, sel.end)
                 session.replaceRange(sel.start, sel.end, "$ch$selected$close", caret = sel.start + 1 + selected.length)
@@ -40,7 +41,7 @@ object SmartEdit {
             session.replaceRange(pos, pos, "$ch${OPEN_TO_CLOSE.getValue(ch)}", caret = pos + 1)
             return
         }
-        if (ch in QUOTES && session.language != EditorLanguage.Plain && shouldAutoClose(next) && !isIdentChar(prev)) {
+        if (ch in QUOTES && session.language.supportsSmartQuotes && shouldAutoClose(next) && !isIdentChar(prev)) {
             session.replaceRange(pos, pos, "$ch$ch", caret = pos + 1)
             return
         }

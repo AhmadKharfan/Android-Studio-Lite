@@ -13,7 +13,7 @@ interface SyntaxLexer {
             EditorLanguage.Kotlin -> CLikeLexer(KOTLIN_KEYWORDS, rawStrings = true)
             EditorLanguage.Java -> CLikeLexer(JAVA_KEYWORDS, rawStrings = false)
             EditorLanguage.Xml -> XmlLexer
-            EditorLanguage.Plain -> PlainLexer
+            EditorLanguage.Markdown, EditorLanguage.Plain -> PlainLexer
         }
     }
 }

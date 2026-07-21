@@ -4,7 +4,8 @@ object CodeFormatter {
 
     fun reformat(text: String, tabSize: Int, language: EditorLanguage): String = when (language) {
         EditorLanguage.Xml -> reindentXml(text, tabSize)
-        EditorLanguage.Plain -> text.lineSequence().joinToString("\n") { it.trimEnd() }
+        EditorLanguage.Plain, EditorLanguage.Markdown ->
+            text.lineSequence().joinToString("\n") { it.trimEnd() }
         else -> reindentBraces(text, tabSize)
     }
 

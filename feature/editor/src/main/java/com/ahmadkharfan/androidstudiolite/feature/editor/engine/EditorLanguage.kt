@@ -3,6 +3,7 @@ enum class EditorLanguage {
     Kotlin,
     Java,
     Xml,
+    Markdown,
     Plain;
 
     val displayName: String
@@ -10,6 +11,7 @@ enum class EditorLanguage {
             Kotlin -> "Kotlin"
             Java -> "Java"
             Xml -> "XML"
+            Markdown -> "Markdown"
             Plain -> "Plain text"
         }
 
@@ -21,8 +23,12 @@ enum class EditorLanguage {
                 lower.endsWith(".gradle") -> Kotlin
                 lower.endsWith(".java") -> Java
                 lower.endsWith(".xml") -> Xml
+                lower.endsWith(".md") || lower.endsWith(".markdown") -> Markdown
                 else -> Plain
             }
         }
     }
 }
+
+internal val EditorLanguage.supportsSmartQuotes: Boolean
+    get() = this != EditorLanguage.Plain && this != EditorLanguage.Markdown
