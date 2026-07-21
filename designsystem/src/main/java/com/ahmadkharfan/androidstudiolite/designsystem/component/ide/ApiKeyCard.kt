@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -41,11 +45,31 @@ fun AslApiKeyCard(
     placeholder: String = "sk-…",
     status: AslApiKeyStatus = AslApiKeyStatus.None,
     errorMessage: String? = null,
-    onTest: () -> Unit = {},
+    onTest: (String) -> Unit = {},
     testing: Boolean = false,
+    onCollapse: (() -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
     var reveal by remember { mutableStateOf(false) }
+    var draft by remember { mutableStateOf(value) }
+    var focused by remember { mutableStateOf(false) }
+    val commitChange by rememberUpdatedState(onValueChange)
+
+    LaunchedEffect(value) {
+        if (!focused) draft = value
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (focused) commitChange(draft.trim())
+        }
+    }
+
+    fun commitDraft() {
+        val trimmed = draft.trim()
+        if (trimmed != draft) draft = trimmed
+        commitChange(trimmed)
+    }
 
     Column(
         modifier = modifier
@@ -82,19 +106,42 @@ fun AslApiKeyCard(
                 }
                 AslApiKeyStatus.None -> Unit
             }
+            if (onCollapse != null) {
+                AslIconButton(
+                    icon = "chevron-up",
+                    contentDescription = "Collapse",
+                    size = 32.dp,
+                    iconSize = 18.dp,
+                    onClick = onCollapse,
+                )
+            }
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AslTextField(
-                value = value,
-                onValueChange = onValueChange,
+                value = draft,
+                onValueChange = { draft = it },
                 modifier = Modifier.weight(1f),
                 label = "API key",
                 placeholder = placeholder,
                 type = if (reveal) AslTextFieldType.Text else AslTextFieldType.Password,
                 trailingIcon = if (reveal) "eye-off" else "eye",
                 onTrailingClick = { reveal = !reveal },
+                onFocusChanged = { isFocused ->
+                    focused = isFocused
+                    if (!isFocused) commitDraft()
+                },
             )
-            AslButton(label = "Test", onClick = onTest, variant = AslButtonVariant.Secondary, loading = testing)
+            AslButton(
+                label = "Test",
+                onClick = {
+                    val trimmed = draft.trim()
+                    if (trimmed != draft) draft = trimmed
+                    commitChange(trimmed)
+                    onTest(trimmed)
+                },
+                variant = AslButtonVariant.Secondary,
+                loading = testing,
+            )
         }
         if (status == AslApiKeyStatus.Invalid && !errorMessage.isNullOrBlank()) {
             Text(

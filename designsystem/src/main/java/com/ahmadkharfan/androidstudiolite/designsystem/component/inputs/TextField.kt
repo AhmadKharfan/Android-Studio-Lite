@@ -56,6 +56,7 @@ fun AslTextField(
     leadingIcon: String? = null,
     trailingIcon: String? = null,
     onTrailingClick: (() -> Unit)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
     val colors = AslTheme.colors
     var focused by remember { mutableStateOf(false) }
@@ -116,6 +117,7 @@ fun AslTextField(
                         .bringIntoViewRequester(bringIntoViewRequester)
                         .onFocusChanged {
                             focused = it.isFocused
+                            onFocusChanged?.invoke(it.isFocused)
                             if (it.isFocused) {
                                 scope.launch { bringIntoViewRequester.bringIntoView() }
                             }
