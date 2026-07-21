@@ -104,6 +104,7 @@ fun AslTextField(
                     cursorBrush = SolidColor(colors.accentPrimary),
                     visualTransformation = if (type == AslTextFieldType.Password) PasswordVisualTransformation() else VisualTransformation.None,
                     keyboardOptions = KeyboardOptions(
+                        autoCorrectEnabled = false,
                         keyboardType = when (type) {
                             AslTextFieldType.Email -> KeyboardType.Email
                             AslTextFieldType.Url -> KeyboardType.Uri

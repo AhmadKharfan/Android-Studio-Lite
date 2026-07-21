@@ -223,6 +223,10 @@ private fun EditorScreen(
     }
 }
 
+private val WHITESPACE_AFTER_DOT = Regex("\\.\\s+")
+
+private fun sanitizeFileEntryName(raw: String): String = raw.replace(WHITESPACE_AFTER_DOT, ".")
+
 @Composable
 private fun EditorFileOperationDialog(
     dialog: EditorFileOperationDialogUiState,
@@ -244,7 +248,7 @@ private fun EditorFileOperationDialog(
                 inputContent = {
                     AslTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { name = sanitizeFileEntryName(it) },
                         label = if (isFile) "File name" else "Folder name",
                         placeholder = if (isFile) "Example.kt" else "feature",
                         leadingIcon = if (isFile) "file-code" else "folder",
@@ -266,7 +270,7 @@ private fun EditorFileOperationDialog(
                 inputContent = {
                     AslTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { name = sanitizeFileEntryName(it) },
                         label = "New name",
                         leadingIcon = "pencil",
                     )
