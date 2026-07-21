@@ -46,6 +46,16 @@ class RunTargetResolverTest {
     }
 
     @Test
+    fun `resolves arbitrarily named android application module by type`() {
+        val modules = listOf(
+            module(":core", ModuleType.JVM),
+            module(":design", ModuleType.ANDROID_LIBRARY),
+            module(":mobile", ModuleType.ANDROID_APP, variants = menaLikeVariants()),
+        )
+        assertEquals(":mobile", RunTargetResolver.resolveAppModule(modules)?.path)
+    }
+
+    @Test
     fun `falls back to composeApp when no colon-app`() {
         val modules = listOf(
             module(":core", ModuleType.JVM),
