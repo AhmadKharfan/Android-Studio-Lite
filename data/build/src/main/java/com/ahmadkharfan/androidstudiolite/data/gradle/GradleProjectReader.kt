@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.gradle
 
-import com.ahmadkharfan.androidstudiolite.data.gradle.model.CatalogLibrary
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.DiagnosticSeverity
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDiagnostic
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDsl

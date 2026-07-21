@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.data.remote
 
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ArtifactResponse
-import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStateResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStatusResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildRequest
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildResponse
