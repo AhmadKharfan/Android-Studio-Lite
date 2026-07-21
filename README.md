@@ -13,7 +13,11 @@ terminal, an AI agent, and real Gradle builds, all from your phone or tablet.
 
 <div align="center">
 
-<img src="docs/preview/placeholder.png" alt="App preview coming soon" width="720" />
+
+
+https://github.com/user-attachments/assets/713d568b-52a9-46c4-b49d-41494d6b2da5
+
+
 
 </div>
 
