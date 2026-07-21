@@ -86,13 +86,6 @@ private fun AboutScreen(onBack: () -> Unit) {
                     onOpenRepo = { context.openExternal(REPO_URL) },
                     onOpenContributors = { context.openExternal("$REPO_URL/graphs/contributors") },
                 )
-                Text(
-                    text = stringResource(CommonR.string.about_license),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.textTertiary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
-                )
             }
         }
     }
