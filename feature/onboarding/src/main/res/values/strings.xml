@@ -161,4 +161,16 @@
     <string name="onboarding_bullet_code_text">Completion and navigation for Kotlin &amp; Java.</string>
     <string name="onboarding_bullet_git_ai_title">Git &amp; AI built-in</string>
     <string name="onboarding_bullet_git_ai_text">Clone, commit, and generate code with the AI agent.</string>
+
+    <!-- Onboarding · How it works (S2) -->
+    <string name="onboarding_how_title">How it works</string>
+    <string name="onboarding_how_subtitle">A complete Android workflow — write, build and run — without leaving your phone.</string>
+    <string name="onboarding_how_step_label">Step %1$d</string>
+    <string name="onboarding_how_write_title">Write with intelligence</string>
+    <string name="onboarding_how_write_text">Edit Kotlin &amp; Java with completion, navigation and inline diagnostics — right on your device.</string>
+    <string name="onboarding_how_git_title">Clone &amp; version</string>
+    <string name="onboarding_how_git_text">Pull any repository, review diffs and commit. Git is built in.</string>
+    <string name="onboarding_how_run_title">Build &amp; run here</string>
+    <string name="onboarding_how_run_text">Builds run on the cloud service; the finished APK installs straight to this device.</string>
+    <string name="onboarding_how_continue">Continue</string>
 </resources>
