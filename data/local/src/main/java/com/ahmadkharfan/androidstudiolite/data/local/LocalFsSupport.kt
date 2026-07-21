@@ -21,8 +21,16 @@ internal object LocalFsSupport {
 
     fun isIgnoredDir(file: File): Boolean {
         if (!file.isDirectory || file.name !in IGNORED_DIR_NAMES) return false
-        if (file.name == "build" && looksLikeGradleModule(file)) return false
-        return true
+        if (file.name != "build") return true
+        return isGeneratedBuildDir(file)
+    }
+
+    fun isGeneratedBuildDir(dir: File): Boolean {
+        val parent = dir.parentFile ?: return false
+        val parentIsGradleProject =
+            File(parent, "build.gradle.kts").isFile || File(parent, "build.gradle").isFile ||
+                File(parent, "settings.gradle.kts").isFile || File(parent, "settings.gradle").isFile
+        return parentIsGradleProject && !looksLikeGradleModule(dir)
     }
 
     fun looksLikeGradleModule(dir: File): Boolean =

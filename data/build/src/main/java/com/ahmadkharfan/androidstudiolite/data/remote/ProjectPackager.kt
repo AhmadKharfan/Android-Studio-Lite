@@ -111,8 +111,16 @@ class ProjectPackager(
 
     private fun isExcludedDir(dir: File): Boolean {
         if (dir.name !in excludedDirs) return false
-        if (dir.name == "build" && looksLikeGradleModule(dir)) return false
-        return true
+        if (dir.name != "build") return true // .gradle/.idea/.git are always tool/output dirs
+        return isGeneratedBuildDir(dir)
+    }
+
+    private fun isGeneratedBuildDir(dir: File): Boolean {
+        val parent = dir.parentFile ?: return false
+        val parentIsGradleProject =
+            File(parent, "build.gradle.kts").isFile || File(parent, "build.gradle").isFile ||
+                File(parent, "settings.gradle.kts").isFile || File(parent, "settings.gradle").isFile
+        return parentIsGradleProject && !looksLikeGradleModule(dir)
     }
 
     private fun looksLikeGradleModule(dir: File): Boolean =

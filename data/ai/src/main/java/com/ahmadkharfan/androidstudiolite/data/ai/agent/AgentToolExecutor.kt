@@ -279,14 +279,16 @@ class AgentToolExecutor(
          */
         fun isIgnoredDir(dir: File): Boolean {
             if (dir.name !in IGNORED_DIRS) return false
-            if (dir.name == "build" &&
-                (File(dir, "build.gradle.kts").isFile || File(dir, "build.gradle").isFile ||
+            if (dir.name != "build") return true
+            val parent = dir.parentFile ?: return false
+            val parentIsGradleProject =
+                File(parent, "build.gradle.kts").isFile || File(parent, "build.gradle").isFile ||
+                    File(parent, "settings.gradle.kts").isFile || File(parent, "settings.gradle").isFile
+            val selfIsModule =
+                File(dir, "build.gradle.kts").isFile || File(dir, "build.gradle").isFile ||
                     File(dir, "settings.gradle.kts").isFile || File(dir, "settings.gradle").isFile ||
-                    File(dir, "src").isDirectory)
-            ) {
-                return false
-            }
-            return true
+                    File(dir, "src").isDirectory
+            return parentIsGradleProject && !selfIsModule
         }
     }
 }
