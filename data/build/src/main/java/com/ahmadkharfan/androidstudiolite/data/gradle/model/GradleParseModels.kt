@@ -56,6 +56,7 @@ data class ParsedAndroidBlock(
     val buildTypes: List<String> = emptyList(),
     val flavorDimensions: List<String> = emptyList(),
     val productFlavors: List<String> = emptyList(),
+    val flavorDimensionOf: Map<String, String> = emptyMap(),
 )
 
 data class ParsedBuildScript(

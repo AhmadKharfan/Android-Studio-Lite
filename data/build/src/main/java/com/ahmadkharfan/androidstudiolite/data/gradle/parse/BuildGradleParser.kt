@@ -104,8 +104,13 @@ object BuildGradleParser {
 
         val buildTypes = GradleScriptScanner.findBlockBody(tokens, "buildTypes", range.first, range.last + 1)
             ?.let { GradleScriptScanner.childBlockNames(tokens, it) } ?: emptyList()
-        val flavors = GradleScriptScanner.findBlockBody(tokens, "productFlavors", range.first, range.last + 1)
-            ?.let { GradleScriptScanner.childBlockNames(tokens, it) } ?: emptyList()
+        val flavorBlocks = GradleScriptScanner.findBlockBody(tokens, "productFlavors", range.first, range.last + 1)
+            ?.let { GradleScriptScanner.childBlocks(tokens, it) } ?: emptyList()
+        val flavors = flavorBlocks.map { it.name }.distinct()
+        val flavorDimensionOf = LinkedHashMap<String, String>()
+        for (flavor in flavorBlocks) {
+            readAssignments(tokens, flavor.body)["dimension"]?.let { flavorDimensionOf.putIfAbsent(flavor.name, it) }
+        }
         val dimensions = GradleScriptScanner.findBlockBody(tokens, "flavorDimensions", range.first, range.last + 1)
             ?.let { GradleScriptScanner.childBlockNames(tokens, it) }
             ?: flavorDimensionCallArgs(tokens, range)
@@ -123,6 +128,7 @@ object BuildGradleParser {
             buildTypes = buildTypes,
             flavorDimensions = dimensions,
             productFlavors = flavors,
+            flavorDimensionOf = flavorDimensionOf,
         )
     }
 
