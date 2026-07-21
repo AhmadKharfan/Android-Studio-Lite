@@ -295,6 +295,28 @@ private fun EditorTopBar(
     isTablet: Boolean,
 ) {
     val activeTab = uiState.activeTab
+    val overflowItems = remember(uiState.releaseBuildLabel) {
+        listOf(
+            AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
+            AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
+            AslOverflowMenuEntry.Divider,
+            AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package"),
+            AslOverflowMenuEntry.Divider,
+            AslOverflowMenuEntry.Item("Close project", icon = "x"),
+        )
+    }
+    val onOverflowSelect = remember(interactionListener) {
+        { item: AslOverflowMenuEntry.Item, _: Int ->
+            when (item.label) {
+                "Find in file" -> interactionListener.onToggleFindBar()
+                "Reformat code" -> interactionListener.onReformatCode()
+                "Close project" -> interactionListener.onCloseProject()
+                else -> if (item.icon == "package") interactionListener.onBuildRelease()
+            }
+        }
+    }
+    val onSelectTab = remember(interactionListener) { interactionListener::onSelectTab }
+    val onCloseTab = remember(interactionListener) { interactionListener::onCloseTab }
     Column(modifier = Modifier.fillMaxWidth().zIndex(2f)) {
         AslEditorToolbar(
             projectName = uiState.projectName.ifBlank { "Loading…" },
@@ -305,36 +327,29 @@ private fun EditorTopBar(
             },
             onMenu = { interactionListener.onToggleMenu() },
             actions = {
-                AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = { interactionListener.onUndo() })
-                AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = { interactionListener.onRedo() })
+                EditorToolbarEditActions(interactionListener = interactionListener)
             },
-            overflowItems = listOf(
-                AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
-                AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
-                AslOverflowMenuEntry.Divider,
-                AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package"),
-                AslOverflowMenuEntry.Divider,
-                AslOverflowMenuEntry.Item("Close project", icon = "x"),
-            ),
-            onOverflowSelect = { item, _ ->
-                when (item.label) {
-                    "Find in file" -> interactionListener.onToggleFindBar()
-                    "Reformat code" -> interactionListener.onReformatCode()
-                    "Close project" -> interactionListener.onCloseProject()
-                    uiState.releaseBuildLabel -> interactionListener.onBuildRelease()
-                }
-            },
+            overflowItems = overflowItems,
+            onOverflowSelect = onOverflowSelect,
         )
         AslFileTabBar(
             tabs = uiState.tabs.map { AslFileTab(it.id, it.name, fileIconFor(it.name), it.modified) },
             activeId = uiState.activeTabId,
-            onSelect = { interactionListener.onSelectTab(it) },
-            onClose = { interactionListener.onCloseTab(it) },
+            onSelect = onSelectTab,
+            onClose = onCloseTab,
         )
         if (activeTab != null && !isTablet) {
             AslBreadcrumbBar(segments = activeTab.breadcrumb)
         }
     }
+}
+
+@Composable
+private fun EditorToolbarEditActions(interactionListener: EditorInteractionListener) {
+    val onUndo = remember(interactionListener) { { interactionListener.onUndo() } }
+    val onRedo = remember(interactionListener) { { interactionListener.onRedo() } }
+    AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = onUndo)
+    AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = onRedo)
 }
 
 @Composable
@@ -385,6 +400,7 @@ private fun EditorEditingRow(
     isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val drawerCallbacks = rememberEditorDrawerCallbacks(interactionListener, gitNavigation)
     Row(modifier = modifier) {
         if (isTablet) {
             EditorDockedPanel(
@@ -395,31 +411,25 @@ private fun EditorEditingRow(
                 expandedFolderIds = uiState.expandedFolderIds,
                 selectedFileId = uiState.selectedFileTreeId,
                 canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
-                onSelectTool = { interactionListener.onSelectRailTool(it) },
-                onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
-                onToggleFolder = { interactionListener.onToggleFolder(it) },
-                onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
-                onRevealFileTreeNode = { interactionListener.onRevealFileTreeNode(it) },
-                onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
-                onFileTreeAction = { action, id, name, isDirectory ->
-                    when (action) {
-                        EditorFileTreeAction.ShowHistory -> gitNavigation.openFileHistory(id)
-                        EditorFileTreeAction.Blame -> gitNavigation.openBlame(id)
-                        else -> interactionListener.onFileTreeAction(action, id, name, isDirectory)
-                    }
-                },
-                onDismiss = { interactionListener.onCloseDrawer() },
-                onOpenSettings = { interactionListener.onOpenSettings() },
-                onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },
+                onSelectTool = drawerCallbacks.onSelectTool,
+                onFocusFileTreeNode = drawerCallbacks.onFocusFileTreeNode,
+                onToggleFolder = drawerCallbacks.onToggleFolder,
+                onSelectFile = drawerCallbacks.onSelectFile,
+                onRevealFileTreeNode = drawerCallbacks.onRevealFileTreeNode,
+                onCreateFileTreeEntry = drawerCallbacks.onCreateFileTreeEntry,
+                onFileTreeAction = drawerCallbacks.onFileTreeAction,
+                onDismiss = drawerCallbacks.onDismiss,
+                onOpenSettings = drawerCallbacks.onOpenSettings,
+                onOpenAiAgentSettings = drawerCallbacks.onOpenAiAgentSettings,
                 onOpenGitDiff = gitNavigation.openDiff,
                 onOpenGitHistory = gitNavigation.openHistory,
                 onOpenGitBranches = gitNavigation.openBranches,
                 onOpenGitTags = gitNavigation.openTags,
                 onOpenGitStashes = gitNavigation.openStashes,
                 onOpenGitConflicts = gitNavigation.openConflicts,
-                onCloseProject = { interactionListener.onCloseProject() },
+                onCloseProject = drawerCallbacks.onCloseProject,
                 selectedVariant = uiState.selectedVariant,
-                onSelectVariant = { interactionListener.onSelectVariant(it) },
+                onSelectVariant = drawerCallbacks.onSelectVariant,
                 availableVariants = uiState.availableVariants,
                 runModulePath = uiState.runModulePath,
                 isLoadingFileTree = uiState.isLoadingFileTree,
@@ -553,6 +563,7 @@ private fun EditorDrawerOverlay(
     interactionListener: EditorInteractionListener,
     gitNavigation: GitNavigationCallbacks,
 ) {
+    val drawerCallbacks = rememberEditorDrawerCallbacks(interactionListener, gitNavigation)
     EditorDrawer(
         openTool = uiState.openRailTool,
         projectId = uiState.projectId,
@@ -561,34 +572,101 @@ private fun EditorDrawerOverlay(
         expandedFolderIds = uiState.expandedFolderIds,
         selectedFileId = uiState.selectedFileTreeId,
         canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
-        onSelectTool = { interactionListener.onSelectRailTool(it) },
-        onFocusFileTreeNode = { interactionListener.onFocusFileTreeNode(it) },
-        onToggleFolder = { interactionListener.onToggleFolder(it) },
-        onSelectFile = { id, name -> interactionListener.onOpenFile(id, name) },
-        onRevealFileTreeNode = { interactionListener.onRevealFileTreeNode(it) },
-        onCreateFileTreeEntry = { kind, parentPath -> interactionListener.onCreateFileTreeEntry(kind, parentPath) },
-        onFileTreeAction = { action, id, name, isDirectory ->
-            when (action) {
-                EditorFileTreeAction.ShowHistory -> gitNavigation.openFileHistory(id)
-                EditorFileTreeAction.Blame -> gitNavigation.openBlame(id)
-                else -> interactionListener.onFileTreeAction(action, id, name, isDirectory)
-            }
-        },
-        onDismiss = { interactionListener.onCloseDrawer() },
-        onOpenSettings = { interactionListener.onOpenSettings() },
-        onOpenAiAgentSettings = { interactionListener.onOpenAiAgentSettings() },
+        onSelectTool = drawerCallbacks.onSelectTool,
+        onFocusFileTreeNode = drawerCallbacks.onFocusFileTreeNode,
+        onToggleFolder = drawerCallbacks.onToggleFolder,
+        onSelectFile = drawerCallbacks.onSelectFile,
+        onRevealFileTreeNode = drawerCallbacks.onRevealFileTreeNode,
+        onCreateFileTreeEntry = drawerCallbacks.onCreateFileTreeEntry,
+        onFileTreeAction = drawerCallbacks.onFileTreeAction,
+        onDismiss = drawerCallbacks.onDismiss,
+        onOpenSettings = drawerCallbacks.onOpenSettings,
+        onOpenAiAgentSettings = drawerCallbacks.onOpenAiAgentSettings,
         onOpenGitDiff = gitNavigation.openDiff,
         onOpenGitHistory = gitNavigation.openHistory,
         onOpenGitBranches = gitNavigation.openBranches,
         onOpenGitTags = gitNavigation.openTags,
         onOpenGitStashes = gitNavigation.openStashes,
         onOpenGitConflicts = gitNavigation.openConflicts,
-        onCloseProject = { interactionListener.onCloseProject() },
+        onCloseProject = drawerCallbacks.onCloseProject,
         selectedVariant = uiState.selectedVariant,
-        onSelectVariant = { interactionListener.onSelectVariant(it) },
+        onSelectVariant = drawerCallbacks.onSelectVariant,
         availableVariants = uiState.availableVariants,
         runModulePath = uiState.runModulePath,
         isLoadingFileTree = uiState.isLoadingFileTree,
         modifier = Modifier.fillMaxSize(),
     )
+}
+
+private data class EditorDrawerCallbacks(
+    val onSelectTool: (EditorRailTool) -> Unit,
+    val onFocusFileTreeNode: (String) -> Unit,
+    val onToggleFolder: (String) -> Unit,
+    val onSelectFile: (String, String) -> Unit,
+    val onRevealFileTreeNode: (String) -> Unit,
+    val onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    val onFileTreeAction: (EditorFileTreeAction, String, String, Boolean) -> Unit,
+    val onDismiss: () -> Unit,
+    val onOpenSettings: () -> Unit,
+    val onOpenAiAgentSettings: () -> Unit,
+    val onCloseProject: () -> Unit,
+    val onSelectVariant: (String) -> Unit,
+)
+
+@Composable
+private fun rememberEditorDrawerCallbacks(
+    interactionListener: EditorInteractionListener,
+    gitNavigation: GitNavigationCallbacks,
+): EditorDrawerCallbacks {
+    val onSelectTool = remember(interactionListener) { { tool: EditorRailTool -> interactionListener.onSelectRailTool(tool) } }
+    val onFocusFileTreeNode = remember(interactionListener) { interactionListener::onFocusFileTreeNode }
+    val onToggleFolder = remember(interactionListener) { interactionListener::onToggleFolder }
+    val onSelectFile = remember(interactionListener) { { id: String, name: String -> interactionListener.onOpenFile(id, name) } }
+    val onRevealFileTreeNode = remember(interactionListener) { interactionListener::onRevealFileTreeNode }
+    val onCreateFileTreeEntry = remember(interactionListener) {
+        { kind: EditorFileCreateKind, parentPath: String? -> interactionListener.onCreateFileTreeEntry(kind, parentPath) }
+    }
+    val onFileTreeAction = remember(interactionListener, gitNavigation) {
+        { action: EditorFileTreeAction, id: String, name: String, isDirectory: Boolean ->
+            when (action) {
+                EditorFileTreeAction.ShowHistory -> gitNavigation.openFileHistory(id)
+                EditorFileTreeAction.Blame -> gitNavigation.openBlame(id)
+                else -> interactionListener.onFileTreeAction(action, id, name, isDirectory)
+            }
+        }
+    }
+    val onDismiss = remember(interactionListener) { interactionListener::onCloseDrawer }
+    val onOpenSettings = remember(interactionListener) { interactionListener::onOpenSettings }
+    val onOpenAiAgentSettings = remember(interactionListener) { interactionListener::onOpenAiAgentSettings }
+    val onCloseProject = remember(interactionListener) { interactionListener::onCloseProject }
+    val onSelectVariant = remember(interactionListener) { interactionListener::onSelectVariant }
+    return remember(
+        onSelectTool,
+        onFocusFileTreeNode,
+        onToggleFolder,
+        onSelectFile,
+        onRevealFileTreeNode,
+        onCreateFileTreeEntry,
+        onFileTreeAction,
+        onDismiss,
+        onOpenSettings,
+        onOpenAiAgentSettings,
+        onCloseProject,
+        onSelectVariant,
+    ) {
+        EditorDrawerCallbacks(
+            onSelectTool = onSelectTool,
+            onFocusFileTreeNode = onFocusFileTreeNode,
+            onToggleFolder = onToggleFolder,
+            onSelectFile = onSelectFile,
+            onRevealFileTreeNode = onRevealFileTreeNode,
+            onCreateFileTreeEntry = onCreateFileTreeEntry,
+            onFileTreeAction = onFileTreeAction,
+            onDismiss = onDismiss,
+            onOpenSettings = onOpenSettings,
+            onOpenAiAgentSettings = onOpenAiAgentSettings,
+            onCloseProject = onCloseProject,
+            onSelectVariant = onSelectVariant,
+        )
+    }
 }
