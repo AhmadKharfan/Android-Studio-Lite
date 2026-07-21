@@ -169,8 +169,13 @@ object GradleScriptScanner {
         return null
     }
 
-    fun childBlockNames(tokens: List<GToken>, range: IntRange): List<String> {
-        val names = ArrayList<String>()
+    fun childBlockNames(tokens: List<GToken>, range: IntRange): List<String> =
+        childBlocks(tokens, range).map { it.name }.distinct()
+
+    data class ChildBlock(val name: String, val body: IntRange)
+
+    fun childBlocks(tokens: List<GToken>, range: IntRange): List<ChildBlock> {
+        val blocks = ArrayList<ChildBlock>()
         var i = range.first
         val end = range.last + 1
         while (i < end) {
@@ -182,20 +187,20 @@ object GradleScriptScanner {
                 var k = i - 1
                 while (k >= range.first && tokens[k].type == GTokenType.NEWLINE) k--
 
-                if (k >= range.first && tokens[k].type == GTokenType.RPAREN) {
-
-                    val openP = matchParenBackwards(tokens, k, range.first)
-                    if (openP != null) {
-                        val str = tokens.subList(openP + 1, k).firstOrNull { it.type == GTokenType.STRING }
-                        if (str != null) names += str.stringValue()
+                val name = when {
+                    k >= range.first && tokens[k].type == GTokenType.RPAREN -> {
+                        val openP = matchParenBackwards(tokens, k, range.first)
+                        openP?.let { tokens.subList(it + 1, k).firstOrNull { tk -> tk.type == GTokenType.STRING } }
+                            ?.stringValue()
                     }
-                } else if (k >= range.first && tokens[k].type == GTokenType.IDENT) {
-                    names += tokens[k].text
+                    k >= range.first && tokens[k].type == GTokenType.IDENT -> tokens[k].text
+                    else -> null
                 }
+                if (name != null) blocks += ChildBlock(name, (i + 1) until close)
                 i = close + 1
             } else i++
         }
-        return names.distinct()
+        return blocks
     }
 
     private fun matchParenBackwards(tokens: List<GToken>, close: Int, from: Int): Int? {
