@@ -79,6 +79,7 @@ class BuildGradleParserTest {
         assertEquals(listOf("free", "paid"), a.productFlavors)
         assertEquals(listOf("debug", "release"), a.buildTypes)
         assertEquals(listOf("tier"), a.flavorDimensions)
+        assertEquals(mapOf("free" to "tier", "paid" to "tier"), a.flavorDimensionOf)
     }
 
     @Test
