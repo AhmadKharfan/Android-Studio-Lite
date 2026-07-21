@@ -16,4 +16,8 @@ interface PreferencesRepository {
     suspend fun ensureEditorThemeDefault(isDarkUi: Boolean)
 
     suspend fun update(transform: (AppPreferences) -> AppPreferences)
+
+    suspend fun setSelectedVariant(projectId: String, variant: String) {}
+
+    suspend fun getSelectedVariant(projectId: String): String? = null
 }
