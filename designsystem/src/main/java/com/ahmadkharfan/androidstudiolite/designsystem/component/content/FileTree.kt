@@ -70,6 +70,7 @@ fun AslFileTree(
     selectedId: String? = null,
     actionsEnabled: Boolean = false,
     canPaste: Boolean = false,
+    selectDirectories: Boolean = false,
     onToggle: (String) -> Unit = {},
     onSelect: (AslFileTreeNode) -> Unit = {},
     onFocus: (AslFileTreeNode) -> Unit = {},
@@ -95,6 +96,7 @@ fun AslFileTree(
                     rowWidth = treeWidth,
                     actionsEnabled = actionsEnabled,
                     canPaste = canPaste,
+                    selectDirectories = selectDirectories,
                     onToggle = onToggle,
                     onSelect = onSelect,
                     onFocus = onFocus,
@@ -114,6 +116,7 @@ private fun AslFileTreeRow(
     rowWidth: Dp,
     actionsEnabled: Boolean,
     canPaste: Boolean,
+    selectDirectories: Boolean,
     onToggle: (String) -> Unit,
     onSelect: (AslFileTreeNode) -> Unit,
     onFocus: (AslFileTreeNode) -> Unit,
@@ -139,26 +142,32 @@ private fun AslFileTreeRow(
         modifier = Modifier
             .width(rowWidth)
             .background(if (selected) colors.accentPrimaryContainer else Color.Transparent, AslShape.sm)
-            .pointerInput(node.id, actionsEnabled) {
-                detectTapGestures(
-                    onTap = {
-                        onFocus(node)
-                        if (isDir) onToggle(node.id) else onSelect(node)
-                    },
-                    onLongPress = if (actionsEnabled) {
-                        { position ->
-                            openMenuUpward = position.y < estimatedMenuHeightPx
-                            menuAnchor = with(density) {
-                                DpOffset(position.x.toDp(), position.y.toDp())
-                            }
-                            onFocus(node)
-                            menuOpen = true
-                        }
-                    } else {
-                        null
-                    },
-                )
-            },
+            .then(
+                if (!selectDirectories) {
+                    Modifier.pointerInput(node.id, actionsEnabled) {
+                        detectTapGestures(
+                            onTap = {
+                                onFocus(node)
+                                if (isDir) onToggle(node.id) else onSelect(node)
+                            },
+                            onLongPress = if (actionsEnabled) {
+                                { position ->
+                                    openMenuUpward = position.y < estimatedMenuHeightPx
+                                    menuAnchor = with(density) {
+                                        DpOffset(position.x.toDp(), position.y.toDp())
+                                    }
+                                    onFocus(node)
+                                    menuOpen = true
+                                }
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
     ) {
         Row(
             modifier = Modifier
@@ -168,46 +177,76 @@ private fun AslFileTreeRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isDir) {
-
-
                 val rotation by animateFloatAsState(
                     targetValue = if (expanded) 90f else 0f,
                     animationSpec = AslMotion.standardSpec(),
                     label = "chevronRotation",
                 )
-                AslIcon(
-                    name = "chevron-right",
-                    size = 14.dp,
-                    tint = colors.textTertiary,
-                    modifier = Modifier.rotate(rotation),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .then(
+                            if (selectDirectories) {
+                                Modifier.pointerInput(node.id) {
+                                    detectTapGestures(onTap = { onToggle(node.id) })
+                                }
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AslIcon(
+                        name = "chevron-right",
+                        size = 14.dp,
+                        tint = colors.textTertiary,
+                        modifier = Modifier.rotate(rotation),
+                    )
+                }
             } else {
                 Box(modifier = Modifier.width(14.dp))
             }
             androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
-            AslIcon(
-                name = node.icon ?: if (isDir) (if (expanded) "folder-open" else "folder") else "file-code",
-                size = 16.dp,
-                tint = if (isDir) colors.textSecondary else colors.textTertiary,
-            )
-            androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
-
-
-            Text(
-                text = node.name,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                color = node.git?.let { gitTint(it, colors) } ?: colors.textPrimary,
-                maxLines = 1,
-                softWrap = false,
-            )
-            if (node.git != null) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = node.git.letter,
-                    style = com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode.codeTiny,
-                    color = gitTint(node.git, colors),
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(
+                        if (selectDirectories) {
+                            Modifier.pointerInput(node.id) {
+                                detectTapGestures(onTap = {
+                                    onFocus(node)
+                                    onSelect(node)
+                                })
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AslIcon(
+                    name = node.icon ?: if (isDir) (if (expanded) "folder-open" else "folder") else "file-code",
+                    size = 16.dp,
+                    tint = if (isDir) colors.textSecondary else colors.textTertiary,
                 )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = node.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                    color = node.git?.let { gitTint(it, colors) } ?: colors.textPrimary,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                if (node.git != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = node.git.letter,
+                        style = com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode.codeTiny,
+                        color = gitTint(node.git, colors),
+                    )
+                }
             }
         }
         if (actionsEnabled && menuOpen) {
@@ -246,6 +285,7 @@ private fun AslFileTreeRow(
                         rowWidth = rowWidth,
                         actionsEnabled = actionsEnabled,
                         canPaste = canPaste,
+                        selectDirectories = selectDirectories,
                         onToggle = onToggle,
                         onSelect = onSelect,
                         onFocus = onFocus,
