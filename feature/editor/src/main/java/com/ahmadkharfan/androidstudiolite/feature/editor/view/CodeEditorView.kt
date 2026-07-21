@@ -654,7 +654,7 @@ class CodeEditorView(context: Context) : View(context) {
         val item = completionItems.getOrNull(index) ?: return
         dismissCompletion()
         imeAcceptedPrefix = item.label
-        imeAcceptUntilUptime = SystemClock.uptimeMillis() + 800L
+        imeAcceptUntilUptime = SystemClock.uptimeMillis() + IME_ACCEPT_GUARD_MS
         if (!isFocused) requestFocus()
         activeInputConnection?.finishComposingText()
         activeInputConnection?.clearComposing()
@@ -1296,6 +1296,7 @@ class CodeEditorView(context: Context) : View(context) {
         const val SIGNATURE_HELP_DEBOUNCE_MS = 40L
         const val SIGNATURE_HELP_VISIBLE_MS = 3500L
         const val SCROLL_ANIM_MS = 140L
+        const val IME_ACCEPT_GUARD_MS = 800L
         const val CODE_PADDING_DP = 6f
         const val GUTTER_START_DP = 6f
         const val DOT_SIZE_DP = 8f
