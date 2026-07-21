@@ -18,6 +18,7 @@ import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBreadcrumbBar
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -62,32 +63,73 @@ private fun FolderPickerScreen(
                     items = uiState.items,
                     expandedIds = uiState.expandedIds,
                     selectedId = uiState.selectedId,
+                    selectDirectories = true,
                     onToggle = { interactionListener.onToggleFolder(it) },
                     onSelect = { interactionListener.onSelectFolder(it.id) },
                 )
             }
             HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                AslButton(
-                    label = "Cancel",
-                    onClick = onCancel,
-                    variant = AslButtonVariant.Secondary,
-                    fullWidth = true,
-                    modifier = Modifier.weight(1f),
-                )
-                AslButton(
-                    label = "Select",
-                    onClick = onSelect,
-                    variant = AslButtonVariant.Primary,
-                    disabled = uiState.selectedId == null,
-                    fullWidth = true,
-                    modifier = Modifier.weight(1f),
-                )
+                if (uiState.creatingFolder) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.Bottom,
+                    ) {
+                        AslTextField(
+                            value = uiState.newFolderName,
+                            onValueChange = { interactionListener.onNewFolderNameChanged(it) },
+                            label = "Folder name",
+                            placeholder = "New folder",
+                            error = uiState.createFolderError,
+                            modifier = Modifier.weight(1f),
+                        )
+                        AslButton(
+                            label = "Create",
+                            onClick = { interactionListener.onConfirmCreateFolder() },
+                            disabled = uiState.newFolderName.isBlank(),
+                        )
+                    }
+                    AslButton(
+                        label = "Cancel",
+                        onClick = { interactionListener.onCancelCreateFolder() },
+                        variant = AslButtonVariant.Tertiary,
+                        fullWidth = true,
+                    )
+                } else {
+                    AslButton(
+                        label = "New folder",
+                        icon = "folder",
+                        onClick = { interactionListener.onStartCreateFolder() },
+                        variant = AslButtonVariant.Secondary,
+                        fullWidth = true,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AslButton(
+                        label = "Cancel",
+                        onClick = onCancel,
+                        variant = AslButtonVariant.Secondary,
+                        fullWidth = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    AslButton(
+                        label = "Select",
+                        onClick = onSelect,
+                        variant = AslButtonVariant.Primary,
+                        disabled = uiState.selectedId == null,
+                        fullWidth = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }
