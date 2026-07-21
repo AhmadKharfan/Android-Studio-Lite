@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -50,7 +49,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslS
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslStatusBarEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslStatusTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOverflowMenuEntry
-import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession

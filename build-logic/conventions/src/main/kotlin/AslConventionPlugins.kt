@@ -1,7 +1,6 @@
 import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.ExtensionAware
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 class AslAndroidApplicationConventionPlugin : Plugin<Project> {

@@ -70,7 +70,6 @@ import org.eclipse.jgit.transport.RefSpec
 import org.eclipse.jgit.transport.RefLeaseSpec
 import org.eclipse.jgit.transport.RemoteRefUpdate
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
-import org.eclipse.jgit.treewalk.FileTreeIterator
 import org.eclipse.jgit.submodule.SubmoduleStatusType
 import org.eclipse.jgit.submodule.SubmoduleWalk
 import org.eclipse.jgit.util.FS
