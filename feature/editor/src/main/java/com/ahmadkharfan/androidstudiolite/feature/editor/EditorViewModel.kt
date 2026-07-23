@@ -2,14 +2,8 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
-import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
-import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeType
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
-import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
@@ -17,17 +11,19 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteHandler
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildClientMeta
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.InstallExecutionState
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.StartBuildResult
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightSeverity
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
-import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.canonicalPath
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.defaultExpandedIds
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.findFileTreeNode
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.firstOpenableFile
+import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.isValidFileTreeName
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import java.io.File
 import java.io.Closeable
@@ -37,18 +33,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 private val BOTTOM_PANEL_TABS = listOf(
     BottomPanelTabUiModel("build", "Build Output", "hammer"),
     BottomPanelTabUiModel("term", "Terminal", "terminal"),
 )
-private const val AUTO_SAVE_DEBOUNCE_MS = 2000L
 private const val DEFAULT_BOTTOM_PANEL_HEIGHT_DP = 260f
 
-private fun expandedBottomPanelHeight(current: Float): Float =
+internal fun expandedBottomPanelHeight(current: Float): Float =
     if (current > 0f) current else DEFAULT_BOTTOM_PANEL_HEIGHT_DP
 
-private val CODE_FILE_EXTENSIONS = setOf("kt", "kts", "java", "xml", "gradle")
 class EditorViewModel(
     private val projectId: String,
     private val projectRepository: ProjectRepository,
@@ -63,32 +56,36 @@ class EditorViewModel(
 ) : BaseViewModel<EditorUiState, EditorEffect>(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
-    private val sessions = mutableMapOf<String, EditorSession>()
     private var isAutoSaveEnabled = true
-    private var autoSaveJob: Job? = null
-    private var buildJob: Job? = null
-
     private val flushScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var shouldLaunchAfterInstall = true
 
-    private var isBuildInFlight = false
-
     private var projectRootPath: String? = null
-    @Volatile private var authoritativeProjectModel:
-        Pair<String, com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel>? = null
     private var latestGitFiles: Map<String, GitFileState> = emptyMap()
     private var workspaceWriteRegistration: Closeable? = null
     private var latestRootGenerations: Map<String, Long> = emptyMap()
-    private var lastReconciledGeneration = 0L
     private val findController = EditorFindController()
+
+    private val tabManager = EditorTabManager(
+        scope = viewModelScope,
+        flushScope = flushScope,
+        fileContentRepository = fileContentRepository,
+        state = { state.value },
+        updateState = { reducer -> updateState(reducer) },
+        projectRootPath = { projectRootPath },
+        isAutoSaveEnabled = { isAutoSaveEnabled },
+        requestGutter = { tabId, immediate -> requestGutter(tabId, immediate) },
+        showSnackbar = { message -> showSnackbar(message) },
+    )
+
     private val gutterController = EditorGitGutterController(
         scope = viewModelScope,
         gitRepository = { gitRepository },
         projectRootPath = { projectRootPath },
         latestGitFiles = { latestGitFiles },
         activeTabId = { state.value.activeTabId },
-        bufferText = { tabId -> sessions[tabId]?.text },
-        isBufferUnchanged = { tabId, buffer -> sessions[tabId]?.text == buffer },
+        bufferText = { tabId -> tabManager.sessionFor(tabId)?.text },
+        isBufferUnchanged = { tabId, buffer -> tabManager.sessionFor(tabId)?.text == buffer },
         applyMarkers = { tabId, markers ->
             updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = markers) else it }) }
         },
@@ -96,170 +93,154 @@ class EditorViewModel(
             updateState { copy(tabs = tabs.map { if (it.id == tabId) it.copy(gitLineStatus = emptyMap()) else it }) }
         },
     )
+
+    private val buildController = EditorBuildController(
+        projectId = projectId,
+        scope = viewModelScope,
+        buildRunCoordinator = buildRunCoordinator,
+        gradleProjectReader = gradleProjectReader,
+        networkMonitor = networkMonitor,
+        projectRootPath = { projectRootPath },
+        state = { state.value },
+        updateState = { reducer -> updateState(reducer) },
+        emitEffect = { effect -> emitEffect(effect) },
+        shouldLaunchAfterInstall = { shouldLaunchAfterInstall },
+        cancelAutoSave = { tabManager.cancelAutoSave() },
+        flushDirtyFiles = { tabManager.flushDirtyFiles() },
+    )
+
+    private val workspaceSync = EditorWorkspaceSync(
+        sessions = tabManager.sessions,
+        fileContentRepository = fileContentRepository,
+        projectRootPath = { projectRootPath },
+        state = { state.value },
+        updateState = { reducer -> updateState(reducer) },
+        latestRootGenerations = { latestRootGenerations },
+        refreshFileTree = { expandIds -> refreshFileTree(expandIds) },
+        closeTabsUnder = { path -> tabManager.closeTabsUnder(path) },
+        remapOpenTabs = { oldPath, newPath -> tabManager.remapOpenTabs(oldPath, newPath) },
+        requestGutter = { tabId, immediate -> requestGutter(tabId, immediate) },
+    )
+
     init {
         gutterController.start()
-        tryToCollect(
-            block = { preferencesRepository.observePreferences() },
-            onCollect = { prefs ->
-                isAutoSaveEnabled = prefs.editorAutoSave
-                shouldLaunchAfterInstall = prefs.launchAfterInstall
-                updateState {
-                    copy(
-                        editorFontSize = prefs.editorFontSize,
-                        editorTabSize = prefs.editorTabSize,
-                        editorThemeId = prefs.editorThemeId,
-                        editorFontFamily = prefs.editorFontFamily,
-                        buildOutputAab = prefs.buildOutputAab,
-                    )
-                }
-            },
-        )
-        tryToCollect(
-            block = { buildRunCoordinator.execution },
-            onCollect = { execution ->
-                if (execution.projectId != projectId) return@tryToCollect
-                val console = execution.console
-                updateState {
-                    copy(
-                        running = execution.isActive,
-                        buildFailed = console.status == BuildStatus.Failed ||
-                            execution.installState == InstallExecutionState.Failed,
-                        buildConsole = console,
-                        installConflict = execution.installConflictPackage?.let(::InstallConflictUiModel),
-                        bottomPanelTabs = markBuildTab(
-                            error = console.status == BuildStatus.Failed,
-                            count = console.errorCount.takeIf { it > 0 },
-                        ),
-                        snackbarMessage = when (execution.installState) {
-                            InstallExecutionState.Preparing -> "Installing…"
-                            InstallExecutionState.AwaitingConfirmation ->
-                                "Waiting for install confirmation. Check notifications if needed."
-                            InstallExecutionState.Installed -> "Installed successfully"
-                            InstallExecutionState.Failed -> execution.installFailureReason ?: "Installation failed"
-                            InstallExecutionState.None -> snackbarMessage
-                        },
-                    )
-                }
-            },
-            dispatcher = Dispatchers.Main.immediate,
-        )
-        tryToExecute(
-            block = {
-                val project = projectRepository.openProject(projectId)
-                val nodes = fileTreeRepository.getFileTree(project.path)
-                Triple(project.name, project.path, nodes)
-            },
-            onSuccess = { (projectName, projectPath, nodes) ->
-                projectRootPath = projectPath
-                authoritativeProjectModel = null
-                workspaceWriteRegistration?.close()
-                workspaceWriteRegistration = workspaceWriteGate?.register(
-                    File(projectPath),
-                    WorkspaceWriteHandler {
-                        check(flushDirtyBuffers()) { "Couldn't save pending editor changes" }
-                    },
+        observeEditorPreferences()
+        observeBuildExecution()
+        loadProjectAndOpenDefaultFile()
+        observeExternalFileChanges()
+    }
+
+    private fun observeEditorPreferences() = tryToCollect(
+        block = { preferencesRepository.observePreferences() },
+        onCollect = { prefs ->
+            isAutoSaveEnabled = prefs.editorAutoSave
+            shouldLaunchAfterInstall = prefs.launchAfterInstall
+            updateState {
+                copy(
+                    editorFontSize = prefs.editorFontSize,
+                    editorTabSize = prefs.editorTabSize,
+                    editorThemeId = prefs.editorThemeId,
+                    editorFontFamily = prefs.editorFontFamily,
+                    buildOutputAab = prefs.buildOutputAab,
                 )
-                updateState {
-                    copy(
+            }
+        },
+    )
 
+    private fun observeBuildExecution() = tryToCollect(
+        block = { buildRunCoordinator.execution },
+        onCollect = { execution ->
+            if (execution.projectId != projectId) return@tryToCollect
+            val console = execution.console
+            updateState {
+                copy(
+                    running = execution.isActive,
+                    buildFailed = console.status == BuildStatus.Failed ||
+                        execution.installState == InstallExecutionState.Failed,
+                    buildConsole = console,
+                    installConflict = execution.installConflictPackage?.let(::InstallConflictUiModel),
+                    bottomPanelTabs = markBuildTab(
+                        bottomPanelTabs,
+                        error = console.status == BuildStatus.Failed,
+                        count = console.errorCount.takeIf { it > 0 },
+                    ),
+                    snackbarMessage = installSnackbar(execution.installState, execution.installFailureReason, snackbarMessage),
+                )
+            }
+        },
+        dispatcher = Dispatchers.Main.immediate,
+    )
 
-                        projectId = this@EditorViewModel.projectId,
-                        projectName = projectName,
-                        projectRootPath = projectPath,
-                        fileTree = nodes.map { it.toUiModel() },
-                        expandedFolderIds = defaultExpandedIds(nodes),
-                        isLoadingFileTree = false,
-                    )
-                }
-                firstOpenableFile(nodes)?.let { openFile(it.id, it.name) }
-                observeGitState(File(projectPath))
-                syncProjectSymbols(projectPath)
-                viewModelScope.launch { reconcileLatestRootGeneration() }
-                viewModelScope.launch { buildRunCoordinator.recover(projectId) }
+    private fun installSnackbar(installState: InstallExecutionState, failureReason: String?, current: String?): String? =
+        when (installState) {
+            InstallExecutionState.Preparing -> "Installing…"
+            InstallExecutionState.AwaitingConfirmation -> "Waiting for install confirmation. Check notifications if needed."
+            InstallExecutionState.Installed -> "Installed successfully"
+            InstallExecutionState.Failed -> failureReason ?: "Installation failed"
+            InstallExecutionState.None -> current
+        }
+
+    private fun loadProjectAndOpenDefaultFile() = tryToExecute(
+        block = {
+            val project = projectRepository.openProject(projectId)
+            val nodes = fileTreeRepository.getFileTree(project.path)
+            Triple(project.name, project.path, nodes)
+        },
+        onSuccess = { (projectName, projectPath, nodes) ->
+            projectRootPath = projectPath
+            buildController.cacheProjectModel(null)
+            registerWorkspaceWriteGuard(projectPath)
+            updateState {
+                copy(
+                    projectId = this@EditorViewModel.projectId,
+                    projectName = projectName,
+                    projectRootPath = projectPath,
+                    fileTree = nodes.map { it.toEditorNode(projectRootPath, latestGitFiles) },
+                    expandedFolderIds = defaultExpandedIds(nodes),
+                    isLoadingFileTree = false,
+                )
+            }
+            startProjectSession(projectPath, nodes)
+        },
+    )
+
+    private fun startProjectSession(projectPath: String, nodes: List<FileNode>) {
+        firstOpenableFile(nodes)?.let { tabManager.openFile(it.id, it.name) }
+        observeGitState(File(projectPath))
+        syncProjectSymbols(projectPath)
+        viewModelScope.launch { workspaceSync.reconcileLatestGeneration() }
+        viewModelScope.launch { buildRunCoordinator.recover(projectId) }
+    }
+
+    private fun registerWorkspaceWriteGuard(projectPath: String) {
+        workspaceWriteRegistration?.close()
+        workspaceWriteRegistration = workspaceWriteGate?.register(
+            File(projectPath),
+            WorkspaceWriteHandler {
+                check(tabManager.flushDirtyBuffers()) { "Couldn't save pending editor changes" }
             },
         )
+    }
 
+    private fun observeExternalFileChanges() {
         tryToCollect(
             block = { fileContentRepository.observeChanges() },
-            onCollect = { event -> onExternalFileEvent(event) },
+            onCollect = { event -> workspaceSync.onFileEvent(event) },
             dispatcher = Dispatchers.Main.immediate,
         )
         tryToCollect(
             block = { fileContentRepository.rootInvalidationGenerations() },
             onCollect = { generations ->
                 latestRootGenerations = generations
-                reconcileLatestRootGeneration()
+                workspaceSync.reconcileLatestGeneration()
             },
             dispatcher = Dispatchers.Main.immediate,
         )
     }
 
-    private fun defaultExpandedIds(nodes: List<FileNode>): Set<String> {
-        val topLevelDirs = nodes.filter { it.children != null }.map { it.id }
-        val trailDirs = pathToDefaultFile(nodes)?.dropLast(1)?.map { it.id }.orEmpty()
-        return (topLevelDirs + trailDirs).toSet()
-    }
-
-    private fun firstOpenableFile(nodes: List<FileNode>): FileNode? = pathToDefaultFile(nodes)?.lastOrNull()
-
-    private fun pathToDefaultFile(nodes: List<FileNode>): List<FileNode>? =
-        pathToFile(nodes) { it.name.equals("MainActivity.kt", true) || it.name.equals("MainActivity.java", true) }
-            ?: pathToFile(nodes) { isCodeFile(it.name) }
-            ?: pathToFile(nodes) { true }
-
-    private fun pathToFile(
-        nodes: List<FileNode>,
-        trail: List<FileNode> = emptyList(),
-        predicate: (FileNode) -> Boolean,
-    ): List<FileNode>? {
-        for (node in nodes) {
-            val nextTrail = trail + node
-            val children = node.children
-            if (children == null) {
-                if (predicate(node)) return nextTrail
-            } else {
-                pathToFile(children, nextTrail, predicate)?.let { return it }
-            }
-        }
-        return null
-    }
-
-    private fun isCodeFile(name: String): Boolean =
-        name.substringAfterLast('.', "").lowercase() in CODE_FILE_EXTENSIONS
-
     private fun syncProjectSymbols(projectPath: String) {
         tryToExecute(
-            block = {
-                val root = java.io.File(projectPath)
-                if (!gradleProjectReader.isGradleProject(root)) {
-                    SyncSymbolsResult(
-                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
-                        runModulePath = "",
-                        availableVariants = emptyList(),
-                        selectedVariant = "",
-                    )
-                } else {
-                    val model = gradleProjectReader.read(root).model
-                    authoritativeProjectModel = root.absolutePath to model
-                    val app = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                        .resolveAppModule(model)
-                    val variants = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                        .availableVariantNames(app)
-
-
-                    val remembered = preferencesRepository.getSelectedVariant(projectId)
-                        ?.takeIf { it.isNotBlank() }
-                        ?: state.value.selectedVariant
-                    val selected = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                        .resolveSelectedVariant(app, remembered)
-                    SyncSymbolsResult(
-                        index = com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer.index(model),
-                        runModulePath = app?.path.orEmpty(),
-                        availableVariants = variants,
-                        selectedVariant = selected,
-                    )
-                }
-            },
+            block = { readProjectSymbols(File(projectPath)) },
             onSuccess = { result ->
                 updateState {
                     copy(
@@ -273,142 +254,47 @@ class EditorViewModel(
         )
     }
 
+    private suspend fun readProjectSymbols(root: File): SyncSymbolsResult {
+        if (!gradleProjectReader.isGradleProject(root)) {
+            return SyncSymbolsResult(
+                index = ProjectSymbolIndex.EMPTY,
+                runModulePath = "",
+                availableVariants = emptyList(),
+                selectedVariant = "",
+            )
+        }
+        val model = gradleProjectReader.read(root).model
+        buildController.cacheProjectModel(root.absolutePath to model)
+        val app = RunTargetResolver.resolveAppModule(model)
+        val remembered = preferencesRepository.getSelectedVariant(projectId)?.takeIf { it.isNotBlank() }
+            ?: state.value.selectedVariant
+        return SyncSymbolsResult(
+            index = ProjectSymbolIndexer.index(model),
+            runModulePath = app?.path.orEmpty(),
+            availableVariants = RunTargetResolver.availableVariantNames(app),
+            selectedVariant = RunTargetResolver.resolveSelectedVariant(app, remembered),
+        )
+    }
+
     private data class SyncSymbolsResult(
-        val index: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex,
+        val index: ProjectSymbolIndex,
         val runModulePath: String,
         val availableVariants: List<String>,
         val selectedVariant: String,
     )
 
-    private suspend fun onExternalFileEvent(event: FileChangeEvent) {
-        when (event) {
-            is FileChangeEvent.PathChanged -> onExternalPathChanged(event)
-            is FileChangeEvent.RootInvalidated -> reconcileRoot(event.root, event.generation)
-        }
+    fun sessionFor(id: String?): EditorSession? = tabManager.sessionFor(id)
+
+    private fun showSnackbar(message: String) = updateState { copy(snackbarMessage = message) }
+
+    private suspend fun saveBeforeFileMutation(failureMessage: String): Boolean {
+        if (tabManager.flushDirtyBuffers()) return true
+        showSnackbar(failureMessage)
+        return false
     }
 
-    private suspend fun onExternalPathChanged(event: FileChangeEvent.PathChanged) {
-        val projectRoot = projectRootPath?.let(::canonicalPath) ?: return
-        if (!isUnderProject(event.path, projectRoot)) return
-
-        when (event.type) {
-            FileChangeType.MODIFIED -> reloadOpenTabFromDisk(event.path)
-            FileChangeType.CREATED -> {
-                refreshFileTree(expandIds = setOf(File(event.path).parentFile?.absolutePath.orEmpty()))
-                reloadOpenTabFromDisk(event.path)
-            }
-            FileChangeType.DELETED -> {
-                refreshFileTree()
-                closeTabsUnder(event.path)
-            }
-            FileChangeType.MOVED -> {
-                refreshFileTree()
-                val oldPath = event.oldPath ?: return
-                if (isUnderProject(oldPath, projectRoot)) {
-                    remapOpenTabs(oldPath, event.path)
-                }
-                reloadOpenTabFromDisk(event.path)
-            }
-        }
-    }
-
-    private suspend fun reloadOpenTabFromDisk(path: String) {
-        val canonical = canonicalPath(path)
-        val tab = state.value.tabs.firstOrNull { canonicalPath(it.id) == canonical } ?: return
-        val onDisk = runCatching { fileContentRepository.readText(tab.id) }.getOrNull() ?: return
-        val session = sessions[tab.id] ?: return
-        if (onDisk == session.text) return
-        val hadLocalEdits = tab.modified
-        sessions[tab.id] = EditorSession(onDisk, tab.language, filePath = tab.id)
-        updateState {
-            copy(
-                tabs = tabs.map { if (it.id == tab.id) it.copy(text = onDisk, modified = false) else it },
-                snackbarMessage = when {
-                    hadLocalEdits -> "‘${tab.name}’ was updated outside the editor; local unsaved edits were replaced"
-                    else -> snackbarMessage
-                },
-            )
-        }
-        if (state.value.activeTabId == tab.id) {
-            requestGutter(tab.id, immediate = true)
-        }
-    }
-
-    private fun isUnderProject(path: String, projectRoot: String): Boolean {
-        val canonical = canonicalPath(path)
-        val root = canonicalPath(projectRoot)
-        return canonical == root || canonical.startsWith("$root/")
-    }
-
-    private suspend fun reconcileLatestRootGeneration() {
-        val root = projectRootPath?.let(::canonicalPath) ?: return
-        val generation = latestRootGenerations[root] ?: return
-        reconcileRoot(root, generation)
-    }
-
-    private suspend fun reconcileRoot(root: String, generation: Long) {
-        val projectRoot = projectRootPath?.let(::canonicalPath) ?: return
-        if (canonicalPath(root) != projectRoot || generation <= lastReconciledGeneration) return
-        lastReconciledGeneration = generation
-
-        refreshFileTree()
-        val snapshot = state.value.tabs
-        val dirtyNames = snapshot.filter { it.modified }.map { it.name }
-        val cleanTabs = snapshot.filterNot { it.modified }
-        val reloaded = mutableMapOf<String, String>()
-        val removed = mutableSetOf<String>()
-        cleanTabs.forEach { tab ->
-            val file = File(tab.id)
-            if (!file.isFile) {
-                removed += tab.id
-            } else {
-                runCatching { fileContentRepository.readText(tab.id) }
-                    .onSuccess { reloaded[tab.id] = it }
-            }
-        }
-        reloaded.forEach { (id, text) ->
-            val tab = snapshot.first { it.id == id }
-            sessions[id] = EditorSession(text, tab.language, filePath = id)
-        }
-        removed.forEach { sessions.remove(it) }
-        updateState {
-            val reconciledTabs = tabs.filterNot { it.id in removed }.map { tab ->
-                reloaded[tab.id]?.let { tab.copy(text = it, modified = false) } ?: tab
-            }
-            copy(
-                tabs = reconciledTabs,
-                activeTabId = activeTabId?.takeIf { id -> reconciledTabs.any { it.id == id } }
-                    ?: reconciledTabs.lastOrNull()?.id,
-                snackbarMessage = when {
-                    dirtyNames.isNotEmpty() -> "‘${dirtyNames.first()}’ changed on disk; unsaved edits were kept"
-                    removed.isNotEmpty() -> "Closed ${removed.size} file(s) removed by Git"
-                    else -> snackbarMessage
-                },
-            )
-        }
-        state.value.activeTabId?.let { requestGutter(it, immediate = true) }
-    }
-
-    private fun canonicalPath(path: String): String = runCatching { File(path).canonicalPath }
-        .getOrDefault(File(path).absolutePath)
-    fun sessionFor(id: String?): EditorSession? = id?.let { sessions[it] }
-
-    override fun onSelectTab(id: String) {
-        val previousId = state.value.activeTabId
-        viewModelScope.launch {
-
-            autoSaveJob?.cancel()
-            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
-                updateState { copy(snackbarMessage = "Couldn't save file before switching tabs") }
-                return@launch
-            }
-            updateState { copy(activeTabId = id) }
-            requestGutter(id, immediate = true)
-        }
-    }
-    override fun onCloseTab(id: String) {
-        closeTab(id)
-    }
+    override fun onSelectTab(id: String) = tabManager.selectTab(id)
+    override fun onCloseTab(id: String) = tabManager.closeTab(id)
     override fun onToggleMenu() {
         updateState { copy(openRailTool = if (openRailTool != null) null else EditorRailTool.Files) }
     }
@@ -442,7 +328,7 @@ class EditorViewModel(
     }
     override fun onOpenFile(id: String, name: String) {
         updateState { copy(selectedFileTreeId = id) }
-        openFile(id, name)
+        tabManager.openFile(id, name)
     }
     override fun onCreateFileTreeEntry(kind: EditorFileCreateKind, parentPath: String?) {
         val parent = parentPath ?: defaultCreateParentPath() ?: return
@@ -470,22 +356,24 @@ class EditorViewModel(
                 copy(fileOperationDialog = EditorFileOperationDialogUiState.Delete(path = id, name = name, isDirectory = isDirectory))
             }
             EditorFileTreeAction.ShowHistory, EditorFileTreeAction.Blame -> Unit
-            EditorFileTreeAction.AddToGitignore -> {
-                val root = projectRootPath?.let(::File) ?: return
-                val git = gitRepository ?: return
-                tryToExecute(
-                    block = { git.addToGitignore(root, id) },
-                    onSuccess = { updateState { copy(snackbarMessage = "Added to .gitignore") } },
-                    onError = { updateState { copy(snackbarMessage = it.message ?: "Could not update .gitignore") } },
-                )
-            }
+            EditorFileTreeAction.AddToGitignore -> addToGitignore(id)
         }
+    }
+
+    private fun addToGitignore(path: String) {
+        val root = projectRootPath?.let(::File) ?: return
+        val git = gitRepository ?: return
+        tryToExecute(
+            block = { git.addToGitignore(root, path) },
+            onSuccess = { showSnackbar("Added to .gitignore") },
+            onError = { showSnackbar(it.message ?: "Could not update .gitignore") },
+        )
     }
     override fun onConfirmCreateFileTreeEntry(name: String) {
         val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Create ?: return
         val trimmed = name.trim()
         if (!isValidFileTreeName(trimmed)) {
-            updateState { copy(snackbarMessage = "Use a single non-empty name") }
+            showSnackbar("Use a single non-empty name")
             return
         }
         viewModelScope.launch {
@@ -494,80 +382,69 @@ class EditorViewModel(
                     EditorFileCreateKind.File -> fileTreeRepository.createFile(dialog.parentPath, trimmed)
                     EditorFileCreateKind.Folder -> fileTreeRepository.createDirectory(dialog.parentPath, trimmed)
                 }
-            }.onSuccess { createdPath ->
-                updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
-                refreshFileTree(expandIds = setOf(dialog.parentPath, createdPath))
-                updateState {
-                    copy(
-                        selectedFileTreeId = createdPath,
-                        snackbarMessage = "${if (dialog.kind == EditorFileCreateKind.File) "Created file" else "Created folder"} ${File(createdPath).name}",
-                    )
-                }
-                if (dialog.kind == EditorFileCreateKind.File) openFile(createdPath, File(createdPath).name)
-            }.onFailure { error ->
-                updateState { copy(snackbarMessage = error.message ?: "Create failed") }
-            }
+            }.onSuccess { createdPath -> onFileTreeEntryCreated(dialog, createdPath) }
+                .onFailure { error -> showSnackbar(error.message ?: "Create failed") }
         }
+    }
+
+    private suspend fun onFileTreeEntryCreated(dialog: EditorFileOperationDialogUiState.Create, createdPath: String) {
+        val isFile = dialog.kind == EditorFileCreateKind.File
+        updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
+        refreshFileTree(expandIds = setOf(dialog.parentPath, createdPath))
+        updateState {
+            copy(
+                selectedFileTreeId = createdPath,
+                snackbarMessage = "${if (isFile) "Created file" else "Created folder"} ${File(createdPath).name}",
+            )
+        }
+        if (isFile) tabManager.openFile(createdPath, File(createdPath).name)
     }
     override fun onConfirmRenameFileTreeEntry(name: String) {
         val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Rename ?: return
         val trimmed = name.trim()
         if (!isValidFileTreeName(trimmed)) {
-            updateState { copy(snackbarMessage = "Use a single non-empty name") }
+            showSnackbar("Use a single non-empty name")
             return
         }
         viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (!flushDirtyFiles()) {
-                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before rename") }
-                return@launch
-            }
+            if (!saveBeforeFileMutation("Couldn't save pending editor changes before rename")) return@launch
             runCatching { fileTreeRepository.rename(dialog.path, trimmed) }
                 .onSuccess { newPath ->
-                    remapOpenTabs(dialog.path, newPath)
+                    tabManager.remapOpenTabs(dialog.path, newPath)
                     updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
                     refreshFileTree(expandIds = setOf(File(newPath).parentFile?.absolutePath.orEmpty()))
                     projectRootPath?.let { syncProjectSymbols(it) }
                     updateState { copy(selectedFileTreeId = newPath, snackbarMessage = "Renamed to ${File(newPath).name}") }
                 }
-                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Rename failed") } }
+                .onFailure { error -> showSnackbar(error.message ?: "Rename failed") }
         }
     }
     override fun onConfirmDeleteFileTreeEntry() {
         val dialog = state.value.fileOperationDialog as? EditorFileOperationDialogUiState.Delete ?: return
         viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (!flushDirtyFiles()) {
-                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before delete") }
-                return@launch
-            }
+            if (!saveBeforeFileMutation("Couldn't save pending editor changes before delete")) return@launch
             runCatching { fileTreeRepository.delete(dialog.path) }
                 .onSuccess {
-                    closeTabsUnder(dialog.path)
+                    tabManager.closeTabsUnder(dialog.path)
                     updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
                     val parent = File(dialog.path).parentFile?.absolutePath
                     refreshFileTree(expandIds = setOf(parent.orEmpty()))
                     projectRootPath?.let { syncProjectSymbols(it) }
                     updateState { copy(selectedFileTreeId = parent, snackbarMessage = "Deleted ${dialog.name}") }
                 }
-                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Delete failed") } }
+                .onFailure { error -> showSnackbar(error.message ?: "Delete failed") }
         }
     }
     override fun onDismissFileOperationDialog() {
         updateState { copy(fileOperationDialog = EditorFileOperationDialogUiState.None) }
     }
-    override fun onRunProject() = startBuild(variant = state.value.selectedVariant, kind = BuildKind.ASSEMBLE, install = true)
+    override fun onRunProject() = buildController.run()
     override fun onSelectVariant(variant: String) {
         updateState { copy(selectedVariant = variant) }
         viewModelScope.launch { runCatching { preferencesRepository.setSelectedVariant(projectId, variant) } }
     }
-    override fun onCancelBuild() = cancelBuild()
-    override fun onBuildRelease() {
-        val kind = if (state.value.buildOutputAab) BuildKind.BUNDLE else BuildKind.ASSEMBLE
-
-
-        startBuild(variant = "release", kind = kind, install = false)
-    }
+    override fun onCancelBuild() = buildController.cancel()
+    override fun onBuildRelease() = buildController.buildRelease()
     override fun onJumpToBuildProblem(problem: BuildProblem) = jumpToBuildProblem(problem)
     override fun onSelectBottomTab(id: String) {
         updateState {
@@ -587,37 +464,16 @@ class EditorViewModel(
     override fun onBottomPanelHeightChanged(heightDp: Float) {
         updateState { copy(bottomPanelHeightDp = heightDp.coerceAtLeast(0f)) }
     }
-    override fun onSave() = saveActiveTab()
-    override fun onUndo() = undoRedoActive { it.undo() }
-    override fun onRedo() = undoRedoActive { it.redo() }
-    override fun onReformatCode() {
-        val id = state.value.activeTabId ?: return
-        val session = sessions[id] ?: return
-        val original = session.text
-        val formatted = CodeFormatter.reformat(original, state.value.editorTabSize, session.language)
-        if (formatted == original) {
-            updateState { copy(snackbarMessage = "Already formatted") }
-            return
-        }
-        session.replaceRange(0, original.length, formatted)
-        val caret = session.caretPosition
-        updateState {
-            copy(
-                tabs = tabs.map { if (it.id == id) it.copy(text = session.text, modified = true) else it },
-                caretLine = caret.line,
-                caretColumn = caret.column,
-                snackbarMessage = "Reformatted",
-            )
-        }
-        scheduleAutoSave()
-    }
+    override fun onSave() = tabManager.saveActiveTab()
+    override fun onUndo() = tabManager.undo()
+    override fun onRedo() = tabManager.redo()
+    override fun onReformatCode() = tabManager.reformatActiveTab(state.value.editorTabSize)
     override fun onCloseProject() {
         viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (flushDirtyFiles()) {
+            if (tabManager.flushDirtyBuffers()) {
                 emitEffect(EditorEffect.CloseProject)
             } else {
-                updateState { copy(snackbarMessage = "Couldn't save pending editor changes") }
+                showSnackbar("Couldn't save pending editor changes")
             }
         }
     }
@@ -670,19 +526,6 @@ class EditorViewModel(
         return projectRootPath
     }
 
-    private fun findFileTreeNode(nodes: List<EditorFileNodeUiModel>, id: String): EditorFileNodeUiModel? {
-        for (node in nodes) {
-            if (node.id == id) return node
-            node.children?.let { children ->
-                findFileTreeNode(children, id)?.let { return it }
-            }
-        }
-        return null
-    }
-
-    private fun isValidFileTreeName(name: String): Boolean =
-        name.isNotBlank() && !name.contains('/') && !name.contains('\\') && name != "." && name != ".."
-
     private fun copyFileTreeEntry(id: String, name: String) {
         updateState {
             copy(
@@ -695,11 +538,7 @@ class EditorViewModel(
     private fun pasteFileTreeEntry(parentPath: String) {
         val copied = state.value.copiedFileTreeEntry ?: return
         viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (!flushDirtyFiles()) {
-                updateState { copy(snackbarMessage = "Couldn't save pending editor changes before paste") }
-                return@launch
-            }
+            if (!saveBeforeFileMutation("Couldn't save pending editor changes before paste")) return@launch
             runCatching { fileTreeRepository.copy(copied.path, parentPath) }
                 .onSuccess { newPath ->
                     refreshFileTree(expandIds = setOf(parentPath))
@@ -710,7 +549,7 @@ class EditorViewModel(
                         )
                     }
                 }
-                .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Paste failed") } }
+                .onFailure { error -> showSnackbar(error.message ?: "Paste failed") }
         }
     }
 
@@ -719,115 +558,20 @@ class EditorViewModel(
             .onSuccess { nodes ->
                 updateState {
                     copy(
-                        fileTree = nodes.map { it.toUiModel() },
+                        fileTree = nodes.map { it.toEditorNode(projectRootPath, latestGitFiles) },
                         expandedFolderIds = expandedFolderIds + expandIds.filter { it.isNotBlank() },
                         isLoadingFileTree = false,
                     )
                 }
             }
-            .onFailure { error -> updateState { copy(snackbarMessage = error.message ?: "Couldn't refresh project tree") } }
+            .onFailure { error -> showSnackbar(error.message ?: "Couldn't refresh project tree") }
     }
 
-    private fun closeTabsUnder(path: String) {
-        val remainingTabs = state.value.tabs.filterNot { isSameOrChild(path, it.id) }
-        val remainingIds = remainingTabs.map { it.id }.toSet()
-        sessions.keys.retainAll(remainingIds)
-        updateState {
-            copy(
-                tabs = remainingTabs,
-                activeTabId = activeTabId?.takeIf { it in remainingIds } ?: remainingTabs.lastOrNull()?.id,
-            )
-        }
-    }
+    fun onSessionEdited(id: String) = tabManager.onSessionEdited(id)
 
-    private fun remapOpenTabs(oldPath: String, newPath: String) {
-        val replacements = state.value.tabs
-            .filter { isSameOrChild(oldPath, it.id) }
-            .associate { tab -> tab.id to renamedPathFor(tab.id, oldPath, newPath) }
-        if (replacements.isEmpty()) return
-        replacements.forEach { (oldId, newId) ->
-            val oldSession = sessions.remove(oldId)
-            if (oldSession != null) {
-                sessions[newId] = EditorSession(oldSession.text, EditorLanguage.fromFileName(File(newId).name), filePath = newId)
-            }
-        }
-        updateState {
-            copy(
-                tabs = tabs.map { tab ->
-                    val newId = replacements[tab.id]
-                    if (newId == null) tab else tab.copy(
-                        id = newId,
-                        name = File(newId).name,
-                        language = EditorLanguage.fromFileName(File(newId).name),
-                        breadcrumb = breadcrumbFor(newId, File(newId).name),
-                    )
-                },
-                activeTabId = activeTabId?.let { replacements[it] ?: it },
-            )
-        }
-    }
+    fun flushPendingSaves() = tabManager.flushPendingSaves()
 
-    private fun isSameOrChild(parent: String, path: String): Boolean =
-        path == parent || path.startsWith(parent.trimEnd('/') + "/")
-
-    private fun renamedPathFor(path: String, oldPath: String, newPath: String): String =
-        if (path == oldPath) newPath else newPath.trimEnd('/') + path.removePrefix(oldPath).let {
-            if (it.startsWith("/")) it else "/$it"
-        }
-
-    fun onSessionEdited(id: String) {
-        val session = sessions[id] ?: return
-        val newText = session.text
-        updateState {
-            copy(tabs = tabs.map { if (it.id == id) it.copy(text = newText, modified = true) else it })
-        }
-        scheduleAutoSave()
-        if (id == state.value.activeTabId) requestGutter(id, immediate = false)
-    }
-
-    private fun scheduleAutoSave() {
-        if (!isAutoSaveEnabled) return
-        autoSaveJob?.cancel()
-        autoSaveJob = viewModelScope.launch {
-            delay(AUTO_SAVE_DEBOUNCE_MS)
-            flushDirtyFiles()
-        }
-    }
-
-    private suspend fun flushDirtyFiles(onlyIds: Set<String>? = null): Boolean {
-        val snapshots = state.value.tabs
-            .filter { it.modified && (onlyIds == null || it.id in onlyIds) }
-            .mapNotNull { tab -> sessions[tab.id]?.let { tab.id to it.text } }
-        if (snapshots.isEmpty()) return true
-        val writtenIds = mutableSetOf<String>()
-        for ((id, text) in snapshots) {
-            runCatching { fileContentRepository.writeText(id, text) }
-                .onSuccess { writtenIds += id }
-        }
-        updateState {
-            copy(
-                tabs = tabs.map { tab ->
-                    val written = snapshots.firstOrNull { it.first == tab.id }?.second
-                    if (tab.modified && tab.id in writtenIds && written != null && sessions[tab.id]?.text == written) {
-                        tab.copy(modified = false)
-                    } else {
-                        tab
-                    }
-                },
-            )
-        }
-        return writtenIds.size == snapshots.size
-    }
-
-    fun flushPendingSaves() {
-        autoSaveJob?.cancel()
-        flushScope.launch { flushDirtyFiles() }
-    }
-
-    suspend fun flushDirtyBuffers(): Boolean = withContext(Dispatchers.Main.immediate) {
-        autoSaveJob?.cancel()
-        flushDirtyFiles()
-    }
+    suspend fun flushDirtyBuffers(): Boolean = tabManager.flushDirtyBuffers()
 
     fun onAppForegrounded() {
         val root = projectRootPath?.let(::File) ?: return
@@ -846,7 +590,7 @@ class EditorViewModel(
                     copy(
                         gitStatusText = gitUi.statusText,
                         gitPendingChangeCount = gitUi.pendingChangeCount,
-                        fileTree = fileTree.map { it.withGitStatus(root) },
+                        fileTree = fileTree.map { it.withGitStatus(root, latestGitFiles) },
                     )
                 }
                 state.value.activeTabId?.let { requestGutter(it, immediate = true) }
@@ -864,41 +608,11 @@ class EditorViewModel(
     }
 
     override fun onCleared() {
-
-
-        autoSaveJob?.cancel()
-        flushScope.launch { flushDirtyFiles() }
+        tabManager.shutdown()
         workspaceWriteRegistration?.close()
         super.onCleared()
     }
-    private fun undoRedoActive(action: (EditorSession) -> Boolean) {
-        val id = state.value.activeTabId ?: return
-        val session = sessions[id] ?: return
-        if (!action(session)) return
-        val caret = session.caretPosition
-        updateState {
-            copy(
-                tabs = tabs.map { if (it.id == id) it.copy(text = session.text, modified = true) else it },
-                caretLine = caret.line,
-                caretColumn = caret.column,
-            )
-        }
-        scheduleAutoSave()
-    }
-    fun onCaretMoved(line: Int, column: Int) {
-        if (state.value.caretLine == line && state.value.caretColumn == column) return
-        updateState { copy(caretLine = line, caretColumn = column) }
-    }
-    private fun saveActiveTab() {
-        val id = state.value.activeTabId ?: return
-        viewModelScope.launch {
-            autoSaveJob?.cancel()
-            val saved = flushDirtyFiles(setOf(id))
-            updateState {
-                copy(snackbarMessage = if (saved) "Saved ${tabs.firstOrNull { it.id == id }?.name ?: id}" else "Couldn't save file")
-            }
-        }
-    }
+    fun onCaretMoved(line: Int, column: Int) = tabManager.onCaretMoved(line, column)
     private fun updateFindQuery(query: String) {
         val snapshot = findController.queryChanged(state.value.activeTab?.text.orEmpty(), query)
         updateState {
@@ -909,306 +623,19 @@ class EditorViewModel(
             )
         }
     }
-    private fun closeTab(id: String) {
-        viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (!flushDirtyFiles(setOf(id))) {
-                updateState { copy(snackbarMessage = "Couldn't save file before closing") }
-                return@launch
-            }
-            sessions.remove(id)
-            val remaining = state.value.tabs.filterNot { it.id == id }
-            updateState {
-                copy(
-                    tabs = remaining,
-                    activeTabId = if (activeTabId == id) remaining.lastOrNull()?.id else activeTabId,
-                )
-            }
-        }
-    }
-    private fun openFile(id: String, name: String) {
-        if (state.value.tabs.any { it.id == id }) {
-            activateExistingTab(id)
-            return
-        }
-        openNewTab(id, name)
-    }
+    override fun onConfirmInstallConflictUninstall() = buildController.confirmInstallConflictUninstall()
 
-    private fun activateExistingTab(id: String) {
-        val previousId = state.value.activeTabId
-        viewModelScope.launch {
-            autoSaveJob?.cancel()
-            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
-                updateState { copy(snackbarMessage = "Couldn't save file before switching files") }
-                return@launch
-            }
-            updateState { copy(activeTabId = id, openRailTool = null) }
-            requestGutter(id, immediate = true)
-        }
-    }
-
-    private fun openNewTab(id: String, name: String) {
-        viewModelScope.launch {
-            autoSaveJob?.cancel()
-            val previousId = state.value.activeTabId
-            if (previousId != null && !flushDirtyFiles(setOf(previousId))) {
-                updateState { copy(snackbarMessage = "Couldn't save file before opening another file") }
-                return@launch
-            }
-            val content = fileContentRepository.readText(id)
-            val language = EditorLanguage.fromFileName(name)
-            sessions[id] = EditorSession(content, language, filePath = id)
-            val tab = EditorTabUiModel(
-                id = id,
-                name = name,
-                text = content,
-                language = language,
-                modified = false,
-                breadcrumb = breadcrumbFor(id, name),
-            )
-            if (state.value.tabs.any { it.id == id }) {
-                updateState { copy(activeTabId = id, openRailTool = null) }
-            } else {
-                updateState { copy(tabs = tabs + tab, activeTabId = id, openRailTool = null) }
-            }
-            requestGutter(id, immediate = true)
-        }
-    }
-
-    private fun breadcrumbFor(id: String, name: String): List<String> {
-        val root = projectRootPath
-        val relative = if (root != null && id.startsWith(root)) id.removePrefix(root).trimStart('/') else id
-        val parts = relative.split('/').filter { it.isNotEmpty() }
-        return if (parts.size > 1) parts else listOf(name)
-    }
-    private fun startBuild(variant: String, kind: BuildKind, install: Boolean) {
-        if (isBuildInFlight) return
-        val root = projectRootPath?.let { File(it) }
-        if (root == null) {
-            updateState { copy(snackbarMessage = "Open a project before building") }
-            return
-        }
-        if (networkMonitor?.isOnline() == false) {
-            showOfflineBuildFailure()
-            return
-        }
-        if (!buildRunCoordinator.canPostNotifications()) {
-            emitEffect(EditorEffect.RequestNotificationsPermission)
-        }
-        isBuildInFlight = true
-        showBuildRunning()
-        buildJob = viewModelScope.launch {
-            try {
-                if (!prepareWorkspaceForBuild(root)) return@launch
-                val targets = resolveBuildTargets(root, variant, kind, install) ?: return@launch
-                val request = BuildRequest(
-                    projectRoot = root,
-                    modulePath = targets.modulePath,
-                    variantName = targets.variant,
-                    kind = kind,
-                    taskPath = targets.taskPath,
-                    buildType = targets.buildType,
-                )
-                val meta = BuildClientMeta(
-                    projectId = projectId,
-                    projectName = state.value.projectName,
-                    installAfterSuccess = install,
-                    autoLaunchAfterInstall = shouldLaunchAfterInstall,
-                )
-                when (val result = buildRunCoordinator.start(request, meta)) {
-                    is StartBuildResult.Accepted -> Unit
-                    is StartBuildResult.AlreadyRunning -> updateState {
-                        copy(
-                            snackbarMessage = if (result.projectId == projectId) {
-                                "This build is already running"
-                            } else {
-                                "Another project is already building"
-                            },
-                        )
-                    }
-                    is StartBuildResult.Failed -> updateState {
-                        copy(
-                            snackbarMessage = result.reason,
-                            running = false,
-                            buildFailed = true,
-                            buildConsole = buildConsole.copy(
-                                status = BuildStatus.Failed,
-                                progressMessage = null,
-                                problems = buildConsole.problems + BuildProblem(
-                                    BuildEvent.ProblemSeverity.ERROR,
-                                    result.reason,
-                                ),
-                            ),
-                        )
-                    }
-                }
-            } finally {
-                isBuildInFlight = false
-            }
-        }
-    }
-
-    private fun showOfflineBuildFailure() {
-        val offlineMsg = "You're offline. Connect to the internet and try again."
-        updateState {
-            copy(
-                running = false,
-                buildFailed = true,
-                bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
-                activeBottomTabId = "build",
-                buildConsole = BuildConsoleState(
-                    status = BuildStatus.Failed,
-                    problems = listOf(
-                        BuildProblem(
-                            severity = BuildEvent.ProblemSeverity.ERROR,
-                            message = offlineMsg,
-                        ),
-                    ),
-                ),
-                snackbarMessage = offlineMsg,
-                bottomPanelTabs = markBuildTab(error = true, count = 1),
-            )
-        }
-    }
-
-    private fun showBuildRunning() {
-        updateState {
-            copy(
-                running = true,
-                buildFailed = false,
-                bottomPanelHeightDp = expandedBottomPanelHeight(bottomPanelHeightDp),
-                activeBottomTabId = "build",
-                buildConsole = BuildConsoleState(status = BuildStatus.Running, progressMessage = "Preparing…"),
-            )
-        }
-    }
-
-    private suspend fun prepareWorkspaceForBuild(root: File): Boolean {
-        autoSaveJob?.cancel()
-        if (!flushDirtyFiles()) {
-            failBuildPreparation("Couldn't save pending editor changes before build")
-            return false
-        }
-        val preflight = buildRunCoordinator.preflight(root)
-        if (preflight.warnings.isNotEmpty()) applyPreflight(preflight.warnings)
-        if (!preflight.canProceed) {
-            val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
-            failBuildPreparation(blocker.title, problemCount = 1)
-            return false
-        }
-        buildRunCoordinator.ensureDebugKeystore()
-        return true
-    }
-
-    private fun failBuildPreparation(message: String, problemCount: Int? = null) {
-        updateState {
-            copy(
-                running = false,
-                buildFailed = true,
-                buildConsole = buildConsole.copy(status = BuildStatus.Failed, progressMessage = null),
-                snackbarMessage = message,
-                bottomPanelTabs = markBuildTab(error = true, count = problemCount),
-            )
-        }
-    }
-
-    private data class BuildTargets(
-        val modulePath: String,
-        val variant: String,
-        val buildType: String?,
-        val taskPath: String?,
-    )
-
-    private suspend fun resolveBuildTargets(root: File, variant: String, kind: BuildKind, install: Boolean): BuildTargets? {
-        val projectModel = authoritativeProjectModel
-            ?.takeIf { it.first == root.absolutePath }
-            ?.second
-            ?: runCatching { gradleProjectReader.read(root).model }
-                .getOrNull()
-                ?.also { authoritativeProjectModel = root.absolutePath to it }
-        val appModule = projectModel?.let {
-            com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver.resolveAppModule(it)
-        }
-        if (appModule == null || appModule.variants.isEmpty()) {
-            failBuildPreparation("No supported Android application variants were found. Sync the project and try again.")
-            return null
-        }
-        val modulePath = appModule.path
-        val resolvedVariant = when {
-            !install && variant.equals("release", ignoreCase = true) ->
-                com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                    .resolveReleaseVariant(appModule, state.value.selectedVariant)
-            else ->
-                com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-                    .resolveVariant(appModule, variant)
-        }
-        val available = com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
-            .availableVariantNames(appModule)
-        updateState {
-            copy(
-                selectedVariant = if (install) resolvedVariant else selectedVariant,
-                runModulePath = modulePath,
-                availableVariants = available,
-            )
-        }
-        val variantModel = appModule?.variants?.firstOrNull {
-            it.name.equals(resolvedVariant, ignoreCase = true)
-        }
-        val taskPath = when (kind) {
-            BuildKind.ASSEMBLE -> variantModel?.assembleTaskPath
-            BuildKind.BUNDLE -> variantModel?.bundleTaskPath
-            BuildKind.CLEAN -> null
-            BuildKind.MODEL -> null
-        }
-        return BuildTargets(modulePath, resolvedVariant, variantModel?.buildType, taskPath)
-    }
-
-    private fun applyPreflight(warnings: List<com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.PreflightWarning>) {
-        val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
-            text = "Preflight: " + warnings.joinToString("; ") { "${it.title}: ${it.detail}" },
-            isError = warnings.any { it.severity == PreflightSeverity.BLOCKER },
-        )
-        updateState { copy(buildConsole = buildConsole.copy(logs = listOf(prefix) + buildConsole.logs)) }
-    }
-
-    override fun onConfirmInstallConflictUninstall() {
-        val packageName = state.value.installConflict?.applicationId ?: return
-        buildRunCoordinator.uninstallConflict(packageName)
-        updateState { copy(installConflict = null, snackbarMessage = "Waiting for uninstall confirmation…") }
-    }
-
-    override fun onDismissInstallConflict() {
-        updateState {
-            copy(
-                installConflict = null,
-                snackbarMessage = "Install cancelled. The installed app is signed differently.",
-            )
-        }
-    }
-
-    private fun cancelBuild() {
-        if (!state.value.running) return
-        buildRunCoordinator.cancel()
-        buildJob?.cancel()
-        updateState {
-            copy(
-                running = false,
-                buildConsole = buildConsole.copy(status = BuildStatus.Cancelled, progressMessage = null),
-                snackbarMessage = "Build cancelled",
-                bottomPanelTabs = markBuildTab(error = false, count = null),
-            )
-        }
-    }
+    override fun onDismissInstallConflict() = buildController.dismissInstallConflict()
 
     private fun jumpToBuildProblem(problem: BuildProblem) {
         val path = problem.filePath ?: return
         val name = problem.fileName ?: path.substringAfterLast('/')
-        openFile(path, name)
+        tabManager.openFile(path, name)
         val line = problem.line ?: return
         viewModelScope.launch {
 
             repeat(20) {
-                val session = sessions[path] ?: run { delay(20); return@repeat }
+                val session = tabManager.sessionFor(path) ?: run { delay(20); return@repeat }
                 val offset = session.document.positionToOffset(line - 1, (problem.column ?: 1) - 1)
                 session.setCaret(offset.coerceIn(0, session.document.length))
                 val caret = session.caretPosition
@@ -1225,30 +652,4 @@ class EditorViewModel(
         }
     }
 
-    private fun markBuildTab(error: Boolean, count: Int?): List<BottomPanelTabUiModel> =
-        state.value.bottomPanelTabs.map {
-            if (it.id == "build") it.copy(count = count, error = error) else it
-        }
-    private fun FileNode.toUiModel(): EditorFileNodeUiModel = EditorFileNodeUiModel(
-        id = id,
-        name = name,
-        children = children?.map { it.toUiModel() },
-        icon = if (children != null) null else fileIconFor(name),
-        gitStatus = layeredGitStatus(id) ?: gitStatus,
-    )
-
-    private fun EditorFileNodeUiModel.withGitStatus(root: File): EditorFileNodeUiModel = copy(
-        children = children?.map { it.withGitStatus(root) },
-        gitStatus = if (children != null) null else layeredGitStatus(id, root),
-    )
-
-    private fun layeredGitStatus(path: String, root: File? = projectRootPath?.let(::File)): GitFileStatus? {
-        root ?: return null
-        val file = runCatching { File(path).canonicalFile }.getOrDefault(File(path).absoluteFile)
-        val canonicalRoot = runCatching { root.canonicalFile }.getOrDefault(root.absoluteFile)
-        val relative = runCatching { file.relativeTo(canonicalRoot).invariantSeparatorsPath }.getOrNull()
-            ?: return null
-        val state = latestGitFiles[relative] ?: return null
-        return state.toEditorFileStatus()
-    }
 }
