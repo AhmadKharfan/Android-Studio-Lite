@@ -18,12 +18,17 @@ import kotlinx.serialization.json.Json
 
 data class ProjectChats(val activeThreadId: String, val threads: List<ChatThread>)
 
-class ChatHistoryStore(context: Context) {
+interface ChatHistory {
+    suspend fun load(projectId: String): ProjectChats
+    suspend fun save(projectId: String, data: ProjectChats)
+}
+
+class ChatHistoryStore(context: Context) : ChatHistory {
 
     private val dir = File(context.applicationContext.filesDir, "ai_chats").apply { mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    suspend fun load(projectId: String): ProjectChats = withContext(Dispatchers.IO) {
+    override suspend fun load(projectId: String): ProjectChats = withContext(Dispatchers.IO) {
         val file = fileFor(projectId)
         if (!file.exists()) return@withContext ProjectChats("", emptyList())
         runCatching {
@@ -32,7 +37,7 @@ class ChatHistoryStore(context: Context) {
         }.getOrElse { ProjectChats("", emptyList()) }
     }
 
-    suspend fun save(projectId: String, data: ProjectChats) = withContext(Dispatchers.IO) {
+    override suspend fun save(projectId: String, data: ProjectChats) = withContext(Dispatchers.IO) {
         val dto = ProjectChatsDto(
             activeThreadId = data.activeThreadId,
             threads = data.threads.map { it.toDto() },

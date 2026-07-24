@@ -17,9 +17,9 @@ class AgentToolExecutor(
     private val fileTreeRepository: FileTreeRepository,
     private val projectPathResolver: ProjectPathResolver,
     private val gradleProjectReader: GradleProjectReader,
-) {
+) : AgentTools {
 
-    suspend fun sourcePackagePrefix(projectId: String): String? =
+    override suspend fun sourcePackagePrefix(projectId: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val root = projectRoot(projectId)
@@ -38,7 +38,7 @@ class AgentToolExecutor(
             }.getOrNull()
         }
 
-    suspend fun projectLanguage(projectId: String): String = withContext(Dispatchers.IO) {
+    override suspend fun projectLanguage(projectId: String): String = withContext(Dispatchers.IO) {
         runCatching {
             val root = projectRoot(projectId)
             var java = false
@@ -59,10 +59,10 @@ class AgentToolExecutor(
         }.getOrDefault("Unknown")
     }
 
-    suspend fun projectRoot(projectId: String): File =
+    override suspend fun projectRoot(projectId: String): File =
         withContext(Dispatchers.IO) { projectPathResolver(projectId).canonicalFile }
 
-    suspend fun readTextOrNull(projectId: String, relativePath: String): String? =
+    override suspend fun readTextOrNull(projectId: String, relativePath: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val root = projectRoot(projectId)
@@ -71,7 +71,7 @@ class AgentToolExecutor(
             }.getOrNull()
         }
 
-    suspend fun outline(projectId: String, maxEntries: Int = 250): String =
+    override suspend fun outline(projectId: String, maxEntries: Int): String =
         withContext(Dispatchers.IO) {
             runCatching {
                 val root = projectRoot(projectId)
@@ -91,7 +91,7 @@ class AgentToolExecutor(
             }.getOrElse { "(unable to read project tree: ${it.message})" }
         }
 
-    suspend fun run(projectId: String, action: AgentAction): AgentToolResult =
+    override suspend fun run(projectId: String, action: AgentAction): AgentToolResult =
         withContext(Dispatchers.IO) {
             val root = projectRoot(projectId)
             val normalized = normalizeAction(root, action)
@@ -102,7 +102,7 @@ class AgentToolExecutor(
                 )
         }
 
-    fun normalizeAction(root: File, action: AgentAction): AgentAction = when (action) {
+    override fun normalizeAction(root: File, action: AgentAction): AgentAction = when (action) {
         is AgentAction.CreateFile -> {
             val path = normalizeSourcePath(root, action.path, action.content)
             val content = AgentContentSanitizer.sanitizeFileContent(path, action.content)
@@ -272,11 +272,6 @@ class AgentToolExecutor(
         const val MAX_SEARCH_BYTES = 512L * 1024
         const val MAX_MATCHES = 60
 
-        /**
-         * Whether to skip [dir] when walking sources. `build` is kept when it is a real source
-         * module (e.g. `:feature:build`, which has its own build script / src) and only skipped
-         * when it is a GENERATED Gradle output directory.
-         */
         fun isIgnoredDir(dir: File): Boolean {
             if (dir.name !in IGNORED_DIRS) return false
             if (dir.name != "build") return true
