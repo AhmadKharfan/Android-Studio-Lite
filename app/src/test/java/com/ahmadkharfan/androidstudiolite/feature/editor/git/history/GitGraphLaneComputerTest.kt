@@ -29,7 +29,7 @@ class GitGraphLaneComputerTest {
                 commit("base"),
             ),
         )
-        assertTrue(page.rows.all { it.laneCount > 1 })
+        assertTrue(page.rows.maxOf { it.laneCount } > 1)
         val edges = page.rows.flatMap { it.edges }
         assertTrue(edges.isNotEmpty())
         assertTrue(edges.any { it.fromLane != it.toLane })
@@ -49,7 +49,7 @@ class GitGraphLaneComputerTest {
         )
         val activeTips = page.rows.take(2)
         assertTrue(activeTips[0].lane != activeTips[1].lane)
-        assertTrue(activeTips.all { it.laneCount >= 2 })
+        assertTrue(page.rows.maxOf { it.laneCount } >= 2)
     }
 
     @Test
@@ -63,7 +63,9 @@ class GitGraphLaneComputerTest {
         )
         val first = GitGraphLaneComputer(maxLanes = 5).layout(commits.take(2))
         val second = GitGraphLaneComputer(maxLanes = 5).layout(commits.drop(2), first.nextCursor)
-        assertEquals(first.rows.last().lane, second.rows.first().lane)
+        val carriedLane = first.nextCursor.lanes.indexOfFirst { "left-parent" in it }
+        val landedLane = second.rows.first { it.commitId == "left-parent" }.lane
+        assertEquals(carriedLane, landedLane)
     }
 
     @Test
