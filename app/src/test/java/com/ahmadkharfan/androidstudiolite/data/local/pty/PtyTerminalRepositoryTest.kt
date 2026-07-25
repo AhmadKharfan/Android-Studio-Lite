@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.local.pty
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -16,6 +17,7 @@ import java.io.OutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.nio.charset.StandardCharsets
+import kotlin.time.Duration.Companion.milliseconds
 
 class PtyTerminalRepositoryTest {
 
@@ -58,7 +60,7 @@ class PtyTerminalRepositoryTest {
         repo.start(rows = 24, cols = 80)
         fake.emit("top - 15:04:01[31mLOAD[0m")
 
-        val bytes = withTimeout(3000) {
+        val bytes = withTimeout(3000.milliseconds) {
             var found: String? = null
             while (found == null) {
                 val e = events.receive()
@@ -79,6 +81,11 @@ class PtyTerminalRepositoryTest {
         repo.start(rows = 24, cols = 80)
         repo.writeInput("q")
         repo.send("ls -la")
+        runCatching {
+            withTimeout(3000.milliseconds) {
+                while (fake.captured.toString(Charsets.UTF_8.name()) != "qls -la\n") { delay(1) }
+            }
+        }
         assertEquals("qls -la\n", fake.captured.toString(Charsets.UTF_8.name()))
         repo.stop()
     }
@@ -106,7 +113,7 @@ class PtyTerminalRepositoryTest {
         fake.emit("bye")
         fake.destroy()
 
-        val ended = withTimeout(3000) {
+        val ended = withTimeout(3000.milliseconds) {
             var sawEnd = false
             while (!sawEnd) {
                 if (events.receive() is TerminalEvent.SessionEnded) sawEnd = true
