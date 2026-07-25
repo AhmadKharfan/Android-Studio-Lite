@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.history
 
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine
-import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHistoryRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
@@ -18,7 +18,7 @@ class GitBlameViewModel(
     private val projectId: String,
     requestedPath: String,
     private val projectPathResolver: ProjectPathResolver,
-    private val gitRepository: GitRepository,
+    private val gitRepository: GitHistoryRepository,
 ) : BaseViewModel<GitBlameUiState, Nothing>(GitBlameUiState(path = requestedPath)) {
     private var repoDir: File? = null
 
