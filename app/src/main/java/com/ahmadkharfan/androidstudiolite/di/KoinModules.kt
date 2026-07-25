@@ -64,3 +64,6 @@ val viewModelModule = module {
     }
 }
 val appModules = listOf(dataModule, viewModelModule, gradleModule)
+
+val allModules = appModules + localDataModule + templatesModule + preferencesModule +
+    terminalModule + gitModule + remoteModule + buildRunModule + aiModule
