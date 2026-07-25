@@ -15,6 +15,8 @@ import com.ahmadkharfan.androidstudiolite.data.local.DefaultWorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHistoryRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitIntegrationRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
@@ -60,6 +62,8 @@ val gitModule = module {
             workspaceWriteGate = get(),
         )
     }
+    single<GitHistoryRepository> { get<GitRepository>() }
+    single<GitIntegrationRepository> { get<GitRepository>() }
     single { ProjectPathResolver(projectRepository = get()) }
     single {
         val context = androidContext()

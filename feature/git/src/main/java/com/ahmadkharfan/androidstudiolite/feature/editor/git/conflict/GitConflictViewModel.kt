@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict
 
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
-import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitIntegrationRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
@@ -18,7 +18,7 @@ data class GitConflictUiState(
 class GitConflictViewModel(
     projectId: String,
     projectPathResolver: ProjectPathResolver,
-    private val gitRepository: GitRepository,
+    private val gitRepository: GitIntegrationRepository,
 ) : BaseViewModel<GitConflictUiState, Nothing>(GitConflictUiState()), GitConflictInteractionListener {
     private var root: File? = null
 
