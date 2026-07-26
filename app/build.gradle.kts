@@ -158,7 +158,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.jgit)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
