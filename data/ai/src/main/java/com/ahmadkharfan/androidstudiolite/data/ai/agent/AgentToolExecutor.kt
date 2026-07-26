@@ -11,6 +11,7 @@ import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.reflect.KClass
 
 class AgentToolExecutor(
     private val fileContentRepository: FileContentRepository,
@@ -18,6 +19,22 @@ class AgentToolExecutor(
     private val projectPathResolver: ProjectPathResolver,
     private val gradleProjectReader: GradleProjectReader,
 ) : AgentTools {
+
+    private fun interface ActionHandler {
+        suspend fun execute(root: File, action: AgentAction): String
+    }
+
+    private val actionHandlers = mapOf(
+        registeredHandler(AgentAction.ListDir::class, ::listDirectory),
+        registeredHandler(AgentAction.ReadFile::class, ::readFile),
+        registeredHandler(AgentAction.Search::class, ::searchFiles),
+        registeredHandler(AgentAction.CreateFile::class, ::createFile),
+        registeredHandler(AgentAction.CreateDir::class, ::createDirectory),
+        registeredHandler(AgentAction.EditFile::class, ::editFile),
+        registeredHandler(AgentAction.Rename::class, ::renameEntry),
+        registeredHandler(AgentAction.Move::class, ::moveEntry),
+        registeredHandler(AgentAction.Delete::class, ::deleteEntry),
+    )
 
     override suspend fun sourcePackagePrefix(projectId: String): String? =
         withContext(Dispatchers.IO) {
@@ -95,7 +112,7 @@ class AgentToolExecutor(
         withContext(Dispatchers.IO) {
             val root = projectRoot(projectId)
             val normalized = normalizeAction(root, action)
-            runCatching { execute(projectId, root, normalized) }
+            runCatching { execute(root, normalized) }
                 .fold(
                     onSuccess = { AgentToolResult(normalized, ok = true, output = it) },
                     onFailure = { AgentToolResult(normalized, ok = false, output = it.message ?: "Error") },
@@ -116,82 +133,92 @@ class AgentToolExecutor(
         else -> action
     }
 
-    private suspend fun execute(projectId: String, root: File, action: AgentAction): String = when (action) {
-        is AgentAction.ListDir -> {
-            val dir = resolve(root, action.path)
-            require(dir.isDirectory) { "Not a directory: ${action.path}" }
-            val children = fileTreeRepository.listChildren(dir.absolutePath)
-            if (children.isEmpty()) {
-                "(empty)"
-            } else {
-                children.joinToString("\n") { child ->
-                    val isDir = child.children != null || File(child.id).isDirectory
-                    relativePath(root, File(child.id)) + if (isDir) "/" else ""
-                }
+    private suspend fun execute(root: File, action: AgentAction): String =
+        actionHandlers.getValue(action::class).execute(root, action)
+
+    private fun <T : AgentAction> registeredHandler(
+        actionType: KClass<T>,
+        execution: suspend (File, T) -> String,
+    ): Pair<KClass<out AgentAction>, ActionHandler> =
+        actionType to ActionHandler { root, action ->
+            execution(root, actionType.java.cast(action))
+        }
+
+    private suspend fun listDirectory(root: File, action: AgentAction.ListDir): String {
+        val dir = resolve(root, action.path)
+        require(dir.isDirectory) { "Not a directory: ${action.path}" }
+        val children = fileTreeRepository.listChildren(dir.absolutePath)
+        return if (children.isEmpty()) {
+            "(empty)"
+        } else {
+            children.joinToString("\n") { child ->
+                val isDir = child.children != null || File(child.id).isDirectory
+                relativePath(root, File(child.id)) + if (isDir) "/" else ""
             }
         }
+    }
 
-        is AgentAction.ReadFile -> {
-            val file = resolve(root, action.path)
-            require(file.isFile) { "Not a file: ${action.path}" }
-            val text = fileContentRepository.readText(file.absolutePath)
-            "```\n$text\n```"
+    private suspend fun readFile(root: File, action: AgentAction.ReadFile): String {
+        val file = resolve(root, action.path)
+        require(file.isFile) { "Not a file: ${action.path}" }
+        val text = fileContentRepository.readText(file.absolutePath)
+        return "```\n$text\n```"
+    }
+
+    private suspend fun searchFiles(root: File, action: AgentAction.Search): String =
+        search(root, action.query)
+
+    private suspend fun createFile(root: File, action: AgentAction.CreateFile): String {
+        val path = action.path
+        val file = resolve(root, path)
+        require(!file.exists()) { "Already exists: $path (use edit_file to overwrite)" }
+        fileContentRepository.writeText(file.absolutePath, action.content)
+        return "Created $path"
+    }
+
+    private suspend fun createDirectory(root: File, action: AgentAction.CreateDir): String {
+        val dir = resolve(root, action.path)
+        return if (dir.isDirectory) {
+            "Already exists: ${action.path}"
+        } else {
+            val parent = dir.parentFile ?: root
+            fileTreeRepository.createDirectory(parent.absolutePath, dir.name)
+            "Created directory ${action.path}"
         }
+    }
 
-        is AgentAction.Search -> search(root, action.query)
+    private suspend fun editFile(root: File, action: AgentAction.EditFile): String {
+        val path = action.path
+        val file = resolve(root, path)
+        require(file.isFile) { "No such file: $path (use create_file for new files)" }
+        fileContentRepository.writeText(file.absolutePath, action.content)
+        return "Updated $path"
+    }
 
-        is AgentAction.CreateFile -> {
-            val path = action.path
-            val file = resolve(root, path)
-            require(!file.exists()) { "Already exists: $path (use edit_file to overwrite)" }
-            fileContentRepository.writeText(file.absolutePath, action.content)
-            "Created $path"
+    private suspend fun renameEntry(root: File, action: AgentAction.Rename): String {
+        val file = resolve(root, action.path)
+        require(file.exists()) { "No such entry: ${action.path}" }
+        require(!action.newName.contains('/') && !action.newName.contains('\\')) {
+            "newName must be a single segment: ${action.newName}"
         }
+        val newPath = fileTreeRepository.rename(file.absolutePath, action.newName)
+        return "Renamed to ${relativePath(root, File(newPath))}"
+    }
 
-        is AgentAction.CreateDir -> {
-            val dir = resolve(root, action.path)
-            if (dir.isDirectory) {
-                "Already exists: ${action.path}"
-            } else {
-                val parent = dir.parentFile ?: root
-                fileTreeRepository.createDirectory(parent.absolutePath, dir.name)
-                "Created directory ${action.path}"
-            }
-        }
+    private suspend fun moveEntry(root: File, action: AgentAction.Move): String {
+        val file = resolve(root, action.path)
+        require(file.exists()) { "No such entry: ${action.path}" }
+        val newParent = resolve(root, action.newParent)
+        require(newParent.isDirectory) { "Not a directory: ${action.newParent}" }
+        val newPath = fileTreeRepository.move(file.absolutePath, newParent.absolutePath)
+        return "Moved to ${relativePath(root, File(newPath))}"
+    }
 
-        is AgentAction.EditFile -> {
-            val path = action.path
-            val file = resolve(root, path)
-            require(file.isFile) { "No such file: $path (use create_file for new files)" }
-            fileContentRepository.writeText(file.absolutePath, action.content)
-            "Updated $path"
-        }
-
-        is AgentAction.Rename -> {
-            val file = resolve(root, action.path)
-            require(file.exists()) { "No such entry: ${action.path}" }
-            require(!action.newName.contains('/') && !action.newName.contains('\\')) {
-                "newName must be a single segment: ${action.newName}"
-            }
-            val newPath = fileTreeRepository.rename(file.absolutePath, action.newName)
-            "Renamed to ${relativePath(root, File(newPath))}"
-        }
-
-        is AgentAction.Move -> {
-            val file = resolve(root, action.path)
-            require(file.exists()) { "No such entry: ${action.path}" }
-            val newParent = resolve(root, action.newParent)
-            require(newParent.isDirectory) { "Not a directory: ${action.newParent}" }
-            val newPath = fileTreeRepository.move(file.absolutePath, newParent.absolutePath)
-            "Moved to ${relativePath(root, File(newPath))}"
-        }
-
-        is AgentAction.Delete -> {
-            val file = resolve(root, action.path)
-            require(file.exists()) { "No such entry: ${action.path}" }
-            fileTreeRepository.delete(file.absolutePath)
-            "Deleted ${action.path}"
-        }
+    private suspend fun deleteEntry(root: File, action: AgentAction.Delete): String {
+        val file = resolve(root, action.path)
+        require(file.exists()) { "No such entry: ${action.path}" }
+        fileTreeRepository.delete(file.absolutePath)
+        return "Deleted ${action.path}"
     }
 
     private fun search(root: File, query: String): String {
