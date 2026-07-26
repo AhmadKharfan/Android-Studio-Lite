@@ -16,6 +16,14 @@ object KotlinLexUtil {
         var index: Int = 0,
     )
 
+    private enum class BraceScanState { Code, String, Character, TripleString }
+
+    private class BraceScan(
+        var state: BraceScanState = BraceScanState.Code,
+        var index: Int = 0,
+        var depth: Int = 0,
+    )
+
     fun isInsideStringLiteral(text: String, caret: Int): Boolean {
         if (caret < 0 || caret > text.length) return false
         val scan = StringScan()
@@ -158,44 +166,61 @@ object KotlinLexUtil {
     )
     fun isInFunctionBody(text: String, caret: Int): Boolean = braceDepthBefore(text, caret) > 0
     fun braceDepthBefore(text: String, caret: Int): Int {
-        var depth = 0
-        var i = 0
-        var inStr = false
-        var inChar = false
-        var raw = false
-        while (i < caret) {
-            when {
-                !inStr && !inChar && !raw && text.startsWith("\"\"\"", i) -> { raw = true; i += 3 }
-                raw -> {
-                    if (text.startsWith("\"\"\"", i)) { raw = false; i += 3 } else i++
-                }
-                !inStr && !inChar && text.startsWith("//", i) -> {
-                    i += 2
-                    while (i < caret && text[i] != '\n') i++
-                }
-                !inStr && !inChar && text.startsWith("/*", i) -> {
-                    i += 2
-                    while (i < caret && !text.startsWith("*/", i)) i++
-                    i += 2
-                }
-                inStr -> {
-                    if (text[i] == '\\') i += 2
-                    else if (text[i] == '"') { inStr = false; i++ }
-                    else i++
-                }
-                inChar -> {
-                    if (text[i] == '\\') i += 2
-                    else if (text[i] == '\'') { inChar = false; i++ }
-                    else i++
-                }
-                text[i] == '"' -> { inStr = true; i++ }
-                text[i] == '\'' -> { inChar = true; i++ }
-                text[i] == '{' -> { depth++; i++ }
-                text[i] == '}' -> { depth--; i++ }
-                else -> i++
-            }
+        val scan = BraceScan()
+        while (scan.index < caret) {
+            advanceBraceScan(text, caret, scan)
         }
-        return depth
+        return scan.depth
+    }
+
+    private fun advanceBraceScan(text: String, caret: Int, scan: BraceScan) {
+        when (scan.state) {
+            BraceScanState.Code -> scanBraceCode(text, caret, scan)
+            BraceScanState.String -> scanQuotedBraceText(text, scan, '"')
+            BraceScanState.Character -> scanQuotedBraceText(text, scan, '\'')
+            BraceScanState.TripleString -> scanTripleBraceText(text, scan)
+        }
+    }
+
+    private fun scanBraceCode(text: String, caret: Int, scan: BraceScan) {
+        when {
+            text.startsWith("\"\"\"", scan.index) -> scan.moveTo(BraceScanState.TripleString, 3)
+            text.startsWith("//", scan.index) -> {
+                scan.index += 2
+                while (scan.index < caret && text[scan.index] != '\n') scan.index++
+            }
+            text.startsWith("/*", scan.index) -> {
+                scan.index += 2
+                while (scan.index < caret && !text.startsWith("*/", scan.index)) scan.index++
+                scan.index += 2
+            }
+            text[scan.index] == '"' -> scan.moveTo(BraceScanState.String)
+            text[scan.index] == '\'' -> scan.moveTo(BraceScanState.Character)
+            text[scan.index] == '{' -> { scan.depth++; scan.index++ }
+            text[scan.index] == '}' -> { scan.depth--; scan.index++ }
+            else -> scan.index++
+        }
+    }
+
+    private fun scanQuotedBraceText(text: String, scan: BraceScan, quote: Char) {
+        when (text[scan.index]) {
+            '\\' -> scan.index += 2
+            quote -> scan.moveTo(BraceScanState.Code)
+            else -> scan.index++
+        }
+    }
+
+    private fun scanTripleBraceText(text: String, scan: BraceScan) {
+        if (text.startsWith("\"\"\"", scan.index)) {
+            scan.moveTo(BraceScanState.Code, 3)
+        } else {
+            scan.index++
+        }
+    }
+
+    private fun BraceScan.moveTo(nextState: BraceScanState, consumedCharacters: Int = 1) {
+        state = nextState
+        index += consumedCharacters
     }
     private val DECLARATION_KEYWORDS = listOf(
         "fun", "class", "data", "enum", "object", "interface", "constructor",
