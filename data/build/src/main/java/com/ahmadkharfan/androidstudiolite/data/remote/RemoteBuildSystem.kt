@@ -11,10 +11,13 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
+import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
+import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
+import com.ahmadkharfan.androidstudiolite.domain.time.AslClock
+import com.ahmadkharfan.androidstudiolite.domain.time.SystemAslClock
 import java.io.File
-import java.util.UUID
 import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +36,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import kotlin.time.Duration.Companion.milliseconds
 
 class RemoteBuildSystem(
     private val client: RemoteClient,
@@ -44,9 +48,10 @@ class RemoteBuildSystem(
     private val gitSourceResolver: suspend (File) -> GitRemoteInfo? = { null },
     private val releaseSigningResolver: suspend () -> SigningConfig? = { null },
     private val encodeBase64: (ByteArray) -> String = { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) },
+    private val clock: AslClock = SystemAslClock,
+    private val ids: IdGenerator = UuidIdGenerator,
+    private val cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : BuildSystem {
-
-    private val cancelScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile private var currentBuildId: String? = null
 
@@ -60,7 +65,7 @@ class RemoteBuildSystem(
                     modulePath = ":",
                     variantName = "model",
                     kind = BuildKind.MODEL,
-                    operationId = "model-${UUID.randomUUID()}",
+                    operationId = "model-${ids.newId()}",
                     taskPath = "aslModel",
                 ),
             ).collect { event ->
@@ -90,7 +95,7 @@ class RemoteBuildSystem(
     override fun build(request: BuildRequest): Flow<BuildEvent> = channelFlow {
         val projectRoot = request.projectRoot
         val parser = BuildEventParser()
-        val startedAt = System.currentTimeMillis()
+        val startedAt = clock.nowMillis()
         var socket: WebSocket? = null
         try {
             send(BuildEvent.Started(request))
@@ -150,7 +155,7 @@ class RemoteBuildSystem(
                     message = userFacingBuildError(t),
                 ),
             )
-            send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+            send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
         } finally {
             socket?.cancel()
             currentBuildId = null
@@ -159,7 +164,7 @@ class RemoteBuildSystem(
 
     override fun attach(buildId: String, projectRoot: File): Flow<BuildEvent> = channelFlow {
         val parser = BuildEventParser()
-        val startedAt = System.currentTimeMillis()
+        val startedAt = clock.nowMillis()
         var socket: WebSocket? = null
         try {
             currentBuildId = buildId
@@ -190,7 +195,7 @@ class RemoteBuildSystem(
                     message = userFacingBuildError(t),
                 ),
             )
-            send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+            send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
         } finally {
             socket?.cancel()
             currentBuildId = null
@@ -210,7 +215,7 @@ class RemoteBuildSystem(
         val followDeadline = startedAt + BUILD_FOLLOW_TIMEOUT_MS
 
         while (!finishedSeen) {
-            if (System.currentTimeMillis() >= followDeadline) break
+            if (clock.nowMillis() >= followDeadline) break
 
             val frames = Channel<Frame>(Channel.UNLIMITED)
             socketHolder(null)
@@ -247,7 +252,7 @@ class RemoteBuildSystem(
                 break
             }
 
-            if (System.currentTimeMillis() >= followDeadline) break
+            if (clock.nowMillis() >= followDeadline) break
 
             send(
                 BuildEvent.Problem(
@@ -255,11 +260,8 @@ class RemoteBuildSystem(
                     message = "Connection to build server lost (retrying…)",
                 ),
             )
-            val backoff = min(
-                STREAM_RECONNECT_BACKOFF_CAP_MS,
-                STREAM_RECONNECT_BACKOFF_MS shl min(reconnectAttempt, 5),
-            )
-            delay(backoff)
+            val backoff = reconnectBackoffMillis(reconnectAttempt)
+            delay(backoff.milliseconds)
             reconnectAttempt++
         }
 
@@ -273,7 +275,7 @@ class RemoteBuildSystem(
                     startedAt = startedAt,
                 )
             } else {
-                val timedOut = System.currentTimeMillis() >= followDeadline
+                val timedOut = clock.nowMillis() >= followDeadline
                 if (timedOut) runCatching { client.cancelBuild(buildId) }
                 send(
                     BuildEvent.Problem(
@@ -288,7 +290,7 @@ class RemoteBuildSystem(
                         },
                     ),
                 )
-                send(BuildEvent.Finished(success = false, durationMillis = System.currentTimeMillis() - startedAt))
+                send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
             }
         }
     }
@@ -304,11 +306,11 @@ class RemoteBuildSystem(
     ): StreamConsumeResult {
         var textFramesSeen = 0
         while (true) {
-            if (System.currentTimeMillis() >= followDeadline) {
+            if (clock.nowMillis() >= followDeadline) {
                 return StreamConsumeResult(false, textFramesSeen)
             }
 
-            val result = withTimeoutOrNull(STATUS_POLL_INTERVAL_MS) {
+            val result = withTimeoutOrNull(STATUS_POLL_INTERVAL_MS.milliseconds) {
                 frames.receiveCatching()
             }
             if (result == null) {
@@ -328,7 +330,7 @@ class RemoteBuildSystem(
                     val event = parser.parse(frame.text, projectRoot) ?: continue
                     if (event is BuildEvent.ArtifactProduced) {
                         if (!emitDownloadedArtifact(buildId, event)) {
-                            send(BuildEvent.Finished(false, System.currentTimeMillis() - startedAt))
+                            send(BuildEvent.Finished(false, clock.nowMillis() - startedAt))
                             return StreamConsumeResult(true, textFramesSeen)
                         }
                     } else {
@@ -383,7 +385,7 @@ class RemoteBuildSystem(
         send(
             BuildEvent.Finished(
                 success = success,
-                durationMillis = status.durationMillis ?: (System.currentTimeMillis() - startedAt),
+                durationMillis = status.durationMillis ?: (clock.nowMillis() - startedAt),
             ),
         )
     }
@@ -527,9 +529,15 @@ class RemoteBuildSystem(
     }
 
     private companion object {
-        private const val BUILD_FOLLOW_TIMEOUT_MS = 5_700_000L
-        private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
-        private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
-        private const val STATUS_POLL_INTERVAL_MS = 5_000L
+        const val BUILD_FOLLOW_TIMEOUT_MS = 5_700_000L
+        const val STATUS_POLL_INTERVAL_MS = 5_000L
     }
 }
+
+private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
+private const val STREAM_RECONNECT_BACKOFF_CAP_MS = 30_000L
+
+internal fun reconnectBackoffMillis(attempt: Int): Long = min(
+    STREAM_RECONNECT_BACKOFF_CAP_MS,
+    STREAM_RECONNECT_BACKOFF_MS shl min(attempt, 5),
+)
