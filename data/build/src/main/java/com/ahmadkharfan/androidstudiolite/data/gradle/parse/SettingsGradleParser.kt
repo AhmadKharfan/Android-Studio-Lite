@@ -6,45 +6,45 @@ object SettingsGradleParser {
 
     fun parse(text: CharSequence): ParsedSettings {
         val tokens = GradleScriptScanner.tokenize(text)
-        val modulePaths = LinkedHashSet<String>()
-        val dirOverrides = LinkedHashMap<String, String>()
-        var rootName: String? = null
-
-        var i = 0
-        while (i < tokens.size) {
-            val t = tokens[i]
-            if (t.type == GTokenType.IDENT) {
-                when (t.text) {
-                    "include" -> {
-
-
-                        collectStatementStrings(tokens, i + 1).forEach { s ->
-                            if (s.startsWith(":")) modulePaths += s
-                        }
-                    }
-                    "rootProject" -> {
-
-                        val eq = indexOfEqAfter(tokens, i)
-                        if (eq != null) {
-                            tokens.getOrNull(eq + 1)?.let { if (it.type == GTokenType.STRING) rootName = it.stringValue() }
-                        }
-                    }
-                    "project" -> {
-
-                        val path = tokens.getOrNull(i + 1)?.takeIf { it.type == GTokenType.LPAREN }
-                            ?.let { tokens.getOrNull(i + 2) }
-                            ?.takeIf { it.type == GTokenType.STRING }?.stringValue()
-                        if (path != null) {
-                            val eq = indexOfEqAfter(tokens, i)
-                            val fileArg = eq?.let { firstStringInCall(tokens, it + 1) }
-                            if (fileArg != null) dirOverrides[path] = fileArg
-                        }
-                    }
-                }
-            }
-            i++
+        val settings = ParsedSettingsState()
+        tokens.forEachIndexed { index, token ->
+            if (token.type == GTokenType.IDENT) readStatement(tokens, index, token.text, settings)
         }
-        return ParsedSettings(rootName, modulePaths.toList(), dirOverrides)
+        return ParsedSettings(settings.rootName, settings.modulePaths.toList(), settings.dirOverrides)
+    }
+
+    private fun readStatement(
+        tokens: List<GToken>,
+        index: Int,
+        name: String,
+        settings: ParsedSettingsState,
+    ) {
+        when (name) {
+            "include" -> collectStatementStrings(tokens, index + 1)
+                .filterTo(settings.modulePaths) { it.startsWith(":") }
+            "rootProject" -> rootNameAt(tokens, index)?.let { settings.rootName = it }
+            "project" -> projectDirOverrideAt(tokens, index)?.let { (path, directory) ->
+                settings.dirOverrides[path] = directory
+            }
+        }
+    }
+
+    private fun rootNameAt(tokens: List<GToken>, index: Int): String? {
+        val equals = indexOfEqAfter(tokens, index) ?: return null
+        return tokens.getOrNull(equals + 1)
+            ?.takeIf { it.type == GTokenType.STRING }
+            ?.stringValue()
+    }
+
+    private fun projectDirOverrideAt(tokens: List<GToken>, index: Int): Pair<String, String>? {
+        val path = tokens.getOrNull(index + 1)?.takeIf { it.type == GTokenType.LPAREN }
+            ?.let { tokens.getOrNull(index + 2) }
+            ?.takeIf { it.type == GTokenType.STRING }
+            ?.stringValue()
+            ?: return null
+        val equals = indexOfEqAfter(tokens, index) ?: return null
+        val directory = firstStringInCall(tokens, equals + 1) ?: return null
+        return path to directory
     }
 
     private fun collectStatementStrings(tokens: List<GToken>, from: Int): List<String> {
@@ -86,4 +86,10 @@ object SettingsGradleParser {
         }
         return null
     }
+
+    private data class ParsedSettingsState(
+        var rootName: String? = null,
+        val modulePaths: LinkedHashSet<String> = LinkedHashSet(),
+        val dirOverrides: LinkedHashMap<String, String> = LinkedHashMap(),
+    )
 }
