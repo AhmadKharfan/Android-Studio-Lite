@@ -9,13 +9,22 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfigState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemote
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
+import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSubmodule
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSubmoduleStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import com.ahmadkharfan.androidstudiolite.domain.model.GitUpstream
+import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
@@ -30,6 +39,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -167,10 +177,193 @@ class GitPanelControllersTest {
         viewModel.viewModelScope.cancel()
     }
 
+    @Test
+    fun `single stage and unstage move only the requested path`() = runBlocking {
+        repository.state.value = GitState(
+            files = listOf(
+                GitFileState("modified.kt", worktreeStatus = GitWorktreeStatus.MODIFIED),
+                GitFileState("staged.kt", indexStatus = GitIndexStatus.MODIFIED),
+            ),
+        )
+        val viewModel = readyViewModel()
+
+        viewModel.onStage("modified.kt")
+        withTimeout(5_000) {
+            viewModel.state.first { state ->
+                state.stagedChanges.map { it.path }.toSet() == setOf("modified.kt", "staged.kt") &&
+                    state.unstagedChanges.isEmpty()
+            }
+        }
+        assertEquals(listOf("modified.kt"), repository.stageCalls)
+
+        viewModel.onUnstage("staged.kt")
+        withTimeout(5_000) {
+            viewModel.state.first { state ->
+                state.stagedChanges.single().path == "modified.kt" &&
+                    state.unstagedChanges.single().path == "staged.kt"
+            }
+        }
+        assertEquals(listOf("staged.kt"), repository.unstageCalls)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `stage all and unstage all move every change`() = runBlocking {
+        repository.state.value = GitState(files = workingFiles())
+        val viewModel = readyViewModel()
+
+        viewModel.onStageAll()
+        withTimeout(5_000) {
+            viewModel.state.first { it.stagedChanges.map { change -> change.path }.toSet() == ALL_PATHS }
+        }
+        assertEquals(1, repository.stageAllCalls)
+
+        viewModel.onUnstageAll()
+        withTimeout(5_000) {
+            viewModel.state.first { it.stagedChanges.isEmpty() && it.allChangePaths == ALL_PATHS }
+        }
+        assertEquals(1, repository.unstageAllCalls)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `selection actions toggle paths sections and the complete change set`() = runBlocking {
+        repository.state.value = GitState(files = workingFiles())
+        val viewModel = readyViewModel()
+
+        viewModel.onToggleSelect("modified.kt")
+        assertEquals(setOf("modified.kt"), viewModel.state.value.selectedPaths)
+        viewModel.onToggleSelect("modified.kt")
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+
+        viewModel.onToggleSectionSelect(listOf("modified.kt", "new.kt"), true)
+        assertEquals(setOf("modified.kt", "new.kt"), viewModel.state.value.selectedPaths)
+        viewModel.onToggleSectionSelect(listOf("modified.kt", "new.kt"), false)
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+
+        viewModel.onSelectAllChanges()
+        assertEquals(ALL_PATHS, viewModel.state.value.selectedPaths)
+        viewModel.onClearSelection()
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `bulk staging and restore use exactly the eligible selected paths then clear selection`() = runBlocking {
+        repository.state.value = GitState(files = workingFiles())
+        val viewModel = readyViewModel()
+
+        viewModel.onToggleSectionSelect(listOf("modified.kt", "new.kt", "staged.kt"), true)
+        viewModel.onStageSelected()
+        withTimeout(5_000) {
+            viewModel.state.first { it.selectedPaths.isEmpty() && repository.stageCalls.size == 2 }
+        }
+        assertEquals(setOf("modified.kt", "new.kt"), repository.stageCalls.toSet())
+
+        viewModel.onToggleSectionSelect(listOf("modified.kt", "staged.kt"), true)
+        viewModel.onUnstageSelected()
+        withTimeout(5_000) {
+            viewModel.state.first { it.selectedPaths.isEmpty() && repository.unstageCalls.size == 2 }
+        }
+        assertEquals(setOf("modified.kt", "staged.kt"), repository.unstageCalls.toSet())
+
+        viewModel.onToggleSectionSelect(listOf("modified.kt", "new.kt"), true)
+        viewModel.onRevertSelected()
+        assertEquals(listOf("modified.kt"), viewModel.state.value.pendingRestorePaths)
+        viewModel.onConfirmRestore()
+        awaitCondition { repository.restoreCalls.isNotEmpty() }
+        assertEquals(listOf(listOf("modified.kt")), repository.restoreCalls)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `selecting a change loads its diff and closing clears it`() = runBlocking {
+        repository.state.value = GitState(files = workingFiles())
+        val viewModel = readyViewModel()
+
+        viewModel.onSelectChange("modified.kt", GitDiffTarget.INDEX_TO_WORKTREE)
+        val selected = withTimeout(5_000) {
+            viewModel.state.first { it.selectedPath == "modified.kt" && it.diffLines.isNotEmpty() }
+        }
+        assertEquals(GitDiffTarget.INDEX_TO_WORKTREE, selected.selectedDiffTarget)
+        assertEquals(listOf("modified.kt"), repository.worktreeDiffCalls)
+
+        viewModel.onCloseDiff()
+        assertNull(viewModel.state.value.selectedPath)
+        assertTrue(viewModel.state.value.diffLines.isEmpty())
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `operation dialogs confirm or dismiss abort and restore while continue resumes rebase`() = runBlocking {
+        repository.state.value = GitState(files = emptyList(), repositoryState = GitRepositoryState.REBASING)
+        val viewModel = readyViewModel()
+
+        viewModel.onContinueOperation()
+        awaitCondition { repository.rebaseContinueCalls == 1 }
+
+        viewModel.onRequestAbortOperation()
+        assertTrue(viewModel.state.value.abortConfirmVisible)
+        viewModel.onConfirmAbortOperation()
+        awaitCondition { repository.abortCalls == listOf("rebase") }
+        assertFalse(viewModel.state.value.abortConfirmVisible)
+
+        viewModel.onRequestAbortOperation()
+        viewModel.onDismissAbortOperation()
+        assertFalse(viewModel.state.value.abortConfirmVisible)
+        assertEquals(listOf("rebase"), repository.abortCalls)
+
+        viewModel.onRequestRestore("modified.kt")
+        assertEquals(listOf("modified.kt"), viewModel.state.value.pendingRestorePaths)
+        viewModel.onConfirmRestore()
+        awaitCondition { repository.restoreCalls.size == 1 }
+        assertTrue(viewModel.state.value.pendingRestorePaths.isEmpty())
+
+        viewModel.onRequestRestore("kept.kt")
+        viewModel.onDismissRestore()
+        assertTrue(viewModel.state.value.pendingRestorePaths.isEmpty())
+        assertEquals(listOf(listOf("modified.kt")), repository.restoreCalls)
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `clean preview follows ignored choice confirm cleans and dismiss clears preview`() = runBlocking {
+        val viewModel = readyViewModel()
+
+        viewModel.onPreviewClean()
+        withTimeout(5_000) { viewModel.state.first { it.cleanPreview == listOf("build/") } }
+        assertEquals(listOf(true to false), repository.cleanCalls)
+
+        viewModel.onCleanIncludeIgnoredChanged(true)
+        withTimeout(5_000) {
+            viewModel.state.first { it.cleanPreview == listOf("build/", ".cache/") }
+        }
+        assertTrue(viewModel.state.value.cleanIncludeIgnored)
+        assertEquals(listOf(true to false, true to true), repository.cleanCalls)
+
+        viewModel.onConfirmClean()
+        withTimeout(5_000) {
+            viewModel.state.first { it.cleanPreview == null && it.statusMessage == "Removed 2 path(s)" }
+        }
+        assertEquals(false to true, repository.cleanCalls.last())
+
+        viewModel.onPreviewClean()
+        withTimeout(5_000) { viewModel.state.first { it.cleanPreview != null } }
+        viewModel.onDismissClean()
+        assertNull(viewModel.state.value.cleanPreview)
+        viewModel.viewModelScope.cancel()
+    }
+
     private suspend fun readyViewModel(): GitPanelViewModel {
         val viewModel = viewModel()
         withTimeout(5_000) { viewModel.state.first { !it.loading } }
         return viewModel
+    }
+
+    private suspend fun awaitCondition(condition: () -> Boolean) {
+        withTimeout(5_000) {
+            while (!condition()) delay(1)
+        }
     }
 
     private fun viewModel(): GitPanelViewModel = GitPanelViewModel(
@@ -193,6 +386,7 @@ class GitPanelControllersTest {
             override val isConfigured: Boolean = false
             override fun authenticate(): Flow<GitHubDeviceAuthState> = emptyFlow()
         },
+        ioDispatcher = Dispatchers.Unconfined,
     )
 
     private class FakeProjectRepository(root: File) : ProjectRepository {
@@ -207,6 +401,15 @@ class GitPanelControllersTest {
 
     private class FakeGitRepository : GitRepository {
         val state = MutableStateFlow(GitState(files = emptyList()))
+        val stageCalls = mutableListOf<String>()
+        val unstageCalls = mutableListOf<String>()
+        var stageAllCalls = 0
+        var unstageAllCalls = 0
+        val worktreeDiffCalls = mutableListOf<String>()
+        var rebaseContinueCalls = 0
+        val abortCalls = mutableListOf<String>()
+        val restoreCalls = mutableListOf<List<String>>()
+        val cleanCalls = mutableListOf<Pair<Boolean, Boolean>>()
         var submoduleItems = emptyList<GitSubmodule>()
         var submoduleInitCalls = 0
         var submoduleUpdateCalls = 0
@@ -228,14 +431,27 @@ class GitPanelControllersTest {
             options: CloneOptions,
             credentials: GitCredentials?,
         ): Flow<CloneProgress> = emptyFlow()
-        override suspend fun diffIndexToWorktree(repoDir: File, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+        override suspend fun diffIndexToWorktree(repoDir: File, path: String, force: Boolean): GitFileDiff {
+            worktreeDiffCalls += path
+            return GitFileDiff(
+                path = path,
+                hunks = listOf(
+                    GitDiffHunk(
+                        oldStart = 1,
+                        oldCount = 1,
+                        newStart = 1,
+                        newCount = 1,
+                        lines = listOf(GitDiffLine(GitDiffKind.MODIFIED, "changed", 1, 1)),
+                    ),
+                ),
+            )
+        }
         override suspend fun diffHeadToIndex(repoDir: File, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun diffCommitToParent(repoDir: File, commitId: String, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun diffIndexToBuffer(repoDir: File, path: String, buffer: String) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun stageHunk(
             repoDir: File,
             path: String,
@@ -246,10 +462,26 @@ class GitPanelControllersTest {
             path: String,
             hunk: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk,
         ) = Unit
-        override suspend fun stage(repoDir: File, path: String) = Unit
-        override suspend fun unstage(repoDir: File, path: String) = Unit
-        override suspend fun stageAll(repoDir: File) = Unit
-        override suspend fun unstageAll(repoDir: File) = Unit
+        override suspend fun stage(repoDir: File, path: String) {
+            stageCalls += path
+            state.value = state.value.copy(files = state.value.files.map { file ->
+                if (file.path == path) file.staged() else file
+            })
+        }
+        override suspend fun unstage(repoDir: File, path: String) {
+            unstageCalls += path
+            state.value = state.value.copy(files = state.value.files.map { file ->
+                if (file.path == path) file.unstaged() else file
+            })
+        }
+        override suspend fun stageAll(repoDir: File) {
+            stageAllCalls++
+            state.value = state.value.copy(files = state.value.files.map { it.staged() })
+        }
+        override suspend fun unstageAll(repoDir: File) {
+            unstageAllCalls++
+            state.value = state.value.copy(files = state.value.files.map { it.unstaged() })
+        }
         override suspend fun setCommitMessage(repoDir: File, message: String) = Unit
         override suspend fun commit(repoDir: File, amend: Boolean): String = "unused"
         override suspend fun getAuthorConfig(repoDir: File): GitAuthorConfigState = authorConfig
@@ -313,17 +545,23 @@ class GitPanelControllersTest {
         ) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
         )
-        override suspend fun mergeAbort(repoDir: File) = Unit
+        override suspend fun mergeAbort(repoDir: File) {
+            abortCalls += "merge"
+        }
         override suspend fun cherryPick(repoDir: File, commitId: String) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED,
             )
-        override suspend fun cherryPickAbort(repoDir: File) = Unit
+        override suspend fun cherryPickAbort(repoDir: File) {
+            abortCalls += "cherry-pick"
+        }
         override suspend fun revert(repoDir: File, commitId: String) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED,
             )
-        override suspend fun revertAbort(repoDir: File) = Unit
+        override suspend fun revertAbort(repoDir: File) {
+            abortCalls += "revert"
+        }
         override suspend fun rebase(repoDir: File, upstreamRef: String) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
@@ -331,7 +569,7 @@ class GitPanelControllersTest {
         override suspend fun rebaseContinue(repoDir: File) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
-            )
+            ).also { rebaseContinueCalls++ }
         override suspend fun rebaseSkip(repoDir: File) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
@@ -339,19 +577,24 @@ class GitPanelControllersTest {
         override suspend fun rebaseAbort(repoDir: File) =
             com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
                 com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.ABORTED,
-            )
+            ).also { abortCalls += "rebase" }
         override suspend fun conflictEntries(repoDir: File) =
             emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry>()
         override suspend fun resolveAcceptOurs(repoDir: File, path: String) = Unit
         override suspend fun resolveAcceptTheirs(repoDir: File, path: String) = Unit
         override suspend fun markResolved(repoDir: File, path: String) = Unit
-        override suspend fun restoreFiles(repoDir: File, paths: List<String>) = Unit
+        override suspend fun restoreFiles(repoDir: File, paths: List<String>) {
+            restoreCalls += paths
+        }
         override suspend fun reset(
             repoDir: File,
             commitId: String,
             mode: com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode,
         ) = Unit
-        override suspend fun clean(repoDir: File, dryRun: Boolean, includeIgnored: Boolean) = emptyList<String>()
+        override suspend fun clean(repoDir: File, dryRun: Boolean, includeIgnored: Boolean): List<String> {
+            cleanCalls += dryRun to includeIgnored
+            return if (includeIgnored) listOf("build/", ".cache/") else listOf("build/")
+        }
         override suspend fun submodules(repoDir: File): List<GitSubmodule> = submoduleItems
         override suspend fun submoduleInit(repoDir: File) {
             submoduleInitCalls++
@@ -371,5 +614,33 @@ class GitPanelControllersTest {
         override suspend fun isRepository(repoDir: File): Boolean = true
         override suspend fun remoteInfo(repoDir: File): GitRemoteInfo? = null
         override suspend fun init(repoDir: File) = Unit
+
+        private fun GitFileState.staged() = copy(
+            indexStatus = if (worktreeStatus == GitWorktreeStatus.UNTRACKED) {
+                GitIndexStatus.ADDED
+            } else {
+                GitIndexStatus.MODIFIED
+            },
+            worktreeStatus = GitWorktreeStatus.UNCHANGED,
+        )
+
+        private fun GitFileState.unstaged() = copy(
+            indexStatus = GitIndexStatus.UNCHANGED,
+            worktreeStatus = if (indexStatus == GitIndexStatus.ADDED) {
+                GitWorktreeStatus.UNTRACKED
+            } else {
+                GitWorktreeStatus.MODIFIED
+            },
+        )
+    }
+
+    private companion object {
+        val ALL_PATHS = setOf("staged.kt", "modified.kt", "new.kt")
+
+        fun workingFiles() = listOf(
+            GitFileState("staged.kt", indexStatus = GitIndexStatus.MODIFIED),
+            GitFileState("modified.kt", worktreeStatus = GitWorktreeStatus.MODIFIED),
+            GitFileState("new.kt", worktreeStatus = GitWorktreeStatus.UNTRACKED),
+        )
     }
 }
