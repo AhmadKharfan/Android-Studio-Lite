@@ -29,7 +29,7 @@ class AndroidProjectRepository(
     override fun observeRecentProjects(): Flow<List<Project>> =
         dataStore.data
             .map { prefs ->
-                decode(prefs[KEY].orEmpty()).filter { File(it.path).isDirectory }
+                ProjectRecordCodec.decode(prefs[KEY].orEmpty()).filter { File(it.path).isDirectory }
             }
             .flowOn(Dispatchers.IO)
 
@@ -59,7 +59,7 @@ class AndroidProjectRepository(
             id = alreadyRegistered?.id ?: uniqueProjectId(dir.name, projects),
             name = alreadyRegistered?.name ?: dir.name.ifBlank { "Project" },
             path = dir.absolutePath,
-            language = detectLanguage(dir),
+            language = ProjectLanguageDetector.detectLanguage(dir),
             lastOpenedMillis = clock(),
             packageName = alreadyRegistered?.packageName,
             buildable = isGradleProject(dir),
@@ -71,7 +71,7 @@ class AndroidProjectRepository(
     override suspend fun openProject(id: String): Project = withContext(Dispatchers.IO) {
         val current = requireProject(id)
         val project = current.copy(
-            language = detectLanguage(File(current.path)),
+            language = ProjectLanguageDetector.detectLanguage(File(current.path)),
             lastOpenedMillis = clock(),
         )
         upsert(project)
@@ -102,7 +102,7 @@ class AndroidProjectRepository(
             id = dest.name,
             name = source.name,
             path = dest.absolutePath,
-            language = detectLanguage(dest),
+            language = ProjectLanguageDetector.detectLanguage(dest),
             lastOpenedMillis = clock(),
             buildable = true,
         )
@@ -112,7 +112,7 @@ class AndroidProjectRepository(
     }
 
 
-    private suspend fun current(): List<Project> = decode(dataStore.data.first()[KEY].orEmpty())
+    private suspend fun current(): List<Project> = ProjectRecordCodec.decode(dataStore.data.first()[KEY].orEmpty())
 
     private suspend fun upsert(project: Project) {
         val next = listOf(project) + current().filterNot { it.id == project.id }
@@ -120,7 +120,7 @@ class AndroidProjectRepository(
     }
 
     private suspend fun save(projects: List<Project>) {
-        dataStore.edit { it[KEY] = encode(projects) }
+        dataStore.edit { it[KEY] = ProjectRecordCodec.encode(projects) }
     }
 
     private suspend fun requireProject(id: String): Project =
@@ -155,104 +155,7 @@ class AndroidProjectRepository(
         return candidate
     }
 
-    private fun detectLanguage(dir: File): String {
-        val sources = dir.walkTopDown()
-            .onEnter { !LocalFsSupport.isIgnoredDir(it) }
-            .filter { it.isFile && it.isMainProjectSource(dir) }
-        var sawKotlin = false
-        var sawJava = false
-        for (file in sources) {
-            when (file.extension) {
-                "kt" -> sawKotlin = true
-                "java" -> sawJava = true
-            }
-            if (sawKotlin && sawJava) break
-        }
-        return when {
-            sawKotlin && sawJava -> "Java + Kotlin"
-            sawKotlin -> "Kotlin"
-            sawJava -> "Java"
-            usesKotlinPlugin(dir) -> "Kotlin"
-            else -> "Java"
-        }
-    }
-
-    private fun File.isMainProjectSource(projectRoot: File): Boolean {
-        val parts = relativeToOrNull(projectRoot)?.invariantSeparatorsPath?.split('/').orEmpty()
-        if (parts.firstOrNull() == "buildSrc") return false
-        val src = parts.indexOf("src")
-        if (src < 0 || src + 2 >= parts.size) return false
-        val sourceSet = parts[src + 1]
-        val sourceDirectory = parts[src + 2]
-        return sourceSet != "test" && sourceSet != "androidTest" &&
-            sourceDirectory in setOf("java", "kotlin")
-    }
-
-    private fun usesKotlinPlugin(dir: File): Boolean =
-        listOf("build.gradle.kts", "build.gradle", "app/build.gradle.kts", "app/build.gradle")
-            .asSequence()
-            .map { File(dir, it) }
-            .filter(File::isFile)
-            .any { file ->
-                val script = runCatching { file.readText() }.getOrDefault("")
-                script.contains("org.jetbrains.kotlin") ||
-                    script.contains("kotlin(\"android\")") ||
-                    script.contains("kotlin-android")
-            }
-
     private companion object {
         val KEY = stringPreferencesKey("recent_projects")
-
-
-        fun encode(projects: List<Project>): String =
-            projects.joinToString("\n") { p ->
-                listOf(
-                    p.id, p.name, p.path, p.language, (p.lastOpenedMillis ?: 0L).toString(),
-                    p.packageName.orEmpty(), p.buildable.toString(),
-                ).joinToString("\t") { escape(it) }
-            }
-
-
-        fun decode(raw: String): List<Project> =
-            if (raw.isEmpty()) emptyList()
-            else raw.split("\n").mapNotNull { line ->
-                val parts = line.split("\t")
-                if (parts.size < 5) return@mapNotNull null
-                Project(
-                    id = unescape(parts[0]),
-                    name = unescape(parts[1]),
-                    path = unescape(parts[2]),
-                    language = unescape(parts[3]),
-                    lastOpenedMillis = unescape(parts[4]).toLongOrNull()?.takeIf { it > 0L },
-                    packageName = parts.getOrNull(5)?.let(::unescape)?.takeIf { it.isNotBlank() },
-
-
-                    buildable = parts.getOrNull(6)?.let(::unescape)?.toBooleanStrictOrNull() ?: true,
-                )
-            }
-
-        fun escape(s: String): String =
-            s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n")
-
-        fun unescape(s: String): String {
-            val out = StringBuilder(s.length)
-            var i = 0
-            while (i < s.length) {
-                val c = s[i]
-                if (c == '\\' && i + 1 < s.length) {
-                    when (s[i + 1]) {
-                        't' -> out.append('\t')
-                        'n' -> out.append('\n')
-                        '\\' -> out.append('\\')
-                        else -> out.append(s[i + 1])
-                    }
-                    i += 2
-                } else {
-                    out.append(c)
-                    i++
-                }
-            }
-            return out.toString()
-        }
     }
 }
