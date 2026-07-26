@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.serialization.Serializable
@@ -36,53 +37,66 @@ class GitHubDeviceFlowAuthenticator(
             emit(GitHubDeviceAuthState.Error("GitHub sign-in isn't configured. Use an access token instead."))
             return@flow
         }
+        authenticateConfigured()
+    }.flowOn(ioDispatcher)
+
+    private suspend fun FlowCollector<GitHubDeviceAuthState>.authenticateConfigured() {
         emit(GitHubDeviceAuthState.RequestingCode)
-
-        val code = try {
-            requestDeviceCode()
-        } catch (e: IOException) {
-            emit(GitHubDeviceAuthState.Error(e.message ?: "Couldn't reach GitHub"))
-            return@flow
-        }
+        val code = requestDeviceCodeOrReport() ?: return
         emit(GitHubDeviceAuthState.AwaitingAuthorization(code.userCode, code.verificationUri))
+        pollForAuthorization(code)
+    }
 
-        var intervalSeconds = code.interval.coerceAtLeast(MIN_POLL_SECONDS)
-        val deadline = clock.elapsedMillis() + code.expiresIn * 1000L
+    private suspend fun FlowCollector<GitHubDeviceAuthState>.requestDeviceCodeOrReport(): DeviceCode? =
+        try {
+            requestDeviceCode()
+        } catch (error: IOException) {
+            emit(GitHubDeviceAuthState.Error(error.message ?: "Couldn't reach GitHub"))
+            null
+        }
 
-
-        var consecutiveErrors = 0
-        while (clock.elapsedMillis() < deadline) {
-            delay(intervalSeconds * 1000L)
+    private suspend fun FlowCollector<GitHubDeviceAuthState>.pollForAuthorization(code: DeviceCode) {
+        val polling = DevicePolling(
+            intervalSeconds = code.interval.coerceAtLeast(MIN_POLL_SECONDS),
+            deadline = clock.elapsedMillis() + code.expiresIn * 1000L,
+        )
+        while (clock.elapsedMillis() < polling.deadline) {
+            delay(polling.intervalSeconds * 1000L)
             val token = try {
-                pollForToken(code.deviceCode).also { consecutiveErrors = 0 }
-            } catch (e: IOException) {
-                consecutiveErrors++
-                if (consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
-                    emit(GitHubDeviceAuthState.Error(e.message ?: "Couldn't reach GitHub. Check your connection."))
-                    return@flow
+                pollForToken(code.deviceCode).also { polling.consecutiveErrors = 0 }
+            } catch (error: IOException) {
+                polling.consecutiveErrors++
+                if (polling.consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
+                    emit(GitHubDeviceAuthState.Error(error.message ?: "Couldn't reach GitHub. Check your connection."))
+                    return
                 }
                 continue
             }
-            when (token) {
-                is TokenPoll.Pending -> Unit
-                is TokenPoll.SlowDown -> intervalSeconds += SLOW_DOWN_STEP_SECONDS
-                is TokenPoll.Denied -> {
-                    emit(GitHubDeviceAuthState.Error(token.message))
-                    return@flow
-                }
-                is TokenPoll.Granted -> {
-                    credentialStore.save(
-                        GITHUB_HOST,
-                        GitCredentials(username = DEFAULT_USERNAME, token = token.accessToken),
-                    )
-                    val login = runCatching { fetchLogin(token.accessToken) }.getOrNull()
-                    emit(GitHubDeviceAuthState.Success(login))
-                    return@flow
-                }
+            val terminalState = processToken(token, polling)
+            if (terminalState != null) {
+                emit(terminalState)
+                return
             }
         }
         emit(GitHubDeviceAuthState.Error("The code expired before sign-in completed. Try again."))
-    }.flowOn(ioDispatcher)
+    }
+
+    private fun processToken(token: TokenPoll, polling: DevicePolling): GitHubDeviceAuthState? = when (token) {
+        is TokenPoll.Pending -> null
+        is TokenPoll.SlowDown -> {
+            polling.intervalSeconds += SLOW_DOWN_STEP_SECONDS
+            null
+        }
+        is TokenPoll.Denied -> GitHubDeviceAuthState.Error(token.message)
+        is TokenPoll.Granted -> {
+            credentialStore.save(
+                GITHUB_HOST,
+                GitCredentials(username = DEFAULT_USERNAME, token = token.accessToken),
+            )
+            val login = runCatching { fetchLogin(token.accessToken) }.getOrNull()
+            GitHubDeviceAuthState.Success(login)
+        }
+    }
 
     private fun requestDeviceCode(): DeviceCode {
         val body = FormBody.Builder()
@@ -152,6 +166,12 @@ class GitHubDeviceFlowAuthenticator(
         val verificationUri: String,
         val interval: Int,
         val expiresIn: Int,
+    )
+
+    private data class DevicePolling(
+        var intervalSeconds: Int,
+        val deadline: Long,
+        var consecutiveErrors: Int = 0,
     )
 
     private sealed interface TokenPoll {
