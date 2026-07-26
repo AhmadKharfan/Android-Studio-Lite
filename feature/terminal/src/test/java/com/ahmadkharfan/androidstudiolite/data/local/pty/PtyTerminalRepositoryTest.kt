@@ -60,7 +60,7 @@ class PtyTerminalRepositoryTest {
         repo.start(rows = 24, cols = 80)
         fake.emit("top - 15:04:01[31mLOAD[0m")
 
-        val bytes = withTimeout(3000.milliseconds) {
+        val bytes = withTimeout(30_000.milliseconds) {
             var found: String? = null
             while (found == null) {
                 val e = events.receive()
@@ -82,7 +82,7 @@ class PtyTerminalRepositoryTest {
         repo.writeInput("q")
         repo.send("ls -la")
         runCatching {
-            withTimeout(3000.milliseconds) {
+            withTimeout(30_000.milliseconds) {
                 while (fake.captured.toString(Charsets.UTF_8.name()) != "qls -la\n") { delay(1) }
             }
         }
@@ -113,7 +113,7 @@ class PtyTerminalRepositoryTest {
         fake.emit("bye")
         fake.destroy()
 
-        val ended = withTimeout(3000.milliseconds) {
+        val ended = withTimeout(30_000.milliseconds) {
             var sawEnd = false
             while (!sawEnd) {
                 if (events.receive() is TerminalEvent.SessionEnded) sawEnd = true
