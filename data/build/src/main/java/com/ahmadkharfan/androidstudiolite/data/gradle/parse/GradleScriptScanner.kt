@@ -27,87 +27,116 @@ data class GToken(
 
 object GradleScriptScanner {
 
-    fun tokenize(text: CharSequence): List<GToken> {
-        val out = ArrayList<GToken>()
-        val len = text.length
-        var i = 0
-        while (i < len) {
-            val c = text[i]
-            when {
-                c == '\n' -> { out += GToken(GTokenType.NEWLINE, "\n", i, i + 1); i++ }
-                c == '\r' -> i++
-                c.isWhitespace() -> i++
-                c == '/' && i + 1 < len && text[i + 1] == '/' -> {
-                    var j = i + 2
-                    while (j < len && text[j] != '\n') j++
-                    i = j
-                }
-                c == '/' && i + 1 < len && text[i + 1] == '*' -> {
-                    var j = i + 2
-                    while (j + 1 < len && !(text[j] == '*' && text[j + 1] == '/')) j++
-                    i = (j + 2).coerceAtMost(len)
-                }
-                c == '"' || c == '\'' -> {
-                    val (tok, next) = readString(text, i, c)
-                    out += tok; i = next
-                }
-                c.isDigit() -> {
-                    var j = i + 1
-                    while (j < len && (text[j].isLetterOrDigit() || text[j] == '.' || text[j] == '_')) j++
-                    out += GToken(GTokenType.NUMBER, text.substring(i, j), i, j); i = j
-                }
-                isIdentStart(c) -> {
-                    var j = i + 1
-                    while (j < len && isIdentPart(text[j])) j++
-                    out += GToken(GTokenType.IDENT, text.substring(i, j), i, j); i = j
-                }
-                c == '`' -> {
-                    var j = i + 1
-                    while (j < len && text[j] != '`') j++
-                    out += GToken(GTokenType.IDENT, text.substring(i + 1, j.coerceAtMost(len)), i, (j + 1).coerceAtMost(len))
-                    i = (j + 1).coerceAtMost(len)
-                }
-                else -> {
-                    val type = when (c) {
-                        '{' -> GTokenType.LBRACE
-                        '}' -> GTokenType.RBRACE
-                        '(' -> GTokenType.LPAREN
-                        ')' -> GTokenType.RPAREN
-                        '[' -> GTokenType.LBRACKET
-                        ']' -> GTokenType.RBRACKET
-                        '.' -> GTokenType.DOT
-                        ',' -> GTokenType.COMMA
-                        '=' -> if (i + 1 < len && text[i + 1] == '=') GTokenType.OTHER else GTokenType.EQ
-                        else -> GTokenType.OTHER
-                    }
-
-                    val end = if (type == GTokenType.OTHER && c == '=') i + 2 else i + 1
-                    out += GToken(type, text.substring(i, end), i, end); i = end
-                }
-            }
-        }
-        return out
+    fun tokenize(text: CharSequence): List<GToken> = GradleTokenizer(text).run {
+        while (hasNext()) readNext()
+        tokens
     }
 
-    private fun readString(text: CharSequence, start: Int, quote: Char): Pair<GToken, Int> {
-        val len = text.length
-        val triple = quote == '"' && start + 2 < len && text[start + 1] == '"' && text[start + 2] == '"'
-        if (triple) {
-            var j = start + 3
-            while (j + 2 < len && !(text[j] == '"' && text[j + 1] == '"' && text[j + 2] == '"')) j++
-            val end = (j + 3).coerceAtMost(len)
-            return GToken(GTokenType.STRING, text.subSequence(start, end).toString(), start, end) to end
+    private class GradleTokenizer(private val text: CharSequence) {
+        val tokens = ArrayList<GToken>()
+        private var index = 0
+
+        fun hasNext(): Boolean = index < text.length
+
+        fun readNext() {
+            val c = text[index]
+            when {
+                c == '\n' -> addToken(GTokenType.NEWLINE, index + 1)
+                c == '\r' || c.isWhitespace() -> index++
+                startsWith("//") -> skipLineComment()
+                startsWith("/*") -> skipBlockComment()
+                c == '"' || c == '\'' -> readString(c)
+                c.isDigit() -> readNumber()
+                isIdentStart(c) -> readIdentifier()
+                c == '`' -> readBacktickIdentifier()
+                else -> readSymbol(c)
+            }
         }
-        var j = start + 1
-        while (j < len) {
-            val ch = text[j]
-            if (ch == '\\') { j += 2; continue }
-            if (ch == quote) { j++; break }
-            if (ch == '\n') break
-            j++
+
+        private fun startsWith(value: String): Boolean =
+            index + value.length <= text.length && text.subSequence(index, index + value.length).toString() == value
+
+        private fun skipLineComment() {
+            index += 2
+            while (index < text.length && text[index] != '\n') index++
         }
-        val end = j.coerceAtMost(len)
-        return GToken(GTokenType.STRING, text.subSequence(start, end).toString(), start, end) to end
+
+        private fun skipBlockComment() {
+            var end = index + 2
+            while (end + 1 < text.length && !(text[end] == '*' && text[end + 1] == '/')) end++
+            index = (end + 2).coerceAtMost(text.length)
+        }
+
+        private fun readString(quote: Char) {
+            val start = index
+            val triple = quote == '"' && startsWith("\"\"\"")
+            val end = if (triple) tripleStringEnd(start) else quotedStringEnd(start, quote)
+            addToken(GTokenType.STRING, end)
+        }
+
+        private fun tripleStringEnd(start: Int): Int {
+            var end = start + 3
+            while (end + 2 < text.length && text.subSequence(end, end + 3).toString() != "\"\"\"") end++
+            return (end + 3).coerceAtMost(text.length)
+        }
+
+        private fun quotedStringEnd(start: Int, quote: Char): Int {
+            var end = start + 1
+            while (end < text.length) {
+                val c = text[end]
+                if (c == '\\') {
+                    end += 2
+                    continue
+                }
+                if (c == quote) return end + 1
+                if (c == '\n') return end
+                end++
+            }
+            return end.coerceAtMost(text.length)
+        }
+
+        private fun readNumber() {
+            var end = index + 1
+            while (end < text.length && (text[end].isLetterOrDigit() || text[end] == '.' || text[end] == '_')) end++
+            addToken(GTokenType.NUMBER, end)
+        }
+
+        private fun readIdentifier() {
+            var end = index + 1
+            while (end < text.length && isIdentPart(text[end])) end++
+            addToken(GTokenType.IDENT, end)
+        }
+
+        private fun readBacktickIdentifier() {
+            val start = index
+            var end = start + 1
+            while (end < text.length && text[end] != '`') end++
+            val tokenEnd = (end + 1).coerceAtMost(text.length)
+            tokens += GToken(GTokenType.IDENT, text.substring(start + 1, end.coerceAtMost(text.length)), start, tokenEnd)
+            index = tokenEnd
+        }
+
+        private fun readSymbol(c: Char) {
+            val type = when (c) {
+                '{' -> GTokenType.LBRACE
+                '}' -> GTokenType.RBRACE
+                '(' -> GTokenType.LPAREN
+                ')' -> GTokenType.RPAREN
+                '[' -> GTokenType.LBRACKET
+                ']' -> GTokenType.RBRACKET
+                '.' -> GTokenType.DOT
+                ',' -> GTokenType.COMMA
+                '=' -> if (startsWith("==")) GTokenType.OTHER else GTokenType.EQ
+                else -> GTokenType.OTHER
+            }
+            val end = if (type == GTokenType.OTHER && c == '=') index + 2 else index + 1
+            addToken(type, end)
+        }
+
+        private fun addToken(type: GTokenType, end: Int) {
+            tokens += GToken(type, text.substring(index, end), index, end)
+            index = end
+        }
     }
 
     private fun isIdentStart(c: Char) = c.isLetter() || c == '_' || c == '$'
