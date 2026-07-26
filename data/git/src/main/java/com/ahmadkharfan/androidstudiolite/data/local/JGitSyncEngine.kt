@@ -5,6 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.PullResult
+import org.eclipse.jgit.api.PushCommand
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ProgressMonitor
 import org.eclipse.jgit.lib.Repository
@@ -53,36 +54,54 @@ internal class JGitSyncEngine(private val remoteEngine: JGitRemoteEngine) {
         ensureActive: () -> Unit,
     ): GitSyncResult {
         val repo = git.repository
+        val target = pushTarget(repo)
+        onUrl(target.url)
+        val command = pushCommand(git, target, credentialsFor, monitor)
+        if (forceWithLease) applyForceWithLease(command, repo, target)
+        val updates = command.call().flatMap { it.remoteUpdates }
+        ensureActive()
+        val rejected = updates.firstOrNull { it.status !in ACCEPTED_PUSH_STATUSES }
+        if (rejected != null) throw pushFailure(rejected, target.url, forceWithLease)
+        if (!target.hasUpstream && setUpstreamIfMissing) {
+            remoteEngine.setUpstream(repo, target.branch, target.remote, target.remoteBranch)
+        }
+        return GitSyncResult(true, "Pushed ${updates.size} ref(s)")
+    }
+
+    private fun pushTarget(repo: Repository): PushTarget {
         val branch = currentLocalBranch(repo)
         val upstream = remoteEngine.upstreamFor(repo, branch)
         val remote = upstream?.remote ?: Constants.DEFAULT_REMOTE_NAME
         val remoteBranch = upstream?.remoteBranch ?: branch
-        val remoteRef = "${Constants.R_HEADS}$remoteBranch"
-        val url = remoteEngine.remoteUrl(repo, remote)
-        onUrl(url)
-        val command = git.push()
-            .setRemote(remote)
-            .setRefSpecs(RefSpec("${Constants.R_HEADS}$branch:$remoteRef"))
-            .setCredentialsProvider(credentialsFor(url))
-            .setProgressMonitor(monitor)
-        if (forceWithLease) {
-            val trackingRef = repo.findRef("${Constants.R_REMOTES}$remote/$remoteBranch")
-                ?: throw GitException.StaleLease("No remote-tracking value for $remote/$remoteBranch; fetch first")
-            command
-                .setForce(true)
-                .setRefLeaseSpecs(RefLeaseSpec(remoteRef, trackingRef.objectId.name))
-        }
-        val updates = command.call().flatMap { it.remoteUpdates }
-        ensureActive()
-        val rejected = updates.firstOrNull { it.status !in ACCEPTED_PUSH_STATUSES }
-        if (rejected != null) throw pushFailure(rejected, url, forceWithLease)
-        if (upstream == null && setUpstreamIfMissing) {
-            val config = repo.config
-            config.setString("branch", branch, "remote", remote)
-            config.setString("branch", branch, "merge", remoteRef)
-            config.save()
-        }
-        return GitSyncResult(true, "Pushed ${updates.size} ref(s)")
+        return PushTarget(
+            branch = branch,
+            remote = remote,
+            remoteBranch = remoteBranch,
+            remoteRef = "${Constants.R_HEADS}$remoteBranch",
+            url = remoteEngine.remoteUrl(repo, remote),
+            hasUpstream = upstream != null,
+        )
+    }
+
+    private fun pushCommand(
+        git: Git,
+        target: PushTarget,
+        credentialsFor: (String?) -> CredentialsProvider?,
+        monitor: ProgressMonitor,
+    ): PushCommand = git.push()
+        .setRemote(target.remote)
+        .setRefSpecs(RefSpec("${Constants.R_HEADS}${target.branch}:${target.remoteRef}"))
+        .setCredentialsProvider(credentialsFor(target.url))
+        .setProgressMonitor(monitor)
+
+    private fun applyForceWithLease(command: PushCommand, repo: Repository, target: PushTarget) {
+        val trackingRef = repo.findRef("${Constants.R_REMOTES}${target.remote}/${target.remoteBranch}")
+            ?: throw GitException.StaleLease(
+                "No remote-tracking value for ${target.remote}/${target.remoteBranch}; fetch first",
+            )
+        command
+            .setForce(true)
+            .setRefLeaseSpecs(RefLeaseSpec(target.remoteRef, trackingRef.objectId.name))
     }
 
     fun publishBranch(
@@ -238,4 +257,13 @@ internal class JGitSyncEngine(private val remoteEngine: JGitRemoteEngine) {
             RemoteRefUpdate.Status.UP_TO_DATE,
         )
     }
+
+    private data class PushTarget(
+        val branch: String,
+        val remote: String,
+        val remoteBranch: String,
+        val remoteRef: String,
+        val url: String?,
+        val hasUpstream: Boolean,
+    )
 }
