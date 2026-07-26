@@ -1,9 +1,9 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict
 
-import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitIntegrationRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
+import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
 
@@ -19,14 +19,16 @@ class GitConflictViewModel(
     projectId: String,
     projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitIntegrationRepository,
-) : BaseViewModel<GitConflictUiState, Nothing>(GitConflictUiState()), GitConflictInteractionListener {
+) : GitViewModel<GitConflictUiState, Nothing>(GitConflictUiState()), GitConflictInteractionListener {
     private var root: File? = null
+
+    override fun GitConflictUiState.withGitError(message: String) = copy(loading = false, error = message)
 
     init {
         tryToExecute(
             block = { projectPathResolver(projectId) },
             onSuccess = { root = it; updateState { copy(rootPath = it.absolutePath) }; refresh() },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -36,7 +38,7 @@ class GitConflictViewModel(
         tryToExecute(
             block = { gitRepository.conflictEntries(repo) },
             onSuccess = { updateState { copy(entries = it, loading = false) } },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 

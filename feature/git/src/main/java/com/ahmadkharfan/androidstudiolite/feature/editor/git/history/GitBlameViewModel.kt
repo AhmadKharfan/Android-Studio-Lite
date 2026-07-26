@@ -1,10 +1,9 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.history
 
-import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHistoryRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
 import java.io.File
 
 data class GitBlameUiState(
@@ -19,14 +18,16 @@ class GitBlameViewModel(
     requestedPath: String,
     private val projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitHistoryRepository,
-) : BaseViewModel<GitBlameUiState, Nothing>(GitBlameUiState(path = requestedPath)) {
+) : GitViewModel<GitBlameUiState, Nothing>(GitBlameUiState(path = requestedPath)) {
     private var repoDir: File? = null
+
+    override fun GitBlameUiState.withGitError(message: String) = copy(loading = false, error = message)
 
     init {
         tryToExecute(
             block = { projectPathResolver(projectId) },
             onSuccess = { repoDir = it; load() },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -37,7 +38,7 @@ class GitBlameViewModel(
         tryToExecute(
             block = { gitRepository.blame(root, path) },
             onSuccess = { updateState { copy(lines = it, loading = false) } },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 }

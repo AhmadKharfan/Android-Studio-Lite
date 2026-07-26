@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.ai.llm
 
-import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmException
 import com.ahmadkharfan.androidstudiolite.data.ai.LlmChatTurn
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatRole
 import kotlinx.serialization.SerialName
@@ -42,7 +41,7 @@ internal class AnthropicProvider(private val http: LlmHttpClient) : LlmProvider 
             .firstOrNull { it.type == "text" }
             ?.text
             .orEmpty()
-            .ifBlank { throw AiLlmException("Empty response from Anthropic") }
+            .orThrowIfBlank("Anthropic")
     }
 
     override fun stream(request: LlmChatRequest, onDelta: (String) -> Unit) {
@@ -57,12 +56,17 @@ internal class AnthropicProvider(private val http: LlmHttpClient) : LlmProvider 
             ),
         )
         val httpRequest = messagesRequest(request.apiKey, body)
-        http.readSse(httpRequest) { data ->
-            val root = runCatching { llmJson.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
-            if (root["type"]?.jsonPrimitive?.contentOrNull != "content_block_delta") return@readSse
-            val text = root["delta"]?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
-            if (!text.isNullOrEmpty()) onDelta(text)
-        }
+        http.streamJsonDeltas(
+            request = httpRequest,
+            extractDelta = { root ->
+                if (root["type"]?.jsonPrimitive?.contentOrNull == "content_block_delta") {
+                    root["delta"]?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+                } else {
+                    null
+                }
+            },
+            onDelta = onDelta,
+        )
     }
 
     override fun listModels(apiKey: String, baseUrl: String?): List<String> {

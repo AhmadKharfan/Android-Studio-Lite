@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.data.ai.llm
 
-import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmException
 import com.ahmadkharfan.androidstudiolite.data.ai.LlmChatTurn
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatRole
 import kotlinx.serialization.SerialName
@@ -35,7 +34,7 @@ internal class GeminiProvider(private val http: LlmHttpClient) : LlmProvider {
             ?.firstOrNull()
             ?.text
             .orEmpty()
-            .ifBlank { throw AiLlmException("Empty response from Gemini") }
+            .orThrowIfBlank("Gemini")
     }
 
     override fun stream(request: LlmChatRequest, onDelta: (String) -> Unit) {
@@ -43,22 +42,24 @@ internal class GeminiProvider(private val http: LlmHttpClient) : LlmProvider {
             .url("$BASE_URL/models/${request.model}:streamGenerateContent?alt=sse&key=${request.apiKey}")
             .post(requestBody(request.systemPrompt, request.turns))
             .build()
-        http.readSse(httpRequest) { data ->
-            val root = runCatching { llmJson.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
-            val text = root["candidates"]?.jsonArray
-                ?.firstOrNull()
-                ?.jsonObject
-                ?.get("content")
-                ?.jsonObject
-                ?.get("parts")
-                ?.jsonArray
-                ?.firstOrNull()
-                ?.jsonObject
-                ?.get("text")
-                ?.jsonPrimitive
-                ?.contentOrNull
-            if (!text.isNullOrEmpty()) onDelta(text)
-        }
+        http.streamJsonDeltas(
+            request = httpRequest,
+            extractDelta = { root ->
+                root["candidates"]?.jsonArray
+                    ?.firstOrNull()
+                    ?.jsonObject
+                    ?.get("content")
+                    ?.jsonObject
+                    ?.get("parts")
+                    ?.jsonArray
+                    ?.firstOrNull()
+                    ?.jsonObject
+                    ?.get("text")
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+            },
+            onDelta = onDelta,
+        )
     }
 
     override fun listModels(apiKey: String, baseUrl: String?): List<String> {
