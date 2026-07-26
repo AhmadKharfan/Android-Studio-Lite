@@ -12,7 +12,6 @@ import org.eclipse.jgit.diff.HistogramDiff
 import org.eclipse.jgit.diff.RawText
 import org.eclipse.jgit.diff.RawTextComparator
 import org.eclipse.jgit.diff.RenameDetector
-import org.eclipse.jgit.dircache.DirCacheEditor
 import org.eclipse.jgit.dircache.DirCacheEntry
 import org.eclipse.jgit.dircache.DirCacheIterator
 import org.eclipse.jgit.lib.Constants
@@ -29,7 +28,7 @@ import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.util.io.EolStreamTypeUtil
 import java.io.ByteArrayOutputStream
 
-internal class JGitDiffEngine {
+internal class JGitDiffReader {
 
     fun indexToWorktree(repo: Repository, path: String, force: Boolean): GitFileDiff {
         val index = DirCacheIterator(repo.readDirCache())
@@ -100,58 +99,6 @@ internal class JGitDiffEngine {
             return GitFileDiff(path, tooLarge = true)
         }
         return createDiff(path, null, indexContent(repo, path), bytes, force = false)
-    }
-
-    fun updateIndex(repo: Repository, path: String, requested: GitDiffHunk, reverse: Boolean) {
-        val cacheSnapshot = repo.readDirCache()
-        val firstEntry = cacheSnapshot.findEntry(path)
-        val hasConflictStages = firstEntry >= 0 &&
-            (firstEntry until cacheSnapshot.nextEntry(firstEntry)).any {
-                cacheSnapshot.getEntry(it).stage != DirCacheEntry.STAGE_0
-            }
-        if (hasConflictStages) {
-            throw GitException.PartialStaging("Resolve conflicts before staging individual hunks")
-        }
-        val existing = cacheSnapshot.getEntry(path)
-        if (existing?.fileMode == FileMode.SYMLINK || (!reverse && worktreeMode(repo, path) == FileMode.SYMLINK)) {
-            throw GitException.PartialStaging("Partial staging is not supported for symbolic links")
-        }
-        if (worktreeFilterCommand(repo, path) != null) {
-            throw GitException.PartialStaging("Partial staging is not supported for files with Git clean filters")
-        }
-
-        val current = if (reverse) headToIndex(repo, path, force = false) else indexToWorktree(repo, path, force = false)
-        if (current.isBinary || current.tooLarge) {
-            throw GitException.PartialStaging("Partial staging is available only for text files under 512 KiB")
-        }
-        val hunk = current.hunks.firstOrNull {
-            it.oldStart == requested.oldStart && it.oldCount == requested.oldCount &&
-                it.newStart == requested.newStart && it.newCount == requested.newCount
-        } ?: throw GitException.PartialStaging("The file changed; refresh the diff and try again")
-
-        val indexBytes = indexContent(repo, path) ?: ByteArray(0)
-        val indexText = RawText(indexBytes)
-        val start = if (reverse) hunk.newStart.toZeroBased(indexText.size()) else hunk.oldStart.toZeroBased(indexText.size())
-        val count = if (reverse) hunk.newCount else hunk.oldCount
-        val replacement = hunk.lines.filter { line ->
-            if (reverse) line.kind != GitDiffKind.ADDED else line.kind != GitDiffKind.REMOVED
-        }.map { it.text }
-        val original = (0 until indexText.size()).map(indexText::getString).toMutableList()
-        if (start !in 0..original.size || start + count > original.size) {
-            throw GitException.PartialStaging("The index changed; refresh the diff and try again")
-        }
-        repeat(count) { original.removeAt(start) }
-        original.addAll(start, replacement)
-        val keepNewline = when {
-            original.isEmpty() -> false
-            reverse -> headContent(repo, path)?.let { !RawText(it).isMissingNewlineAtEnd } ?: false
-            else -> worktreeContent(repo, path).content?.let { !RawText(it).isMissingNewlineAtEnd } ?: false
-        }
-        val bytes = buildString {
-            append(original.joinToString("\n"))
-            if (keepNewline) append('\n')
-        }.toByteArray()
-        writeIndex(repo, path, existing, bytes, existing?.fileMode ?: worktreeMode(repo, path) ?: FileMode.REGULAR_FILE)
     }
 
     private fun createDiff(
@@ -264,9 +211,10 @@ internal class JGitDiffEngine {
         }
     }
 
-    private fun headContent(repo: Repository, path: String): ByteArray? = treeContent(repo, headIterator(repo), path)
+    internal fun headContent(repo: Repository, path: String): ByteArray? =
+        treeContent(repo, headIterator(repo), path)
 
-    private fun indexContent(repo: Repository, path: String): ByteArray? {
+    internal fun indexContent(repo: Repository, path: String): ByteArray? {
         val entry = repo.readDirCache().getEntry(path) ?: return null
         if (entry.stage != DirCacheEntry.STAGE_0) return null
         return repo.open(entry.objectId, Constants.OBJ_BLOB).bytes
@@ -278,13 +226,13 @@ internal class JGitDiffEngine {
         return repo.open(entry.objectId, Constants.OBJ_BLOB).size
     }
 
-    private data class WorktreeContent(
+    internal data class WorktreeContent(
         val content: ByteArray?,
         val filterCommand: String? = null,
         val binaryByAttribute: Boolean = false,
     )
 
-    private fun worktreeContent(repo: Repository, path: String): WorktreeContent {
+    internal fun worktreeContent(repo: Repository, path: String): WorktreeContent {
         TreeWalk(repo).use { walk ->
             walk.operationType = TreeWalk.OperationType.CHECKIN_OP
             walk.addTree(DirCacheIterator(repo.readDirCache()))
@@ -303,7 +251,7 @@ internal class JGitDiffEngine {
         }
     }
 
-    private fun worktreeMode(repo: Repository, path: String): FileMode? {
+    internal fun worktreeMode(repo: Repository, path: String): FileMode? {
         TreeWalk(repo).use { walk ->
             walk.addTree(FileTreeIterator(repo))
             walk.isRecursive = true
@@ -312,38 +260,10 @@ internal class JGitDiffEngine {
         }
     }
 
-    private fun writeIndex(repo: Repository, path: String, existing: DirCacheEntry?, bytes: ByteArray, mode: FileMode) {
-        val cache = repo.lockDirCache()
-        try {
-            val editor = cache.editor()
-            if (bytes.isEmpty() && existing != null && !java.io.File(repo.workTree, path).exists()) {
-                editor.add(DirCacheEditor.DeletePath(path))
-            } else {
-                val objectId = repo.newObjectInserter().use { inserter ->
-                    inserter.insert(Constants.OBJ_BLOB, bytes).also { inserter.flush() }
-                }
-                editor.add(object : DirCacheEditor.PathEdit(path) {
-                    override fun apply(entry: DirCacheEntry) {
-                        existing?.let(entry::copyMetaData)
-                        entry.fileMode = mode
-                        entry.setObjectId(objectId)
-                        entry.length = bytes.size
-                    }
-                })
-            }
-            check(editor.commit()) { "Couldn't update Git index" }
-        } finally {
-            cache.unlock()
-        }
-    }
-
     private fun headIterator(repo: Repository): AbstractTreeIterator {
         val head = repo.resolve("HEAD^{tree}") ?: return EmptyTreeIterator()
         return CanonicalTreeParser(null, repo.newObjectReader(), head)
     }
-
-    private fun Int.toZeroBased(lineCount: Int): Int = if (this == 0 && lineCount == 0) 0 else (this - 1).coerceAtLeast(0)
-
 
     private fun binaryByAttribute(repo: Repository, path: String): Boolean {
         TreeWalk(repo).use { walk ->
@@ -355,7 +275,7 @@ internal class JGitDiffEngine {
         }
     }
 
-    private fun worktreeFilterCommand(repo: Repository, path: String): String? =
+    internal fun worktreeFilterCommand(repo: Repository, path: String): String? =
         worktreeContent(repo, path).filterCommand
     private companion object {
         const val MAX_BYTES = 512 * 1024
