@@ -8,29 +8,35 @@ object AndroidXmlContributor : XmlCompletionContributor {
     override fun contribute(position: XmlCompletionPosition): List<CompletionItem> {
         val manifest = isManifestContext(position)
         return when (position.kind) {
-            XmlCompletionKind.TAG_NAME ->
-                if (manifest) manifestTags else layoutTags
+            XmlCompletionKind.TAG_NAME -> tagSuggestions(manifest)
             XmlCompletionKind.ATTRIBUTE_NAME ->
-                (if (manifest) manifestAttributes else layoutAttributes)
-                    .filter { it.label !in position.existingAttributes }
-            XmlCompletionKind.ATTRIBUTE_VALUE ->
-                enumeratedValues(position.attributeName)
-            XmlCompletionKind.TEXT, XmlCompletionKind.UNKNOWN ->
-                emptyList()
+                attributeSuggestions(manifest, position.existingAttributes)
+            XmlCompletionKind.ATTRIBUTE_VALUE -> valueSuggestions(position.attributeName)
+            XmlCompletionKind.TEXT, XmlCompletionKind.UNKNOWN -> emptyList()
         }
     }
+
+    private fun tagSuggestions(manifest: Boolean): List<CompletionItem> =
+        if (manifest) manifestTags else layoutTags
+
+    private fun attributeSuggestions(
+        manifest: Boolean,
+        existingAttributes: Set<String>,
+    ): List<CompletionItem> =
+        (if (manifest) manifestAttributes else layoutAttributes)
+            .filter { it.label !in existingAttributes }
+
+    private fun valueSuggestions(attributeName: String?): List<CompletionItem> {
+        val localName = attributeName?.substringAfterLast(':') ?: return emptyList()
+        return VALUE_SETS[localName].orEmpty().map(::valueItem)
+    }
+
 
     private fun isManifestContext(position: XmlCompletionPosition): Boolean {
         val fileName = position.filePath.substringAfterLast('/')
         if (fileName.equals("AndroidManifest.xml", ignoreCase = true)) return true
         return position.tag in MANIFEST_ELEMENTS || position.parentTag in MANIFEST_ELEMENTS
     }
-
-    private fun enumeratedValues(attributeName: String?): List<CompletionItem> {
-        val localName = attributeName?.substringAfterLast(':') ?: return emptyList()
-        return VALUE_SETS[localName].orEmpty().map(::valueItem)
-    }
-
 
     private fun tagItem(name: String) =
         CompletionItem(name, name, CompletionKind.Class, typeText = "tag")

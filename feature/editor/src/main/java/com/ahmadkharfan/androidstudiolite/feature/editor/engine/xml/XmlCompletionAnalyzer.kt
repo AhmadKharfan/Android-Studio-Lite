@@ -27,124 +27,174 @@ object XmlCompletionAnalyzer {
 
     fun locate(text: CharSequence, offset: Int, parsed: ParsedXml, filePath: String): XmlCompletionPosition {
         val caret = offset.coerceIn(0, text.length)
-
-        val openAngle = previousIndexOf(text, '<', caret)
-        if (openAngle < 0) return textPosition(parsed, caret, filePath)
-
-
-        when (text.getOrNull(openAngle + 1)) {
+        val openTag = findEnclosingOpenTag(text, caret)
+            ?: return textPosition(parsed, caret, filePath)
+        when (text.getOrNull(openTag.angleIndex + 1)) {
             '/', '!', '?' -> return unknownPosition(caret, filePath)
         }
-
-        val tagNameEnd = nameEndAt(text, openAngle + 1)
-        val tagName = text.subSequence(openAngle + 1, tagNameEnd).toString().ifEmpty { null }
-
-
-        var i = tagNameEnd
-        var quote: Char? = null
-        var valueStart = -1
-        var currentAttr: String? = null
-        var afterEquals = false
-        val present = LinkedHashSet<String>()
-
-        while (i < caret) {
-            val c = text[i]
-            if (quote != null) {
-                if (c == quote) {
-                    quote = null
-                    currentAttr = null
-                    afterEquals = false
-                }
-                i++
-                continue
-            }
-            when {
-                c == '>' -> return textPosition(parsed, caret, filePath)
-                c == '"' || c == '\'' -> {
-                    quote = c
-                    valueStart = i + 1
-                    i++
-                }
-                c == '=' -> {
-                    afterEquals = true
-                    i++
-                }
-                c.isWhitespace() || c == '/' -> i++
-                isNameStart(c) -> {
-                    val nameEnd = nameEndAt(text, i)
-                    currentAttr = text.subSequence(i, nameEnd).toString()
-                    present += currentAttr!!
-                    afterEquals = false
-                    i = nameEnd
-                }
-                else -> i++
-            }
-        }
-
-        val parentTag = enclosingElementName(parsed, (openAngle - 1).coerceAtLeast(0))
-
-
-        if (quote != null) {
-            val from = valueStart.coerceAtMost(caret)
-            return XmlCompletionPosition(
-                kind = XmlCompletionKind.ATTRIBUTE_VALUE,
-                tag = tagName,
-                parentTag = parentTag,
-                attributeName = currentAttr,
-                existingAttributes = present,
-                prefix = text.subSequence(from, caret).toString(),
-                replaceStart = from,
-                replaceEnd = caret,
-                filePath = filePath,
-            )
-        }
-
-
-        if (afterEquals && currentAttr != null) {
-            return XmlCompletionPosition(
-                kind = XmlCompletionKind.ATTRIBUTE_VALUE,
-                tag = tagName,
-                parentTag = parentTag,
-                attributeName = currentAttr,
-                existingAttributes = present,
-                prefix = "",
-                replaceStart = caret,
-                replaceEnd = caret,
-                filePath = filePath,
-            )
-        }
-
-
-        if (caret <= tagNameEnd) {
-            return XmlCompletionPosition(
-                kind = XmlCompletionKind.TAG_NAME,
-                tag = tagName,
-                parentTag = parentTag,
-                attributeName = null,
-                existingAttributes = emptySet(),
-                prefix = text.subSequence(openAngle + 1, caret).toString(),
-                replaceStart = openAngle + 1,
-                replaceEnd = caret,
-                filePath = filePath,
-            )
-        }
-
-
-        var tokenStart = caret
-        while (tokenStart > openAngle + 1 && isNameChar(text[tokenStart - 1])) tokenStart--
-        present.remove(text.subSequence(tokenStart, caret).toString())
-        return XmlCompletionPosition(
-            kind = XmlCompletionKind.ATTRIBUTE_NAME,
-            tag = tagName,
-            parentTag = parentTag,
-            attributeName = null,
-            existingAttributes = present,
-            prefix = text.subSequence(tokenStart, caret).toString(),
-            replaceStart = tokenStart,
-            replaceEnd = caret,
-            filePath = filePath,
+        val attributeScan = scanAttributes(text, openTag.nameEnd, caret)
+        if (attributeScan.crossedTagEnd) return textPosition(parsed, caret, filePath)
+        val parentTag = enclosingElementName(
+            parsed,
+            (openTag.angleIndex - 1).coerceAtLeast(0),
+        )
+        return classifyCaret(
+            ClassificationContext(text, caret, openTag, parentTag, attributeScan, filePath),
         )
     }
+
+    private fun findEnclosingOpenTag(text: CharSequence, caret: Int): OpenTag? {
+        val angleIndex = previousIndexOf(text, '<', caret)
+        if (angleIndex < 0) return null
+        val nameEnd = nameEndAt(text, angleIndex + 1)
+        val name = text.subSequence(angleIndex + 1, nameEnd).toString().ifEmpty { null }
+        return OpenTag(angleIndex, nameEnd, name)
+    }
+
+    private fun scanAttributes(text: CharSequence, from: Int, caret: Int): AttributeScan {
+        val scan = AttributeScan(index = from)
+        while (scan.index < caret && !scan.crossedTagEnd) {
+            val character = text[scan.index]
+            if (scan.quote != null) {
+                scanQuotedCharacter(scan, character)
+            } else {
+                scanUnquotedCharacter(text, scan, character)
+            }
+        }
+        return scan
+    }
+
+    private fun scanQuotedCharacter(scan: AttributeScan, character: Char) {
+        if (character == scan.quote) {
+            scan.quote = null
+            scan.currentAttribute = null
+            scan.afterEquals = false
+        }
+        scan.index++
+    }
+
+    private fun scanUnquotedCharacter(
+        text: CharSequence,
+        scan: AttributeScan,
+        character: Char,
+    ) {
+        when {
+            character == '>' -> scan.crossedTagEnd = true
+            character == '"' || character == '\'' -> {
+                scan.quote = character
+                scan.valueStart = scan.index + 1
+                scan.index++
+            }
+            character == '=' -> {
+                scan.afterEquals = true
+                scan.index++
+            }
+            character.isWhitespace() || character == '/' -> scan.index++
+            isNameStart(character) -> scanAttributeName(text, scan)
+            else -> scan.index++
+        }
+    }
+
+    private fun scanAttributeName(text: CharSequence, scan: AttributeScan) {
+        val nameEnd = nameEndAt(text, scan.index)
+        val attributeName = text.subSequence(scan.index, nameEnd).toString()
+        scan.currentAttribute = attributeName
+        scan.existingAttributes += attributeName
+        scan.afterEquals = false
+        scan.index = nameEnd
+    }
+
+    private fun classifyCaret(context: ClassificationContext): XmlCompletionPosition =
+        when {
+            context.attributeScan.quote != null -> quotedAttributeValuePosition(context)
+            context.attributeScan.afterEquals &&
+                context.attributeScan.currentAttribute != null -> emptyAttributeValuePosition(context)
+            context.caret <= context.openTag.nameEnd -> tagNamePosition(context)
+            else -> attributeNamePosition(context)
+        }
+
+    private fun quotedAttributeValuePosition(
+        context: ClassificationContext,
+    ): XmlCompletionPosition {
+        val replacement = replacement(
+            context.text,
+            context.attributeScan.valueStart.coerceAtMost(context.caret),
+            context.caret,
+        )
+        return XmlCompletionPosition(
+            kind = XmlCompletionKind.ATTRIBUTE_VALUE,
+            tag = context.openTag.name,
+            parentTag = context.parentTag,
+            attributeName = context.attributeScan.currentAttribute,
+            existingAttributes = context.attributeScan.existingAttributes,
+            prefix = replacement.prefix,
+            replaceStart = replacement.start,
+            replaceEnd = replacement.end,
+            filePath = context.filePath,
+        )
+    }
+
+    private fun emptyAttributeValuePosition(
+        context: ClassificationContext,
+    ): XmlCompletionPosition {
+        val replacement = replacement(context.text, context.caret, context.caret)
+        return XmlCompletionPosition(
+            kind = XmlCompletionKind.ATTRIBUTE_VALUE,
+            tag = context.openTag.name,
+            parentTag = context.parentTag,
+            attributeName = context.attributeScan.currentAttribute,
+            existingAttributes = context.attributeScan.existingAttributes,
+            prefix = replacement.prefix,
+            replaceStart = replacement.start,
+            replaceEnd = replacement.end,
+            filePath = context.filePath,
+        )
+    }
+
+    private fun tagNamePosition(context: ClassificationContext): XmlCompletionPosition {
+        val replacement = replacement(
+            context.text,
+            context.openTag.angleIndex + 1,
+            context.caret,
+        )
+        return XmlCompletionPosition(
+            kind = XmlCompletionKind.TAG_NAME,
+            tag = context.openTag.name,
+            parentTag = context.parentTag,
+            attributeName = null,
+            existingAttributes = emptySet(),
+            prefix = replacement.prefix,
+            replaceStart = replacement.start,
+            replaceEnd = replacement.end,
+            filePath = context.filePath,
+        )
+    }
+
+    private fun attributeNamePosition(context: ClassificationContext): XmlCompletionPosition {
+        var tokenStart = context.caret
+        while (
+            tokenStart > context.openTag.angleIndex + 1 &&
+            isNameChar(context.text[tokenStart - 1])
+        ) {
+            tokenStart--
+        }
+        val replacement = replacement(context.text, tokenStart, context.caret)
+        context.attributeScan.existingAttributes.remove(replacement.prefix)
+        return XmlCompletionPosition(
+            kind = XmlCompletionKind.ATTRIBUTE_NAME,
+            tag = context.openTag.name,
+            parentTag = context.parentTag,
+            attributeName = null,
+            existingAttributes = context.attributeScan.existingAttributes,
+            prefix = replacement.prefix,
+            replaceStart = replacement.start,
+            replaceEnd = replacement.end,
+            filePath = context.filePath,
+        )
+    }
+
+    private fun replacement(text: CharSequence, start: Int, end: Int) =
+        Replacement(text.subSequence(start, end).toString(), start, end)
 
     fun prefixMatches(candidate: String, prefix: String): Boolean {
         if (prefix.isEmpty()) return true
@@ -203,4 +253,34 @@ object XmlCompletionAnalyzer {
     private fun isNameStart(c: Char): Boolean = c.isLetter() || c == '_' || c == ':'
     private fun isNameChar(c: Char): Boolean =
         c.isLetterOrDigit() || c == '_' || c == ':' || c == '.' || c == '-'
+
+    private data class OpenTag(
+        val angleIndex: Int,
+        val nameEnd: Int,
+        val name: String?,
+    )
+
+    private class AttributeScan(var index: Int) {
+        var quote: Char? = null
+        var valueStart: Int = -1
+        var currentAttribute: String? = null
+        var afterEquals: Boolean = false
+        val existingAttributes = LinkedHashSet<String>()
+        var crossedTagEnd: Boolean = false
+    }
+
+    private data class ClassificationContext(
+        val text: CharSequence,
+        val caret: Int,
+        val openTag: OpenTag,
+        val parentTag: String?,
+        val attributeScan: AttributeScan,
+        val filePath: String,
+    )
+
+    private data class Replacement(
+        val prefix: String,
+        val start: Int,
+        val end: Int,
+    )
 }
