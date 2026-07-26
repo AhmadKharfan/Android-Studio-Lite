@@ -26,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,17 +48,54 @@ data class BuildClientMeta(
 internal fun isActiveBuildFresh(nowMillis: Long, startedAtEpochMs: Long, maxAgeMs: Long): Boolean =
     nowMillis - startedAtEpochMs <= maxAgeMs
 
-class BuildRunCoordinator(
+internal class BuildInstallOperations(
+    val install: (
+        apk: File,
+        applicationId: String?,
+        autoLaunch: Boolean,
+        requestToken: String,
+    ) -> Flow<InstallEvent>,
+    val uninstall: (packageName: String) -> Flow<UninstallEvent>,
+    val cancelActiveInstall: () -> Unit,
+)
+
+class BuildRunCoordinator internal constructor(
     private val context: Context,
     private val buildSystem: BuildSystem,
     private val keystoreManager: KeystoreManager,
-    private val apkInstaller: ApkInstaller,
+    private val installOperations: BuildInstallOperations,
     private val gradleReader: GradleProjectReader,
     private val notifier: BuildNotifier,
     private val activeBuildStore: ActiveBuildRepository,
-    private val clock: AslClock = SystemAslClock,
-    private val ids: IdGenerator = UuidIdGenerator,
+    private val clock: AslClock,
+    private val ids: IdGenerator,
 ) : BuildRunApi {
+
+    constructor(
+        context: Context,
+        buildSystem: BuildSystem,
+        keystoreManager: KeystoreManager,
+        apkInstaller: ApkInstaller,
+        gradleReader: GradleProjectReader,
+        notifier: BuildNotifier,
+        activeBuildStore: ActiveBuildRepository,
+        clock: AslClock = SystemAslClock,
+        ids: IdGenerator = UuidIdGenerator,
+    ) : this(
+        context = context,
+        buildSystem = buildSystem,
+        keystoreManager = keystoreManager,
+        installOperations = BuildInstallOperations(
+            install = apkInstaller::install,
+            uninstall = apkInstaller::uninstall,
+            cancelActiveInstall = apkInstaller::cancelActiveInstall,
+        ),
+        gradleReader = gradleReader,
+        notifier = notifier,
+        activeBuildStore = activeBuildStore,
+        clock = clock,
+        ids = ids,
+    )
 
     private val clearScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val admissionMutex = Mutex()
@@ -311,11 +349,11 @@ class BuildRunCoordinator(
             phase = BuildExecutionPhase.Installing,
         )
         withTimeoutOrNull(INSTALL_OBSERVER_TIMEOUT_MS.milliseconds) {
-            apkInstaller.install(
+            installOperations.install(
                 apk,
                 applicationId,
                 meta.autoLaunchAfterInstall,
-                requestToken = _execution.value.operationId ?: ids.newId(),
+                _execution.value.operationId ?: ids.newId(),
             ).collect { event ->
                 _execution.value = when (event) {
                     is InstallEvent.Preparing -> _execution.value.copy(
@@ -360,7 +398,7 @@ class BuildRunCoordinator(
     override fun uninstallConflict(packageName: String) {
         if (packageName.isBlank()) return
         clearScope.launch {
-            apkInstaller.uninstall(packageName).collect { event ->
+            installOperations.uninstall(packageName).collect { event ->
                 _execution.value = when (event) {
                     UninstallEvent.Uninstalling -> _execution.value.copy(
                         installState = InstallExecutionState.Preparing,
@@ -406,7 +444,7 @@ class BuildRunCoordinator(
         cancelledOperationId = operationId
         _execution.value = _execution.value.copy(phase = BuildExecutionPhase.Cancelling)
         buildSystem.cancel()
-        apkInstaller.cancelActiveInstall()
+        installOperations.cancelActiveInstall()
         activeExecutionJob?.cancel(kotlinx.coroutines.CancellationException("Cancelled by user"))
         _execution.value = _execution.value.copy(
             console = _execution.value.console.copy(status = BuildStatus.Cancelled, progressMessage = null),
