@@ -104,53 +104,66 @@ class EditorCompletionController {
     }
     fun accept(session: EditorSession, item: CompletionItem): String {
         if (session.language == EditorLanguage.Xml) {
-            val (start, _) = com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
-                .replacementRangeAt(session.text, session.selection.caret, session.filePath)
-            val marker = item.insertText.indexOf("\$0")
-            val insert = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
-            val caretTarget = start + if (marker >= 0) marker else insert.length
-            session.replaceRange(start, session.selection.caret, insert, caret = caretTarget)
-            return insert
+            return acceptXmlCompletion(session, item)
         }
         val context = buildContext(session)
-        val marker = item.insertText.indexOf("\$0")
-        var insert = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
-        var replaceStart = context.prefixStart
-        val replaceEnd = context.caret
-        if (context.importContext) {
-            val pathStart = importPathStart(context.text, context.caret)
-            val typedPath = context.text.substring(pathStart, context.caret)
-            when {
-                context.qualifier != null && insert.startsWith("${context.qualifier}.") -> {
-                    insert = insert.removePrefix("${context.qualifier}.")
-                    replaceStart = context.prefixStart
-                }
-                insert.contains('.') && typedPath.isNotEmpty() && !insert.startsWith(typedPath, ignoreCase = true) -> {
-                    replaceStart = pathStart
-                }
-                insert.contains('.') && typedPath.isNotEmpty() && insert.startsWith(typedPath, ignoreCase = true) -> {
-                    val tail = insert.substring(typedPath.length)
-                    when {
-                        tail.isEmpty() -> replaceStart = pathStart
-                        tail.startsWith('.') -> {
-                            insert = tail.removePrefix(".")
-                            replaceStart = context.caret
-                        }
-                        else -> replaceStart = pathStart
-                    }
-                }
-                else -> replaceStart = context.prefixStart
-            }
-        } else if (context.memberAccess && context.qualifier != null) {
-            if (insert.startsWith("${context.qualifier}.")) {
-                insert = insert.removePrefix("${context.qualifier}.")
-            }
-            replaceStart = context.prefixStart
-        }
-        val caretTarget = replaceStart + if (marker >= 0) marker else insert.length
-        session.replaceRange(replaceStart, replaceEnd, insert, caret = caretTarget)
-        return insert
+        val insertion = completionInsertion(item)
+        val replacement = completionReplacement(context, insertion.text)
+        val caretTarget = replacement.start + (insertion.marker.takeIf { it >= 0 } ?: replacement.text.length)
+        session.replaceRange(replacement.start, context.caret, replacement.text, caret = caretTarget)
+        return replacement.text
     }
+
+    private fun acceptXmlCompletion(session: EditorSession, item: CompletionItem): String {
+        val (start, _) = com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
+            .replacementRangeAt(session.text, session.selection.caret, session.filePath)
+        val insertion = completionInsertion(item)
+        val caretTarget = start + (insertion.marker.takeIf { it >= 0 } ?: insertion.text.length)
+        session.replaceRange(start, session.selection.caret, insertion.text, caret = caretTarget)
+        return insertion.text
+    }
+
+    private fun completionInsertion(item: CompletionItem): CompletionInsertion {
+        val marker = item.insertText.indexOf("\$0")
+        val text = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
+        return CompletionInsertion(text, marker)
+    }
+
+    private fun completionReplacement(context: CompletionContext, insert: String): CompletionReplacement = when {
+        context.importContext -> importCompletionReplacement(context, insert)
+        context.memberAccess && context.qualifier != null -> {
+            val text = insert.removePrefix("${context.qualifier}.")
+            CompletionReplacement(context.prefixStart, text)
+        }
+        else -> CompletionReplacement(context.prefixStart, insert)
+    }
+
+    private fun importCompletionReplacement(
+        context: CompletionContext,
+        insert: String,
+    ): CompletionReplacement {
+        val pathStart = importPathStart(context.text, context.caret)
+        val typedPath = context.text.substring(pathStart, context.caret)
+        return when {
+            context.qualifier != null && insert.startsWith("${context.qualifier}.") ->
+                CompletionReplacement(context.prefixStart, insert.removePrefix("${context.qualifier}."))
+            insert.contains('.') && typedPath.isNotEmpty() && !insert.startsWith(typedPath, ignoreCase = true) ->
+                CompletionReplacement(pathStart, insert)
+            insert.contains('.') && typedPath.isNotEmpty() && insert.startsWith(typedPath, ignoreCase = true) -> {
+                val tail = insert.substring(typedPath.length)
+                when {
+                    tail.isEmpty() -> CompletionReplacement(pathStart, insert)
+                    tail.startsWith('.') -> CompletionReplacement(context.caret, tail.removePrefix("."))
+                    else -> CompletionReplacement(pathStart, insert)
+                }
+            }
+            else -> CompletionReplacement(context.prefixStart, insert)
+        }
+    }
+
+    private data class CompletionInsertion(val text: String, val marker: Int)
+
+    private data class CompletionReplacement(val start: Int, val text: String)
     fun isTriggerChar(ch: Char): Boolean = isIdentifierChar(ch) || ch == '.'
     private fun buildLegacyContext(session: EditorSession): CompletionContext {
         val text = session.text
