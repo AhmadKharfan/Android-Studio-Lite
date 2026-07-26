@@ -11,6 +11,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import java.io.File
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.diff.RenameDetector
@@ -37,60 +38,90 @@ internal class JGitStatusComputer {
         val repository = openRepositoryOrNull(repoDir)
             ?: return GitState(files = emptyList(), commitMessage = commitMessage, isRepository = false)
         repository.use { repo ->
-            Git(repo).use { git ->
-                val status = git.status()
-                    .setWorkingTreeIt(FileTreeIterator(repo))
-                    .setProgressMonitor(monitor)
-                    .call()
-                val files = linkedMapOf<String, MutableGitFileState>()
+            return computeRepositoryState(repo, includeIgnored, commitMessage, monitor)
+        }
+    }
 
-                status.added.forEach { files.file(it).indexStatus = GitIndexStatus.ADDED }
-                status.changed.forEach { files.file(it).indexStatus = GitIndexStatus.MODIFIED }
-                status.removed.forEach { files.file(it).indexStatus = GitIndexStatus.DELETED }
-                status.modified.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.MODIFIED }
-                status.missing.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.DELETED }
-                status.untracked.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.UNTRACKED }
+    private fun computeRepositoryState(
+        repo: Repository,
+        includeIgnored: Boolean,
+        commitMessage: String,
+        monitor: ProgressMonitor,
+    ): GitState = Git(repo).use { git ->
+        val status = git.status()
+            .setWorkingTreeIt(FileTreeIterator(repo))
+            .setProgressMonitor(monitor)
+            .call()
+        val files = foldChangedFiles(status)
+        if (includeIgnored) addIgnoredFiles(status, files)
+        addConflictedFiles(status, files)
+        applyStagedRenames(repo, status, files, monitor)
+        assembleGitState(repo, files, commitMessage)
+    }
 
-                if (includeIgnored) {
-                    status.ignoredNotInIndex
-                        .asSequence()
-                        .map { it.trimEnd('/') }
-                        .filter { it.isNotBlank() && '/' !in it }
-                        .forEach { files.file(it).worktreeStatus = GitWorktreeStatus.IGNORED }
+    private fun foldChangedFiles(status: Status): LinkedHashMap<String, MutableGitFileState> {
+        val files = linkedMapOf<String, MutableGitFileState>()
+        status.added.forEach { files.file(it).indexStatus = GitIndexStatus.ADDED }
+        status.changed.forEach { files.file(it).indexStatus = GitIndexStatus.MODIFIED }
+        status.removed.forEach { files.file(it).indexStatus = GitIndexStatus.DELETED }
+        status.modified.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.MODIFIED }
+        status.missing.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.DELETED }
+        status.untracked.forEach { files.file(it).worktreeStatus = GitWorktreeStatus.UNTRACKED }
+        return files
+    }
+
+    private fun addIgnoredFiles(status: Status, files: MutableMap<String, MutableGitFileState>) {
+        status.ignoredNotInIndex
+            .asSequence()
+            .map { it.trimEnd('/') }
+            .filter { it.isNotBlank() && '/' !in it }
+            .forEach { files.file(it).worktreeStatus = GitWorktreeStatus.IGNORED }
+    }
+
+    private fun addConflictedFiles(status: Status, files: MutableMap<String, MutableGitFileState>) {
+        status.conflicting.forEach { path ->
+            val stage = status.conflictingStageState[path]
+            files.file(path).conflictStage = stage?.toConflictInfo()
+                ?: GitConflictInfo(stages = emptySet(), description = "Unresolved conflict")
+        }
+    }
+
+    private fun applyStagedRenames(
+        repo: Repository,
+        status: Status,
+        files: MutableMap<String, MutableGitFileState>,
+        monitor: ProgressMonitor,
+    ) {
+        val stagedRenames = if (status.conflicting.isEmpty()) detectStagedRenames(repo, monitor) else emptyList()
+        stagedRenames.forEach { rename ->
+            val renamed = files.file(rename.newPath)
+            renamed.oldPath = rename.oldPath
+            renamed.indexStatus = GitIndexStatus.RENAMED
+            files[rename.oldPath]?.let { old ->
+                if (old.worktreeStatus == GitWorktreeStatus.UNCHANGED && old.conflictStage == null) {
+                    files.remove(rename.oldPath)
                 }
-
-                status.conflicting.forEach { path ->
-                    val stage = status.conflictingStageState[path]
-                    files.file(path).conflictStage = stage?.toConflictInfo()
-                        ?: GitConflictInfo(stages = emptySet(), description = "Unresolved conflict")
-                }
-
-                val stagedRenames = if (status.conflicting.isEmpty()) detectStagedRenames(repo, monitor) else emptyList()
-                stagedRenames.forEach { rename ->
-                    val renamed = files.file(rename.newPath)
-                    renamed.oldPath = rename.oldPath
-                    renamed.indexStatus = GitIndexStatus.RENAMED
-                    files[rename.oldPath]?.let { old ->
-                        if (old.worktreeStatus == GitWorktreeStatus.UNCHANGED && old.conflictStage == null) {
-                            files.remove(rename.oldPath)
-                        }
-                    }
-                }
-
-                val headState = repo.headState()
-                val tracking = (headState as? GitHeadState.Branch)?.let { branch ->
-                    runCatching { BranchTrackingStatus.of(repo, branch.name) }.getOrNull()
-                }
-                return GitState(
-                    files = files.values.map(MutableGitFileState::toImmutable).sortedBy { it.path },
-                    repositoryState = repo.repositoryState.toDomainState(),
-                    headState = headState,
-                    aheadBehind = tracking?.let { GitAheadBehind(it.aheadCount, it.behindCount) },
-                    commitMessage = commitMessage,
-                    isRepository = true,
-                )
             }
         }
+    }
+
+    private fun assembleGitState(
+        repo: Repository,
+        files: Map<String, MutableGitFileState>,
+        commitMessage: String,
+    ): GitState {
+        val headState = repo.headState()
+        val tracking = (headState as? GitHeadState.Branch)?.let { branch ->
+            runCatching { BranchTrackingStatus.of(repo, branch.name) }.getOrNull()
+        }
+        return GitState(
+            files = files.values.map(MutableGitFileState::toImmutable).sortedBy { it.path },
+            repositoryState = repo.repositoryState.toDomainState(),
+            headState = headState,
+            aheadBehind = tracking?.let { GitAheadBehind(it.aheadCount, it.behindCount) },
+            commitMessage = commitMessage,
+            isRepository = true,
+        )
     }
 
     private fun detectStagedRenames(repo: Repository, monitor: ProgressMonitor): List<DiffEntry> {
