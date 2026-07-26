@@ -61,134 +61,147 @@ object KotlinCompletionScanner {
         val suppressed: Boolean,
         val inTemplateCode: Boolean,
     )
-    private fun scanLexical(text: String, caret: Int): LexicalState {
-        var state = STATE_CODE
-        var templateDepth = 0
-        var i = 0
-        var caretInTemplateIdent = false
-        var caretInTemplateExpr = false
-        while (i < caret) {
-            when (state) {
-                STATE_CODE -> when {
-                    text[i] == '/' && i + 1 < text.length && text[i + 1] == '/' -> {
-                        state = STATE_LINE_COMMENT
-                        i += 2
-                    }
-                    text[i] == '/' && i + 1 < text.length && text[i + 1] == '*' -> {
-                        state = STATE_BLOCK_COMMENT
-                        i += 2
-                    }
-                    text.startsWith("\"\"\"", i) -> {
-                        state = STATE_RAW_STRING
-                        i += 3
-                    }
-                    text[i] == '"' -> {
-                        state = STATE_STRING
-                        i++
-                    }
-                    text[i] == '\'' -> {
-                        state = STATE_CHAR
-                        i++
-                    }
-                    else -> i++
-                }
-                STATE_LINE_COMMENT -> {
-                    if (text[i] == '\n') state = STATE_CODE
-                    i++
-                }
-                STATE_BLOCK_COMMENT -> {
-                    if (text[i] == '*' && i + 1 < text.length && text[i + 1] == '/') {
-                        state = STATE_CODE
-                        i += 2
-                    } else {
-                        i++
-                    }
-                }
-                STATE_RAW_STRING -> {
-                    if (text.startsWith("\"\"\"", i)) {
-                        state = STATE_CODE
-                        i += 3
-                    } else {
-                        i++
-                    }
-                }
-                STATE_CHAR -> {
-                    if (text[i] == '\\') i += 2 else if (text[i] == '\'') {
-                        state = STATE_CODE
-                        i++
-                    } else {
-                        i++
-                    }
-                }
-                STATE_STRING -> {
-                    when {
-                        text[i] == '\\' -> i += 2
-                        text.startsWith("\${", i) -> {
-                            state = STATE_TEMPLATE
-                            templateDepth = 1
-                            i += 2
-                        }
-                        text[i] == '$' && i + 1 < text.length && isIdentStart(text[i + 1]) -> {
-                            val identStart = i + 1
-                            i = identStart
-                            while (i < text.length && isIdentPart(text[i])) i++
-                            if (caret in identStart..i) caretInTemplateIdent = true
-                        }
-                        text[i] == '"' -> {
-                            state = STATE_CODE
-                            i++
-                        }
-                        else -> i++
-                    }
-                }
-                STATE_TEMPLATE -> {
-                    when {
-                        text[i] == '/' && i + 1 < text.length && text[i + 1] == '/' -> {
-                            state = STATE_LINE_COMMENT
-                            i += 2
-                        }
-                        text[i] == '/' && i + 1 < text.length && text[i + 1] == '*' -> {
-                            state = STATE_BLOCK_COMMENT
-                            i += 2
-                        }
-                        text.startsWith("\"\"\"", i) -> {
-                            state = STATE_RAW_STRING
-                            i += 3
-                        }
-                        text[i] == '"' -> {
-                            state = STATE_STRING
-                            i++
-                        }
-                        text[i] == '\'' -> {
-                            state = STATE_CHAR
-                            i++
-                        }
-                        text[i] == '{' -> {
-                            templateDepth++
-                            i++
-                        }
-                        text[i] == '}' -> {
-                            templateDepth--
-                            i++
-                            if (templateDepth <= 0) {
-                                state = STATE_STRING
-                                templateDepth = 0
-                            }
-                        }
-                        else -> i++
-                    }
+    private fun scanLexical(text: String, caret: Int): LexicalState =
+        LexicalScan(text, caret).run()
+    private class LexicalScan(
+        private val text: String,
+        private val caret: Int,
+    ) {
+        private var state = STATE_CODE
+        private var templateDepth = 0
+        private var i = 0
+        private var caretInTemplateIdent = false
+        private var caretInTemplateExpr = false
+        private val returnStates = ArrayList<Int>()
+        private val templateDepths = ArrayList<Int>()
+        private data class LexicalOpener(
+            val state: Int,
+            val advance: Int,
+        )
+        fun run(): LexicalState {
+            while (i < caret) {
+                when (state) {
+                    STATE_CODE -> stepCode()
+                    STATE_LINE_COMMENT -> stepLineComment()
+                    STATE_BLOCK_COMMENT -> stepBlockComment()
+                    STATE_RAW_STRING -> stepRawString()
+                    STATE_STRING -> stepString()
+                    STATE_CHAR -> stepChar()
+                    STATE_TEMPLATE -> stepTemplate()
                 }
             }
+            if (i == caret) caretInTemplateExpr = state == STATE_TEMPLATE
+            return lexicalState()
         }
-        if (i == caret) {
-            caretInTemplateExpr = state == STATE_TEMPLATE
+        private fun stepCode() {
+            val opener = literalOrCommentOpener()
+            if (opener == null) i++ else openLexicalState(opener)
         }
-        val inLiteralString = state == STATE_STRING || state == STATE_RAW_STRING
-        val inComment = state == STATE_LINE_COMMENT || state == STATE_BLOCK_COMMENT
-        val inChar = state == STATE_CHAR
-        val inTemplateCode = caretInTemplateIdent || caretInTemplateExpr
-        val suppressed = (inLiteralString && !inTemplateCode) || inComment || inChar
-        return LexicalState(suppressed = suppressed, inTemplateCode = inTemplateCode)
+        private fun stepLineComment() {
+            if (text[i] == '\n') closeLexicalState()
+            i++
+        }
+        private fun stepBlockComment() {
+            if (text[i] == '*' && i + 1 < text.length && text[i + 1] == '/') {
+                closeLexicalState()
+                i += 2
+            } else {
+                i++
+            }
+        }
+        private fun stepRawString() {
+            if (text.startsWith("\"\"\"", i)) {
+                closeLexicalState()
+                i += 3
+            } else {
+                i++
+            }
+        }
+        private fun stepChar() {
+            when {
+                text[i] == '\\' -> i += 2
+                text[i] == '\'' -> {
+                    closeLexicalState()
+                    i++
+                }
+                else -> i++
+            }
+        }
+        private fun stepString() {
+            when {
+                text[i] == '\\' -> i += 2
+                text.startsWith("\${", i) -> enterTemplate()
+                text[i] == '$' && i + 1 < text.length && isIdentStart(text[i + 1]) ->
+                    scanTemplateIdentifier()
+                text[i] == '"' -> {
+                    closeLexicalState()
+                    i++
+                }
+                else -> i++
+            }
+        }
+        private fun stepTemplate() {
+            val opener = literalOrCommentOpener()
+            if (opener != null) {
+                openLexicalState(opener)
+                return
+            }
+            when (text[i]) {
+                '{' -> {
+                    templateDepth++
+                    i++
+                }
+                '}' -> closeTemplateBrace()
+                else -> i++
+            }
+        }
+        private fun literalOrCommentOpener(): LexicalOpener? =
+            when {
+                text[i] == '/' && i + 1 < text.length && text[i + 1] == '/' ->
+                    LexicalOpener(STATE_LINE_COMMENT, 2)
+                text[i] == '/' && i + 1 < text.length && text[i + 1] == '*' ->
+                    LexicalOpener(STATE_BLOCK_COMMENT, 2)
+                text.startsWith("\"\"\"", i) -> LexicalOpener(STATE_RAW_STRING, 3)
+                text[i] == '"' -> LexicalOpener(STATE_STRING, 1)
+                text[i] == '\'' -> LexicalOpener(STATE_CHAR, 1)
+                else -> null
+            }
+        private fun openLexicalState(opener: LexicalOpener) {
+            returnStates.add(state)
+            state = opener.state
+            i += opener.advance
+        }
+        private fun closeLexicalState() {
+            state = returnStates.removeAt(returnStates.lastIndex)
+        }
+        private fun enterTemplate() {
+            templateDepths.add(templateDepth)
+            state = STATE_TEMPLATE
+            templateDepth = 1
+            i += 2
+        }
+        private fun scanTemplateIdentifier() {
+            val identStart = i + 1
+            i = identStart
+            while (i < text.length && isIdentPart(text[i])) i++
+            if (caret in identStart..i) caretInTemplateIdent = true
+        }
+        private fun closeTemplateBrace() {
+            templateDepth = (templateDepth - 1).coerceAtLeast(0)
+            i++
+            if (templateDepth == 0) {
+                state = STATE_STRING
+                templateDepth = templateDepths.removeAt(templateDepths.lastIndex)
+            }
+        }
+        private fun lexicalState(): LexicalState {
+            val inLiteralString = state == STATE_STRING || state == STATE_RAW_STRING
+            val inComment = state == STATE_LINE_COMMENT || state == STATE_BLOCK_COMMENT
+            val inChar = state == STATE_CHAR
+            val inTemplateCode = caretInTemplateIdent || caretInTemplateExpr
+            val suppressed = (inLiteralString && !inTemplateCode) || inComment || inChar
+            return LexicalState(suppressed = suppressed, inTemplateCode = inTemplateCode)
+        }
     }
     private fun extractPrefixStart(text: String, caret: Int, lexical: LexicalState): Int {
         var start = caret
