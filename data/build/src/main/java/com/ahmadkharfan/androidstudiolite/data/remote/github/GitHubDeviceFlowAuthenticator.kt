@@ -4,8 +4,11 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
+import com.ahmadkharfan.androidstudiolite.domain.time.MonotonicClock
+import com.ahmadkharfan.androidstudiolite.domain.time.SystemMonotonicClock
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +25,8 @@ class GitHubDeviceFlowAuthenticator(
     private val credentialStore: GitCredentialStore,
     private val httpClient: OkHttpClient = defaultClient(),
     private val scope: String = "repo",
+    private val clock: MonotonicClock = SystemMonotonicClock,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : GitHubDeviceAuthenticator {
 
     override val isConfigured: Boolean get() = clientId.isNotBlank()
@@ -42,11 +47,11 @@ class GitHubDeviceFlowAuthenticator(
         emit(GitHubDeviceAuthState.AwaitingAuthorization(code.userCode, code.verificationUri))
 
         var intervalSeconds = code.interval.coerceAtLeast(MIN_POLL_SECONDS)
-        val deadline = System.currentTimeMillis() + code.expiresIn * 1000L
+        val deadline = clock.elapsedMillis() + code.expiresIn * 1000L
 
 
         var consecutiveErrors = 0
-        while (System.currentTimeMillis() < deadline) {
+        while (clock.elapsedMillis() < deadline) {
             delay(intervalSeconds * 1000L)
             val token = try {
                 pollForToken(code.deviceCode).also { consecutiveErrors = 0 }
@@ -77,7 +82,7 @@ class GitHubDeviceFlowAuthenticator(
             }
         }
         emit(GitHubDeviceAuthState.Error("The code expired before sign-in completed. Try again."))
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     private fun requestDeviceCode(): DeviceCode {
         val body = FormBody.Builder()
