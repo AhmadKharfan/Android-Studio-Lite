@@ -16,7 +16,16 @@ internal object AgentReplyParser {
     fun parseExecutionTurn(raw: String, preferActions: Boolean = false): AgentTurn {
         val diagnostic = AgentReplyClassifier.diagnoseParse(raw, preferActions)
         AiAgentLog.i("Parse", diagnostic.summary)
+        parseUsableRootTurn(raw, preferActions, diagnostic)?.let { return it }
+        salvagedTurn(raw, preferActions)?.let { return it }
+        return fallbackTurn(raw)
+    }
 
+    private fun parseUsableRootTurn(
+        raw: String,
+        preferActions: Boolean,
+        diagnostic: AgentProtocol.ParseDiagnostic,
+    ): AgentTurn? {
         val root = parseRootObject(raw)
         if (root != null) {
             val turn = turnFromRoot(root, preferActions)
@@ -38,14 +47,20 @@ internal object AgentReplyParser {
                     "truncated=${diagnostic.truncated} salvaged=${diagnostic.salvagedCount}",
             )
         }
+        return null
+    }
 
+    private fun salvagedTurn(raw: String, preferActions: Boolean): AgentTurn? {
         val salvaged = AgentReplySalvage.salvageActions(raw).map { AgentContentSanitizer.sanitizeAction(it) }
         if (preferActions && salvaged.isNotEmpty()) {
             AgentReplyClassifier.logSanitizedActions(salvaged)
             AiAgentLog.i("Parse", "using salvaged actions count=${salvaged.size}")
             return AgentTurn.Actions(AgentReplySalvage.extractThought(raw), salvaged)
         }
+        return null
+    }
 
+    private fun fallbackTurn(raw: String): AgentTurn.Final {
         val sanitized = AgentReplyClassifier.sanitizeDisplayText(raw)
         AiAgentLog.w(
             "Parse",
