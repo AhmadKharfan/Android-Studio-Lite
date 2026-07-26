@@ -80,4 +80,94 @@ class KotlinCompletionScannerTest {
         assertNotNull(ctx.callSite)
         assertEquals("Text", ctx.callSite!!.calleeName)
     }
+    @Test
+    fun blockComment_suppressesUntilClosed() {
+        assertTrue(scanAtMarker("val x = 1 /* block| comment */").suppressed)
+        assertTrue(scanAtMarker("val x = 1 /* unterminated|").suppressed)
+        assertFalse(scanAtMarker("val x = 1 /* block */ |foo").suppressed)
+    }
+    @Test
+    fun rawString_suppressesUntilTripleQuoteCloses() {
+        assertTrue(scanAtMarker("val s = \"\"\"raw \" quote|\"\"\"").suppressed)
+        assertFalse(scanAtMarker("val s = \"\"\"raw \" quote\"\"\"; |foo").suppressed)
+    }
+    @Test
+    fun charLiteral_suppressesUntilClosingQuote() {
+        assertTrue(scanAtMarker("val c = 'x|'; foo").suppressed)
+        assertFalse(scanAtMarker("val c = 'x'; |foo").suppressed)
+        assertTrue(scanAtMarker("val c = '\\'|'; foo").suppressed)
+        assertFalse(scanAtMarker("val c = '\\''; |foo").suppressed)
+    }
+    @Test
+    fun identifierTemplate_allowsCompletionInsideIdentifier() {
+        val ctx = scanAtMarker("val s = \"\$fo|o\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun expressionTemplate_preservesNestedBraceDepth() {
+        val simple = scanAtMarker("val s = \"\${fo|o}\"")
+        assertFalse(simple.suppressed)
+        assertTrue(simple.inTemplateExpression)
+        val nested = scanAtMarker("val s = \"\${foo({ ba|r })}\"")
+        assertFalse(nested.suppressed)
+        assertTrue(nested.inTemplateExpression)
+        assertTrue(scanAtMarker("val s = \"\${foo({ bar })}|\"").suppressed)
+    }
+    @Test
+    fun templateExpression_resumesAfterInnerStringCloses() {
+        val text = "val s = \"\${ f(\"x\")"
+        val ctx = KotlinCompletionScanner.scan(text, text.length)
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun completedTemplate_doesNotSuppressFollowingCode() {
+        val text = "val s = \"\${ f(\"x\") }\"\nval y ="
+        val ctx = KotlinCompletionScanner.scan(text, text.length)
+        assertFalse(ctx.suppressed)
+        assertFalse(ctx.inTemplateExpression)
+    }
+    @Test
+    fun templateExpression_resumesAfterLineCommentCloses() {
+        val ctx = scanAtMarker("val s = \"\${ f() // comment\n|foo }\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun templateExpression_resumesAfterBlockCommentCloses() {
+        val ctx = scanAtMarker("val s = \"\${ f() /* comment */|foo }\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun templateExpression_resumesAfterCharCloses() {
+        val ctx = scanAtMarker("val s = \"\${ f('x')| }\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun templateExpression_resumesAfterRawStringCloses() {
+        val ctx = scanAtMarker("val s = \"\${ f(\"\"\"x\"\"\")| }\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+    }
+    @Test
+    fun nestedTemplate_restoresEnclosingTemplateDepth() {
+        val ctx = scanAtMarker("val s = \"\${ \"\${ x }\"| }\"")
+        assertFalse(ctx.suppressed)
+        assertTrue(ctx.inTemplateExpression)
+        val completed = scanAtMarker("val s = \"\${ \"\${ x }\" }\"; |foo")
+        assertFalse(completed.suppressed)
+        assertFalse(completed.inTemplateExpression)
+    }
+    @Test
+    fun escapedQuote_doesNotCloseNormalString() {
+        assertTrue(scanAtMarker("val s = \"a\\\"|b\"").suppressed)
+    }
+    private fun scanAtMarker(markedText: String): KotlinCaretContext {
+        val caret = markedText.indexOf('|')
+        val text = markedText.removeRange(caret, caret + 1)
+        return KotlinCompletionScanner.scan(text, caret)
+    }
 }
