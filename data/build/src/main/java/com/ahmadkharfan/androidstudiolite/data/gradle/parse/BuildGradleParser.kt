@@ -220,54 +220,68 @@ object BuildGradleParser {
     }
 
     private fun parseDependencyLine(tokens: List<GToken>, config: String, from: Int, end: Int): RawDependency? {
+        val arguments = dependencyArguments(tokens, from, end) ?: return null
+        val head = tokens[nextSignificant(tokens, arguments.start, arguments.end) ?: arguments.start]
+        return when (head.takeIf { it.type == GTokenType.IDENT }?.text) {
+            "platform", "enforcedPlatform" -> parseModuleDependency(
+                tokens,
+                config,
+                arguments.copy(
+                    start = unwrapCall(tokens, arguments.start, arguments.end) ?: arguments.start,
+                    isPlatform = true,
+                ),
+            )
+            "project" -> RawDependency(
+                config,
+                RawDependencyKind.PROJECT,
+                coordinate = firstStringArg(tokens, arguments.start, arguments.end),
+            )
+            "kotlin" -> firstStringArg(tokens, arguments.start, arguments.end)?.let { name ->
+                RawDependency(config, RawDependencyKind.MODULE, coordinate = "org.jetbrains.kotlin:kotlin-$name")
+            } ?: RawDependency(config, RawDependencyKind.UNKNOWN)
+            "files", "fileTree" -> RawDependency(config, RawDependencyKind.UNKNOWN)
+            else -> parseModuleDependency(tokens, config, arguments)
+        }
+    }
+
+    private fun dependencyArguments(tokens: List<GToken>, from: Int, end: Int): DependencyArguments? {
         val first = nextSignificant(tokens, from, end) ?: return null
-
-        val (argStart, argEnd) = if (tokens[first].type == GTokenType.LPAREN) {
+        val arguments = if (tokens[first].type == GTokenType.LPAREN) {
             val close = GradleScriptScanner.matchParen(tokens, first, end) ?: return null
-            (first + 1) to close
+            DependencyArguments(first + 1, close)
         } else {
-            first to statementEnd(tokens, first, end)
+            DependencyArguments(first, statementEnd(tokens, first, end))
         }
-        if (argStart >= argEnd) return null
+        return arguments.takeIf { it.start < it.end }
+    }
 
-
-        var isPlatform = false
-        var innerStart = argStart
-        val head = tokens[nextSignificant(tokens, argStart, argEnd) ?: argStart]
-        if (head.type == GTokenType.IDENT) {
-            when (head.text) {
-                "platform", "enforcedPlatform" -> {
-                    isPlatform = true
-                    innerStart = unwrapCall(tokens, argStart, argEnd) ?: argStart
-                }
-                "project" -> {
-                    val path = firstStringArg(tokens, argStart, argEnd)
-                    return RawDependency(config, RawDependencyKind.PROJECT, coordinate = path)
-                }
-                "kotlin" -> {
-                    val name = firstStringArg(tokens, argStart, argEnd)
-                    return if (name != null)
-                        RawDependency(config, RawDependencyKind.MODULE, coordinate = "org.jetbrains.kotlin:kotlin-$name")
-                    else RawDependency(config, RawDependencyKind.UNKNOWN)
-                }
-                "files", "fileTree" -> return RawDependency(config, RawDependencyKind.UNKNOWN)
-            }
-        }
-
-
-        val accessor = catalogAccessorAtLibs(tokens, innerStart, argEnd)
+    private fun parseModuleDependency(
+        tokens: List<GToken>,
+        config: String,
+        arguments: DependencyArguments,
+    ): RawDependency {
+        val accessor = catalogAccessorAtLibs(tokens, arguments.start, arguments.end)
         if (accessor != null) {
             val kind = if (accessor.startsWith("bundles.")) RawDependencyKind.CATALOG_BUNDLE else RawDependencyKind.CATALOG
-            return RawDependency(config, kind, catalogAccessor = "libs.$accessor", isPlatform = isPlatform)
+            return RawDependency(config, kind, catalogAccessor = "libs.$accessor", isPlatform = arguments.isPlatform)
         }
-
-
-        val coord = firstStringArg(tokens, innerStart, argEnd)
+        val coord = firstStringArg(tokens, arguments.start, arguments.end)
         return when {
-            coord != null -> RawDependency(config, RawDependencyKind.MODULE, coordinate = coord, isPlatform = isPlatform)
+            coord != null -> RawDependency(
+                config,
+                RawDependencyKind.MODULE,
+                coordinate = coord,
+                isPlatform = arguments.isPlatform,
+            )
             else -> RawDependency(config, RawDependencyKind.UNKNOWN)
         }
     }
+
+    private data class DependencyArguments(
+        val start: Int,
+        val end: Int,
+        val isPlatform: Boolean = false,
+    )
 
     private fun unwrapCall(tokens: List<GToken>, from: Int, end: Int): Int? {
         val id = nextSignificant(tokens, from, end) ?: return null
