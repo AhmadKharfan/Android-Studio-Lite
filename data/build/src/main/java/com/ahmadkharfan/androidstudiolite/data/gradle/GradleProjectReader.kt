@@ -6,6 +6,7 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.model.GradleDsl
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedAndroidBlock
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedBuildScript
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedPlugin
+import com.ahmadkharfan.androidstudiolite.data.gradle.model.ParsedSettings
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependency
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.RawDependencyKind
 import com.ahmadkharfan.androidstudiolite.data.gradle.model.VersionCatalog
@@ -38,46 +39,17 @@ class GradleProjectReader {
 
     fun read(projectRoot: File): GradleProjectReadResult {
         val diagnostics = ArrayList<GradleDiagnostic>()
-
         val catalog = readCatalog(projectRoot, diagnostics)
         val gradleProps = readProperties(File(projectRoot, "gradle.properties"))
         val gradleVersion = readGradleVersion(projectRoot, diagnostics)
-
-        val settingsFile = firstExisting(projectRoot, "settings.gradle.kts", "settings.gradle")
-        val settings = settingsFile?.let { SettingsGradleParser.parse(it.readText()) }
-        if (settings == null) {
-            diagnostics += GradleDiagnostic(
-                "No settings.gradle(.kts) found; treating the root directory as a single module.",
-                "gradle.noSettings", DiagnosticSeverity.INFO,
-            )
-        }
-
+        val settings = readSettings(projectRoot, diagnostics)
         val rootName = settings?.rootProjectName ?: projectRoot.name
-
-
-        val moduleDirs = LinkedHashMap<String, File>()
-        if (settings != null) {
-            for (path in settings.modulePaths) {
-                moduleDirs[path] = resolveModuleDir(projectRoot, path, settings.projectDirOverrides)
-            }
-        }
-
-        if (firstExisting(projectRoot, "build.gradle.kts", "build.gradle") != null) {
-            moduleDirs.putIfAbsent(":", projectRoot)
-        }
-        if (moduleDirs.isEmpty()) {
-            diagnostics += GradleDiagnostic(
-                "No modules found (no included projects and no root build script).",
-                "gradle.noModules", DiagnosticSeverity.WARNING,
-            )
-        }
-
-        val read = moduleDirs.map { (path, dir) ->
-            readModule(path, dir, projectRoot, catalog, diagnostics)
+        val context = ProjectReadContext(projectRoot, catalog, diagnostics)
+        val read = moduleDirectories(projectRoot, settings, diagnostics).map { (path, dir) ->
+            readModule(path, dir, context)
         }
         val modules = read.map { it.module }
         val agpVersion = AgpVersionResolver.resolve(catalog, read.flatMap { it.plugins })
-
         return GradleProjectReadResult(
             model = ProjectModel(name = rootName, rootDir = projectRoot, modules = modules),
             diagnostics = diagnostics,
@@ -88,40 +60,73 @@ class GradleProjectReader {
         )
     }
 
+    private fun readSettings(projectRoot: File, diagnostics: MutableList<GradleDiagnostic>): ParsedSettings? {
+        val settingsFile = firstExisting(projectRoot, "settings.gradle.kts", "settings.gradle")
+        val settings = settingsFile?.let { SettingsGradleParser.parse(it.readText()) }
+        if (settings == null) {
+            diagnostics += GradleDiagnostic(
+                "No settings.gradle(.kts) found; treating the root directory as a single module.",
+                "gradle.noSettings", DiagnosticSeverity.INFO,
+            )
+        }
+        return settings
+    }
+
+    private fun moduleDirectories(
+        projectRoot: File,
+        settings: ParsedSettings?,
+        diagnostics: MutableList<GradleDiagnostic>,
+    ): Map<String, File> {
+        val moduleDirs = LinkedHashMap<String, File>()
+        settings?.modulePaths?.forEach { path ->
+            moduleDirs[path] = resolveModuleDir(projectRoot, path, settings.projectDirOverrides)
+        }
+        if (firstExisting(projectRoot, "build.gradle.kts", "build.gradle") != null) {
+            moduleDirs.putIfAbsent(":", projectRoot)
+        }
+        if (moduleDirs.isEmpty()) {
+            diagnostics += GradleDiagnostic(
+                "No modules found (no included projects and no root build script).",
+                "gradle.noModules", DiagnosticSeverity.WARNING,
+            )
+        }
+        return moduleDirs
+    }
+
     private data class ReadModule(val module: ModuleModel, val plugins: List<ParsedPlugin>)
+
+    private data class ProjectReadContext(
+        val projectRoot: File,
+        val catalog: VersionCatalog?,
+        val diagnostics: MutableList<GradleDiagnostic>,
+    )
 
     private fun readModule(
         path: String,
         dir: File,
-        projectRoot: File,
-        catalog: VersionCatalog?,
-        diagnostics: MutableList<GradleDiagnostic>,
+        context: ProjectReadContext,
     ): ReadModule {
-        val name = if (path == ":") projectRoot.name else path.trimStart(':').substringAfterLast(':')
+        val name = if (path == ":") context.projectRoot.name else path.trimStart(':').substringAfterLast(':')
         val buildFile = firstExisting(dir, "build.gradle.kts", "build.gradle")
         if (buildFile == null) {
-            diagnostics += GradleDiagnostic(
+            context.diagnostics += GradleDiagnostic(
                 "Module $path has no build.gradle(.kts).", "gradle.noBuildScript",
-                DiagnosticSeverity.WARNING, relPath(projectRoot, dir),
+                DiagnosticSeverity.WARNING, relPath(context.projectRoot, dir),
             )
             return ReadModule(ModuleModel(path, name, ModuleType.UNKNOWN, dir), emptyList())
         }
-
         val dsl = if (buildFile.name.endsWith(".kts")) GradleDsl.KOTLIN else GradleDsl.GROOVY
-        val script = runCatching { BuildGradleParser.parse(buildFile.readText(), dsl) }
-            .getOrElse {
-                diagnostics += GradleDiagnostic(
-                    "Couldn't parse ${buildFile.name}: ${it.message}", "gradle.parseFailure",
-                    DiagnosticSeverity.ERROR, relPath(projectRoot, buildFile),
-                )
-                ParsedBuildScript(dsl)
-            }
-
-        val type = moduleType(script, catalog)
-        val deps = resolveDependencies(script.dependencies, catalog, projectRoot, buildFile, diagnostics)
+        val script = parseBuildScript(buildFile, dsl, context)
+        val type = moduleType(script, context.catalog)
+        val deps = resolveDependencies(
+            script.dependencies,
+            context.catalog,
+            context.projectRoot,
+            buildFile,
+            context.diagnostics,
+        )
         val variants = variantsOf(path, script.android)
         val sourceSets = sourceSetsOf(dir, script.android)
-
         return ReadModule(
             ModuleModel(
                 path = path,
@@ -136,6 +141,19 @@ class GradleProjectReader {
             script.plugins,
         )
     }
+
+    private fun parseBuildScript(
+        buildFile: File,
+        dsl: GradleDsl,
+        context: ProjectReadContext,
+    ): ParsedBuildScript = runCatching { BuildGradleParser.parse(buildFile.readText(), dsl) }
+        .getOrElse { error ->
+            context.diagnostics += GradleDiagnostic(
+                "Couldn't parse ${buildFile.name}: ${error.message}", "gradle.parseFailure",
+                DiagnosticSeverity.ERROR, relPath(context.projectRoot, buildFile),
+            )
+            ParsedBuildScript(dsl)
+        }
 
     private fun applicationIdOf(type: ModuleType, android: ParsedAndroidBlock?): String? {
         if (type != ModuleType.ANDROID_APP || android == null) return null
