@@ -12,20 +12,34 @@ object SmartEdit {
         }
     }
     fun typeChar(session: EditorSession, ch: Char, tabSize: Int) {
-        val doc = session.document
         val sel = session.selection
         if (!sel.isCollapsed) {
-            val close = OPEN_TO_CLOSE[ch]
-                ?: if (ch in QUOTES && session.language.supportsSmartQuotes) ch else null
-            if (close != null) {
-                val selected = doc.substring(sel.start, sel.end)
-                session.replaceRange(sel.start, sel.end, "$ch$selected$close", caret = sel.start + 1 + selected.length)
-            } else {
-                session.replaceRange(sel.start, sel.end, ch.toString(), caret = sel.start + 1)
-            }
+            typeOverSelection(session, ch)
             return
         }
-        val pos = sel.caret
+        typeAtCaret(session, ch, tabSize)
+    }
+
+    private fun typeOverSelection(session: EditorSession, ch: Char) {
+        val selection = session.selection
+        val close = OPEN_TO_CLOSE[ch]
+            ?: if (ch in QUOTES && session.language.supportsSmartQuotes) ch else null
+        if (close != null) {
+            val selected = session.document.substring(selection.start, selection.end)
+            session.replaceRange(
+                selection.start,
+                selection.end,
+                "$ch$selected$close",
+                caret = selection.start + 1 + selected.length,
+            )
+        } else {
+            session.replaceRange(selection.start, selection.end, ch.toString(), caret = selection.start + 1)
+        }
+    }
+
+    private fun typeAtCaret(session: EditorSession, ch: Char, tabSize: Int) {
+        val doc = session.document
+        val pos = session.selection.caret
         val next = if (pos < doc.length) doc.charAt(pos) else null
         val prev = if (pos > 0) doc.charAt(pos - 1) else null
         if ((ch in CLOSE_TO_OPEN || ch in QUOTES) && next == ch) {

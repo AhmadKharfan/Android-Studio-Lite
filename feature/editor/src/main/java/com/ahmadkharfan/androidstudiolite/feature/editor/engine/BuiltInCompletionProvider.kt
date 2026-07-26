@@ -123,41 +123,60 @@ class BuiltInCompletionProvider(
         memberAccess: Boolean,
         importContext: Boolean,
         positionKind: CompletionPositionKind,
-    ): Int {
-        var s = 0
-        if (prefix.isNotEmpty()) {
-            if (item.label.startsWith(prefix)) s += 100
-            else if (item.label.startsWith(prefix, ignoreCase = true)) s += 80
-        }
-        when {
-            importContext || memberAccess || positionKind == CompletionPositionKind.Import ||
-                positionKind == CompletionPositionKind.MemberAccess -> when (item.kind) {
-                CompletionKind.Class, CompletionKind.Function, CompletionKind.Method -> s += 50
-                CompletionKind.Property -> s += 40
-                CompletionKind.Keyword, CompletionKind.Snippet -> s -= 200
-                else -> s += 10
-            }
-            positionKind == CompletionPositionKind.CallArgument -> when (item.kind) {
-                CompletionKind.Parameter -> s += 120
-                CompletionKind.Keyword -> s += if (item.label in EXPRESSION_KEYWORDS) 40 else -300
-                CompletionKind.Snippet -> s -= 300
-                else -> s += 5
-            }
-            positionKind == CompletionPositionKind.TypeReference -> when (item.kind) {
-                CompletionKind.Class -> s += 60
-                CompletionKind.Keyword, CompletionKind.Snippet, CompletionKind.Function -> s -= 200
-                else -> s += 5
-            }
-            else -> when (item.kind) {
-                CompletionKind.Function, CompletionKind.Method -> s += 30
-                CompletionKind.Class -> s += 25
-                CompletionKind.Snippet -> s += 20
-                CompletionKind.Keyword -> s += 15
-                CompletionKind.Variable -> s += 5
-                else -> s += 10
-            }
-        }
-        return s
+    ): Int = prefixScore(item.label, prefix) + contextualScore(
+        item,
+        memberAccess,
+        importContext,
+        positionKind,
+    )
+
+    private fun prefixScore(label: String, prefix: String): Int = when {
+        prefix.isEmpty() -> 0
+        label.startsWith(prefix) -> 100
+        label.startsWith(prefix, ignoreCase = true) -> 80
+        else -> 0
+    }
+
+    private fun contextualScore(
+        item: CompletionItem,
+        memberAccess: Boolean,
+        importContext: Boolean,
+        positionKind: CompletionPositionKind,
+    ): Int = when {
+        importContext || memberAccess || positionKind == CompletionPositionKind.Import ||
+            positionKind == CompletionPositionKind.MemberAccess -> accessScore(item.kind)
+        positionKind == CompletionPositionKind.CallArgument -> callArgumentScore(item)
+        positionKind == CompletionPositionKind.TypeReference -> typeReferenceScore(item.kind)
+        else -> generalScore(item.kind)
+    }
+
+    private fun accessScore(kind: CompletionKind): Int = when (kind) {
+        CompletionKind.Class, CompletionKind.Function, CompletionKind.Method -> 50
+        CompletionKind.Property -> 40
+        CompletionKind.Keyword, CompletionKind.Snippet -> -200
+        else -> 10
+    }
+
+    private fun callArgumentScore(item: CompletionItem): Int = when (item.kind) {
+        CompletionKind.Parameter -> 120
+        CompletionKind.Keyword -> if (item.label in EXPRESSION_KEYWORDS) 40 else -300
+        CompletionKind.Snippet -> -300
+        else -> 5
+    }
+
+    private fun typeReferenceScore(kind: CompletionKind): Int = when (kind) {
+        CompletionKind.Class -> 60
+        CompletionKind.Keyword, CompletionKind.Snippet, CompletionKind.Function -> -200
+        else -> 5
+    }
+
+    private fun generalScore(kind: CompletionKind): Int = when (kind) {
+        CompletionKind.Function, CompletionKind.Method -> 30
+        CompletionKind.Class -> 25
+        CompletionKind.Snippet -> 20
+        CompletionKind.Keyword -> 15
+        CompletionKind.Variable -> 5
+        else -> 10
     }
     private fun documentIdentifiers(text: String, excludeStart: Int, excludeEnd: Int): List<String> {
         val result = LinkedHashSet<String>()
