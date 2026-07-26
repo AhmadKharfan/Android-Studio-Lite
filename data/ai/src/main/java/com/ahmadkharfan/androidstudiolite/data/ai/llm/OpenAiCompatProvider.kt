@@ -33,7 +33,7 @@ internal class OpenAiCompatProvider(
             ?.message
             ?.content
             .orEmpty()
-            .ifBlank { throw AiLlmException("Empty response from $providerId") }
+            .orThrowIfBlank(providerId)
     }
 
     override fun stream(request: LlmChatRequest, onDelta: (String) -> Unit) {
@@ -45,19 +45,21 @@ internal class OpenAiCompatProvider(
                 stream = true,
             ),
         )
-        http.readSse(completionsRequest(request.apiKey, request.baseUrl, body)) { data ->
-            if (data == "[DONE]") return@readSse
-            val root = runCatching { llmJson.parseToJsonElement(data).jsonObject }.getOrNull() ?: return@readSse
-            val text = root["choices"]?.jsonArray
-                ?.firstOrNull()
-                ?.jsonObject
-                ?.get("delta")
-                ?.jsonObject
-                ?.get("content")
-                ?.jsonPrimitive
-                ?.contentOrNull
-            if (!text.isNullOrEmpty()) onDelta(text)
-        }
+        http.streamJsonDeltas(
+            request = completionsRequest(request.apiKey, request.baseUrl, body),
+            skipData = { it == "[DONE]" },
+            extractDelta = { root ->
+                root["choices"]?.jsonArray
+                    ?.firstOrNull()
+                    ?.jsonObject
+                    ?.get("delta")
+                    ?.jsonObject
+                    ?.get("content")
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+            },
+            onDelta = onDelta,
+        )
     }
 
     override fun listModels(apiKey: String, baseUrl: String?): List<String> {

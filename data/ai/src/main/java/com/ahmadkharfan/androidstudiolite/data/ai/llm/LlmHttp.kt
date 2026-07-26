@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.ai.llm
 import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -24,6 +25,23 @@ internal interface LlmHttpClient {
 
     fun readSse(request: Request, onData: (String) -> Unit)
 }
+
+internal fun LlmHttpClient.streamJsonDeltas(
+    request: Request,
+    skipData: (String) -> Boolean = { false },
+    extractDelta: (JsonObject) -> String?,
+    onDelta: (String) -> Unit,
+) {
+    readSse(request) { payload ->
+        if (skipData(payload)) return@readSse
+        val root = runCatching { llmJson.parseToJsonElement(payload).jsonObject }.getOrNull() ?: return@readSse
+        val text = extractDelta(root)
+        if (!text.isNullOrEmpty()) onDelta(text)
+    }
+}
+
+internal fun String.orThrowIfBlank(vendor: String): String =
+    ifBlank { throw AiLlmException("Empty response from $vendor") }
 
 internal class OkHttpLlmClient(private val httpClient: OkHttpClient) : LlmHttpClient {
 
