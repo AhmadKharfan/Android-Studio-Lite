@@ -366,24 +366,15 @@ class JGitGitRepository internal constructor(
     }
 
     override suspend fun publishBranch(repoDir: File, name: String): GitSyncResult = withContext(io) {
-        operationCoordinator.runExclusive(repoDir, GitOperationType.PUSH, cancellable = true) {
-            var url: String? = null
-            try {
-                openGit(repoDir).use { git ->
-                    syncEngine.publishBranch(
-                        git, name,
-                        credentialsFor = { credentialProviderFor(it, null) },
-                        monitor = operationProgressMonitor(repoDir),
-                        onUrl = { url = it },
-                        ensureActive = { ensureOperationActive(repoDir) },
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                throwMappedOrCancelled(repoDir, error, url)
-            } finally {
-                refreshQuietly(repoDir)
+        syncOperation(repoDir, GitOperationType.PUSH) { onUrl ->
+            openGit(repoDir).use { git ->
+                syncEngine.publishBranch(
+                    git, name,
+                    credentialsFor = { credentialProviderFor(it, null) },
+                    monitor = operationProgressMonitor(repoDir),
+                    onUrl = onUrl,
+                    ensureActive = { ensureOperationActive(repoDir) },
+                )
             }
         }
     }
@@ -421,24 +412,15 @@ class JGitGitRepository internal constructor(
     }
 
     override suspend fun deepen(repoDir: File): GitSyncResult = withContext(io) {
-        operationCoordinator.runExclusive(repoDir, GitOperationType.DEEPEN, cancellable = true) {
-            var url: String? = null
-            try {
-                openGit(repoDir).use { git ->
-                    syncEngine.deepen(
-                        git,
-                        credentialsFor = { credentialProviderFor(it, null) },
-                        monitor = operationProgressMonitor(repoDir),
-                        onUrl = { url = it },
-                        ensureActive = { ensureOperationActive(repoDir) },
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                throwMappedOrCancelled(repoDir, error, url)
-            } finally {
-                refreshQuietly(repoDir)
+        syncOperation(repoDir, GitOperationType.DEEPEN) { onUrl ->
+            openGit(repoDir).use { git ->
+                syncEngine.deepen(
+                    git,
+                    credentialsFor = { credentialProviderFor(it, null) },
+                    monitor = operationProgressMonitor(repoDir),
+                    onUrl = onUrl,
+                    ensureActive = { ensureOperationActive(repoDir) },
+                )
             }
         }
     }
@@ -673,24 +655,15 @@ class JGitGitRepository internal constructor(
         configureRemote(repoDir) { git -> remoteEngine.remove(git, name) }
 
     override suspend fun fetch(repoDir: File, remote: String?, prune: Boolean): GitSyncResult = withContext(io) {
-        operationCoordinator.runExclusive(repoDir, GitOperationType.FETCH, cancellable = true) {
-            var url: String? = null
-            try {
-                openGit(repoDir).use { git ->
-                    syncEngine.fetch(
-                        git, remote, prune,
-                        credentialsFor = { credentialProviderFor(it, null) },
-                        monitor = operationProgressMonitor(repoDir),
-                        onUrl = { url = it },
-                        ensureActive = { ensureOperationActive(repoDir) },
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                throwMappedOrCancelled(repoDir, error, url)
-            } finally {
-                refreshQuietly(repoDir)
+        syncOperation(repoDir, GitOperationType.FETCH) { onUrl ->
+            openGit(repoDir).use { git ->
+                syncEngine.fetch(
+                    git, remote, prune,
+                    credentialsFor = { credentialProviderFor(it, null) },
+                    monitor = operationProgressMonitor(repoDir),
+                    onUrl = onUrl,
+                    ensureActive = { ensureOperationActive(repoDir) },
+                )
             }
         }
     }
@@ -721,24 +694,15 @@ class JGitGitRepository internal constructor(
         repoDir: File,
         setUpstreamIfMissing: Boolean,
         forceWithLease: Boolean,
-    ): GitSyncResult = operationCoordinator.runExclusive(repoDir, GitOperationType.PUSH, cancellable = true) {
-        var url: String? = null
-        try {
-            openGit(repoDir).use { git ->
-                syncEngine.push(
-                    git, setUpstreamIfMissing, forceWithLease,
-                    credentialsFor = { credentialProviderFor(it, null) },
-                    monitor = operationProgressMonitor(repoDir),
-                    onUrl = { url = it },
-                    ensureActive = { ensureOperationActive(repoDir) },
-                )
-            }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Throwable) {
-            throwMappedOrCancelled(repoDir, error, url)
-        } finally {
-            refreshQuietly(repoDir)
+    ): GitSyncResult = syncOperation(repoDir, GitOperationType.PUSH) { onUrl ->
+        openGit(repoDir).use { git ->
+            syncEngine.push(
+                git, setUpstreamIfMissing, forceWithLease,
+                credentialsFor = { credentialProviderFor(it, null) },
+                monitor = operationProgressMonitor(repoDir),
+                onUrl = onUrl,
+                ensureActive = { ensureOperationActive(repoDir) },
+            )
         }
     }
 
@@ -877,24 +841,15 @@ class JGitGitRepository internal constructor(
     }
 
     private suspend fun pushTags(repoDir: File, refSpec: RefSpec?, label: String): GitSyncResult = withContext(io) {
-        operationCoordinator.runExclusive(repoDir, GitOperationType.PUSH, cancellable = true) {
-            var url: String? = null
-            try {
-                openGit(repoDir).use { git ->
-                    syncEngine.pushTags(
-                        git, refSpec, label,
-                        credentialsFor = { credentialProviderFor(it, null) },
-                        monitor = operationProgressMonitor(repoDir),
-                        onUrl = { url = it },
-                        ensureActive = { ensureOperationActive(repoDir) },
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                throwMappedOrCancelled(repoDir, error, url)
-            } finally {
-                refreshQuietly(repoDir)
+        syncOperation(repoDir, GitOperationType.PUSH) { onUrl ->
+            openGit(repoDir).use { git ->
+                syncEngine.pushTags(
+                    git, refSpec, label,
+                    credentialsFor = { credentialProviderFor(it, null) },
+                    monitor = operationProgressMonitor(repoDir),
+                    onUrl = onUrl,
+                    ensureActive = { ensureOperationActive(repoDir) },
+                )
             }
         }
     }
@@ -990,6 +945,23 @@ class JGitGitRepository internal constructor(
             } catch (error: Throwable) {
                 throw JGitExceptionMapper.map(error, url)
             }
+        }
+    }
+
+    private suspend fun <T> syncOperation(
+        repoDir: File,
+        type: GitOperationType,
+        block: suspend (onUrl: (String?) -> Unit) -> T,
+    ): T = operationCoordinator.runExclusive(repoDir, type, cancellable = true) {
+        var url: String? = null
+        try {
+            block { url = it }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            throwMappedOrCancelled(repoDir, error, url)
+        } finally {
+            refreshQuietly(repoDir)
         }
     }
 
