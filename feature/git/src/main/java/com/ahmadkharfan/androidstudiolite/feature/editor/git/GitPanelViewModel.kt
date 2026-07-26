@@ -1,11 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslDiffKind
-import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
-import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
@@ -17,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 
 class GitPanelViewModel(
@@ -26,8 +25,10 @@ class GitPanelViewModel(
     private val operationMonitor: GitOperationMonitor,
     private val credentialStore: GitCredentialStore,
     private val authenticator: GitHubDeviceAuthenticator,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : BaseViewModel<GitPanelUiState, Nothing>(
     initialState = GitPanelUiState(authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
+    defaultDispatcher = ioDispatcher,
 ), GitPanelInteractionListener, GitAuthPromptActions {
 
     @Volatile
@@ -36,6 +37,7 @@ class GitPanelViewModel(
 
     private val controllerContext = GitPanelControllerContext(
         scope = viewModelScope,
+        dispatcher = ioDispatcher,
         repoDir = { repoDir },
         state = { state.value },
         updateState = ::updateState,
@@ -56,6 +58,8 @@ class GitPanelViewModel(
         onRepositoryBootstrapped = ::observeOperation,
     )
     private val commitIdentityController = GitCommitIdentityController(controllerContext, gitRepository)
+    private val stagingController = GitStagingController(controllerContext, gitRepository, gitRepository)
+    private val operationsController = GitOperationsController(controllerContext, gitRepository)
 
     init {
         tryToExecute(
@@ -121,53 +125,12 @@ class GitPanelViewModel(
         )
     }
 
-    override fun onSelectChange(path: String, target: GitDiffTarget) {
-        val repoDir = repoDir ?: return
-        updateState { copy(selectedPath = path, selectedDiffTarget = target) }
-        tryToExecute(
-            block = {
-                when (target) {
-                    GitDiffTarget.INDEX_TO_WORKTREE -> gitRepository.diffIndexToWorktree(repoDir, path)
-                    GitDiffTarget.HEAD_TO_INDEX -> gitRepository.diffHeadToIndex(repoDir, path)
-                    GitDiffTarget.COMMIT_TO_PARENT -> error("Commit diffs are opened from history")
-                }
-            },
-            onSuccess = { diff ->
-                val lines = diff.hunks.flatMap { it.lines }.map {
-                    GitDiffLineUiModel(kind = it.kind.toAslDiffKind(), text = it.text, oldNo = it.oldNo, newNo = it.newNo)
-                }
-                updateState { copy(diffLines = lines) }
-            },
-        )
-    }
-
-    override fun onCloseDiff() {
-        updateState { copy(selectedPath = null, diffLines = emptyList()) }
-    }
-
-    override fun onStage(path: String) {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        tryToExecute(block = { gitRepository.stage(repoDir, path) }, onError = ::showError)
-    }
-
-    override fun onUnstage(path: String) {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        tryToExecute(block = { gitRepository.unstage(repoDir, path) }, onError = ::showError)
-    }
-
-    override fun onStageAll() {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        tryToExecute(block = { gitRepository.stageAll(repoDir) }, onError = ::showError)
-    }
-
-    override fun onUnstageAll() {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        tryToExecute(block = { gitRepository.unstageAll(repoDir) }, onError = ::showError)
-    }
+    override fun onSelectChange(path: String, target: GitDiffTarget) = stagingController.onSelectChange(path, target)
+    override fun onCloseDiff() = stagingController.onCloseDiff()
+    override fun onStage(path: String) = stagingController.onStage(path)
+    override fun onUnstage(path: String) = stagingController.onUnstage(path)
+    override fun onStageAll() = stagingController.onStageAll()
+    override fun onUnstageAll() = stagingController.onUnstageAll()
 
     override fun onCommitMessageChanged(message: String) {
         updateState { copy(commitMessage = message) }
@@ -327,70 +290,17 @@ class GitPanelViewModel(
         updateState { copy(statusMessage = null) }
     }
 
-    override fun onContinueOperation() {
-        val root = repoDir ?: return
-        if (state.value.repositoryState != GitRepositoryState.REBASING) return
-        tryToExecute(block = { gitRepository.rebaseContinue(root) }, onError = ::showError)
-    }
-
-    override fun onRequestAbortOperation() = updateState { copy(abortConfirmVisible = true) }
-
-    override fun onConfirmAbortOperation() {
-        val root = repoDir ?: return
-        val repositoryState = state.value.repositoryState
-        updateState { copy(abortConfirmVisible = false) }
-        tryToExecute(
-            block = {
-                when (repositoryState) {
-                    GitRepositoryState.MERGING -> gitRepository.mergeAbort(root)
-                    GitRepositoryState.REBASING -> gitRepository.rebaseAbort(root)
-                    GitRepositoryState.CHERRY_PICKING -> gitRepository.cherryPickAbort(root)
-                    GitRepositoryState.REVERTING -> gitRepository.revertAbort(root)
-                    GitRepositoryState.SAFE, GitRepositoryState.BISECTING -> Unit
-                }
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissAbortOperation() = updateState { copy(abortConfirmVisible = false) }
-
-    override fun onRequestRestore(path: String) = updateState { copy(pendingRestorePaths = listOf(path)) }
-
-    override fun onConfirmRestore() {
-        val root = repoDir ?: return
-        val paths = state.value.pendingRestorePaths
-        updateState { copy(pendingRestorePaths = emptyList()) }
-        tryToExecute(block = { gitRepository.restoreFiles(root, paths) }, onError = ::showError)
-    }
-
-    override fun onDismissRestore() = updateState { copy(pendingRestorePaths = emptyList()) }
-
-    override fun onPreviewClean() {
-        val root = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.clean(root, dryRun = true, includeIgnored = state.value.cleanIncludeIgnored) },
-            onSuccess = { updateState { copy(cleanPreview = it) } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onCleanIncludeIgnoredChanged(include: Boolean) {
-        updateState { copy(cleanIncludeIgnored = include, cleanPreview = null) }
-        onPreviewClean()
-    }
-
-    override fun onConfirmClean() {
-        val root = repoDir ?: return
-        val include = state.value.cleanIncludeIgnored
-        tryToExecute(
-            block = { gitRepository.clean(root, dryRun = false, includeIgnored = include) },
-            onSuccess = { removed -> updateState { copy(cleanPreview = null, statusMessage = "Removed ${removed.size} path(s)") } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissClean() = updateState { copy(cleanPreview = null) }
+    override fun onContinueOperation() = operationsController.onContinueOperation()
+    override fun onRequestAbortOperation() = operationsController.onRequestAbortOperation()
+    override fun onConfirmAbortOperation() = operationsController.onConfirmAbortOperation()
+    override fun onDismissAbortOperation() = operationsController.onDismissAbortOperation()
+    override fun onRequestRestore(path: String) = operationsController.onRequestRestore(path)
+    override fun onConfirmRestore() = operationsController.onConfirmRestore()
+    override fun onDismissRestore() = operationsController.onDismissRestore()
+    override fun onPreviewClean() = operationsController.onPreviewClean()
+    override fun onCleanIncludeIgnoredChanged(include: Boolean) = operationsController.onCleanIncludeIgnoredChanged(include)
+    override fun onConfirmClean() = operationsController.onConfirmClean()
+    override fun onDismissClean() = operationsController.onDismissClean()
 
     override fun onOpenSubmodules() = submodulesController.onOpenSubmodules()
     override fun onCloseSubmodules() = submodulesController.onCloseSubmodules()
@@ -403,53 +313,13 @@ class GitPanelViewModel(
     override fun onConfirmBootstrap() = bootstrapController.onConfirmBootstrap()
     override fun onDismissBootstrap() = bootstrapController.onDismissBootstrap()
 
-    override fun onSelectAllChanges() = updateState { copy(selectedPaths = allChangePaths) }
-
-    override fun onClearSelection() = updateState { copy(selectedPaths = emptySet()) }
-
-    override fun onToggleSelect(path: String) = updateState {
-        copy(selectedPaths = if (path in selectedPaths) selectedPaths - path else selectedPaths + path)
-    }
-
-    override fun onToggleSectionSelect(paths: List<String>, select: Boolean) = updateState {
-        copy(selectedPaths = if (select) selectedPaths + paths else selectedPaths - paths.toSet())
-    }
-
-    override fun onStageSelected() {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        val paths = state.value.selectedPaths.filter { path ->
-            state.value.unstagedChanges.any { it.path == path } ||
-                state.value.untrackedChanges.any { it.path == path }
-        }
-        if (paths.isEmpty()) return
-        tryToExecute(
-            block = { paths.forEach { gitRepository.stage(repoDir, it) } },
-            onSuccess = { updateState { copy(selectedPaths = emptySet()) } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onUnstageSelected() {
-        if (state.value.isBusy) return
-        val repoDir = repoDir ?: return
-        val paths = state.value.selectedPaths.filter { path ->
-            state.value.stagedChanges.any { it.path == path }
-        }
-        if (paths.isEmpty()) return
-        tryToExecute(
-            block = { paths.forEach { gitRepository.unstage(repoDir, it) } },
-            onSuccess = { updateState { copy(selectedPaths = emptySet()) } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onRevertSelected() {
-        val paths = state.value.revertableSelection()
-        if (paths.isEmpty()) return
-        updateState { copy(pendingRestorePaths = paths) }
-    }
-
+    override fun onSelectAllChanges() = stagingController.onSelectAllChanges()
+    override fun onClearSelection() = stagingController.onClearSelection()
+    override fun onToggleSelect(path: String) = stagingController.onToggleSelect(path)
+    override fun onToggleSectionSelect(paths: List<String>, select: Boolean) = stagingController.onToggleSectionSelect(paths, select)
+    override fun onStageSelected() = stagingController.onStageSelected()
+    override fun onUnstageSelected() = stagingController.onUnstageSelected()
+    override fun onRevertSelected() = stagingController.onRevertSelected()
 
     override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
     override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
@@ -507,12 +377,6 @@ class GitPanelViewModel(
         }
     }
 
-    private fun GitDiffKind.toAslDiffKind(): AslDiffKind = when (this) {
-        GitDiffKind.ADDED -> AslDiffKind.Added
-        GitDiffKind.REMOVED -> AslDiffKind.Removed
-        GitDiffKind.MODIFIED -> AslDiffKind.Modified
-        GitDiffKind.CONTEXT -> AslDiffKind.Context
-    }
 }
 
 private class CommitSucceededPushFailed(val commitId: String, cause: Throwable) : Exception(cause)
