@@ -3,12 +3,14 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 internal class GitPanelControllerContext(
     private val scope: CoroutineScope,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     val repoDir: () -> File?,
     val state: () -> GitPanelUiState,
     val updateState: (GitPanelUiState.() -> GitPanelUiState) -> Unit,
@@ -18,7 +20,7 @@ internal class GitPanelControllerContext(
         onSuccess: (R) -> Unit = {},
         onError: (Throwable) -> Unit = ::showError,
     ) {
-        scope.launch(Dispatchers.IO) {
+        scope.launch(dispatcher) {
             try {
                 onSuccess(block())
             } catch (cancelled: CancellationException) {
