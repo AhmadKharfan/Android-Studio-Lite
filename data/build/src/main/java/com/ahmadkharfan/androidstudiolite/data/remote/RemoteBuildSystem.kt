@@ -2,8 +2,10 @@ package com.ahmadkharfan.androidstudiolite.data.remote
 
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildEventParser
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.CreateBuildResponse
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ProjectModelMapper
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RemoteJson
+import com.ahmadkharfan.androidstudiolite.data.remote.protocol.SigningMaterial
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.WireProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
@@ -127,54 +129,20 @@ class RemoteBuildSystem internal constructor(
         var socket: WebSocket? = null
         try {
             send(BuildEvent.Started(request))
-
-
-            val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
-                gitSourceResolver(projectRoot)
-            } else {
-                null
-            }
-            val signing = resolveSigning(request)
-            if (signing != null) gateway.requireSecureSigningTransport()
-
-
-            val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
-
-
-            val created = gateway.createBuild(
-                RemoteBuildRequestFactory.create(
-                    request = request,
-                    gitSource = gitSource,
-                    signing = signing,
-                    sourceHash = zip?.let { packager.hashZip(it) },
-                    projectKey = packager.projectKey(projectRoot),
-                ),
-            )
+            val source = prepareBuildSource(request)
+            val created = createRemoteBuild(request, source)
             currentBuildId = created.buildId
             send(BuildEvent.RemoteBuildBound(created.buildId))
-
-
-            if (zip != null && created.sourceUploadRequired) {
-                val uploadUrl = created.uploadUrl
-                    ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
-                gateway.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
-            }
-
-
+            uploadSourceIfRequired(created, source.archive)
             gateway.startBuild(created.buildId)
-
-
             streamFollower.follow(
                 request = BuildStreamRequest(created.buildId, projectRoot, parser, startedAt),
                 socketHolder = { socket = it },
                 emit = { send(it) },
             )
         } catch (e: CancellationException) {
-
             throw e
         } catch (t: Throwable) {
-
-
             send(
                 BuildEvent.Problem(
                     severity = BuildEvent.ProblemSeverity.ERROR,
@@ -186,6 +154,42 @@ class RemoteBuildSystem internal constructor(
             socket?.cancel()
             currentBuildId = null
         }
+    }
+
+    private suspend fun prepareBuildSource(request: BuildRequest): RemoteBuildSource {
+        val gitSource = if (RemoteBuildRequestFactory.shouldUseGit(preferGitSource(), request)) {
+            gitSourceResolver(request.projectRoot)
+        } else {
+            null
+        }
+        val signing = resolveSigning(request)
+        if (signing != null) gateway.requireSecureSigningTransport()
+        val archive = if (gitSource == null) {
+            packager.packageProjectCached(request.projectRoot, sourceDir)
+        } else {
+            null
+        }
+        return RemoteBuildSource(gitSource, signing, archive)
+    }
+
+    private suspend fun createRemoteBuild(
+        request: BuildRequest,
+        source: RemoteBuildSource,
+    ): CreateBuildResponse = gateway.createBuild(
+        RemoteBuildRequestFactory.create(
+            request = request,
+            gitSource = source.git,
+            signing = source.signing,
+            sourceHash = source.archive?.let { packager.hashZip(it) },
+            projectKey = packager.projectKey(request.projectRoot),
+        ),
+    )
+
+    private suspend fun uploadSourceIfRequired(created: CreateBuildResponse, archive: File?) {
+        if (archive == null || !created.sourceUploadRequired) return
+        val uploadUrl = created.uploadUrl
+            ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
+        gateway.uploadSource(uploadUrl, archive, created.uploadMethod ?: "PUT")
     }
 
     override fun attach(buildId: String, projectRoot: File): Flow<BuildEvent> = channelFlow {
@@ -241,6 +245,12 @@ class RemoteBuildSystem internal constructor(
         } else {
             null
         }
+
+    private data class RemoteBuildSource(
+        val git: GitRemoteInfo?,
+        val signing: SigningMaterial?,
+        val archive: File?,
+    )
 
 }
 
