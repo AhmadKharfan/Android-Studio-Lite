@@ -11,13 +11,16 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
+import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
+import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
+import com.ahmadkharfan.androidstudiolite.domain.time.AslClock
+import com.ahmadkharfan.androidstudiolite.domain.time.SystemAslClock
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflight
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightResult
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.DeviceStorage
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.ToolchainVersions
 import java.io.File
-import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -32,6 +35,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 data class BuildClientMeta(
     val projectId: String,
@@ -39,6 +43,9 @@ data class BuildClientMeta(
     val installAfterSuccess: Boolean,
     val autoLaunchAfterInstall: Boolean = true,
 )
+
+internal fun isActiveBuildFresh(nowMillis: Long, startedAtEpochMs: Long, maxAgeMs: Long): Boolean =
+    nowMillis - startedAtEpochMs <= maxAgeMs
 
 class BuildRunCoordinator(
     private val context: Context,
@@ -48,6 +55,8 @@ class BuildRunCoordinator(
     private val gradleReader: GradleProjectReader,
     private val notifier: BuildNotifier,
     private val activeBuildStore: ActiveBuildRepository,
+    private val clock: AslClock = SystemAslClock,
+    private val ids: IdGenerator = UuidIdGenerator,
 ) : BuildRunApi {
 
     private val clearScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -74,7 +83,7 @@ class BuildRunCoordinator(
                 return@withLock StartBuildResult.AlreadyRunning(current, _execution.value.projectId)
             }
             activeBuildStore.get()?.let { persisted ->
-                val fresh = System.currentTimeMillis() - persisted.startedAtEpochMs <= ACTIVE_BUILD_MAX_AGE_MS
+                val fresh = isActiveBuildFresh(clock.nowMillis(), persisted.startedAtEpochMs, ACTIVE_BUILD_MAX_AGE_MS)
                 if (fresh) {
                     runCatching { adoptPersisted(persisted) }.getOrElse { error ->
                         admittedOperationId = null
@@ -90,7 +99,7 @@ class BuildRunCoordinator(
                 }
                 activeBuildStore.clear(persisted.buildId)
             }
-            val operationId = UUID.randomUUID().toString()
+            val operationId = ids.newId()
             cancelledOperationId = null
             admittedOperationId = operationId
             _execution.value = BuildExecutionSnapshot(
@@ -110,7 +119,7 @@ class BuildRunCoordinator(
                 projectName = meta.projectName,
                 installAfterSuccess = meta.installAfterSuccess,
                 autoLaunchAfterInstall = meta.autoLaunchAfterInstall,
-                startedAtEpochMs = System.currentTimeMillis(),
+                startedAtEpochMs = clock.nowMillis(),
                 modulePath = request.modulePath,
                 variantName = request.variantName,
                 kind = request.kind.name,
@@ -188,7 +197,7 @@ class BuildRunCoordinator(
         if (admittedOperationId != null) return@withLock true
         val active = activeBuildStore.get() ?: return@withLock false
         if (active.projectId != projectId) return@withLock false
-        if (System.currentTimeMillis() - active.startedAtEpochMs > ACTIVE_BUILD_MAX_AGE_MS) {
+        if (!isActiveBuildFresh(clock.nowMillis(), active.startedAtEpochMs, ACTIVE_BUILD_MAX_AGE_MS)) {
             activeBuildStore.clear(active.buildId)
             return@withLock false
         }
@@ -293,12 +302,12 @@ class BuildRunCoordinator(
             installState = InstallExecutionState.Preparing,
             phase = BuildExecutionPhase.Installing,
         )
-        withTimeoutOrNull(INSTALL_OBSERVER_TIMEOUT_MS) {
+        withTimeoutOrNull(INSTALL_OBSERVER_TIMEOUT_MS.milliseconds) {
             apkInstaller.install(
                 apk,
                 applicationId,
                 meta.autoLaunchAfterInstall,
-                requestToken = _execution.value.operationId ?: UUID.randomUUID().toString(),
+                requestToken = _execution.value.operationId ?: ids.newId(),
             ).collect { event ->
                 _execution.value = when (event) {
                     is InstallEvent.Preparing -> _execution.value.copy(
@@ -441,7 +450,7 @@ class BuildRunCoordinator(
                         startedAtEpochMs = existing
                             ?.takeIf { it.buildId == event.buildId }
                             ?.startedAtEpochMs
-                            ?: System.currentTimeMillis(),
+                            ?: clock.nowMillis(),
                         modulePath = existing?.modulePath.orEmpty(),
                         variantName = existing?.variantName.orEmpty(),
                         kind = existing?.kind ?: "ASSEMBLE",
