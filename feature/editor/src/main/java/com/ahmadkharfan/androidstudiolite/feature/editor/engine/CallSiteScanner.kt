@@ -15,63 +15,87 @@ object CallSiteScanner {
         val nameStart: Int,
         val nameEnd: Int,
     )
+
     fun enclosingCall(text: String, caret: Int): CallSite? {
         val end = caret.coerceIn(0, text.length)
+        val stack = collectOpenFrames(text, end)
+        return findEnclosingCall(text, caret, stack)
+    }
+
+    private fun collectOpenFrames(text: String, end: Int): List<Frame> {
         val stack = ArrayList<Frame>()
         var i = 0
         while (i < end) {
-            when {
-                text.startsWith("//", i) -> {
-                    i += 2
-                    while (i < end && text[i] != '\n') i++
-                }
-                text.startsWith("/*", i) -> {
-                    i += 2
-                    while (i < end && !text.startsWith("*/", i)) i++
-                    i += 2
-                }
-                text.startsWith("\"\"\"", i) -> {
-                    i += 3
-                    while (i < end && !text.startsWith("\"\"\"", i)) i++
-                    i += 3
-                }
-                text[i] == '"' || text[i] == '\'' -> {
-                    val quote = text[i]
-                    i++
-                    while (i < end && text[i] != quote) {
-                        if (text[i] == '\\') i++
-                        i++
-                    }
-                    i++
-                }
-                text[i] == '(' -> {
-                    val nameEnd = trimTrailingWhitespace(text, i)
-                    var nameStart = nameEnd
-                    while (nameStart > 0 && isNameChar(text[nameStart - 1])) nameStart--
-                    if (nameEnd > nameStart && !KotlinLexUtil.isDeclarationBeforeParen(text, nameStart)) {
-                        stack.add(Frame('(', i, 0, nameStart, nameEnd))
-                    }
-                    i++
-                }
-                text[i] == '[' -> {
-                    stack.add(Frame('[', i, 0, i, i))
-                    i++
-                }
-                text[i] == '{' -> {
-                    stack.add(Frame('{', i, 0, i, i))
-                    i++
-                }
-                text[i] == ')' || text[i] == ']' || text[i] == '}' -> {
-                    if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)
-                    i++
-                }
-                text[i] == ',' -> {
-                    stack.lastOrNull()?.commas = (stack.lastOrNull()?.commas ?: 0) + 1
-                    i++
-                }
-                else -> i++
+            i = when {
+                text.startsWith("//", i) -> skipLineComment(text, i, end)
+                text.startsWith("/*", i) -> skipBlockComment(text, i, end)
+                text.startsWith("\"\"\"", i) -> skipRawString(text, i, end)
+                text[i] == '"' || text[i] == '\'' -> skipQuotedLiteral(text, i, end)
+                text[i] == '(' -> trackCallOpening(text, i, stack)
+                text[i] == '[' -> trackBracketOpening('[', i, stack)
+                text[i] == '{' -> trackBracketOpening('{', i, stack)
+                text[i] == ')' || text[i] == ']' || text[i] == '}' -> closeBalancedFrame(i, stack)
+                text[i] == ',' -> countArgumentSeparator(i, stack)
+                else -> i + 1
             }
         }
+        return stack
+    }
+
+    private fun skipLineComment(text: String, start: Int, end: Int): Int {
+        var i = start + 2
+        while (i < end && text[i] != '\n') i++
+        return i
+    }
+
+    private fun skipBlockComment(text: String, start: Int, end: Int): Int {
+        var i = start + 2
+        while (i < end && !text.startsWith("*/", i)) i++
+        return i + 2
+    }
+
+    private fun skipRawString(text: String, start: Int, end: Int): Int {
+        var i = start + 3
+        while (i < end && !text.startsWith("\"\"\"", i)) i++
+        return i + 3
+    }
+
+    private fun skipQuotedLiteral(text: String, start: Int, end: Int): Int {
+        val quote = text[start]
+        var i = start + 1
+        while (i < end && text[i] != quote) {
+            if (text[i] == '\\') i++
+            i++
+        }
+        return i + 1
+    }
+
+    private fun trackCallOpening(text: String, index: Int, stack: MutableList<Frame>): Int {
+        val nameEnd = trimTrailingWhitespace(text, index)
+        var nameStart = nameEnd
+        while (nameStart > 0 && isNameChar(text[nameStart - 1])) nameStart--
+        if (nameEnd > nameStart && !KotlinLexUtil.isDeclarationBeforeParen(text, nameStart)) {
+            stack.add(Frame('(', index, 0, nameStart, nameEnd))
+        }
+        return index + 1
+    }
+
+    private fun trackBracketOpening(open: Char, index: Int, stack: MutableList<Frame>): Int {
+        stack.add(Frame(open, index, 0, index, index))
+        return index + 1
+    }
+
+    private fun closeBalancedFrame(index: Int, stack: MutableList<Frame>): Int {
+        if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)
+        return index + 1
+    }
+
+    private fun countArgumentSeparator(index: Int, stack: MutableList<Frame>): Int {
+        stack.lastOrNull()?.commas = (stack.lastOrNull()?.commas ?: 0) + 1
+        return index + 1
+    }
+
+    private fun findEnclosingCall(text: String, caret: Int, stack: List<Frame>): CallSite? {
         for (idx in stack.indices.reversed()) {
             val frame = stack[idx]
             if (frame.open == '(' && frame.nameEnd > frame.nameStart) {
@@ -93,6 +117,7 @@ object CallSiteScanner {
         }
         return null
     }
+
     private fun parseSuppliedNamedArgs(text: String, openParen: Int, caret: Int): Set<String> {
         val out = LinkedHashSet<String>()
         var i = openParen + 1

@@ -41,60 +41,97 @@ object CodeFormatter {
     private data class LineScan(val delta: Int, val carry: Carry)
 
     private fun scanBraceLine(line: String, startCarry: Carry): LineScan {
+        val scan = BraceLineScan(carry = startCarry)
         var delta = 0
-        var i = 0
-        val n = line.length
-        var state = startCarry
 
-        var inString = false
-        var inChar = false
-        var lineComment = false
-        while (i < n) {
-            val c = line[i]
-            when {
-                lineComment -> return LineScan(delta, Carry.Normal)
-                state == Carry.BlockComment -> {
-                    if (c == '*' && i + 1 < n && line[i + 1] == '/') { state = Carry.Normal; i += 2; continue }
-                    i++
-                }
-                state == Carry.TripleString -> {
-                    if (c == '"' && line.startsWith("\"\"\"", i)) { state = Carry.Normal; i += 3; continue }
-                    i++
-                }
-                inString -> {
-                    when (c) {
-                        '\\' -> i += 2
-                        '"' -> { inString = false; i++ }
-                        else -> i++
-                    }
-                }
-                inChar -> {
-                    when (c) {
-                        '\\' -> i += 2
-                        '\'' -> { inChar = false; i++ }
-                        else -> i++
-                    }
-                }
-                else -> {
-                    when {
-                        c == '/' && i + 1 < n && line[i + 1] == '/' -> { lineComment = true; i += 2 }
-                        c == '/' && i + 1 < n && line[i + 1] == '*' -> { state = Carry.BlockComment; i += 2 }
-                        c == '"' && line.startsWith("\"\"\"", i) -> { state = Carry.TripleString; i += 3 }
-                        c == '"' -> { inString = true; i++ }
-                        c == '\'' -> { inChar = true; i++ }
-                        c == '{' || c == '(' || c == '[' -> { delta++; i++ }
-                        c == '}' || c == ')' || c == ']' -> { delta--; i++ }
-                        else -> i++
-                    }
-                }
+        while (scan.index < line.length) {
+            if (skipLiteralOrComment(line, scan)) continue
+            val c = line[scan.index]
+            if (c == '{' || c == '(' || c == '[') delta++
+            if (c == '}' || c == ')' || c == ']') delta--
+            scan.index++
+        }
+        return LineScan(delta, scan.carry)
+    }
+
+    private class BraceLineScan(
+        var carry: Carry,
+        var index: Int = 0,
+        var inString: Boolean = false,
+        var inChar: Boolean = false,
+    )
+
+    private fun skipLiteralOrComment(line: String, scan: BraceLineScan): Boolean = when {
+        scan.carry == Carry.BlockComment -> {
+            skipBlockComment(line, scan)
+            true
+        }
+        scan.carry == Carry.TripleString -> {
+            skipTripleString(line, scan)
+            true
+        }
+        scan.inString -> {
+            skipQuotedLiteral(line, scan, '"')
+            true
+        }
+        scan.inChar -> {
+            skipQuotedLiteral(line, scan, '\'')
+            true
+        }
+        else -> startLiteralOrComment(line, scan)
+    }
+
+    private fun skipBlockComment(line: String, scan: BraceLineScan) {
+        if (line.startsWith("*/", scan.index)) {
+            scan.carry = Carry.Normal
+            scan.index += 2
+        } else {
+            scan.index++
+        }
+    }
+
+    private fun skipTripleString(line: String, scan: BraceLineScan) {
+        if (line.startsWith("\"\"\"", scan.index)) {
+            scan.carry = Carry.Normal
+            scan.index += 3
+        } else {
+            scan.index++
+        }
+    }
+
+    private fun skipQuotedLiteral(line: String, scan: BraceLineScan, quote: Char) {
+        if (line[scan.index] == '\\') {
+            scan.index += 2
+            return
+        }
+        if (line[scan.index] == quote) {
+            if (quote == '"') scan.inString = false else scan.inChar = false
+        }
+        scan.index++
+    }
+
+    private fun startLiteralOrComment(line: String, scan: BraceLineScan): Boolean {
+        when {
+            line.startsWith("//", scan.index) -> scan.index = line.length
+            line.startsWith("/*", scan.index) -> {
+                scan.carry = Carry.BlockComment
+                scan.index += 2
             }
+            line.startsWith("\"\"\"", scan.index) -> {
+                scan.carry = Carry.TripleString
+                scan.index += 3
+            }
+            line[scan.index] == '"' -> {
+                scan.inString = true
+                scan.index++
+            }
+            line[scan.index] == '\'' -> {
+                scan.inChar = true
+                scan.index++
+            }
+            else -> return false
         }
-        val endCarry = when (state) {
-            Carry.BlockComment -> Carry.BlockComment
-            Carry.TripleString -> Carry.TripleString
-            else -> Carry.Normal
-        }
-        return LineScan(delta, endCarry)
+        return true
     }
 
     private fun reindentXml(text: String, tabSize: Int): String {

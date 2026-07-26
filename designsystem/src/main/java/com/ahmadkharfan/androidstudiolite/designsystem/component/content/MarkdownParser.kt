@@ -13,6 +13,11 @@ data class MdListItem(val text: String, val checked: Boolean? = null)
 
 object MarkdownParser {
 
+    private data class ParseStep(
+        val nextLine: Int,
+        val block: MdBlock? = null,
+    )
+
     private val heading = Regex("""^(#{1,6})\s+(.*)$""")
     private val ul = Regex("""^([-*+])\s+(.*)$""")
     private val ol = Regex("""^(\d+)\.\s+(.*)$""")
@@ -25,82 +30,92 @@ object MarkdownParser {
         val blocks = ArrayList<MdBlock>()
         var i = 0
         while (i < lines.size) {
-            val line = lines[i]
-            val trimmed = line.trim()
-            when {
-                trimmed.isEmpty() -> i++
-                fenceOpen.matches(trimmed) -> {
-                    val lang = fenceOpen.matchEntire(trimmed)!!.groupValues[1].ifBlank { "text" }
-                    val body = StringBuilder()
-                    i++
-                    while (i < lines.size && !lines[i].trim().startsWith("```")) {
-                        if (body.isNotEmpty()) body.append('\n')
-                        body.append(lines[i])
-                        i++
-                    }
-                    if (i < lines.size) i++
-                    blocks.add(MdBlock.Code(lang, body.toString()))
-                }
-                hr.matches(trimmed) -> {
-                    blocks.add(MdBlock.HorizontalRule)
-                    i++
-                }
-                heading.matches(trimmed) -> {
-                    val m = heading.matchEntire(trimmed)!!
-                    blocks.add(MdBlock.Heading(m.groupValues[1].length, m.groupValues[2].trim()))
-                    i++
-                }
-                trimmed.startsWith(">") -> {
-                    val quote = StringBuilder()
-                    while (i < lines.size && lines[i].trim().startsWith(">")) {
-                        val content = lines[i].trim().removePrefix(">").trimStart()
-                        if (quote.isNotEmpty()) quote.append('\n')
-                        quote.append(content)
-                        i++
-                    }
-                    blocks.add(MdBlock.Quote(quote.toString()))
-                }
-                ul.matches(trimmed) || ol.matches(trimmed) -> {
-                    val ordered = ol.matches(trimmed)
-                    val items = ArrayList<MdListItem>()
-                    while (i < lines.size) {
-                        val t = lines[i].trim()
-                        val ulMatch = ul.matchEntire(t)
-                        val olMatch = ol.matchEntire(t)
-                        when {
-                            ulMatch != null && !ordered -> {
-                                items.add(parseListItem(ulMatch.groupValues[2]))
-                                i++
-                            }
-                            olMatch != null && ordered -> {
-                                items.add(parseListItem(olMatch.groupValues[2]))
-                                i++
-                            }
-                            t.isEmpty() -> break
-                            else -> break
-                        }
-                    }
-                    if (items.isNotEmpty()) blocks.add(MdBlock.ListBlock(ordered, items))
-                }
-                else -> {
-                    val para = StringBuilder(trimmed)
-                    i++
-                    while (i < lines.size) {
-                        val next = lines[i].trim()
-                        if (next.isEmpty() || heading.matches(next) || ul.matches(next) || ol.matches(next) ||
-                            hr.matches(next) || fenceOpen.matches(next) || next.startsWith(">")
-                        ) {
-                            break
-                        }
-                        para.append(' ').append(next)
-                        i++
-                    }
-                    blocks.add(MdBlock.Paragraph(para.toString()))
-                }
-            }
+            val step = parseBlock(lines, i)
+            step.block?.let(blocks::add)
+            i = step.nextLine
         }
         return blocks
     }
+
+    private fun parseBlock(lines: List<String>, index: Int): ParseStep {
+        val trimmed = lines[index].trim()
+        return when {
+            trimmed.isEmpty() -> ParseStep(index + 1)
+            fenceOpen.matches(trimmed) -> parseCodeBlock(lines, index, trimmed)
+            hr.matches(trimmed) -> ParseStep(index + 1, MdBlock.HorizontalRule)
+            heading.matches(trimmed) -> parseHeading(index, trimmed)
+            trimmed.startsWith(">") -> parseQuote(lines, index)
+            ul.matches(trimmed) || ol.matches(trimmed) -> parseList(lines, index, trimmed)
+            else -> parseParagraph(lines, index, trimmed)
+        }
+    }
+
+    private fun parseCodeBlock(lines: List<String>, index: Int, openingFence: String): ParseStep {
+        val language = fenceOpen.matchEntire(openingFence)!!.groupValues[1].ifBlank { "text" }
+        val body = StringBuilder()
+        var nextLine = index + 1
+        while (nextLine < lines.size && !lines[nextLine].trim().startsWith("```")) {
+            if (body.isNotEmpty()) body.append('\n')
+            body.append(lines[nextLine])
+            nextLine++
+        }
+        if (nextLine < lines.size) nextLine++
+        return ParseStep(nextLine, MdBlock.Code(language, body.toString()))
+    }
+
+    private fun parseHeading(index: Int, trimmed: String): ParseStep {
+        val match = heading.matchEntire(trimmed)!!
+        val block = MdBlock.Heading(match.groupValues[1].length, match.groupValues[2].trim())
+        return ParseStep(index + 1, block)
+    }
+
+    private fun parseQuote(lines: List<String>, index: Int): ParseStep {
+        val quote = StringBuilder()
+        var nextLine = index
+        while (nextLine < lines.size && lines[nextLine].trim().startsWith(">")) {
+            val content = lines[nextLine].trim().removePrefix(">").trimStart()
+            if (quote.isNotEmpty()) quote.append('\n')
+            quote.append(content)
+            nextLine++
+        }
+        return ParseStep(nextLine, MdBlock.Quote(quote.toString()))
+    }
+
+    private fun parseList(lines: List<String>, index: Int, firstLine: String): ParseStep {
+        val ordered = ol.matches(firstLine)
+        val items = ArrayList<MdListItem>()
+        var nextLine = index
+        while (nextLine < lines.size) {
+            val trimmed = lines[nextLine].trim()
+            val unorderedMatch = ul.matchEntire(trimmed)
+            val orderedMatch = ol.matchEntire(trimmed)
+            when {
+                unorderedMatch != null && !ordered -> items.add(parseListItem(unorderedMatch.groupValues[2]))
+                orderedMatch != null && ordered -> items.add(parseListItem(orderedMatch.groupValues[2]))
+                trimmed.isEmpty() -> break
+                else -> break
+            }
+            nextLine++
+        }
+        val block = if (items.isNotEmpty()) MdBlock.ListBlock(ordered, items) else null
+        return ParseStep(nextLine, block)
+    }
+
+    private fun parseParagraph(lines: List<String>, index: Int, firstLine: String): ParseStep {
+        val paragraph = StringBuilder(firstLine)
+        var nextLine = index + 1
+        while (nextLine < lines.size) {
+            val trimmed = lines[nextLine].trim()
+            if (isParagraphBoundary(trimmed)) break
+            paragraph.append(' ').append(trimmed)
+            nextLine++
+        }
+        return ParseStep(nextLine, MdBlock.Paragraph(paragraph.toString()))
+    }
+
+    private fun isParagraphBoundary(line: String): Boolean =
+        line.isEmpty() || heading.matches(line) || ul.matches(line) || ol.matches(line) ||
+            hr.matches(line) || fenceOpen.matches(line) || line.startsWith(">")
 
     private fun parseListItem(raw: String): MdListItem {
         val taskMatch = task.matchEntire(raw)

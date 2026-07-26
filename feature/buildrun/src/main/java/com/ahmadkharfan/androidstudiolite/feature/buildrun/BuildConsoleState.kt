@@ -76,30 +76,35 @@ data class BuildArtifact(
     val certificateSha256: String? = null,
 )
 
-fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event) {
-    is BuildEvent.Started -> BuildConsoleState(
-        status = BuildStatus.Running,
-        request = event.request,
-        progressMessage = "Starting build…",
-    )
+fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState =
+    when (event) {
+        is BuildEvent.Started -> startBuild(event)
+        is BuildEvent.RemoteBuildBound -> this
+        is BuildEvent.Progress -> copy(progressMessage = event.message)
+        is BuildEvent.TaskStarted -> upsertTask(event.taskPath, result = null)
+        is BuildEvent.TaskFinished -> upsertTask(event.taskPath, result = event.result)
+        is BuildEvent.Output -> appendOutput(event)
+        is BuildEvent.Problem -> appendProblem(event)
+        is BuildEvent.ArtifactProduced -> recordArtifact(event)
+        is BuildEvent.Finished -> finishBuild(event)
+    }
 
+private fun startBuild(event: BuildEvent.Started) = BuildConsoleState(
+    status = BuildStatus.Running,
+    request = event.request,
+    progressMessage = "Starting build…",
+)
 
-    is BuildEvent.RemoteBuildBound -> this
-
-    is BuildEvent.Progress -> copy(progressMessage = event.message)
-
-    is BuildEvent.TaskStarted -> upsertTask(event.taskPath, result = null)
-
-    is BuildEvent.TaskFinished -> upsertTask(event.taskPath, result = event.result)
-
-    is BuildEvent.Output -> copy(
+private fun BuildConsoleState.appendOutput(event: BuildEvent.Output) =
+    copy(
         logs = (logs + BuildLogLine(
             event.line,
             isError = event.stream == BuildEvent.OutputStream.STDERR,
         )).takeLast(MAX_LOG_LINES),
     )
 
-    is BuildEvent.Problem -> copy(
+private fun BuildConsoleState.appendProblem(event: BuildEvent.Problem) =
+    copy(
         problems = (problems + BuildProblem(
             severity = event.severity,
             message = event.message,
@@ -110,7 +115,8 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
         )).takeLast(MAX_PROBLEMS),
     )
 
-    is BuildEvent.ArtifactProduced -> copy(
+private fun BuildConsoleState.recordArtifact(event: BuildEvent.ArtifactProduced) =
+    copy(
         artifact = BuildArtifact(
             event.file.path,
             event.file.name,
@@ -122,12 +128,12 @@ fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState = when (event
         ),
     )
 
-    is BuildEvent.Finished -> copy(
+private fun BuildConsoleState.finishBuild(event: BuildEvent.Finished) =
+    copy(
         status = if (event.success) BuildStatus.Succeeded else BuildStatus.Failed,
         durationMillis = event.durationMillis,
         progressMessage = null,
     )
-}
 
 private const val MAX_LOG_LINES = 5_000
 private const val MAX_PROBLEMS = 500
