@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuild
@@ -10,7 +9,6 @@ import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
 import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
@@ -26,7 +24,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,8 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.time.Duration.Companion.milliseconds
 
 data class BuildClientMeta(
     val projectId: String,
@@ -47,17 +42,6 @@ data class BuildClientMeta(
 
 internal fun isActiveBuildFresh(nowMillis: Long, startedAtEpochMs: Long, maxAgeMs: Long): Boolean =
     nowMillis - startedAtEpochMs <= maxAgeMs
-
-internal class BuildInstallOperations(
-    val install: (
-        apk: File,
-        applicationId: String?,
-        autoLaunch: Boolean,
-        requestToken: String,
-    ) -> Flow<InstallEvent>,
-    val uninstall: (packageName: String) -> Flow<UninstallEvent>,
-    val cancelActiveInstall: () -> Unit,
-)
 
 class BuildRunCoordinator internal constructor(
     private val context: Context,
@@ -70,6 +54,8 @@ class BuildRunCoordinator internal constructor(
     private val clock: AslClock,
     private val ids: IdGenerator,
 ) : BuildRunApi {
+
+    private val installRunner = BuildInstallRunner(installOperations, gradleReader, ids)
 
     constructor(
         context: Context,
@@ -333,56 +319,27 @@ class BuildRunCoordinator internal constructor(
         request: BuildRequest,
         meta: BuildClientMeta,
     ) {
-        val artifact = console.artifact
-        val apk = artifact?.takeIf { it.kind == BuildEvent.ArtifactKind.APK }?.let { File(it.path) }
-        if (apk == null || !apk.isFile) {
+        val started = installRunner.install(
+            request = BuildInstallRequest(
+                console = console,
+                buildRequest = request,
+                autoLaunch = meta.autoLaunchAfterInstall,
+                operationId = _execution.value.operationId,
+            ),
+            onInstalling = {
+                _execution.value = _execution.value.copy(
+                    installState = InstallExecutionState.Preparing,
+                    phase = BuildExecutionPhase.Installing,
+                )
+            },
+            onEvent = { event -> _execution.value = _execution.value.reduceInstallEvent(event) },
+        )
+        if (!started) {
             _execution.value = _execution.value.copy(
                 installState = InstallExecutionState.Failed,
                 phase = BuildExecutionPhase.Failed,
             )
             notifier.notifyFinished(meta.projectName, false, console.durationMillis, meta.projectId, false)
-            return
-        }
-        val applicationId = resolveApplicationId(request.projectRoot, request.modulePath)
-        _execution.value = _execution.value.copy(
-            installState = InstallExecutionState.Preparing,
-            phase = BuildExecutionPhase.Installing,
-        )
-        withTimeoutOrNull(INSTALL_OBSERVER_TIMEOUT_MS.milliseconds) {
-            installOperations.install(
-                apk,
-                applicationId,
-                meta.autoLaunchAfterInstall,
-                _execution.value.operationId ?: ids.newId(),
-            ).collect { event ->
-                _execution.value = when (event) {
-                    is InstallEvent.Preparing -> _execution.value.copy(
-                        installState = InstallExecutionState.Preparing,
-                        phase = BuildExecutionPhase.Installing,
-                    )
-                    is InstallEvent.AwaitingConfirmation -> _execution.value.copy(
-                        installState = InstallExecutionState.AwaitingConfirmation,
-                        phase = BuildExecutionPhase.AwaitingInstallConfirmation,
-                    )
-                    is InstallEvent.Installed -> _execution.value.copy(
-                        installState = InstallExecutionState.Installed,
-                        phase = BuildExecutionPhase.Succeeded,
-                    )
-                    is InstallEvent.Conflict ->
-                        _execution.value.copy(
-                            installState = InstallExecutionState.Failed,
-                            phase = BuildExecutionPhase.Failed,
-                            installConflictPackage = event.packageName,
-                            installFailureReason = event.reason,
-                        )
-                    is InstallEvent.Failed ->
-                        _execution.value.copy(
-                            installState = InstallExecutionState.Failed,
-                            phase = BuildExecutionPhase.Failed,
-                            installFailureReason = event.reason,
-                        )
-                }
-            }
         }
     }
 
@@ -462,16 +419,6 @@ class BuildRunCoordinator internal constructor(
         }
     }
 
-    private suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val modules = gradleReader.read(projectRoot).model.modules
-                val module = modules.firstOrNull { it.path == modulePath }
-                    ?: modules.firstOrNull { it.type == ModuleType.ANDROID_APP }
-                module?.applicationId
-            }.getOrNull()
-        }
-
     override fun canPostNotifications(): Boolean = notifier.canPost()
 
     private suspend fun onBuildEvent(
@@ -547,6 +494,5 @@ class BuildRunCoordinator internal constructor(
     private companion object {
         const val TOOLCHAIN_JDK_MAJOR = 17
         const val ACTIVE_BUILD_MAX_AGE_MS = 5_760_000L // 96 min
-        const val INSTALL_OBSERVER_TIMEOUT_MS = 600_000L
     }
 }
