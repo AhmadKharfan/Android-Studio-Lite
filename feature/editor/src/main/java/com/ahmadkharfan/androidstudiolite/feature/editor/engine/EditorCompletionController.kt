@@ -210,49 +210,51 @@ class EditorCompletionController {
         }
     }
     private fun kindScore(item: CompletionItem, context: CompletionContext): Int {
-        var s = 0
-        when (context.positionKind) {
-            CompletionPositionKind.Import, CompletionPositionKind.MemberAccess -> when (item.kind) {
-                CompletionKind.Class, CompletionKind.Method, CompletionKind.Function -> s += 50
-                CompletionKind.Property -> s += 40
-                CompletionKind.Keyword, CompletionKind.Snippet -> s -= 200
-                CompletionKind.Variable -> s -= 50
-                else -> s += 10
-            }
-            CompletionPositionKind.CallArgument -> when (item.kind) {
-                CompletionKind.Parameter -> s += 120
-                CompletionKind.Keyword -> s += if (item.label in EXPRESSION_KEYWORDS) 40 else -300
-                CompletionKind.Snippet -> s -= 300
-                CompletionKind.Variable -> s += 10
-                else -> {
-                    if (context.callSite?.expectedType != null &&
-                        CallSignatureCatalog.matchesExpectedType(item, context.callSite.expectedType)
-                    ) {
-                        s += 80
-                    } else if (context.callSite?.expectedType != null) {
-                        s -= 100
-                    } else {
-                        s += 20
-                    }
-                }
-            }
-            CompletionPositionKind.TypeReference -> when (item.kind) {
-                CompletionKind.Class -> s += 60
-                CompletionKind.Keyword, CompletionKind.Snippet, CompletionKind.Function -> s -= 200
-                else -> s += 5
-            }
-            CompletionPositionKind.NameReference -> when (item.kind) {
-                CompletionKind.Function, CompletionKind.Method -> s += if (context.composeContext) 35 else 30
-                CompletionKind.Class -> s += 25
-                CompletionKind.Variable -> s += if (item.typeText == "import" || item.typeText == "local") 28 else 5
-                CompletionKind.Snippet -> s += 20
-                CompletionKind.Keyword -> s += 15
-                else -> s += 10
-            }
-            else -> s += 0
+        val positionScore = when (context.positionKind) {
+            CompletionPositionKind.Import,
+            CompletionPositionKind.MemberAccess -> accessKindScore(item.kind)
+            CompletionPositionKind.CallArgument -> callArgumentKindScore(item, context.callSite?.expectedType)
+            CompletionPositionKind.TypeReference -> typeReferenceKindScore(item.kind)
+            CompletionPositionKind.NameReference -> nameReferenceKindScore(item, context.composeContext)
+            else -> 0
         }
-        if (context.composeContext && item.detail?.contains("@Composable") == true) s += 25
-        return s
+        val composeBonus = if (context.composeContext && item.detail?.contains("@Composable") == true) 25 else 0
+        return positionScore + composeBonus
+    }
+
+    private fun accessKindScore(kind: CompletionKind): Int = when (kind) {
+        CompletionKind.Class, CompletionKind.Method, CompletionKind.Function -> 50
+        CompletionKind.Property -> 40
+        CompletionKind.Keyword, CompletionKind.Snippet -> -200
+        CompletionKind.Variable -> -50
+        else -> 10
+    }
+
+    private fun callArgumentKindScore(item: CompletionItem, expectedType: String?): Int = when (item.kind) {
+        CompletionKind.Parameter -> 120
+        CompletionKind.Keyword -> if (item.label in EXPRESSION_KEYWORDS) 40 else -300
+        CompletionKind.Snippet -> -300
+        CompletionKind.Variable -> 10
+        else -> when {
+            expectedType == null -> 20
+            CallSignatureCatalog.matchesExpectedType(item, expectedType) -> 80
+            else -> -100
+        }
+    }
+
+    private fun typeReferenceKindScore(kind: CompletionKind): Int = when (kind) {
+        CompletionKind.Class -> 60
+        CompletionKind.Keyword, CompletionKind.Snippet, CompletionKind.Function -> -200
+        else -> 5
+    }
+
+    private fun nameReferenceKindScore(item: CompletionItem, composeContext: Boolean): Int = when (item.kind) {
+        CompletionKind.Function, CompletionKind.Method -> if (composeContext) 35 else 30
+        CompletionKind.Class -> 25
+        CompletionKind.Variable -> if (item.typeText == "import" || item.typeText == "local") 28 else 5
+        CompletionKind.Snippet -> 20
+        CompletionKind.Keyword -> 15
+        else -> 10
     }
     private companion object {
         const val MAX_ITEMS = 80
