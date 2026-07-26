@@ -37,14 +37,14 @@ class RemoteClient(
     private val httpClient: OkHttpClient = defaultClient(),
     private val transferClient: OkHttpClient = defaultTransferClient(),
     private val integrityProvider: IntegrityTokenProvider = NoopIntegrityTokenProvider,
-) {
+) : RemoteBuildGateway {
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
     private val nonceRandom = SecureRandom()
 
     private suspend fun baseUrl(): String = settings.current().baseUrl.trimEnd('/')
 
-    suspend fun requireSecureSigningTransport() {
+    override suspend fun requireSecureSigningTransport() {
         val url = baseUrl().toHttpUrl()
         if (!url.isHttps) {
             throw RemoteException(
@@ -73,18 +73,18 @@ class RemoteClient(
     }
 
 
-    suspend fun createBuild(request: CreateBuildRequest): CreateBuildResponse {
+    override suspend fun createBuild(request: CreateBuildRequest): CreateBuildResponse {
         val body = RemoteJson.encodeToString(request).toRequestBody(jsonMediaType)
         return authedPost("/v1/builds", body, idempotencyKey = request.clientRequestId)
     }
 
-    suspend fun startBuild(buildId: String) =
+    override suspend fun startBuild(buildId: String) =
         authedPostUnit("/v1/builds/$buildId/start", EMPTY_BODY)
 
-    suspend fun cancelBuild(buildId: String) =
+    override suspend fun cancelBuild(buildId: String) =
         authedPostUnit("/v1/builds/$buildId/cancel", EMPTY_BODY)
 
-    suspend fun buildStatus(buildId: String): BuildStatusResponse =
+    override suspend fun buildStatus(buildId: String): BuildStatusResponse =
         authedGet("/v1/builds/$buildId")
 
     suspend fun artifact(buildId: String): ArtifactResponse =
@@ -96,7 +96,7 @@ class RemoteClient(
     }
 
 
-    suspend fun uploadSource(uploadUrl: String, file: File, method: String = "PUT") {
+    override suspend fun uploadSource(uploadUrl: String, file: File, method: String) {
         executeTransferWithRetry {
             val request = Request.Builder()
                 .url(uploadUrl)
@@ -138,7 +138,7 @@ class RemoteClient(
     }
 
 
-    suspend fun openStream(buildId: String, listener: WebSocketListener): WebSocket {
+    override suspend fun openStream(buildId: String, listener: WebSocketListener): WebSocket {
         val token = ensureDeviceToken()
         val streamUrl = baseUrl().toHttpUrl().newBuilder()
             .addPathSegments("v1/builds/$buildId/stream")

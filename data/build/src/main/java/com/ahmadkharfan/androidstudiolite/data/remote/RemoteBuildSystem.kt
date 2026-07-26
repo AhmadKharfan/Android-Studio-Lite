@@ -38,10 +38,15 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import kotlin.time.Duration.Companion.milliseconds
 
-class RemoteBuildSystem(
-    private val client: RemoteClient,
+class RemoteBuildSystem internal constructor(
+    private val gateway: RemoteBuildGateway,
     private val packager: ProjectPackager,
-    private val artifactDownloader: ArtifactDownloader,
+    private val downloadArtifact: suspend (
+        buildId: String,
+        fallbackName: String?,
+        expectedSizeBytes: Long?,
+        expectedSha256: String?,
+    ) -> ArtifactDownloader.DownloadedArtifact?,
     private val gradleReader: GradleProjectReader,
     private val sourceDir: File,
     private val preferGitSource: suspend () -> Boolean = { false },
@@ -52,6 +57,36 @@ class RemoteBuildSystem(
     private val ids: IdGenerator = UuidIdGenerator,
     private val cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : BuildSystem {
+
+    constructor(
+        client: RemoteClient,
+        packager: ProjectPackager,
+        artifactDownloader: ArtifactDownloader,
+        gradleReader: GradleProjectReader,
+        sourceDir: File,
+        preferGitSource: suspend () -> Boolean = { false },
+        gitSourceResolver: suspend (File) -> GitRemoteInfo? = { null },
+        releaseSigningResolver: suspend () -> SigningConfig? = { null },
+        encodeBase64: (ByteArray) -> String = {
+            android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP)
+        },
+        clock: MonotonicClock = SystemMonotonicClock,
+        ids: IdGenerator = UuidIdGenerator,
+        cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    ) : this(
+        gateway = client,
+        packager = packager,
+        downloadArtifact = artifactDownloader::download,
+        gradleReader = gradleReader,
+        sourceDir = sourceDir,
+        preferGitSource = preferGitSource,
+        gitSourceResolver = gitSourceResolver,
+        releaseSigningResolver = releaseSigningResolver,
+        encodeBase64 = encodeBase64,
+        clock = clock,
+        ids = ids,
+        cancelScope = cancelScope,
+    )
 
     @Volatile private var currentBuildId: String? = null
 
@@ -107,13 +142,13 @@ class RemoteBuildSystem(
                 null
             }
             val signing = resolveSigning(request)
-            if (signing != null) client.requireSecureSigningTransport()
+            if (signing != null) gateway.requireSecureSigningTransport()
 
 
             val zip = if (gitSource == null) packager.packageProjectCached(projectRoot, sourceDir) else null
 
 
-            val created = client.createBuild(
+            val created = gateway.createBuild(
                 RemoteBuildRequestFactory.create(
                     request = request,
                     gitSource = gitSource,
@@ -129,11 +164,11 @@ class RemoteBuildSystem(
             if (zip != null && created.sourceUploadRequired) {
                 val uploadUrl = created.uploadUrl
                     ?: throw RemoteException(0, null, "Server returned no upload URL for a zip build")
-                client.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
+                gateway.uploadSource(uploadUrl, zip, created.uploadMethod ?: "PUT")
             }
 
 
-            client.startBuild(created.buildId)
+            gateway.startBuild(created.buildId)
 
 
             followBuildStream(
@@ -171,7 +206,7 @@ class RemoteBuildSystem(
             send(BuildEvent.RemoteBuildBound(buildId))
 
 
-            val existing = runCatching { client.buildStatus(buildId) }.getOrNull()
+            val existing = runCatching { gateway.buildStatus(buildId) }.getOrNull()
             if (existing != null && isTerminalBuildStatus(existing.status)) {
                 send(BuildEvent.Progress("Build finished. Collecting results…"))
                 emitTerminalFromStatus(buildId, existing, startedAt)
@@ -219,7 +254,7 @@ class RemoteBuildSystem(
 
             val frames = Channel<Frame>(Channel.UNLIMITED)
             socketHolder(null)
-            val socket = client.openStream(buildId, FrameListener(frames))
+            val socket = gateway.openStream(buildId, FrameListener(frames))
             socketHolder(socket)
 
             val consumed = consumeBuildStream(
@@ -239,7 +274,7 @@ class RemoteBuildSystem(
 
             if (finishedSeen) break
 
-            val terminal = runCatching { client.buildStatus(buildId) }
+            val terminal = runCatching { gateway.buildStatus(buildId) }
                 .getOrNull()
                 ?.takeIf { isTerminalBuildStatus(it.status) }
             if (terminal != null) {
@@ -267,7 +302,7 @@ class RemoteBuildSystem(
 
 
         if (!finishedSeen) {
-            val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
+            val polled = runCatching { gateway.buildStatus(buildId) }.getOrNull()
             if (polled != null && isTerminalBuildStatus(polled.status)) {
                 emitTerminalFromStatus(
                     buildId = buildId,
@@ -276,7 +311,7 @@ class RemoteBuildSystem(
                 )
             } else {
                 val timedOut = clock.elapsedMillis() >= followDeadline
-                if (timedOut) runCatching { client.cancelBuild(buildId) }
+                if (timedOut) runCatching { gateway.cancelBuild(buildId) }
                 send(
                     BuildEvent.Problem(
                         severity = BuildEvent.ProblemSeverity.ERROR,
@@ -316,7 +351,7 @@ class RemoteBuildSystem(
                     frames.receiveCatching()
                 }
             if (result == null) {
-                val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
+                val polled = runCatching { gateway.buildStatus(buildId) }.getOrNull()
                 if (polled != null && isTerminalBuildStatus(polled.status)) {
                     emitTerminalFromStatus(buildId, polled, startedAt)
                     return StreamConsumeResult(true, textFramesSeen)
@@ -363,7 +398,7 @@ class RemoteBuildSystem(
         val success = status.status.equals("SUCCEEDED", ignoreCase = true)
         if (success) {
             val downloaded = runCatching {
-                artifactDownloader.download(buildId, fallbackName = null)
+                downloadArtifact(buildId, null, null, null)
             }.getOrNull()
             if (downloaded != null) {
                 send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
@@ -406,12 +441,7 @@ class RemoteBuildSystem(
     ): Boolean {
         send(BuildEvent.Progress("Downloading ${wireEvent.file.name}…"))
         val downloaded = runCatching {
-            artifactDownloader.download(
-                buildId,
-                fallbackName = wireEvent.file.name,
-                expectedSizeBytes = wireEvent.sizeBytes,
-                expectedSha256 = wireEvent.sha256,
-            )
+            downloadArtifact(buildId, wireEvent.file.name, wireEvent.sizeBytes, wireEvent.sha256)
         }.onFailure { err ->
             send(
                 BuildEvent.Problem(
@@ -437,7 +467,7 @@ class RemoteBuildSystem(
 
     override fun cancel() {
         val id = currentBuildId ?: return
-        cancelScope.launch { runCatching { client.cancelBuild(id) } }
+        cancelScope.launch { runCatching { gateway.cancelBuild(id) } }
     }
 
     private suspend fun resolveSigning(request: BuildRequest) =
