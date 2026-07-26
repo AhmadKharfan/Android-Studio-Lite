@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -243,75 +244,115 @@ class BuildRunCoordinator internal constructor(
         attachBuildId: String? = null,
     ) {
         activeExecutionJob = currentCoroutineContext()[Job]
-        val persisted = admissionMutex.withLock {
-            val active = activeBuildStore.get()?.takeIf { it.operationId == operationId }
-                ?: return@withLock null
-            if (admittedOperationId == null) {
-                admittedOperationId = operationId
-                _execution.value = BuildExecutionSnapshot(
-                    operationId = operationId,
-                    projectId = meta.projectId,
-                    projectName = meta.projectName,
-                    console = BuildConsoleState(
-                        status = BuildStatus.Running,
-                        request = request,
-                        progressMessage = "Reconnecting…",
-                    ),
-                    installRequested = meta.installAfterSuccess,
-                    active = true,
-                    phase = BuildExecutionPhase.Reconnecting,
-                )
-            }
-            active
-        } ?: return
+        val persisted = admitExecution(operationId, request, meta) ?: return
         if (admittedOperationId != operationId) return
-        var console = _execution.value.console
         try {
-            val effectiveAttachId = attachBuildId?.takeIf { it.isNotBlank() }
-                ?: persisted.buildId.takeIf { it.isNotBlank() }
-            val events = if (effectiveAttachId == null) {
-                buildSystem.build(request)
-            } else {
-                buildSystem.attach(effectiveAttachId, request.projectRoot)
-            }
-            events.onEach { event ->
-                onBuildEvent(event, meta, request.projectRoot, operationId)
-            }.collect { event ->
-                if (cancelledOperationId == operationId) {
-                    throw kotlinx.coroutines.CancellationException("Build cancelled")
-                }
-                console = console.reduce(event)
-                _execution.value = _execution.value.copy(
-                    console = console,
-                    phase = phaseFor(event, _execution.value.phase),
-                )
-            }
-            if (console.status == BuildStatus.Running) {
-                console = console.copy(status = BuildStatus.Failed, progressMessage = null)
-                _execution.value = _execution.value.copy(
-                    console = console,
-                    phase = BuildExecutionPhase.Failed,
-                )
-            }
-            if (console.status == BuildStatus.Succeeded && meta.installAfterSuccess) {
-                installFromService(console, request, meta)
-            } else {
-                notifier.notifyFinished(meta.projectName, console.status == BuildStatus.Succeeded,
-                    console.durationMillis, meta.projectId, false)
-            }
+            val events = buildEvents(request, persisted, attachBuildId)
+            val console = collectBuildEvents(events, meta, request.projectRoot, operationId)
+            finishExecution(console, request, meta)
         } finally {
-            if (activeExecutionJob == currentCoroutineContext()[Job]) activeExecutionJob = null
-            admissionMutex.withLock {
-                if (_execution.value.operationId == operationId) {
-                    _execution.value = _execution.value.copy(active = false)
-                }
-                activeBuildStore.get()
-                    ?.takeIf { it.operationId == operationId }
-                    ?.let { activeBuildStore.clear(it.buildId) }
-                if (admittedOperationId == operationId) admittedOperationId = null
-            }
-            RemoteBuildKeepAliveService.stopBuilding(context)
+            releaseExecution(operationId)
         }
+    }
+
+    private suspend fun admitExecution(
+        operationId: String,
+        request: BuildRequest,
+        meta: BuildClientMeta,
+    ): ActiveBuild? = admissionMutex.withLock {
+        val active = activeBuildStore.get()?.takeIf { it.operationId == operationId }
+            ?: return@withLock null
+        if (admittedOperationId == null) {
+            admittedOperationId = operationId
+            _execution.value = BuildExecutionSnapshot(
+                operationId = operationId,
+                projectId = meta.projectId,
+                projectName = meta.projectName,
+                console = BuildConsoleState(
+                    status = BuildStatus.Running,
+                    request = request,
+                    progressMessage = "Reconnecting…",
+                ),
+                installRequested = meta.installAfterSuccess,
+                active = true,
+                phase = BuildExecutionPhase.Reconnecting,
+            )
+        }
+        active
+    }
+
+    private fun buildEvents(
+        request: BuildRequest,
+        persisted: ActiveBuild,
+        attachBuildId: String?,
+    ): Flow<BuildEvent> {
+        val effectiveAttachId = attachBuildId?.takeIf { it.isNotBlank() }
+            ?: persisted.buildId.takeIf { it.isNotBlank() }
+        return if (effectiveAttachId == null) {
+            buildSystem.build(request)
+        } else {
+            buildSystem.attach(effectiveAttachId, request.projectRoot)
+        }
+    }
+
+    private suspend fun collectBuildEvents(
+        events: Flow<BuildEvent>,
+        meta: BuildClientMeta,
+        projectRoot: File,
+        operationId: String,
+    ): BuildConsoleState {
+        var console = _execution.value.console
+        events.onEach { event -> onBuildEvent(event, meta, projectRoot, operationId) }.collect { event ->
+            if (cancelledOperationId == operationId) {
+                throw kotlinx.coroutines.CancellationException("Build cancelled")
+            }
+            console = console.reduce(event)
+            _execution.value = _execution.value.copy(
+                console = console,
+                phase = phaseFor(event, _execution.value.phase),
+            )
+        }
+        return console
+    }
+
+    private suspend fun finishExecution(
+        collectedConsole: BuildConsoleState,
+        request: BuildRequest,
+        meta: BuildClientMeta,
+    ) {
+        var console = collectedConsole
+        if (console.status == BuildStatus.Running) {
+            console = console.copy(status = BuildStatus.Failed, progressMessage = null)
+            _execution.value = _execution.value.copy(
+                console = console,
+                phase = BuildExecutionPhase.Failed,
+            )
+        }
+        if (console.status == BuildStatus.Succeeded && meta.installAfterSuccess) {
+            installFromService(console, request, meta)
+        } else {
+            notifier.notifyFinished(
+                meta.projectName,
+                console.status == BuildStatus.Succeeded,
+                console.durationMillis,
+                meta.projectId,
+                false,
+            )
+        }
+    }
+
+    private suspend fun releaseExecution(operationId: String) {
+        if (activeExecutionJob == currentCoroutineContext()[Job]) activeExecutionJob = null
+        admissionMutex.withLock {
+            if (_execution.value.operationId == operationId) {
+                _execution.value = _execution.value.copy(active = false)
+            }
+            activeBuildStore.get()
+                ?.takeIf { it.operationId == operationId }
+                ?.let { activeBuildStore.clear(it.buildId) }
+            if (admittedOperationId == operationId) admittedOperationId = null
+        }
+        RemoteBuildKeepAliveService.stopBuilding(context)
     }
 
     private suspend fun installFromService(
