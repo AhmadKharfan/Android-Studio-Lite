@@ -4,7 +4,6 @@ import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
-import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
@@ -35,12 +34,28 @@ class GitPanelViewModel(
     private var repoDir: File? = null
     private var syncJob: Job? = null
 
+    private val controllerContext = GitPanelControllerContext(
+        scope = viewModelScope,
+        repoDir = { repoDir },
+        state = { state.value },
+        updateState = ::updateState,
+    )
+
     private val authController = GitAuthController(
         scope = viewModelScope,
         credentialStore = credentialStore,
         authenticator = authenticator,
         emit = { prompt -> updateState { copy(authPrompt = prompt) } },
     )
+
+    private val remotesController = GitRemotesController(controllerContext, gitRepository)
+    private val submodulesController = GitSubmodulesController(controllerContext, gitRepository)
+    private val bootstrapController = GitBootstrapController(
+        context = controllerContext,
+        repository = gitRepository,
+        onRepositoryBootstrapped = ::observeOperation,
+    )
+    private val commitIdentityController = GitCommitIdentityController(controllerContext, gitRepository)
 
     init {
         tryToExecute(
@@ -243,42 +258,12 @@ class GitPanelViewModel(
         }
     }
 
-    override fun onOpenAuthorDialog() {
-        val repoDir = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.getAuthorConfig(repoDir) },
-            onSuccess = { config ->
-                val shown = config.local ?: config.effective
-                updateState { copy(authorDialogVisible = true, authorName = shown.name, authorEmail = shown.email) }
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onAuthorNameChanged(name: String) = updateState { copy(authorName = name) }
-    override fun onAuthorEmailChanged(email: String) = updateState { copy(authorEmail = email) }
-
-    override fun onSaveLocalAuthor() {
-        val repoDir = repoDir ?: return
-        val config = GitAuthorConfig(state.value.authorName.trim(), state.value.authorEmail.trim())
-        if (config.name.isBlank() || config.email.isBlank()) return
-        tryToExecute(
-            block = { gitRepository.setLocalAuthor(repoDir, config) },
-            onSuccess = { updateState { copy(authorDialogVisible = false, statusMessage = "Local Git author saved") } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onUseAppAuthor() {
-        val repoDir = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.setLocalAuthor(repoDir, null) },
-            onSuccess = { updateState { copy(authorDialogVisible = false, statusMessage = "Using app Git author") } },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissAuthorDialog() = updateState { copy(authorDialogVisible = false) }
+    override fun onOpenAuthorDialog() = commitIdentityController.onOpenAuthorDialog()
+    override fun onAuthorNameChanged(name: String) = commitIdentityController.onAuthorNameChanged(name)
+    override fun onAuthorEmailChanged(email: String) = commitIdentityController.onAuthorEmailChanged(email)
+    override fun onSaveLocalAuthor() = commitIdentityController.onSaveLocalAuthor()
+    override fun onUseAppAuthor() = commitIdentityController.onUseAppAuthor()
+    override fun onDismissAuthorDialog() = commitIdentityController.onDismissAuthorDialog()
 
     override fun onPush() {
         if (state.value.isBusy) return
@@ -316,92 +301,17 @@ class GitPanelViewModel(
 
     override fun onDismissForcePush() = updateState { copy(forcePushConfirmVisible = false) }
 
-    override fun onOpenRemotes() {
-        updateState { copy(remotesVisible = true, remotesLoading = true) }
-        reloadRemotes()
-    }
-
-    override fun onCloseRemotes() = updateState { copy(remotesVisible = false) }
-
-    override fun onAddRemote() = updateState {
-        copy(
-            remoteEditorVisible = true,
-            editingRemoteName = null,
-            remoteName = "",
-            remoteUrl = "",
-            remoteNameError = null,
-            remoteUrlError = null,
-        )
-    }
-
-    override fun onEditRemote(name: String) {
-        val remote = state.value.remotes.firstOrNull { it.name == name } ?: return
-        updateState {
-            copy(
-                remoteEditorVisible = true,
-                editingRemoteName = name,
-                remoteName = name,
-                remoteUrl = remote.url,
-                remoteNameError = null,
-                remoteUrlError = null,
-            )
-        }
-    }
-
-    override fun onRemoteNameChanged(name: String) = updateState {
-        copy(remoteName = name, remoteNameError = null)
-    }
-
-    override fun onRemoteUrlChanged(url: String) = updateState {
-        copy(remoteUrl = url, remoteUrlError = null)
-    }
-
-    override fun onSaveRemote() {
-        val repoDir = repoDir ?: return
-        val editing = state.value.editingRemoteName
-        val url = state.value.remoteUrl.trim()
-
-
-        val urlError = if (isSupportedRemoteUrl(url)) null else "Use an http(s):// or file:// URL"
-        if (urlError != null) {
-            updateState { copy(remoteUrlError = urlError) }
-            return
-        }
-        val originExists = state.value.remotes.any { it.name == "origin" }
-        tryToExecute(
-            block = {
-                when {
-                    editing != null -> gitRepository.setRemoteUrl(repoDir, editing, url)
-                    originExists -> gitRepository.setRemoteUrl(repoDir, "origin", url)
-                    else -> gitRepository.addRemote(repoDir, "origin", url)
-                }
-            },
-            onSuccess = {
-                updateState { copy(remoteEditorVisible = false, statusMessage = "Remote saved") }
-                reloadRemotes()
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissRemoteEditor() = updateState { copy(remoteEditorVisible = false) }
-
-    override fun onRequestRemoveRemote(name: String) = updateState { copy(pendingRemoteRemoval = name) }
-
-    override fun onConfirmRemoveRemote() {
-        val repoDir = repoDir ?: return
-        val name = state.value.pendingRemoteRemoval ?: return
-        tryToExecute(
-            block = { gitRepository.removeRemote(repoDir, name) },
-            onSuccess = {
-                updateState { copy(pendingRemoteRemoval = null, statusMessage = "Removed $name") }
-                reloadRemotes()
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissRemoveRemote() = updateState { copy(pendingRemoteRemoval = null) }
+    override fun onOpenRemotes() = remotesController.onOpenRemotes()
+    override fun onCloseRemotes() = remotesController.onCloseRemotes()
+    override fun onAddRemote() = remotesController.onAddRemote()
+    override fun onEditRemote(name: String) = remotesController.onEditRemote(name)
+    override fun onRemoteNameChanged(name: String) = remotesController.onRemoteNameChanged(name)
+    override fun onRemoteUrlChanged(url: String) = remotesController.onRemoteUrlChanged(url)
+    override fun onSaveRemote() = remotesController.onSaveRemote()
+    override fun onDismissRemoteEditor() = remotesController.onDismissRemoteEditor()
+    override fun onRequestRemoveRemote(name: String) = remotesController.onRequestRemoveRemote(name)
+    override fun onConfirmRemoveRemote() = remotesController.onConfirmRemoveRemote()
+    override fun onDismissRemoveRemote() = remotesController.onDismissRemoveRemote()
 
     override fun onRefresh() {
         val repoDir = repoDir ?: return
@@ -482,64 +392,16 @@ class GitPanelViewModel(
 
     override fun onDismissClean() = updateState { copy(cleanPreview = null) }
 
-    override fun onOpenSubmodules() {
-        updateState { copy(submodulesVisible = true, submodulesLoading = true) }
-        reloadSubmodules()
-    }
+    override fun onOpenSubmodules() = submodulesController.onOpenSubmodules()
+    override fun onCloseSubmodules() = submodulesController.onCloseSubmodules()
+    override fun onInitSubmodules() = submodulesController.onInitSubmodules()
+    override fun onUpdateSubmodules() = submodulesController.onUpdateSubmodules()
 
-    override fun onCloseSubmodules() = updateState { copy(submodulesVisible = false) }
-
-    override fun onInitSubmodules() {
-        val root = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.submoduleInit(root) },
-            onSuccess = {
-                updateState { copy(statusMessage = "Submodules initialised") }
-                reloadSubmodules()
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onUpdateSubmodules() {
-        val root = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.submoduleUpdate(root) },
-            onSuccess = {
-                updateState { copy(statusMessage = "Submodules updated") }
-                reloadSubmodules()
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onOpenBootstrap() = updateState { copy(bootstrapVisible = true) }
-
-    override fun onBootstrapInitialCommitChanged(enabled: Boolean) = updateState {
-        copy(bootstrapInitialCommit = enabled)
-    }
-
-    override fun onBootstrapMessageChanged(message: String) = updateState { copy(bootstrapMessage = message) }
-
-    override fun onConfirmBootstrap() {
-        val root = repoDir ?: return
-        val message = if (state.value.bootstrapInitialCommit) {
-            state.value.bootstrapMessage.trim().ifBlank { "Initial commit" }
-        } else {
-            null
-        }
-        updateState { copy(bootstrapVisible = false) }
-        tryToExecute(
-            block = { gitRepository.bootstrapRepository(root, message) },
-            onSuccess = {
-                observeOperation(root)
-                updateState { copy(statusMessage = "Version control enabled") }
-            },
-            onError = ::showError,
-        )
-    }
-
-    override fun onDismissBootstrap() = updateState { copy(bootstrapVisible = false) }
+    override fun onOpenBootstrap() = bootstrapController.onOpenBootstrap()
+    override fun onBootstrapInitialCommitChanged(enabled: Boolean) = bootstrapController.onBootstrapInitialCommitChanged(enabled)
+    override fun onBootstrapMessageChanged(message: String) = bootstrapController.onBootstrapMessageChanged(message)
+    override fun onConfirmBootstrap() = bootstrapController.onConfirmBootstrap()
+    override fun onDismissBootstrap() = bootstrapController.onDismissBootstrap()
 
     override fun onSelectAllChanges() = updateState { copy(selectedPaths = allChangePaths) }
 
@@ -645,46 +507,11 @@ class GitPanelViewModel(
         }
     }
 
-    private fun reloadRemotes() {
-        val repoDir = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.listRemotes(repoDir) },
-            onSuccess = { remotes -> updateState { copy(remotes = remotes, remotesLoading = false) } },
-            onError = {
-                updateState { copy(remotesLoading = false) }
-                showError(it)
-            },
-        )
-    }
-
-    private fun reloadSubmodules() {
-        val root = repoDir ?: return
-        tryToExecute(
-            block = { gitRepository.submodules(root) },
-            onSuccess = { updateState { copy(submodules = it, submodulesLoading = false) } },
-            onError = {
-                updateState { copy(submodulesLoading = false) }
-                showError(it)
-            },
-        )
-    }
-
-    private fun isSupportedRemoteUrl(value: String): Boolean {
-        val normalized = value.lowercase()
-        if (SUPPORTED_REMOTE_PREFIXES.none(normalized::startsWith)) return false
-        return runCatching { URI(value).scheme?.lowercase() in SUPPORTED_REMOTE_SCHEMES }.getOrDefault(false)
-    }
-
     private fun GitDiffKind.toAslDiffKind(): AslDiffKind = when (this) {
         GitDiffKind.ADDED -> AslDiffKind.Added
         GitDiffKind.REMOVED -> AslDiffKind.Removed
         GitDiffKind.MODIFIED -> AslDiffKind.Modified
         GitDiffKind.CONTEXT -> AslDiffKind.Context
-    }
-
-    private companion object {
-        val SUPPORTED_REMOTE_SCHEMES = setOf("http", "https", "file")
-        val SUPPORTED_REMOTE_PREFIXES = listOf("http://", "https://", "file://")
     }
 }
 
