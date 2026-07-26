@@ -15,8 +15,8 @@ import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRemoteInfo
 import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
-import com.ahmadkharfan.androidstudiolite.domain.time.AslClock
-import com.ahmadkharfan.androidstudiolite.domain.time.SystemAslClock
+import com.ahmadkharfan.androidstudiolite.domain.time.MonotonicClock
+import com.ahmadkharfan.androidstudiolite.domain.time.SystemMonotonicClock
 import java.io.File
 import kotlin.math.min
 import kotlinx.coroutines.CancellationException
@@ -48,7 +48,7 @@ class RemoteBuildSystem(
     private val gitSourceResolver: suspend (File) -> GitRemoteInfo? = { null },
     private val releaseSigningResolver: suspend () -> SigningConfig? = { null },
     private val encodeBase64: (ByteArray) -> String = { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) },
-    private val clock: AslClock = SystemAslClock,
+    private val clock: MonotonicClock = SystemMonotonicClock,
     private val ids: IdGenerator = UuidIdGenerator,
     private val cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : BuildSystem {
@@ -95,7 +95,7 @@ class RemoteBuildSystem(
     override fun build(request: BuildRequest): Flow<BuildEvent> = channelFlow {
         val projectRoot = request.projectRoot
         val parser = BuildEventParser()
-        val startedAt = clock.nowMillis()
+        val startedAt = clock.elapsedMillis()
         var socket: WebSocket? = null
         try {
             send(BuildEvent.Started(request))
@@ -155,7 +155,7 @@ class RemoteBuildSystem(
                     message = userFacingBuildError(t),
                 ),
             )
-            send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
+            send(BuildEvent.Finished(success = false, durationMillis = clock.elapsedMillis() - startedAt))
         } finally {
             socket?.cancel()
             currentBuildId = null
@@ -164,7 +164,7 @@ class RemoteBuildSystem(
 
     override fun attach(buildId: String, projectRoot: File): Flow<BuildEvent> = channelFlow {
         val parser = BuildEventParser()
-        val startedAt = clock.nowMillis()
+        val startedAt = clock.elapsedMillis()
         var socket: WebSocket? = null
         try {
             currentBuildId = buildId
@@ -195,7 +195,7 @@ class RemoteBuildSystem(
                     message = userFacingBuildError(t),
                 ),
             )
-            send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
+            send(BuildEvent.Finished(success = false, durationMillis = clock.elapsedMillis() - startedAt))
         } finally {
             socket?.cancel()
             currentBuildId = null
@@ -215,7 +215,7 @@ class RemoteBuildSystem(
         val followDeadline = startedAt + BUILD_FOLLOW_TIMEOUT_MS
 
         while (!finishedSeen) {
-            if (clock.nowMillis() >= followDeadline) break
+            if (clock.elapsedMillis() >= followDeadline) break
 
             val frames = Channel<Frame>(Channel.UNLIMITED)
             socketHolder(null)
@@ -252,7 +252,7 @@ class RemoteBuildSystem(
                 break
             }
 
-            if (clock.nowMillis() >= followDeadline) break
+            if (clock.elapsedMillis() >= followDeadline) break
 
             send(
                 BuildEvent.Problem(
@@ -260,8 +260,8 @@ class RemoteBuildSystem(
                     message = "Connection to build server lost (retrying…)",
                 ),
             )
-            val backoff = reconnectBackoffMillis(reconnectAttempt)
-            delay(backoff.milliseconds)
+            val remaining = followDeadline - clock.elapsedMillis()
+            delay(boundedWaitMillis(reconnectBackoffMillis(reconnectAttempt), remaining).milliseconds)
             reconnectAttempt++
         }
 
@@ -275,7 +275,7 @@ class RemoteBuildSystem(
                     startedAt = startedAt,
                 )
             } else {
-                val timedOut = clock.nowMillis() >= followDeadline
+                val timedOut = clock.elapsedMillis() >= followDeadline
                 if (timedOut) runCatching { client.cancelBuild(buildId) }
                 send(
                     BuildEvent.Problem(
@@ -290,7 +290,7 @@ class RemoteBuildSystem(
                         },
                     ),
                 )
-                send(BuildEvent.Finished(success = false, durationMillis = clock.nowMillis() - startedAt))
+                send(BuildEvent.Finished(success = false, durationMillis = clock.elapsedMillis() - startedAt))
             }
         }
     }
@@ -306,13 +306,15 @@ class RemoteBuildSystem(
     ): StreamConsumeResult {
         var textFramesSeen = 0
         while (true) {
-            if (clock.nowMillis() >= followDeadline) {
+            if (clock.elapsedMillis() >= followDeadline) {
                 return StreamConsumeResult(false, textFramesSeen)
             }
 
-            val result = withTimeoutOrNull(STATUS_POLL_INTERVAL_MS.milliseconds) {
-                frames.receiveCatching()
-            }
+            val remaining = followDeadline - clock.elapsedMillis()
+            val result =
+                withTimeoutOrNull(boundedWaitMillis(STATUS_POLL_INTERVAL_MS, remaining).milliseconds) {
+                    frames.receiveCatching()
+                }
             if (result == null) {
                 val polled = runCatching { client.buildStatus(buildId) }.getOrNull()
                 if (polled != null && isTerminalBuildStatus(polled.status)) {
@@ -330,7 +332,7 @@ class RemoteBuildSystem(
                     val event = parser.parse(frame.text, projectRoot) ?: continue
                     if (event is BuildEvent.ArtifactProduced) {
                         if (!emitDownloadedArtifact(buildId, event)) {
-                            send(BuildEvent.Finished(false, clock.nowMillis() - startedAt))
+                            send(BuildEvent.Finished(false, clock.elapsedMillis() - startedAt))
                             return StreamConsumeResult(true, textFramesSeen)
                         }
                     } else {
@@ -385,7 +387,7 @@ class RemoteBuildSystem(
         send(
             BuildEvent.Finished(
                 success = success,
-                durationMillis = status.durationMillis ?: (clock.nowMillis() - startedAt),
+                durationMillis = status.durationMillis ?: (clock.elapsedMillis() - startedAt),
             ),
         )
     }
@@ -541,3 +543,6 @@ internal fun reconnectBackoffMillis(attempt: Int): Long = min(
     STREAM_RECONNECT_BACKOFF_CAP_MS,
     STREAM_RECONNECT_BACKOFF_MS shl min(attempt, 5),
 )
+
+internal fun boundedWaitMillis(desiredMillis: Long, remainingMillis: Long): Long =
+    min(desiredMillis, remainingMillis).coerceAtLeast(0)
