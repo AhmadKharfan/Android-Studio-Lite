@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.refs
 
 import androidx.lifecycle.viewModelScope
-import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus
@@ -15,6 +14,7 @@ import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
 import java.net.URI
@@ -43,7 +43,7 @@ class GitRefsViewModel(
     private val gitRepository: GitRepository,
     private val credentialStore: GitCredentialStore,
     private val authenticator: GitHubDeviceAuthenticator,
-) : BaseViewModel<GitRefsUiState, Nothing>(
+) : GitViewModel<GitRefsUiState, Nothing>(
     GitRefsUiState(mode, authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
 ), GitRefsInteractionListener {
     private data class LoadedRefs(
@@ -53,6 +53,8 @@ class GitRefsViewModel(
     )
 
     private var repoDir: File? = null
+
+    override fun GitRefsUiState.withGitError(message: String) = copy(loading = false, error = message)
 
     private val authController = GitAuthController(
         scope = viewModelScope,
@@ -74,7 +76,7 @@ class GitRefsViewModel(
                     )
                 }
             },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -99,7 +101,7 @@ class GitRefsViewModel(
                     )
                 }
             },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -141,7 +143,7 @@ class GitRefsViewModel(
                 updateState { copy(loading = false, syncMessage = "Merge ${name.integrationMessage(result.status)}") }
                 refresh()
             },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 

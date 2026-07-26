@@ -1,12 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.diff
 
-import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
 import java.io.File
 
 data class GitDiffUiState(
@@ -25,9 +24,11 @@ class GitDiffViewModel(
     private val commitId: String?,
     private val projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-) : BaseViewModel<GitDiffUiState, Nothing>(GitDiffUiState(path, target)), GitDiffInteractionListener {
+) : GitViewModel<GitDiffUiState, Nothing>(GitDiffUiState(path, target)), GitDiffInteractionListener {
 
     private var repoDir: File? = null
+
+    override fun GitDiffUiState.withGitError(message: String) = copy(loading = false, error = message)
 
     init {
         tryToExecute(
@@ -36,7 +37,7 @@ class GitDiffViewModel(
                 repoDir = it
                 load(force = false)
             },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -57,7 +58,7 @@ class GitDiffViewModel(
                 else gitRepository.stageHunk(root, state.value.path, hunk)
             },
             onSuccess = { load(force = false) },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -78,7 +79,7 @@ class GitDiffViewModel(
                 }
             },
             onSuccess = { updateState { copy(diff = it, loading = false) } },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 }

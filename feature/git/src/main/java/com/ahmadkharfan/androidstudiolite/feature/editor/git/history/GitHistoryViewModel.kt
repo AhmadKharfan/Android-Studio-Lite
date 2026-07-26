@@ -1,10 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.history
 
-import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
+import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
 import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
 import java.io.File
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
@@ -27,12 +27,14 @@ class GitHistoryViewModel(
     requestedPath: String?,
     private val projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-) : BaseViewModel<GitHistoryUiState, Nothing>(GitHistoryUiState()), GitHistoryInteractionListener {
+) : GitViewModel<GitHistoryUiState, Nothing>(GitHistoryUiState()), GitHistoryInteractionListener {
     private var repoDir: File? = null
     private var path: String? = null
     private val graphComputer = GitGraphLaneComputer()
     private var graphCursor = GitGraphCursor()
     private var graphExplicitlySelected = false
+
+    override fun GitHistoryUiState.withGitError(message: String) = copy(loading = false, error = message)
 
     init {
         tryToExecute(
@@ -44,7 +46,7 @@ class GitHistoryViewModel(
                 updateState { copy(path = path, graphEnabled = path == null) }
                 loadFirst()
             },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -71,7 +73,7 @@ class GitHistoryViewModel(
         tryToExecute(
             block = { gitRepository.deepen(root) },
             onSuccess = { loadFirst() },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
@@ -81,7 +83,7 @@ class GitHistoryViewModel(
         tryToExecute(
             block = { gitRepository.reset(root, commitId, mode) },
             onSuccess = { loadFirst() },
-            onError = { updateState { copy(loading = false, error = gitErrorMessage(it)) } },
+            onError = gitErrorHandler(),
         )
     }
 
