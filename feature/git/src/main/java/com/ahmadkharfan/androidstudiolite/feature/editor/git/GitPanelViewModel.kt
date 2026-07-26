@@ -183,28 +183,13 @@ class GitPanelViewModel(
         updateState { copy(isCommitting = true) }
         val job = tryToExecute(
             block = {
-                stageForCommit(repoDir)
-                val id = gitRepository.commit(repoDir, amend = false)
-                committedId = id
-                try {
-                    gitRepository.push(repoDir)
-                    id
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (pushError: Throwable) {
-                    throw CommitSucceededPushFailed(id, pushError)
-                }
+                commitThenPush(repoDir) { committedId = it }
             },
             onSuccess = { id ->
                 updateState { copy(isCommitting = false, statusMessage = "Committed and pushed ${id.take(7)}") }
             },
             onError = { error ->
-                val message = if (error is CommitSucceededPushFailed) {
-                    "Committed ${error.commitId.take(7)}, but push failed: ${gitErrorMessage(error.cause ?: error)}"
-                } else {
-                    gitErrorMessage(error)
-                }
-                updateState { copy(isCommitting = false, statusMessage = message) }
+                updateState { copy(isCommitting = false, statusMessage = commitPushErrorMessage(error)) }
             },
         )
         job.invokeOnCompletion { error ->
@@ -219,6 +204,26 @@ class GitPanelViewModel(
                 }
             }
         }
+    }
+
+    private suspend fun commitThenPush(repoDir: File, onCommitted: (String) -> Unit): String {
+        stageForCommit(repoDir)
+        val commitId = gitRepository.commit(repoDir, amend = false)
+        onCommitted(commitId)
+        try {
+            gitRepository.push(repoDir)
+            return commitId
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (pushError: Throwable) {
+            throw CommitSucceededPushFailed(commitId, pushError)
+        }
+    }
+
+    private fun commitPushErrorMessage(error: Throwable): String = if (error is CommitSucceededPushFailed) {
+        "Committed ${error.commitId.take(7)}, but push failed: ${gitErrorMessage(error.cause ?: error)}"
+    } else {
+        gitErrorMessage(error)
     }
 
     override fun onOpenAuthorDialog() = commitIdentityController.onOpenAuthorDialog()
