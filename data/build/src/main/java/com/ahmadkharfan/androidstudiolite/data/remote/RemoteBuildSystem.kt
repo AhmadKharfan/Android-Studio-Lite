@@ -5,7 +5,6 @@ import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildEventParser
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ProjectModelMapper
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.RemoteJson
 import com.ahmadkharfan.androidstudiolite.data.remote.protocol.WireProjectModel
-import com.ahmadkharfan.androidstudiolite.data.remote.protocol.BuildStatusResponse
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -23,20 +22,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.decodeFromString
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.Response
 import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import kotlin.time.Duration.Companion.milliseconds
 
 class RemoteBuildSystem internal constructor(
     private val gateway: RemoteBuildGateway,
@@ -57,6 +48,8 @@ class RemoteBuildSystem internal constructor(
     private val ids: IdGenerator = UuidIdGenerator,
     private val cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : BuildSystem {
+
+    private val streamFollower = BuildStreamFollower(gateway, downloadArtifact, clock)
 
     constructor(
         client: RemoteClient,
@@ -171,12 +164,10 @@ class RemoteBuildSystem internal constructor(
             gateway.startBuild(created.buildId)
 
 
-            followBuildStream(
-                buildId = created.buildId,
-                projectRoot = projectRoot,
-                parser = parser,
-                startedAt = startedAt,
+            streamFollower.follow(
+                request = BuildStreamRequest(created.buildId, projectRoot, parser, startedAt),
                 socketHolder = { socket = it },
+                emit = { send(it) },
             )
         } catch (e: CancellationException) {
 
@@ -207,19 +198,17 @@ class RemoteBuildSystem internal constructor(
 
 
             val existing = runCatching { gateway.buildStatus(buildId) }.getOrNull()
-            if (existing != null && isTerminalBuildStatus(existing.status)) {
+            if (existing != null && streamFollower.isTerminalStatus(existing.status)) {
                 send(BuildEvent.Progress("Build finished. Collecting results…"))
-                emitTerminalFromStatus(buildId, existing, startedAt)
+                streamFollower.emitTerminalStatus(buildId, existing, startedAt) { send(it) }
                 return@channelFlow
             }
-            send(BuildEvent.Progress(statusProgressLabel(existing?.status)))
+            send(BuildEvent.Progress(streamFollower.statusProgressLabel(existing?.status)))
 
-            followBuildStream(
-                buildId = buildId,
-                projectRoot = projectRoot,
-                parser = parser,
-                startedAt = startedAt,
+            streamFollower.follow(
+                request = BuildStreamRequest(buildId, projectRoot, parser, startedAt),
                 socketHolder = { socket = it },
+                emit = { send(it) },
             )
         } catch (e: CancellationException) {
             throw e
@@ -235,234 +224,6 @@ class RemoteBuildSystem internal constructor(
             socket?.cancel()
             currentBuildId = null
         }
-    }
-
-    private suspend fun ProducerScope<BuildEvent>.followBuildStream(
-        buildId: String,
-        projectRoot: File,
-        parser: BuildEventParser,
-        startedAt: Long,
-        socketHolder: (WebSocket?) -> Unit,
-    ) {
-        var finishedSeen = false
-        var reconnectAttempt = 0
-        var processedTextFrames = 0
-        val followDeadline = startedAt + BUILD_FOLLOW_TIMEOUT_MS
-
-        while (!finishedSeen) {
-            if (clock.elapsedMillis() >= followDeadline) break
-
-            val frames = Channel<Frame>(Channel.UNLIMITED)
-            socketHolder(null)
-            val socket = gateway.openStream(buildId, FrameListener(frames))
-            socketHolder(socket)
-
-            val consumed = consumeBuildStream(
-                buildId = buildId,
-                projectRoot = projectRoot,
-                parser = parser,
-                frames = frames,
-                startedAt = startedAt,
-                followDeadline = followDeadline,
-                replayPrefixToSkip = processedTextFrames,
-            )
-            finishedSeen = consumed.finished
-            processedTextFrames = maxOf(processedTextFrames, consumed.textFramesSeen)
-            frames.close()
-            socket.cancel()
-            socketHolder(null)
-
-            if (finishedSeen) break
-
-            val terminal = runCatching { gateway.buildStatus(buildId) }
-                .getOrNull()
-                ?.takeIf { isTerminalBuildStatus(it.status) }
-            if (terminal != null) {
-                emitTerminalFromStatus(
-                    buildId = buildId,
-                    status = terminal,
-                    startedAt = startedAt,
-                )
-                finishedSeen = true
-                break
-            }
-
-            if (clock.elapsedMillis() >= followDeadline) break
-
-            send(
-                BuildEvent.Problem(
-                    severity = BuildEvent.ProblemSeverity.INFO,
-                    message = "Connection to build server lost (retrying…)",
-                ),
-            )
-            val remaining = followDeadline - clock.elapsedMillis()
-            delay(boundedWaitMillis(reconnectBackoffMillis(reconnectAttempt), remaining).milliseconds)
-            reconnectAttempt++
-        }
-
-
-        if (!finishedSeen) {
-            val polled = runCatching { gateway.buildStatus(buildId) }.getOrNull()
-            if (polled != null && isTerminalBuildStatus(polled.status)) {
-                emitTerminalFromStatus(
-                    buildId = buildId,
-                    status = polled,
-                    startedAt = startedAt,
-                )
-            } else {
-                val timedOut = clock.elapsedMillis() >= followDeadline
-                if (timedOut) runCatching { gateway.cancelBuild(buildId) }
-                send(
-                    BuildEvent.Problem(
-                        severity = BuildEvent.ProblemSeverity.ERROR,
-                        message = if (timedOut) {
-                            "Build is still running on the server but this session timed out waiting for updates. " +
-                                "Re-open the project to reconnect, or tap Run to start a new build."
-                        } else {
-                            "Lost connection to the build server before the build finished. " +
-                                "The build may still be running on the server. Re-open the project to reconnect, " +
-                                "or tap Run to try again."
-                        },
-                    ),
-                )
-                send(BuildEvent.Finished(success = false, durationMillis = clock.elapsedMillis() - startedAt))
-            }
-        }
-    }
-
-    private suspend fun ProducerScope<BuildEvent>.consumeBuildStream(
-        buildId: String,
-        projectRoot: File,
-        parser: BuildEventParser,
-        frames: ReceiveChannel<Frame>,
-        startedAt: Long,
-        followDeadline: Long,
-        replayPrefixToSkip: Int,
-    ): StreamConsumeResult {
-        var textFramesSeen = 0
-        while (true) {
-            if (clock.elapsedMillis() >= followDeadline) {
-                return StreamConsumeResult(false, textFramesSeen)
-            }
-
-            val remaining = followDeadline - clock.elapsedMillis()
-            val result =
-                withTimeoutOrNull(boundedWaitMillis(STATUS_POLL_INTERVAL_MS, remaining).milliseconds) {
-                    frames.receiveCatching()
-                }
-            if (result == null) {
-                val polled = runCatching { gateway.buildStatus(buildId) }.getOrNull()
-                if (polled != null && isTerminalBuildStatus(polled.status)) {
-                    emitTerminalFromStatus(buildId, polled, startedAt)
-                    return StreamConsumeResult(true, textFramesSeen)
-                }
-                send(BuildEvent.Progress(statusProgressLabel(polled?.status)))
-                continue
-            }
-            if (result.isClosed) return StreamConsumeResult(false, textFramesSeen)
-            when (val frame = result.getOrNull() ?: return StreamConsumeResult(false, textFramesSeen)) {
-                is Frame.Text -> {
-                    textFramesSeen++
-                    if (textFramesSeen <= replayPrefixToSkip) continue
-                    val event = parser.parse(frame.text, projectRoot) ?: continue
-                    if (event is BuildEvent.ArtifactProduced) {
-                        if (!emitDownloadedArtifact(buildId, event)) {
-                            send(BuildEvent.Finished(false, clock.elapsedMillis() - startedAt))
-                            return StreamConsumeResult(true, textFramesSeen)
-                        }
-                    } else {
-                        send(event)
-                    }
-                    if (event is BuildEvent.Finished) return StreamConsumeResult(true, textFramesSeen)
-                }
-                is Frame.Closed, is Frame.Failure -> return StreamConsumeResult(false, textFramesSeen)
-            }
-        }
-    }
-
-    private fun statusProgressLabel(status: String?): String = when (status?.uppercase()) {
-        null, "", "UNKNOWN" -> "Build still running…"
-        "QUEUED" -> "Build queued…"
-        "STARTING", "PREPARING" -> "Starting build…"
-        "RUNNING" -> "Building…"
-        "SIGNING" -> "Signing and verifying release artifact…"
-        "UPLOADING" -> "Uploading…"
-        else -> "Build status: ${status.lowercase()}…"
-    }
-
-    private suspend fun ProducerScope<BuildEvent>.emitTerminalFromStatus(
-        buildId: String,
-        status: BuildStatusResponse,
-        startedAt: Long,
-    ) {
-        val success = status.status.equals("SUCCEEDED", ignoreCase = true)
-        if (success) {
-            val downloaded = runCatching {
-                downloadArtifact(buildId, null, null, null)
-            }.getOrNull()
-            if (downloaded != null) {
-                send(BuildEvent.ArtifactProduced(downloaded.file, downloaded.kind))
-            }
-        } else {
-            val raw = status.errorMessage ?: "Build ${status.status.lowercase()}"
-            val message = when {
-                raw.contains("OOM", ignoreCase = true) ||
-                    raw.contains("evict", ignoreCase = true) ||
-                    raw.contains("out of memory", ignoreCase = true) ->
-                    "Build worker ran out of memory and was stopped. Tap Run to try again."
-                else -> raw
-            }
-            send(
-                BuildEvent.Problem(
-                    severity = BuildEvent.ProblemSeverity.ERROR,
-                    message = message,
-                ),
-            )
-        }
-        send(
-            BuildEvent.Finished(
-                success = success,
-                durationMillis = status.durationMillis ?: (clock.elapsedMillis() - startedAt),
-            ),
-        )
-    }
-
-    private fun isTerminalBuildStatus(status: String): Boolean =
-        status.equals("SUCCEEDED", ignoreCase = true) ||
-            status.equals("FAILED", ignoreCase = true) ||
-            status.equals("TIMED_OUT", ignoreCase = true) ||
-            status.equals("CANCELED", ignoreCase = true) ||
-            status.equals("CANCELLED", ignoreCase = true) ||
-            status.equals("ERROR", ignoreCase = true)
-
-    private suspend fun ProducerScope<BuildEvent>.emitDownloadedArtifact(
-        buildId: String,
-        wireEvent: BuildEvent.ArtifactProduced,
-    ): Boolean {
-        send(BuildEvent.Progress("Downloading ${wireEvent.file.name}…"))
-        val downloaded = runCatching {
-            downloadArtifact(buildId, wireEvent.file.name, wireEvent.sizeBytes, wireEvent.sha256)
-        }.onFailure { err ->
-            send(
-                BuildEvent.Problem(
-                    severity = BuildEvent.ProblemSeverity.ERROR,
-                    message = "Couldn't download the APK: ${err.message ?: err.javaClass.simpleName}",
-                ),
-            )
-        }.getOrNull()
-        if (downloaded != null) {
-            send(
-                BuildEvent.ArtifactProduced(
-                    downloaded.file,
-                    downloaded.kind,
-                    downloaded.file.length(),
-                    wireEvent.sha256,
-                    wireEvent.signed,
-                    wireEvent.certificateSha256,
-                ),
-            )
-        }
-        return downloaded != null
     }
 
     override fun cancel() {
@@ -481,41 +242,6 @@ class RemoteBuildSystem internal constructor(
             null
         }
 
-    private sealed interface Frame {
-        data class Text(val text: String) : Frame
-        data object Closed : Frame
-        data class Failure(val error: Throwable) : Frame
-    }
-
-    private data class StreamConsumeResult(val finished: Boolean, val textFramesSeen: Int)
-
-    private class FrameListener(private val frames: Channel<Frame>) : WebSocketListener() {
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            frames.trySend(Frame.Text(text))
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            frames.trySend(Frame.Closed)
-            webSocket.close(NORMAL_CLOSURE, null)
-        }
-
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            frames.trySend(Frame.Closed)
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            frames.trySend(Frame.Failure(t))
-        }
-
-        private companion object {
-            const val NORMAL_CLOSURE = 1000
-        }
-    }
-
-    private companion object {
-        const val BUILD_FOLLOW_TIMEOUT_MS = 5_700_000L
-        const val STATUS_POLL_INTERVAL_MS = 5_000L
-    }
 }
 
 private const val STREAM_RECONNECT_BACKOFF_MS = 1_000L
