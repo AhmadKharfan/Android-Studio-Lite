@@ -27,110 +27,170 @@ class CLikeLexer(
     private val keywords: Set<String>,
     private val rawStrings: Boolean,
 ) : SyntaxLexer {
+    private data class TokenStep(
+        val nextIndex: Int,
+        val endState: LexerState? = null,
+        val lineComplete: Boolean = false,
+    )
+
     override fun tokenizeLine(line: String, entryState: LexerState): LineResult {
         val tokens = ArrayList<SyntaxToken>()
-        val n = line.length
-        var i = 0
-        var state = entryState
-        when (state) {
-            LexerState.BlockComment -> {
-                val close = line.indexOf("*/")
-                if (close < 0) {
-                    if (n > 0) tokens.add(SyntaxToken(0, n, TokenType.Comment))
-                    return LineResult(tokens, LexerState.BlockComment)
-                }
-                tokens.add(SyntaxToken(0, close + 2, TokenType.Comment))
-                i = close + 2
-                state = LexerState.Default
-            }
-            LexerState.RawString -> {
-                val close = line.indexOf("\"\"\"")
-                if (close < 0) {
-                    if (n > 0) tokens.add(SyntaxToken(0, n, TokenType.StringLiteral))
-                    return LineResult(tokens, LexerState.RawString)
-                }
-                tokens.add(SyntaxToken(0, close + 3, TokenType.StringLiteral))
-                i = close + 3
-                state = LexerState.Default
-            }
-            LexerState.Default -> Unit
-        }
-        while (i < n) {
+        val entryStep = resumeEntryState(line, entryState, tokens)
+        if (entryStep.lineComplete) return LineResult(tokens, entryStep.endState ?: entryState)
+        var i = entryStep.nextIndex
+        var state = entryStep.endState ?: entryState
+        while (i < line.length) {
             val c = line[i]
-            when {
-                c == ' ' || c == '\t' -> i++
-                c == '/' && i + 1 < n && line[i + 1] == '/' -> {
-                    tokens.add(SyntaxToken(i, n, TokenType.Comment))
-                    i = n
-                }
-                c == '/' && i + 1 < n && line[i + 1] == '*' -> {
-                    val close = line.indexOf("*/", i + 2)
-                    if (close < 0) {
-                        tokens.add(SyntaxToken(i, n, TokenType.Comment))
-                        i = n
-                        state = LexerState.BlockComment
-                    } else {
-                        tokens.add(SyntaxToken(i, close + 2, TokenType.Comment))
-                        i = close + 2
-                    }
-                }
-                rawStrings && c == '"' && line.startsWith("\"\"\"", i) -> {
-                    val close = line.indexOf("\"\"\"", i + 3)
-                    if (close < 0) {
-                        tokens.add(SyntaxToken(i, n, TokenType.StringLiteral))
-                        i = n
-                        state = LexerState.RawString
-                    } else {
-                        tokens.add(SyntaxToken(i, close + 3, TokenType.StringLiteral))
-                        i = close + 3
-                    }
-                }
-                c == '"' -> {
-                    val end = readQuoted(line, i, '"')
-                    tokens.add(SyntaxToken(i, end, TokenType.StringLiteral))
-                    i = end
-                }
-                c == '\'' -> {
-                    val end = readQuoted(line, i, '\'')
-                    tokens.add(SyntaxToken(i, end, TokenType.StringLiteral))
-                    i = end
-                }
-                c == '@' && i + 1 < n && (line[i + 1].isLetter() || line[i + 1] == '_') -> {
-                    var j = i + 1
-                    while (j < n && (line[j].isLetterOrDigit() || line[j] == '_' || line[j] == '.')) j++
-                    tokens.add(SyntaxToken(i, j, TokenType.Annotation))
-                    i = j
-                }
-                c.isDigit() -> {
-                    var j = i + 1
-                    while (j < n && (line[j].isLetterOrDigit() || line[j] == '.' || line[j] == '_')) j++
-                    tokens.add(SyntaxToken(i, j, TokenType.Number))
-                    i = j
-                }
-                c.isLetter() || c == '_' -> {
-                    var j = i + 1
-                    while (j < n && (line[j].isLetterOrDigit() || line[j] == '_')) j++
-                    val word = line.substring(i, j)
-                    val type = when {
-                        word in keywords -> TokenType.Keyword
-                        else -> {
-                            var k = j
-                            while (k < n && line[k] == ' ') k++
-                            when {
-                                k < n && line[k] == '(' -> TokenType.Function
-                                word[0].isUpperCase() -> TokenType.Type
-                                else -> TokenType.Variable
-                            }
-                        }
-                    }
-                    tokens.add(SyntaxToken(i, j, type))
-                    i = j
-                }
-                else -> i++
+            val step = when {
+                c == ' ' || c == '\t' -> skipWhitespace(i)
+                c == '/' && i + 1 < line.length && line[i + 1] == '/' -> tokenizeLineComment(line, i, tokens)
+                c == '/' && i + 1 < line.length && line[i + 1] == '*' -> tokenizeBlockComment(line, i, tokens)
+                rawStrings && c == '"' && line.startsWith("\"\"\"", i) -> tokenizeRawString(line, i, tokens)
+                c == '"' -> tokenizeQuotedString(line, i, '"', tokens)
+                c == '\'' -> tokenizeQuotedString(line, i, '\'', tokens)
+                c == '@' && i + 1 < line.length && (line[i + 1].isLetter() || line[i + 1] == '_') ->
+                    tokenizeAnnotation(line, i, tokens)
+                c.isDigit() -> tokenizeNumber(line, i, tokens)
+                c.isLetter() || c == '_' -> tokenizeIdentifier(line, i, tokens)
+                else -> skipSymbol(i)
             }
+            i = step.nextIndex
+            step.endState?.let { state = it }
         }
         return LineResult(tokens, state)
     }
+
+    private fun resumeEntryState(
+        line: String,
+        entryState: LexerState,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep = when (entryState) {
+        LexerState.BlockComment -> resumeBlockComment(line, tokens)
+        LexerState.RawString -> resumeRawString(line, tokens)
+        LexerState.Default -> TokenStep(0, LexerState.Default)
+    }
+
+    private fun resumeBlockComment(line: String, tokens: MutableList<SyntaxToken>): TokenStep {
+        val close = line.indexOf("*/")
+        return if (close < 0) {
+            if (line.isNotEmpty()) tokens.add(SyntaxToken(0, line.length, TokenType.Comment))
+            TokenStep(line.length, LexerState.BlockComment, lineComplete = true)
+        } else {
+            tokens.add(SyntaxToken(0, close + 2, TokenType.Comment))
+            TokenStep(close + 2, LexerState.Default)
+        }
+    }
+
+    private fun resumeRawString(line: String, tokens: MutableList<SyntaxToken>): TokenStep {
+        val close = line.indexOf("\"\"\"")
+        return if (close < 0) {
+            if (line.isNotEmpty()) tokens.add(SyntaxToken(0, line.length, TokenType.StringLiteral))
+            TokenStep(line.length, LexerState.RawString, lineComplete = true)
+        } else {
+            tokens.add(SyntaxToken(0, close + 3, TokenType.StringLiteral))
+            TokenStep(close + 3, LexerState.Default)
+        }
+    }
+
+    private fun skipWhitespace(index: Int): TokenStep = TokenStep(index + 1)
+
+    private fun tokenizeLineComment(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        tokens.add(SyntaxToken(start, line.length, TokenType.Comment))
+        return TokenStep(line.length)
+    }
+
+    private fun tokenizeBlockComment(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        val close = line.indexOf("*/", start + 2)
+        return if (close < 0) {
+            tokens.add(SyntaxToken(start, line.length, TokenType.Comment))
+            TokenStep(line.length, LexerState.BlockComment)
+        } else {
+            tokens.add(SyntaxToken(start, close + 2, TokenType.Comment))
+            TokenStep(close + 2)
+        }
+    }
+
+    private fun tokenizeRawString(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        val close = line.indexOf("\"\"\"", start + 3)
+        return if (close < 0) {
+            tokens.add(SyntaxToken(start, line.length, TokenType.StringLiteral))
+            TokenStep(line.length, LexerState.RawString)
+        } else {
+            tokens.add(SyntaxToken(start, close + 3, TokenType.StringLiteral))
+            TokenStep(close + 3)
+        }
+    }
+
+    private fun tokenizeQuotedString(
+        line: String,
+        start: Int,
+        quote: Char,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        val end = readQuoted(line, start, quote)
+        tokens.add(SyntaxToken(start, end, TokenType.StringLiteral))
+        return TokenStep(end)
+    }
+
+    private fun tokenizeAnnotation(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        var end = start + 1
+        while (end < line.length && (line[end].isLetterOrDigit() || line[end] == '_' || line[end] == '.')) end++
+        tokens.add(SyntaxToken(start, end, TokenType.Annotation))
+        return TokenStep(end)
+    }
+
+    private fun tokenizeNumber(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        var end = start + 1
+        while (end < line.length && (line[end].isLetterOrDigit() || line[end] == '.' || line[end] == '_')) end++
+        tokens.add(SyntaxToken(start, end, TokenType.Number))
+        return TokenStep(end)
+    }
+
+    private fun tokenizeIdentifier(
+        line: String,
+        start: Int,
+        tokens: MutableList<SyntaxToken>,
+    ): TokenStep {
+        var end = start + 1
+        while (end < line.length && (line[end].isLetterOrDigit() || line[end] == '_')) end++
+        val word = line.substring(start, end)
+        val type = if (word in keywords) TokenType.Keyword else classifyIdentifier(line, end, word)
+        tokens.add(SyntaxToken(start, end, type))
+        return TokenStep(end)
+    }
+
+    private fun classifyIdentifier(line: String, end: Int, word: String): TokenType {
+        var next = end
+        while (next < line.length && line[next] == ' ') next++
+        return when {
+            next < line.length && line[next] == '(' -> TokenType.Function
+            word[0].isUpperCase() -> TokenType.Type
+            else -> TokenType.Variable
+        }
+    }
+
+    private fun skipSymbol(index: Int): TokenStep = TokenStep(index + 1)
+
     private fun readQuoted(line: String, start: Int, quote: Char): Int {
         var i = start + 1
         val n = line.length

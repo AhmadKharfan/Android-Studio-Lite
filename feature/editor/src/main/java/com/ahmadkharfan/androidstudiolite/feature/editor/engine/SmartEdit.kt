@@ -55,51 +55,94 @@ object SmartEdit {
         session.replaceRange(pos, pos, ch.toString(), caret = pos + 1, coalesce = true)
     }
     fun smartEnter(session: EditorSession, tabSize: Int) {
+        val context = smartEnterContext(session, tabSize)
+        val edit = enterAfterComposableCall(context)
+            ?: enterInsideKotlinString(context)
+            ?: enterBetweenPairedDelimiters(context)
+            ?: enterInBlockComment(context)
+            ?: enterInLineComment(context)
+            ?: enterWithIndent(context)
+        session.replaceRange(edit.offset, edit.offset, edit.text, caret = edit.caret)
+    }
+
+    private fun smartEnterContext(session: EditorSession, tabSize: Int): SmartEnterContext {
         val doc = session.document
-        val text = doc.text
-        val pos = session.selection.caret
-        val line = doc.lineOfOffset(pos)
-        val lineStart = doc.lineStartOffset(line)
-        val prefix = doc.substring(lineStart, pos)
-        val indent = prefix.takeWhile { it == ' ' || it == '\t' }
-        val unit = " ".repeat(tabSize)
-        if (session.language == EditorLanguage.Kotlin) {
-            KotlinLexUtil.composableStringExitInsertOffset(text, pos)?.let { afterParen ->
-                val insert = "\n" + indent
-                session.replaceRange(afterParen, afterParen, insert, caret = afterParen + insert.length)
-                return
-            }
-            if (KotlinLexUtil.isInsideStringLiteral(text, pos)) {
-                val insert = "\n" + indent
-                session.replaceRange(pos, pos, insert, caret = pos + insert.length)
-                return
-            }
-        }
-        val before = if (pos > 0) doc.charAt(pos - 1) else null
-        val after = if (pos < doc.length) doc.charAt(pos) else null
-        if (before != null && before in OPEN_TO_CLOSE && after == OPEN_TO_CLOSE[before]) {
-            val body = "\n" + indent + unit
-            val insert = body + "\n" + indent
-            session.replaceRange(pos, pos, insert, caret = pos + body.length)
-            return
-        }
-        val trimmed = prefix.trim()
-        if (trimmed.startsWith("/*") || trimmed.startsWith("*")) {
-            val commentPrefix = if (trimmed.startsWith("/*")) " * " else "* "
-            val insert = "\n" + indent + commentPrefix
-            session.replaceRange(pos, pos, insert, caret = pos + insert.length)
-            return
-        }
-        if (trimmed.startsWith("//")) {
-            val insert = "\n" + indent + "// "
-            session.replaceRange(pos, pos, insert, caret = pos + insert.length)
-            return
-        }
-        val lastNonSpace = prefix.trimEnd().lastOrNull()
+        val position = session.selection.caret
+        val lineStart = doc.lineStartOffset(doc.lineOfOffset(position))
+        val prefix = doc.substring(lineStart, position)
+        return SmartEnterContext(
+            text = doc.text,
+            position = position,
+            prefix = prefix,
+            indent = prefix.takeWhile { it == ' ' || it == '\t' },
+            indentUnit = " ".repeat(tabSize),
+            language = session.language,
+        )
+    }
+
+    private data class SmartEnterContext(
+        val text: String,
+        val position: Int,
+        val prefix: String,
+        val indent: String,
+        val indentUnit: String,
+        val language: EditorLanguage,
+    )
+
+    private data class SmartEnterEdit(
+        val offset: Int,
+        val text: String,
+        val caret: Int,
+    )
+
+    private fun enterAfterComposableCall(context: SmartEnterContext): SmartEnterEdit? {
+        if (context.language != EditorLanguage.Kotlin) return null
+        val offset = KotlinLexUtil.composableStringExitInsertOffset(context.text, context.position) ?: return null
+        val insert = "\n" + context.indent
+        return SmartEnterEdit(offset, insert, offset + insert.length)
+    }
+
+    private fun enterInsideKotlinString(context: SmartEnterContext): SmartEnterEdit? {
+        if (context.language != EditorLanguage.Kotlin) return null
+        if (!KotlinLexUtil.isInsideStringLiteral(context.text, context.position)) return null
+        val insert = "\n" + context.indent
+        return SmartEnterEdit(context.position, insert, context.position + insert.length)
+    }
+
+    private fun enterBetweenPairedDelimiters(context: SmartEnterContext): SmartEnterEdit? {
+        val before = context.text.getOrNull(context.position - 1) ?: return null
+        val after = context.text.getOrNull(context.position)
+        if (before !in OPEN_TO_CLOSE || after != OPEN_TO_CLOSE[before]) return null
+        val body = "\n" + context.indent + context.indentUnit
+        val insert = body + "\n" + context.indent
+        return SmartEnterEdit(context.position, insert, context.position + body.length)
+    }
+
+    private fun enterInBlockComment(context: SmartEnterContext): SmartEnterEdit? {
+        val trimmed = context.prefix.trim()
+        if (!trimmed.startsWith("/*") && !trimmed.startsWith("*")) return null
+        val commentPrefix = if (trimmed.startsWith("/*")) " * " else "* "
+        val insert = "\n" + context.indent + commentPrefix
+        return SmartEnterEdit(context.position, insert, context.position + insert.length)
+    }
+
+    private fun enterInLineComment(context: SmartEnterContext): SmartEnterEdit? {
+        if (!context.prefix.trim().startsWith("//")) return null
+        val insert = "\n" + context.indent + "// "
+        return SmartEnterEdit(context.position, insert, context.position + insert.length)
+    }
+
+    private fun enterWithIndent(context: SmartEnterContext): SmartEnterEdit {
+        val trimmedEnd = context.prefix.trimEnd()
+        val lastNonSpace = trimmedEnd.lastOrNull()
         val deeper = (lastNonSpace != null && lastNonSpace in "([{") ||
-            (session.language == EditorLanguage.Kotlin && prefix.trimEnd().endsWith("->"))
-        val insert = if (deeper) "\n" + indent + unit else "\n" + indent
-        session.replaceRange(pos, pos, insert, caret = pos + insert.length)
+            (context.language == EditorLanguage.Kotlin && trimmedEnd.endsWith("->"))
+        val insert = if (deeper) {
+            "\n" + context.indent + context.indentUnit
+        } else {
+            "\n" + context.indent
+        }
+        return SmartEnterEdit(context.position, insert, context.position + insert.length)
     }
     fun backspace(session: EditorSession, tabSize: Int) {
         val doc = session.document

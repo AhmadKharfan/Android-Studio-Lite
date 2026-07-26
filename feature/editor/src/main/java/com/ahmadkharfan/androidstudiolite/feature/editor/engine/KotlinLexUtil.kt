@@ -1,52 +1,112 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine
 object KotlinLexUtil {
+    private enum class StringScanState {
+        Code,
+        LineComment,
+        BlockComment,
+        String,
+        TripleString,
+        Character,
+        StringTemplate,
+    }
+
+    private class StringScan(
+        var state: StringScanState = StringScanState.Code,
+        var templateDepth: Int = 0,
+        var index: Int = 0,
+    )
+
     fun isInsideStringLiteral(text: String, caret: Int): Boolean {
         if (caret < 0 || caret > text.length) return false
-        var state = 0
-        var templateDepth = 0
-        var i = 0
-        var caretInString = false
-        while (i < caret) {
-            when (state) {
-                0 -> when {
-                    text.startsWith("//", i) -> { state = 1; i += 2 }
-                    text.startsWith("/*", i) -> { state = 2; i += 2 }
-                    text.startsWith("\"\"\"", i) -> { state = 4; i += 3 }
-                    text[i] == '"' -> { state = 3; i++ }
-                    text[i] == '\'' -> { state = 5; i++ }
-                    else -> i++
-                }
-                1 -> { if (text[i] == '\n') state = 0; i++ }
-                2 -> {
-                    if (text.startsWith("*/", i)) { state = 0; i += 2 } else i++
-                }
-                4 -> {
-                    if (text.startsWith("\"\"\"", i)) { state = 0; i += 3 } else i++
-                }
-                5 -> {
-                    if (text[i] == '\\') i += 2
-                    else if (text[i] == '\'') { state = 0; i++ }
-                    else i++
-                }
-                3 -> when {
-                    text[i] == '\\' -> i += 2
-                    text.startsWith("\${", i) -> { state = 6; templateDepth = 1; i += 2 }
-                    text[i] == '"' -> { state = 0; i++ }
-                    else -> i++
-                }
-                6 -> when {
-                    text[i] == '{' -> { templateDepth++; i++ }
-                    text[i] == '}' -> {
-                        templateDepth--
-                        i++
-                        if (templateDepth <= 0) state = 3
-                    }
-                    else -> i++
-                }
-            }
+        val scan = StringScan()
+        while (scan.index < caret) {
+            advanceStringScan(text, scan)
         }
-        if (i == caret && state == 3) caretInString = true
-        return caretInString
+        return scan.index == caret && scan.state == StringScanState.String
+    }
+
+    private fun advanceStringScan(text: String, scan: StringScan) {
+        when (scan.state) {
+            StringScanState.Code -> scanCode(text, scan)
+            StringScanState.LineComment -> scanLineComment(text, scan)
+            StringScanState.BlockComment -> scanBlockComment(text, scan)
+            StringScanState.String -> scanString(text, scan)
+            StringScanState.TripleString -> scanTripleString(text, scan)
+            StringScanState.Character -> scanCharacter(text, scan)
+            StringScanState.StringTemplate -> scanStringTemplate(text, scan)
+        }
+    }
+
+    private fun scanCode(text: String, scan: StringScan) {
+        when {
+            text.startsWith("//", scan.index) -> scan.moveTo(StringScanState.LineComment, 2)
+            text.startsWith("/*", scan.index) -> scan.moveTo(StringScanState.BlockComment, 2)
+            text.startsWith("\"\"\"", scan.index) -> scan.moveTo(StringScanState.TripleString, 3)
+            text[scan.index] == '"' -> scan.moveTo(StringScanState.String)
+            text[scan.index] == '\'' -> scan.moveTo(StringScanState.Character)
+            else -> scan.index++
+        }
+    }
+
+    private fun scanLineComment(text: String, scan: StringScan) {
+        if (text[scan.index] == '\n') scan.state = StringScanState.Code
+        scan.index++
+    }
+
+    private fun scanBlockComment(text: String, scan: StringScan) {
+        if (text.startsWith("*/", scan.index)) {
+            scan.moveTo(StringScanState.Code, 2)
+        } else {
+            scan.index++
+        }
+    }
+
+    private fun scanTripleString(text: String, scan: StringScan) {
+        if (text.startsWith("\"\"\"", scan.index)) {
+            scan.moveTo(StringScanState.Code, 3)
+        } else {
+            scan.index++
+        }
+    }
+
+    private fun scanCharacter(text: String, scan: StringScan) {
+        when (text[scan.index]) {
+            '\\' -> scan.index += 2
+            '\'' -> scan.moveTo(StringScanState.Code)
+            else -> scan.index++
+        }
+    }
+
+    private fun scanString(text: String, scan: StringScan) {
+        when {
+            text[scan.index] == '\\' -> scan.index += 2
+            text.startsWith("\${", scan.index) -> {
+                scan.templateDepth = 1
+                scan.moveTo(StringScanState.StringTemplate, 2)
+            }
+            text[scan.index] == '"' -> scan.moveTo(StringScanState.Code)
+            else -> scan.index++
+        }
+    }
+
+    private fun scanStringTemplate(text: String, scan: StringScan) {
+        when (text[scan.index]) {
+            '{' -> {
+                scan.templateDepth++
+                scan.index++
+            }
+            '}' -> {
+                scan.templateDepth--
+                scan.index++
+                if (scan.templateDepth <= 0) scan.state = StringScanState.String
+            }
+            else -> scan.index++
+        }
+    }
+
+    private fun StringScan.moveTo(nextState: StringScanState, consumedCharacters: Int = 1) {
+        state = nextState
+        index += consumedCharacters
     }
     fun isComposableStringExitPosition(text: String, caret: Int): Boolean {
         if (!isInsideStringLiteral(text, caret)) return false
