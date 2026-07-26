@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -155,78 +156,85 @@ internal fun buildInlineAnnotatedString(
     linkColor: Color,
     codeBg: Color,
 ) = buildAnnotatedString {
-    var i = 0
-    while (i < source.length) {
+    InlineMarkdownRenderer(
+        source = source,
+        output = this,
+        styles = InlineMarkdownStyles(textColor, linkColor, codeBg),
+    ).appendAll()
+}
+
+private class InlineMarkdownRenderer(
+    private val source: String,
+    private val output: AnnotatedString.Builder,
+    private val styles: InlineMarkdownStyles,
+) {
+    private var index = 0
+
+    fun appendAll() {
+        while (index < source.length) appendNext()
+    }
+
+    private fun appendNext() {
         when {
-            source.startsWith("**", i) -> {
-                val end = source.indexOf("**", i + 2)
-                if (end > i) {
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = textColor)) {
-                        append(source.substring(i + 2, end))
-                    }
-                    i = end + 2
-                } else {
-                    append(source[i])
-                    i++
-                }
-            }
-            source.startsWith("*", i) && !source.startsWith("**", i) -> {
-                val end = source.indexOf('*', i + 1)
-                if (end > i) {
-                    withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = textColor)) {
-                        append(source.substring(i + 1, end))
-                    }
-                    i = end + 1
-                } else {
-                    append(source[i])
-                    i++
-                }
-            }
-            source.startsWith("`", i) -> {
-                val end = source.indexOf('`', i + 1)
-                if (end > i) {
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 13.sp,
-                            background = codeBg,
-                            color = textColor,
-                        ),
-                    ) {
-                        append(source.substring(i + 1, end))
-                    }
-                    i = end + 1
-                } else {
-                    append(source[i])
-                    i++
-                }
-            }
-            source.startsWith("[", i) -> {
-                val close = source.indexOf(']', i + 1)
-                val openParen = if (close >= 0 && close + 1 < source.length && source[close + 1] == '(') {
-                    close + 1
-                } else {
-                    -1
-                }
-                val closeParen = if (openParen >= 0) source.indexOf(')', openParen + 1) else -1
-                if (close > i && openParen == close + 1 && closeParen > openParen) {
-                    val label = source.substring(i + 1, close)
-                    val url = source.substring(openParen + 1, closeParen)
-                    withLink(LinkAnnotation.Url(url)) {
-                        withStyle(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)) {
-                            append(label)
-                        }
-                    }
-                    i = closeParen + 1
-                } else {
-                    append(source[i])
-                    i++
-                }
-            }
-            else -> {
-                append(source[i])
-                i++
-            }
+            source.startsWith("**", index) -> appendStyled("**", styles.bold)
+            source.startsWith("*", index) -> appendStyled("*", styles.italic)
+            source.startsWith("`", index) -> appendStyled("`", styles.code)
+            source.startsWith("[", index) -> appendLink()
+            else -> appendLiteral()
         }
     }
+
+    private fun appendStyled(marker: String, style: SpanStyle) {
+        val end = source.indexOf(marker, index + marker.length)
+        if (end <= index) {
+            appendLiteral()
+            return
+        }
+        output.withStyle(style) { append(source.substring(index + marker.length, end)) }
+        index = end + marker.length
+    }
+
+    private fun appendLink() {
+        val link = parseLink(index)
+        if (link == null) {
+            appendLiteral()
+            return
+        }
+        output.withLink(LinkAnnotation.Url(link.url)) {
+            withStyle(styles.link) { append(link.label) }
+        }
+        index = link.nextIndex
+    }
+
+    private fun appendLiteral() {
+        output.append(source[index])
+        index++
+    }
+
+    private fun parseLink(start: Int): InlineLink? {
+        val labelEnd = source.indexOf(']', start + 1)
+        val urlStart = labelEnd + 2
+        if (labelEnd <= start || urlStart > source.lastIndex || source[urlStart - 1] != '(') return null
+        val urlEnd = source.indexOf(')', urlStart)
+        if (urlEnd < urlStart) return null
+        return InlineLink(
+            label = source.substring(start + 1, labelEnd),
+            url = source.substring(urlStart, urlEnd),
+            nextIndex = urlEnd + 1,
+        )
+    }
 }
+
+private class InlineMarkdownStyles(textColor: Color, linkColor: Color, codeBackground: Color) {
+    val bold = SpanStyle(fontWeight = FontWeight.Bold, color = textColor)
+    val italic = SpanStyle(fontStyle = FontStyle.Italic, color = textColor)
+    val code = SpanStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 13.sp,
+        background = codeBackground,
+        color = textColor,
+    )
+    val link = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
+}
+
+private data class InlineLink(val label: String, val url: String, val nextIndex: Int)
