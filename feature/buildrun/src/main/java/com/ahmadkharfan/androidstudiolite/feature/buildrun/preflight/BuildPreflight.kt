@@ -23,58 +23,69 @@ data class ToolchainVersions(
 
 object CompatibilityChecker {
 
-    fun check(versions: ToolchainVersions): List<PreflightWarning> {
-        val warnings = mutableListOf<PreflightWarning>()
+    fun check(versions: ToolchainVersions): List<PreflightWarning> = buildList {
         val agpMajor = versions.agp?.majorVersion()
-        val gradle = versions.gradle
-        val jdk = versions.jdkMajor
-
         when (agpMajor) {
-            null -> warnings += PreflightWarning(
-                PreflightSeverity.INFO,
-                "Couldn't determine AGP version",
-                "The Android Gradle Plugin version wasn't found; compatibility can't be pre-checked.",
-            )
+            null -> add(missingAgpWarning())
             in 8..Int.MAX_VALUE -> {
-                if (jdk != null && jdk < 17) {
-                    warnings += PreflightWarning(
-                        PreflightSeverity.WARNING,
-                        "JDK 17 required",
-                        "AGP $agpMajor.x needs JDK 17+, but the configured JDK is $jdk. The build will likely fail.",
-                    )
-                }
-                if (gradle != null && compareVersions(gradle, "8.0") < 0) {
-                    warnings += PreflightWarning(
-                        PreflightSeverity.WARNING,
-                        "Gradle too old for AGP 8",
-                        "AGP $agpMajor.x needs Gradle 8.0+, but this project uses Gradle $gradle.",
-                    )
-                }
+                agp8JdkWarning(agpMajor, versions.jdkMajor)?.let { add(it) }
+                agp8GradleWarning(agpMajor, versions.gradle)?.let { add(it) }
             }
             7 -> {
-                if (jdk != null && jdk < 11) {
-                    warnings += PreflightWarning(
-                        PreflightSeverity.WARNING,
-                        "JDK 11 required",
-                        "AGP 7.x needs JDK 11+, but the configured JDK is $jdk.",
-                    )
-                }
-                if (gradle != null && compareVersions(gradle, "7.0") < 0) {
-                    warnings += PreflightWarning(
-                        PreflightSeverity.WARNING,
-                        "Gradle too old for AGP 7",
-                        "AGP 7.x needs Gradle 7.0+, but this project uses Gradle $gradle.",
-                    )
-                }
+                agp7JdkWarning(versions.jdkMajor)?.let { add(it) }
+                agp7GradleWarning(versions.gradle)?.let { add(it) }
             }
-            else -> warnings += PreflightWarning(
-                PreflightSeverity.INFO,
-                "Untested AGP version",
-                "AGP ${versions.agp} hasn't been verified with this IDE's toolchain.",
-            )
+            else -> add(untestedAgpWarning(versions.agp))
         }
-        return warnings
     }
+
+    private fun missingAgpWarning() = PreflightWarning(
+        PreflightSeverity.INFO,
+        "Couldn't determine AGP version",
+        "The Android Gradle Plugin version wasn't found; compatibility can't be pre-checked.",
+    )
+
+    private fun agp8JdkWarning(agpMajor: Int, jdk: Int?): PreflightWarning? {
+        if (jdk == null || jdk >= 17) return null
+        return PreflightWarning(
+            PreflightSeverity.WARNING,
+            "JDK 17 required",
+            "AGP $agpMajor.x needs JDK 17+, but the configured JDK is $jdk. The build will likely fail.",
+        )
+    }
+
+    private fun agp8GradleWarning(agpMajor: Int, gradle: String?): PreflightWarning? {
+        if (gradle == null || compareVersions(gradle, "8.0") >= 0) return null
+        return PreflightWarning(
+            PreflightSeverity.WARNING,
+            "Gradle too old for AGP 8",
+            "AGP $agpMajor.x needs Gradle 8.0+, but this project uses Gradle $gradle.",
+        )
+    }
+
+    private fun agp7JdkWarning(jdk: Int?): PreflightWarning? {
+        if (jdk == null || jdk >= 11) return null
+        return PreflightWarning(
+            PreflightSeverity.WARNING,
+            "JDK 11 required",
+            "AGP 7.x needs JDK 11+, but the configured JDK is $jdk.",
+        )
+    }
+
+    private fun agp7GradleWarning(gradle: String?): PreflightWarning? {
+        if (gradle == null || compareVersions(gradle, "7.0") >= 0) return null
+        return PreflightWarning(
+            PreflightSeverity.WARNING,
+            "Gradle too old for AGP 7",
+            "AGP 7.x needs Gradle 7.0+, but this project uses Gradle $gradle.",
+        )
+    }
+
+    private fun untestedAgpWarning(agp: String?) = PreflightWarning(
+        PreflightSeverity.INFO,
+        "Untested AGP version",
+        "AGP $agp hasn't been verified with this IDE's toolchain.",
+    )
 }
 
 object StorageChecker {

@@ -128,6 +128,10 @@ internal class JGitDiffReader {
 
     private fun List<Edit>.toHunks(old: RawText, new: RawText): List<GitDiffHunk> {
         if (isEmpty()) return emptyList()
+        return contextRegions(old, new).map { region -> toHunk(region, old, new) }
+    }
+
+    private fun List<Edit>.contextRegions(old: RawText, new: RawText): List<IntArray> {
         val regions = mutableListOf<IntArray>()
         for (edit in this) {
             val region = intArrayOf(
@@ -144,33 +148,44 @@ internal class JGitDiffReader {
                 regions += region
             }
         }
-        return regions.map { region ->
-            val relevant = filter { it.endA >= region[0] && it.beginA <= region[1] }
-            val lines = mutableListOf<GitDiffLine>()
-            var a = region[0]
-            var b = region[2]
-            relevant.forEach { edit ->
-                while (a < edit.beginA && b < edit.beginB) {
-                    lines += GitDiffLine(GitDiffKind.CONTEXT, old.getString(a), a + 1, b + 1)
-                    a++; b++
-                }
-                while (a < edit.endA) lines += GitDiffLine(GitDiffKind.REMOVED, old.getString(a), oldNo = ++a)
-                while (b < edit.endB) lines += GitDiffLine(GitDiffKind.ADDED, new.getString(b), newNo = ++b)
-            }
-            while (a < region[1] && b < region[3]) {
+        return regions
+    }
+
+    private fun List<Edit>.toHunk(region: IntArray, old: RawText, new: RawText): GitDiffHunk {
+        val relevantEdits = filter { it.endA >= region[0] && it.beginA <= region[1] }
+        val oldCount = region[1] - region[0]
+        val newCount = region[3] - region[2]
+        return GitDiffHunk(
+            oldStart = if (oldCount == 0) 0 else region[0] + 1,
+            oldCount = oldCount,
+            newStart = if (newCount == 0) 0 else region[2] + 1,
+            newCount = newCount,
+            lines = collectHunkLines(region, relevantEdits, old, new),
+        )
+    }
+
+    private fun collectHunkLines(
+        region: IntArray,
+        edits: List<Edit>,
+        old: RawText,
+        new: RawText,
+    ): List<GitDiffLine> {
+        val lines = mutableListOf<GitDiffLine>()
+        var a = region[0]
+        var b = region[2]
+        edits.forEach { edit ->
+            while (a < edit.beginA && b < edit.beginB) {
                 lines += GitDiffLine(GitDiffKind.CONTEXT, old.getString(a), a + 1, b + 1)
                 a++; b++
             }
-            val oldCount = region[1] - region[0]
-            val newCount = region[3] - region[2]
-            GitDiffHunk(
-                oldStart = if (oldCount == 0) 0 else region[0] + 1,
-                oldCount = oldCount,
-                newStart = if (newCount == 0) 0 else region[2] + 1,
-                newCount = newCount,
-                lines = lines,
-            )
+            while (a < edit.endA) lines += GitDiffLine(GitDiffKind.REMOVED, old.getString(a), oldNo = ++a)
+            while (b < edit.endB) lines += GitDiffLine(GitDiffKind.ADDED, new.getString(b), newNo = ++b)
         }
+        while (a < region[1] && b < region[3]) {
+            lines += GitDiffLine(GitDiffKind.CONTEXT, old.getString(a), a + 1, b + 1)
+            a++; b++
+        }
+        return lines
     }
     private fun findEntry(
         repo: Repository,
