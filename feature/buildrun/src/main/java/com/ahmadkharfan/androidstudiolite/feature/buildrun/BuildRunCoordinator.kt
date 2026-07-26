@@ -174,6 +174,8 @@ class BuildRunCoordinator(
             active.installAfterSuccess,
             active.autoLaunchAfterInstall,
         )
+        val previousOperationId = admittedOperationId
+        val previousExecution = _execution.value
         admittedOperationId = active.operationId
         _execution.value = BuildExecutionSnapshot(
             operationId = active.operationId,
@@ -184,13 +186,19 @@ class BuildRunCoordinator(
             active = true,
             phase = BuildExecutionPhase.Reconnecting,
         )
-        RemoteBuildKeepAliveService.startExecution(
-            context,
-            active.operationId,
-            request,
-            meta,
-            attachBuildId = active.buildId.takeIf { it.isNotBlank() },
-        )
+        try {
+            RemoteBuildKeepAliveService.startExecution(
+                context,
+                active.operationId,
+                request,
+                meta,
+                attachBuildId = active.buildId.takeIf { it.isNotBlank() },
+            )
+        } catch (t: Throwable) {
+            admittedOperationId = previousOperationId
+            _execution.value = previousExecution
+            throw t
+        }
     }
 
     override suspend fun recover(projectId: String): Boolean = admissionMutex.withLock {

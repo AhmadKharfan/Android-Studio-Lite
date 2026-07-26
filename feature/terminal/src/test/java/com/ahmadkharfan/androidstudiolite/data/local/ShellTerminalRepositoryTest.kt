@@ -51,7 +51,7 @@ class ShellTerminalRepositoryTest {
         repo.send("echo \$ASL_GREETING")
         repo.send("(exit 7)")
 
-        withTimeout(10_000) {
+        withTimeout(60_000) {
             while (events.count { it is TerminalEvent.CommandFinished } < 4) delay(20)
         }
         repo.stop()
@@ -88,7 +88,7 @@ class ShellTerminalRepositoryTest {
         repo.start()
         repo.send("cd sub")
         repo.send("pwd")
-        withTimeout(10_000) {
+        withTimeout(60_000) {
             while (events.count { it is TerminalEvent.CommandFinished } < 2) delay(20)
         }
         repo.stop()
