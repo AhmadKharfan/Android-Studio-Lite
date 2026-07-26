@@ -77,7 +77,8 @@ class JGitGitRepository internal constructor(
     private val authorStore: GitAuthorStore,
     private val workspaceWriteGate: WorkspaceWriteGate,
     private val statusComputer: JGitStatusComputer,
-    private val diffEngine: JGitDiffEngine,
+    private val diffReader: JGitDiffReader,
+    private val indexEditor: JGitIndexEditor,
     private val historyEngine: JGitHistoryEngine,
     private val stashEngine: JGitStashEngine,
     private val branchEngine: JGitBranchEngine,
@@ -86,6 +87,33 @@ class JGitGitRepository internal constructor(
     private val tagEngine: JGitTagEngine,
     private val submoduleEngine: JGitSubmoduleEngine,
 ) : GitRepository {
+
+    private constructor(
+        credentialStore: GitCredentialStore,
+        io: CoroutineDispatcher,
+        operationCoordinator: GitOperationCoordinator,
+        fileChangeBus: FileChangeBus,
+        authorStore: GitAuthorStore,
+        workspaceWriteGate: WorkspaceWriteGate,
+        diffReader: JGitDiffReader,
+    ) : this(
+        credentialStore,
+        io,
+        operationCoordinator,
+        fileChangeBus,
+        authorStore,
+        workspaceWriteGate,
+        JGitStatusComputer(),
+        diffReader,
+        JGitIndexEditor(diffReader),
+        JGitHistoryEngine(),
+        JGitStashEngine(),
+        JGitBranchEngine(),
+        JGitRemoteEngine(),
+        JGitIntegrationEngine(),
+        JGitTagEngine(),
+        JGitSubmoduleEngine(),
+    )
 
     constructor(
         credentialStore: GitCredentialStore,
@@ -101,15 +129,7 @@ class JGitGitRepository internal constructor(
         fileChangeBus,
         authorStore,
         workspaceWriteGate,
-        JGitStatusComputer(),
-        JGitDiffEngine(),
-        JGitHistoryEngine(),
-        JGitStashEngine(),
-        JGitBranchEngine(),
-        JGitRemoteEngine(),
-        JGitIntegrationEngine(),
-        JGitTagEngine(),
-        JGitSubmoduleEngine(),
+        JGitDiffReader(),
     )
 
     private val syncEngine = JGitSyncEngine(remoteEngine)
@@ -218,10 +238,10 @@ class JGitGitRepository internal constructor(
     }
 
     override suspend fun diffIndexToWorktree(repoDir: File, path: String, force: Boolean): GitFileDiff =
-        withContext(io) { openGit(repoDir).use { diffEngine.indexToWorktree(it.repository, path, force) } }
+        withContext(io) { openGit(repoDir).use { diffReader.indexToWorktree(it.repository, path, force) } }
 
     override suspend fun diffHeadToIndex(repoDir: File, path: String, force: Boolean): GitFileDiff =
-        withContext(io) { openGit(repoDir).use { diffEngine.headToIndex(it.repository, path, force) } }
+        withContext(io) { openGit(repoDir).use { diffReader.headToIndex(it.repository, path, force) } }
 
     override suspend fun diffCommitToParent(
         repoDir: File,
@@ -229,20 +249,20 @@ class JGitGitRepository internal constructor(
         path: String,
         force: Boolean,
     ): GitFileDiff = withContext(io) {
-        openGit(repoDir).use { diffEngine.commitToParent(it.repository, commitId, path, force) }
+        openGit(repoDir).use { diffReader.commitToParent(it.repository, commitId, path, force) }
     }
 
     override suspend fun diffIndexToBuffer(repoDir: File, path: String, buffer: String): GitFileDiff =
-        withContext(io) { openGit(repoDir).use { diffEngine.indexToBuffer(it.repository, path, buffer) } }
+        withContext(io) { openGit(repoDir).use { diffReader.indexToBuffer(it.repository, path, buffer) } }
 
     override suspend fun stageHunk(repoDir: File, path: String, hunk: GitDiffHunk) =
         mutate(repoDir, GitOperationType.PARTIAL_STAGE) { git ->
-            diffEngine.updateIndex(git.repository, path, hunk, reverse = false)
+            indexEditor.updateIndex(git.repository, path, hunk, reverse = false)
         }
 
     override suspend fun unstageHunk(repoDir: File, path: String, hunk: GitDiffHunk) =
         mutate(repoDir, GitOperationType.PARTIAL_STAGE) { git ->
-            diffEngine.updateIndex(git.repository, path, hunk, reverse = true)
+            indexEditor.updateIndex(git.repository, path, hunk, reverse = true)
         }
 
     override suspend fun stage(repoDir: File, path: String) = mutate(repoDir, GitOperationType.STAGE) { git ->
