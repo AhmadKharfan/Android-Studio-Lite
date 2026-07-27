@@ -94,93 +94,118 @@ class BuildRunCoordinator internal constructor(
 
     override suspend fun start(request: BuildRequest, meta: BuildClientMeta): StartBuildResult =
         admissionMutex.withLock {
-            val release = request.buildType.equals("release", ignoreCase = true) ||
-                (request.buildType == null && RunTargetResolver.isReleaseVariant(request.variantName))
-            val releaseConfig = if (release) runCatching { keystoreManager.releaseSigningConfig() } else null
-            if (release && (releaseConfig?.isFailure == true || releaseConfig?.getOrNull() == null)) {
-                return@withLock StartBuildResult.Failed(
-                    releaseConfig?.exceptionOrNull()?.message
-                        ?: "Configure a valid release keystore in Settings before building ${request.variantName}.",
-                )
-            }
+            releaseSigningFailure(request)?.let { return@withLock it }
             val current = admittedOperationId
             if (current != null) {
                 return@withLock StartBuildResult.AlreadyRunning(current, _execution.value.projectId)
             }
-            activeBuildStore.get()?.let { persisted ->
-                val fresh = isActiveBuildFresh(clock.nowMillis(), persisted.startedAtEpochMs, ACTIVE_BUILD_MAX_AGE_MS)
-                if (fresh) {
-                    runCatching { adoptPersisted(persisted) }.getOrElse { error ->
-                        admittedOperationId = null
-                        _execution.value = _execution.value.copy(active = false)
-                        return@withLock StartBuildResult.Failed(
-                            error.message ?: "Could not reconnect the background build service",
-                        )
-                    }
-                    return@withLock StartBuildResult.AlreadyRunning(
-                        persisted.operationId,
-                        persisted.projectId,
-                    )
-                }
-                activeBuildStore.clear(persisted.buildId)
-            }
+            resumePersistedBuild()?.let { return@withLock it }
             val operationId = ids.newId()
             cancelledOperationId = null
             admittedOperationId = operationId
-            _execution.value = BuildExecutionSnapshot(
-                operationId = operationId,
-                projectId = meta.projectId,
-                projectName = meta.projectName,
-                console = BuildConsoleState(status = BuildStatus.Running, request = request, progressMessage = "Preparing…"),
-                installRequested = meta.installAfterSuccess,
-                active = true,
-                phase = BuildExecutionPhase.Preparing,
-            )
-            val active = ActiveBuild(
-                buildId = "",
-                operationId = operationId,
-                projectId = meta.projectId,
-                projectRootPath = request.projectRoot.absolutePath,
-                projectName = meta.projectName,
-                installAfterSuccess = meta.installAfterSuccess,
-                autoLaunchAfterInstall = meta.autoLaunchAfterInstall,
-                startedAtEpochMs = clock.nowMillis(),
-                modulePath = request.modulePath,
-                variantName = request.variantName,
-                kind = request.kind.name,
-                taskPath = request.taskPath,
-                buildType = request.buildType,
-            )
-            try {
-                activeBuildStore.save(active)
-                RemoteBuildKeepAliveService.startExecution(
-                    context,
-                    operationId,
-                    request.copy(operationId = operationId),
-                    meta,
-                )
-            } catch (error: Exception) {
-                admittedOperationId = null
-                _execution.value = _execution.value.copy(
-                    console = _execution.value.console.copy(
-                        status = BuildStatus.Failed,
-                        progressMessage = null,
-                        problems = listOf(
-                            BuildProblem(
-                                BuildEvent.ProblemSeverity.ERROR,
-                                error.message ?: "Android could not start the background build service",
-                            ),
-                        ),
-                    ),
-                    active = false,
-                )
-                activeBuildStore.clear(active.buildId)
-                return@withLock StartBuildResult.Failed(
-                    error.message ?: "Could not start the background build service",
-                )
-            }
-            StartBuildResult.Accepted(operationId)
+            _execution.value = preparingExecution(operationId, request, meta)
+            startAdmittedBuild(newActiveBuild(operationId, request, meta), request, meta)
         }
+
+    private suspend fun releaseSigningFailure(request: BuildRequest): StartBuildResult.Failed? {
+        val release = request.buildType.equals("release", ignoreCase = true) ||
+            (request.buildType == null && RunTargetResolver.isReleaseVariant(request.variantName))
+        if (!release) return null
+        val releaseConfig = runCatching { keystoreManager.releaseSigningConfig() }
+        if (releaseConfig.isSuccess && releaseConfig.getOrNull() != null) return null
+        return StartBuildResult.Failed(
+            releaseConfig.exceptionOrNull()?.message
+                ?: "Configure a valid release keystore in Settings before building ${request.variantName}.",
+        )
+    }
+
+    private suspend fun resumePersistedBuild(): StartBuildResult? {
+        val persisted = activeBuildStore.get() ?: return null
+        if (!isActiveBuildFresh(clock.nowMillis(), persisted.startedAtEpochMs, ACTIVE_BUILD_MAX_AGE_MS)) {
+            activeBuildStore.clear(persisted.buildId)
+            return null
+        }
+        return runCatching { adoptPersisted(persisted) }.fold(
+            onSuccess = { StartBuildResult.AlreadyRunning(persisted.operationId, persisted.projectId) },
+            onFailure = { error ->
+                admittedOperationId = null
+                _execution.value = _execution.value.copy(active = false)
+                StartBuildResult.Failed(error.message ?: "Could not reconnect the background build service")
+            },
+        )
+    }
+
+    private fun preparingExecution(
+        operationId: String,
+        request: BuildRequest,
+        meta: BuildClientMeta,
+    ) = BuildExecutionSnapshot(
+        operationId = operationId,
+        projectId = meta.projectId,
+        projectName = meta.projectName,
+        console = BuildConsoleState(status = BuildStatus.Running, request = request, progressMessage = "Preparing…"),
+        installRequested = meta.installAfterSuccess,
+        active = true,
+        phase = BuildExecutionPhase.Preparing,
+    )
+
+    private fun newActiveBuild(
+        operationId: String,
+        request: BuildRequest,
+        meta: BuildClientMeta,
+    ) = ActiveBuild(
+        buildId = "",
+        operationId = operationId,
+        projectId = meta.projectId,
+        projectRootPath = request.projectRoot.absolutePath,
+        projectName = meta.projectName,
+        installAfterSuccess = meta.installAfterSuccess,
+        autoLaunchAfterInstall = meta.autoLaunchAfterInstall,
+        startedAtEpochMs = clock.nowMillis(),
+        modulePath = request.modulePath,
+        variantName = request.variantName,
+        kind = request.kind.name,
+        taskPath = request.taskPath,
+        buildType = request.buildType,
+    )
+
+    private suspend fun startAdmittedBuild(
+        active: ActiveBuild,
+        request: BuildRequest,
+        meta: BuildClientMeta,
+    ): StartBuildResult {
+        return try {
+            activeBuildStore.save(active)
+            RemoteBuildKeepAliveService.startExecution(
+                context,
+                active.operationId,
+                request.copy(operationId = active.operationId),
+                meta,
+            )
+            StartBuildResult.Accepted(active.operationId)
+        } catch (error: Exception) {
+            rollbackFailedAdmission(active, error)
+            StartBuildResult.Failed(error.message ?: "Could not start the background build service")
+        }
+    }
+
+    private suspend fun rollbackFailedAdmission(active: ActiveBuild, error: Exception) {
+        admittedOperationId = null
+        _execution.value = _execution.value.copy(
+            console = _execution.value.console.copy(
+                status = BuildStatus.Failed,
+                progressMessage = null,
+                problems = listOf(
+                    BuildProblem(
+                        BuildEvent.ProblemSeverity.ERROR,
+                        error.message ?: "Android could not start the background build service",
+                    ),
+                ),
+            ),
+            active = false,
+        )
+        activeBuildStore.clear(active.buildId)
+    }
 
     private fun adoptPersisted(active: ActiveBuild) {
         val request = BuildRequest(
