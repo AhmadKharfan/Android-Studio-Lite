@@ -22,7 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLin
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable

@@ -42,7 +42,7 @@ object AndroidXmlContributor : XmlCompletionContributor {
         CompletionItem(name, name, CompletionKind.Class, typeText = "tag")
 
     private fun attributeItem(name: String) =
-        CompletionItem(name, "$name=\"\$0\"", CompletionKind.Property, typeText = "attribute")
+        CompletionItem(name, "$name=\"$0\"", CompletionKind.Property, typeText = "attribute")
 
     private fun valueItem(name: String) =
         CompletionItem(name, name, CompletionKind.Variable, typeText = "value")

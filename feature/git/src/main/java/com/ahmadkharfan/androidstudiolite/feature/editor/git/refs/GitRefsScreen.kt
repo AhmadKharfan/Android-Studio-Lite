@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git.refs
 
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,16 +43,16 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslCheck
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
 import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
-import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
@@ -133,8 +134,12 @@ private fun GitRefsScreen(
                     onDelete = { deleteBranch = it },
                     onMerge = { mergeBranch = it },
                 )
-                GitRefsMode.TAGS -> TagList(uiState.tags, interactionListener, { deleteTag = it })
-                GitRefsMode.STASHES -> StashList(uiState.stashes, interactionListener, { popStash = it }, { dropStash = it })
+                GitRefsMode.TAGS -> TagList(uiState.tags, interactionListener) { deleteTag = it }
+                GitRefsMode.STASHES -> StashList(
+                    uiState.stashes,
+                    interactionListener,
+                    onPop = { popStash = it },
+                ) { dropStash = it }
             }
         }
     }
@@ -250,7 +255,7 @@ private fun BranchList(
 
     LaunchedEffect(state.syncMessage) {
         if (state.syncMessage != null) {
-            delay(4000)
+            delay(4.seconds)
             interactionListener.dismissSyncMessage()
         }
     }

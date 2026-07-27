@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
+import kotlin.time.Duration.Companion.milliseconds
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
@@ -36,7 +37,7 @@ class EditorGitGutterController(
     fun start() {
         scope.launch {
             requests.collectLatest { request ->
-                if (!request.immediate) delay(GUTTER_DEBOUNCE_MS)
+                if (!request.immediate) delay(GUTTER_DEBOUNCE_MS.milliseconds)
                 recompute(request.tabId)
             }
         }

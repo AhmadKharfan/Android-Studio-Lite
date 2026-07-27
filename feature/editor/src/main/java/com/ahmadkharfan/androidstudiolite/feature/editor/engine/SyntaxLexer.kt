@@ -6,7 +6,6 @@ enum class LexerState {
 }
 data class LineResult(val tokens: List<SyntaxToken>, val endState: LexerState)
 interface SyntaxLexer {
-    val initialState: LexerState get() = LexerState.Default
     fun tokenizeLine(line: String, entryState: LexerState): LineResult
     companion object {
         fun forLanguage(language: EditorLanguage): SyntaxLexer = when (language) {

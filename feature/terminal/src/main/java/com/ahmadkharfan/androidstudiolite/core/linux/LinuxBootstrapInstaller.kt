@@ -1,6 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.core.linux
 
-import android.content.Context
 import android.system.Os
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +27,6 @@ sealed interface LinuxInstallState {
 }
 
 class LinuxBootstrapInstaller(
-    private val context: Context,
     private val proot: ProotEnvironment,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {

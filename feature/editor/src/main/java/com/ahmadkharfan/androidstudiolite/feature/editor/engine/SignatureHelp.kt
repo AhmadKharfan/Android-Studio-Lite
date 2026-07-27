@@ -32,8 +32,6 @@ object KotlinSignatureHelpResolver {
         return -1
     }
     fun resolve(
-        text: String,
-        caret: Int,
         params: List<CallSignatureCatalog.Param>,
         calleeName: String,
         activeParameterIndex: Int,
@@ -63,8 +61,6 @@ object KotlinSignatureHelpResolver {
         val params = CallSignatureCatalog.parametersFor(site.calleeName)
         if (params.isEmpty()) return null
         return resolve(
-            text = text,
-            caret = caret,
             params = params,
             calleeName = site.calleeName,
             activeParameterIndex = site.activeParameterIndex,

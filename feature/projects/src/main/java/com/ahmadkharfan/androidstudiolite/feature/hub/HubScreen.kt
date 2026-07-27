@@ -252,7 +252,7 @@ private fun HubScreen(
                 HubGreeting(uiState = uiState, isTablet = isTablet, colors = colors)
                 HubResumeBanner(uiState = uiState, interactionListener = interactionListener)
                 if (isTablet) {
-                    HubTabletLayout(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                    HubTabletLayout(uiState = uiState, interactionListener = interactionListener)
                 } else {
                     HubPhoneLayout(uiState = uiState, interactionListener = interactionListener)
                 }
@@ -341,7 +341,6 @@ private fun HubResumeBanner(
 private fun HubTabletLayout(
     uiState: HubUiState,
     interactionListener: HubInteractionListener,
-    colors: AslColorScheme,
 ) {
     Row(
         modifier = Modifier

@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
 
+import kotlin.time.Duration.Companion.milliseconds
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.graphics.Paint
@@ -239,7 +240,7 @@ fun TerminalEmulatorView(
                 velocity *= SCROLL_FLING_FRICTION
                 val historyMax = screenState.value.scrollback.size.toFloat()
                 if (scrollOffset <= 0f || scrollOffset >= historyMax) break
-                delay(SCROLL_FLING_FRAME_MS)
+                delay(SCROLL_FLING_FRAME_MS.milliseconds)
             }
             flingJob = null
         }
@@ -558,7 +559,7 @@ fun TerminalEmulatorView(
                                 }
 
                                 val decision = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                    var d = "tap"
+                                    var d: String
                                     while (true) {
                                         val e = awaitPointerEvent()
                                         val c = e.changes.firstOrNull { it.id == down.id }

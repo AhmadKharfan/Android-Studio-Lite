@@ -1,9 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions
 
 interface GitPanelInteractionListener : GitAuthPromptActions {
-    fun onSelectChange(path: String, target: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget)
+    fun onSelectChange(path: String, target: GitDiffTarget)
     fun onCloseDiff()
     fun onStage(path: String)
     fun onUnstage(path: String)

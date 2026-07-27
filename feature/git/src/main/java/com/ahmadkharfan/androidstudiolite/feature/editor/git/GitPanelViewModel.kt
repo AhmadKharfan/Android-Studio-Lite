@@ -4,12 +4,17 @@ import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
+import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
 import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.net.URI
@@ -19,13 +24,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 
 class GitPanelViewModel(
-    private val projectId: String,
-    private val projectPathResolver: ProjectPathResolver,
+    projectId: String,
+    projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
     private val operationMonitor: GitOperationMonitor,
     private val credentialStore: GitCredentialStore,
     private val authenticator: GitHubDeviceAuthenticator,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : BaseViewModel<GitPanelUiState, Nothing>(
     initialState = GitPanelUiState(authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
     defaultDispatcher = ioDispatcher,
@@ -322,15 +327,15 @@ class GitPanelViewModel(
     override fun onClearSelection() = stagingController.onClearSelection()
     override fun onToggleSelect(path: String) = stagingController.onToggleSelect(path)
     override fun onToggleSectionSelect(paths: List<String>, select: Boolean) = stagingController.onToggleSectionSelect(paths, select)
-    override fun onStageSelected() = stagingController.onStageSelected()
-    override fun onUnstageSelected() = stagingController.onUnstageSelected()
-    override fun onRevertSelected() = stagingController.onRevertSelected()
+    override fun onStageSelected(): Unit = stagingController.onStageSelected()
+    override fun onUnstageSelected(): Unit = stagingController.onUnstageSelected()
+    override fun onRevertSelected(): Unit = stagingController.onRevertSelected()
 
-    override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
-    override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
-    override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
-    override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
-    override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
+    override fun onAuthModeChanged(mode: GitAuthMode): Unit = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String): Unit = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken(): Unit = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn(): Unit = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt(): Unit = authController.onDismissAuthPrompt()
 
     private fun showError(error: Throwable) = updateState { copy(statusMessage = gitErrorMessage(error)) }
 
@@ -353,7 +358,7 @@ class GitPanelViewModel(
         return runCatching { URI(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 
-    private fun sync(label: String, block: suspend () -> com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult) {
+    private fun sync(label: String, block: suspend () -> GitSyncResult) {
         if (state.value.isSyncing || state.value.isBusy) return
         updateState { copy(isSyncing = true) }
         syncJob = tryToExecute(

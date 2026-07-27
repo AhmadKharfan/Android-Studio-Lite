@@ -225,11 +225,4 @@ object KotlinLexUtil {
     private val DECLARATION_KEYWORDS = listOf(
         "fun", "class", "data", "enum", "object", "interface", "constructor",
     )
-    private fun keywordBefore(text: String, end: Int, word: String): Boolean {
-        val start = end - word.length + 1
-        if (start < 0) return false
-        if (!text.regionMatches(start, word, 0, word.length, ignoreCase = true)) return false
-        val before = start - 1
-        return before < 0 || !text[before].isLetterOrDigit()
-    }
 }

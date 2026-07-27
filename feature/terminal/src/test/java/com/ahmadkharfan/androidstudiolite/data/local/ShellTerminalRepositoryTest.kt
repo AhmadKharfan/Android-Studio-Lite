@@ -1,7 +1,10 @@
 package com.ahmadkharfan.androidstudiolite.data.local
 
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,7 +26,7 @@ class ShellTerminalRepositoryTest {
 
     private suspend fun ShellTerminalRepository.collectInto(sink: MutableList<TerminalEvent>): Job {
         val subscribed = CompletableDeferred<Unit>()
-        val job = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        val job = CoroutineScope(Dispatchers.IO).launch {
             events.onSubscription { subscribed.complete(Unit) }.collect(sink::add)
         }
         subscribed.await()
@@ -48,11 +51,11 @@ class ShellTerminalRepositoryTest {
         repo.start()
         repo.send("echo hello")
         repo.send("pwd")
-        repo.send("echo \$ASL_GREETING")
+        repo.send("echo ${'$'}ASL_GREETING")
         repo.send("(exit 7)")
 
-        withTimeout(60_000) {
-            while (events.count { it is TerminalEvent.CommandFinished } < 4) delay(20)
+        withTimeout(60.seconds) {
+            while (events.count { it is TerminalEvent.CommandFinished } < 4) delay(20.milliseconds)
         }
         repo.stop()
         collector.cancel()
@@ -88,8 +91,8 @@ class ShellTerminalRepositoryTest {
         repo.start()
         repo.send("cd sub")
         repo.send("pwd")
-        withTimeout(60_000) {
-            while (events.count { it is TerminalEvent.CommandFinished } < 2) delay(20)
+        withTimeout(60.seconds) {
+            while (events.count { it is TerminalEvent.CommandFinished } < 2) delay(20.milliseconds)
         }
         repo.stop()
         collector.cancel()

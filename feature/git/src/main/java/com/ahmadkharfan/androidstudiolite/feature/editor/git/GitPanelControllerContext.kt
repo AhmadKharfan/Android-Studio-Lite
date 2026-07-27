@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher

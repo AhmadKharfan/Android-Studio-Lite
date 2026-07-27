@@ -1,9 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
+import kotlin.time.Duration.Companion.seconds
 import androidx.lifecycle.viewModelScope
 import android.content.ContextWrapper
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
@@ -74,11 +76,11 @@ class EditorRootInvalidationTest {
             buildRunCoordinator = buildRunCoordinator(),
         )
         try {
-            withTimeout(5_000) { viewModel.state.first { it.tabs.isNotEmpty() } }
+            withTimeout(5.seconds) { viewModel.state.first { it.tabs.isNotEmpty() } }
 
             source.writeText("two")
             bus.emitRootInvalidated(root.absolutePath, RootInvalidationReason.GIT_OPERATION)
-            val reloaded = withTimeout(5_000) {
+            val reloaded = withTimeout(5.seconds) {
                 viewModel.state.first { it.tabs.singleOrNull()?.text == "two" }
             }
             assertEquals("two", reloaded.tabs.single().text)
@@ -89,7 +91,7 @@ class EditorRootInvalidationTest {
             viewModel.onSessionEdited(source.absolutePath)
             source.writeText("three")
             bus.emitRootInvalidated(root.absolutePath, RootInvalidationReason.GIT_OPERATION)
-            withTimeout(5_000) {
+            withTimeout(5.seconds) {
                 viewModel.state.first { it.snackbarMessage.orEmpty().contains("unsaved edits were kept") }
             }
 
@@ -142,7 +144,7 @@ class EditorRootInvalidationTest {
             apkInstaller = ApkInstaller(context),
             gradleReader = gradleReader,
             notifier = BuildNotifier(context),
-            activeBuildStore = com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore(),
+            activeBuildStore = InMemoryActiveBuildStore(),
         )
     }
 

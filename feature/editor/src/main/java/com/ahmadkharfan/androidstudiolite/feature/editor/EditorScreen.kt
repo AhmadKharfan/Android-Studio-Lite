@@ -195,7 +195,6 @@ private fun EditorScreen(
                     gitNavigation = gitNavigation,
                     isTablet = isTablet,
                     keyboardOpen = keyboardOpen,
-                    colors = colors,
                     modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                 )
             }
@@ -327,8 +326,8 @@ private fun EditorTopBar(
             }
         }
     }
-    val onSelectTab = remember(interactionListener) { interactionListener::onSelectTab }
-    val onCloseTab = remember(interactionListener) { interactionListener::onCloseTab }
+    val onSelectTab = remember(interactionListener) { { id: String -> interactionListener.onSelectTab(id) } }
+    val onCloseTab = remember(interactionListener) { { id: String -> interactionListener.onCloseTab(id) } }
     Column(modifier = Modifier.fillMaxWidth().zIndex(2f)) {
         AslEditorToolbar(
             projectName = uiState.projectName.ifBlank { loading },
@@ -366,8 +365,8 @@ private fun EditorToolbarEditActions(
     showMarkdownPreviewToggle: Boolean = false,
     markdownPreview: Boolean = true,
 ) {
-    val onUndo = remember(interactionListener) { { interactionListener.onUndo() } }
-    val onRedo = remember(interactionListener) { { interactionListener.onRedo() } }
+    val onUndo = remember(interactionListener) { interactionListener::onUndo }
+    val onRedo = remember(interactionListener) { interactionListener::onRedo }
     AslIconButton(icon = "undo-2", contentDescription = stringResource(R.string.editor_undo), onClick = onUndo)
     AslIconButton(icon = "redo-2", contentDescription = stringResource(R.string.editor_redo), onClick = onRedo)
     if (showMarkdownPreviewToggle) {
@@ -389,7 +388,6 @@ private fun EditorContentArea(
     gitNavigation: GitNavigationCallbacks,
     isTablet: Boolean,
     keyboardOpen: Boolean,
-    colors: com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme,
     modifier: Modifier = Modifier,
 ) {
     val terminalPanelActive = uiState.activeBottomTabId == "term" && uiState.bottomPanelHeightDp > 0f
@@ -658,10 +656,10 @@ private fun rememberEditorDrawerCallbacks(
     gitNavigation: GitNavigationCallbacks,
 ): EditorDrawerCallbacks {
     val onSelectTool = remember(interactionListener) { { tool: EditorRailTool -> interactionListener.onSelectRailTool(tool) } }
-    val onFocusFileTreeNode = remember(interactionListener) { interactionListener::onFocusFileTreeNode }
-    val onToggleFolder = remember(interactionListener) { interactionListener::onToggleFolder }
+    val onFocusFileTreeNode = remember(interactionListener) { { id: String -> interactionListener.onFocusFileTreeNode(id) } }
+    val onToggleFolder = remember(interactionListener) { { id: String -> interactionListener.onToggleFolder(id) } }
     val onSelectFile = remember(interactionListener) { { id: String, name: String -> interactionListener.onOpenFile(id, name) } }
-    val onRevealFileTreeNode = remember(interactionListener) { interactionListener::onRevealFileTreeNode }
+    val onRevealFileTreeNode = remember(interactionListener) { { id: String -> interactionListener.onRevealFileTreeNode(id) } }
     val onCreateFileTreeEntry = remember(interactionListener) {
         { kind: EditorFileCreateKind, parentPath: String? -> interactionListener.onCreateFileTreeEntry(kind, parentPath) }
     }
@@ -678,7 +676,7 @@ private fun rememberEditorDrawerCallbacks(
     val onOpenSettings = remember(interactionListener) { interactionListener::onOpenSettings }
     val onOpenAiAgentSettings = remember(interactionListener) { interactionListener::onOpenAiAgentSettings }
     val onCloseProject = remember(interactionListener) { interactionListener::onCloseProject }
-    val onSelectVariant = remember(interactionListener) { interactionListener::onSelectVariant }
+    val onSelectVariant = remember(interactionListener) { { variant: String -> interactionListener.onSelectVariant(variant) } }
     return remember(
         onSelectTool,
         onFocusFileTreeNode,

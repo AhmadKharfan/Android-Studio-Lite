@@ -75,17 +75,6 @@ object RunTargetResolver {
         return variants.sortedWith(variantComparator).map { it.name }
     }
 
-    fun taskPath(module: ModuleModel?, variantName: String, kind: com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind): String? {
-        val variant = module?.variants?.firstOrNull { it.name.equals(variantName, ignoreCase = true) }
-            ?: return null
-        return when (kind) {
-            com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.ASSEMBLE -> variant.assembleTaskPath
-            com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.BUNDLE -> variant.bundleTaskPath
-            com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.CLEAN -> null
-            com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.MODEL -> null
-        }
-    }
-
     fun isDebugVariant(variantName: String): Boolean {
         val n = variantName.trim()
         if (n.equals("debug", ignoreCase = true)) return true

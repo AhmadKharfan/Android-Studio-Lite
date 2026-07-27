@@ -24,8 +24,7 @@ data class ToolchainVersions(
 object CompatibilityChecker {
 
     fun check(versions: ToolchainVersions): List<PreflightWarning> = buildList {
-        val agpMajor = versions.agp?.majorVersion()
-        when (agpMajor) {
+        when (val agpMajor = versions.agp?.majorVersion()) {
             null -> add(missingAgpWarning())
             in 8..Int.MAX_VALUE -> {
                 agp8JdkWarning(agpMajor, versions.jdkMajor)?.let { add(it) }

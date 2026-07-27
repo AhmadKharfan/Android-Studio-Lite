@@ -24,8 +24,6 @@ class ProotEnvironment(private val context: Context) {
         File(rootfsDir, "etc/alpine-release").exists() &&
             File(rootfsDir, "bin/busybox").exists()
 
-    fun mapHostPathToGuest(hostPath: String): String = resolveGuestCwd(File(hostPath)).guestCwd
-
     fun ensureRootfsParent(): File = linuxDir.apply { mkdirs() }
 
     fun prepareRuntime() {

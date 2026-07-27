@@ -64,9 +64,9 @@ class GitGraphLaneComputer(private val maxLanes: Int = 8) {
         parents.forEachIndexed { index, parent ->
             if (lanes.any { parent in it }) return@forEachIndexed
             val requested = (commitLane + index).coerceAtMost(maxLanes - 1)
-            if (requested in 0 until lanes.size && lanes.size < maxLanes) lanes.add(requested, mutableListOf(parent))
+            if (requested in lanes.indices && lanes.size < maxLanes) lanes.add(requested, mutableListOf(parent))
             else if (lanes.size < maxLanes) lanes += mutableListOf(parent)
-            else lanes[maxLanes - 1] += parent
+            else lanes[lanes.lastIndex] += parent
         }
     }
 
@@ -78,11 +78,11 @@ class GitGraphLaneComputer(private val maxLanes: Int = 8) {
     ): List<GitGraphEdge> = buildList {
         before.forEachIndexed { from, ids ->
             ids.filterNot { it == commit.id }.forEach { id ->
-                lanes.indexOfFirst { id in it }.takeIf { it >= 0 }?.let { add(GitGraphEdge(from, it)) }
+                lanes.indexOfFirst { id in it }.takeIf { it in lanes.indices }?.let { add(GitGraphEdge(from, it)) }
             }
         }
         commit.parents.forEach { parent ->
-            lanes.indexOfFirst { parent in it }.takeIf { it >= 0 }?.let { add(GitGraphEdge(commitLane, it)) }
+            lanes.indexOfFirst { parent in it }.takeIf { it in lanes.indices }?.let { add(GitGraphEdge(commitLane, it)) }
         }
     }.distinct()
 

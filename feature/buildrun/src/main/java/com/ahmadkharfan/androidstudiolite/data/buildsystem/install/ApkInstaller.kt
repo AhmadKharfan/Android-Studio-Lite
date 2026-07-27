@@ -1,11 +1,13 @@
 package com.ahmadkharfan.androidstudiolite.data.buildsystem.install
 
+import kotlin.time.Duration.Companion.milliseconds
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
 import android.os.Build
 import java.io.File
 import java.util.UUID
@@ -34,9 +36,9 @@ class ApkInstaller(private val context: Context) {
         val archive = @Suppress("DEPRECATION") context.packageManager.getPackageArchiveInfo(
             apk.absolutePath,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+                PackageManager.GET_SIGNING_CERTIFICATES
             } else {
-                android.content.pm.PackageManager.GET_SIGNATURES
+                PackageManager.GET_SIGNATURES
             },
         )
         if (archive == null) {
@@ -66,7 +68,6 @@ class ApkInstaller(private val context: Context) {
         var committed = false
 
         val receiver = statusReceiver(
-            apkLabel = apk.name,
             onNeedsUserAction = { trySend(InstallEvent.AwaitingConfirmation) },
             onNoPrompt = {
                 trySend(InstallEvent.Failed("System did not provide a confirmation prompt"))
@@ -157,7 +158,6 @@ class ApkInstaller(private val context: Context) {
     }
 
     private fun statusReceiver(
-        apkLabel: String = "app",
         onNeedsUserAction: () -> Unit,
         onNoPrompt: () -> Unit,
         onSuccess: (packageName: String?) -> Unit,
@@ -232,7 +232,7 @@ class ApkInstaller(private val context: Context) {
                 }.isSuccess
                 if (started) return true
             }
-            if (attempt < LAUNCH_RETRIES - 1) delay(LAUNCH_RETRY_DELAY_MS)
+            if (attempt < LAUNCH_RETRIES - 1) delay(LAUNCH_RETRY_DELAY_MS.milliseconds)
         }
         return false
     }

@@ -12,6 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSubmodule
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
 
 @Immutable
 data class GitChangeUiModel(
@@ -100,7 +101,6 @@ data class GitPanelUiState(
 
     val selectionCount: Int get() = selectedPaths.size
     val hasSelection: Boolean get() = selectedPaths.isNotEmpty()
-    val allSelected: Boolean get() = allChangePaths.isNotEmpty() && selectedPaths.containsAll(allChangePaths)
     val canStageSelection: Boolean get() = !isBusy && selectedPaths.any { it in unstagedOrUntrackedPaths }
     val canUnstageSelection: Boolean get() = !isBusy && selectedPaths.any { it in stagedPaths }
     val canRevertSelection: Boolean get() = !isBusy && selectedPaths.any { it in revertablePaths }

@@ -7,6 +7,7 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuild
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
@@ -20,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.DeviceStora
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.ToolchainVersions
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
@@ -212,8 +214,8 @@ class BuildRunCoordinator internal constructor(
             File(active.projectRootPath),
             active.modulePath,
             active.variantName,
-            runCatching { com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.valueOf(active.kind) }
-                .getOrDefault(com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind.ASSEMBLE),
+            runCatching { BuildKind.valueOf(active.kind) }
+                .getOrDefault(BuildKind.ASSEMBLE),
             active.operationId,
             active.taskPath,
             active.buildType,
@@ -329,7 +331,7 @@ class BuildRunCoordinator internal constructor(
         var console = _execution.value.console
         events.onEach { event -> onBuildEvent(event, meta, projectRoot, operationId) }.collect { event ->
             if (cancelledOperationId == operationId) {
-                throw kotlinx.coroutines.CancellationException("Build cancelled")
+                throw CancellationException("Build cancelled")
             }
             console = console.reduce(event)
             _execution.value = _execution.value.copy(
@@ -468,7 +470,7 @@ class BuildRunCoordinator internal constructor(
         _execution.value = _execution.value.copy(phase = BuildExecutionPhase.Cancelling)
         buildSystem.cancel()
         installOperations.cancelActiveInstall()
-        activeExecutionJob?.cancel(kotlinx.coroutines.CancellationException("Cancelled by user"))
+        activeExecutionJob?.cancel(CancellationException("Cancelled by user"))
         _execution.value = _execution.value.copy(
             console = _execution.value.console.copy(status = BuildStatus.Cancelled, progressMessage = null),
             active = false,

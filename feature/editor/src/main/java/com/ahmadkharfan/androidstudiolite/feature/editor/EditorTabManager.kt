@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
+import kotlin.time.Duration.Companion.milliseconds
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CodeFormatter
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
@@ -220,7 +221,7 @@ class EditorTabManager(
         if (!isAutoSaveEnabled()) return
         autoSaveJob?.cancel()
         autoSaveJob = scope.launch {
-            delay(AUTO_SAVE_DEBOUNCE_MS)
+            delay(AUTO_SAVE_DEBOUNCE_MS.milliseconds)
             flushDirtyFiles()
         }
     }

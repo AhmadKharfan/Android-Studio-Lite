@@ -6,13 +6,13 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
 import kotlinx.coroutines.launch
 
 class GitAuthSettingsViewModel(
     private val credentialStore: GitCredentialStore,
-    private val authenticator: GitHubDeviceAuthenticator,
+    authenticator: GitHubDeviceAuthenticator,
     private val gitAuthorStore: GitAuthorStore,
 ) : BaseViewModel<GitAuthSettingsUiState, Nothing>(
     initialState = GitAuthSettingsUiState(gitHubAvailable = authenticator.isConfigured),
@@ -49,7 +49,7 @@ class GitAuthSettingsViewModel(
     private fun refreshConnection() =
         updateState { copy(gitHubConnected = credentialStore.hasCredentials(GITHUB_HOST)) }
 
-    override fun onConnectGitHub() = authController.open(GITHUB_HOST) {
+    override fun onConnectGitHub(): Unit = authController.open(GITHUB_HOST) {
         updateState { copy(statusMessage = "GitHub connected", isError = false) }
         refreshConnection()
     }
@@ -86,11 +86,11 @@ class GitAuthSettingsViewModel(
     override fun onStatusMessageShown() = updateState { copy(statusMessage = null) }
 
 
-    override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
-    override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
-    override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
-    override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
-    override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
+    override fun onAuthModeChanged(mode: GitAuthMode): Unit = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String): Unit = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken(): Unit = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn(): Unit = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt(): Unit = authController.onDismissAuthPrompt()
 
     private companion object {
         const val GITHUB_HOST = "github.com"

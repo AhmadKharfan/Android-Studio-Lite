@@ -100,8 +100,6 @@ class TerminalEmulator(rows: Int, cols: Int) {
         for (r in top.coerceAtLeast(0)..bottom.coerceAtMost(rows - 1)) dirtyRows[r] = true
     }
 
-    private fun markAllDirty() = dirtyRows.fill(true)
-
     fun resize(newRows: Int, newCols: Int) {
         val r = newRows.coerceAtLeast(1)
         val c = newCols.coerceAtLeast(1)

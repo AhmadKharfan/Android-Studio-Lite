@@ -52,10 +52,10 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
 import kotlinx.coroutines.flow.distinctUntilChanged
-import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
@@ -122,11 +122,16 @@ private fun GitHistoryScreen(
                     icon = "git-commit",
                     modifier = Modifier.fillMaxSize(),
                 )
-                else -> HistoryList(uiState, interactionListener::loadNext, interactionListener::select, interactionListener::deepen, { commit ->
+                else -> HistoryList(
+                    uiState,
+                    interactionListener::loadNext,
+                    interactionListener::select,
+                    interactionListener::deepen,
+                ) { commit ->
                     resetCommit = commit
                     resetMode = GitResetMode.MIXED
                     resetConfirmation = ""
-                })
+                }
             }
         }
     }
@@ -192,7 +197,11 @@ private fun HistoryList(
     }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
         items(state.commits, key = { it.id }) { commit ->
-            HistoryRow(commit, state.graphRows[commit.id].takeIf { state.graphEnabled }, { onSelect(commit.id) }, { onReset(commit.id) })
+            HistoryRow(
+                commit,
+                state.graphRows[commit.id].takeIf { state.graphEnabled },
+                onClick = { onSelect(commit.id) },
+            ) { onReset(commit.id) }
         }
         if (state.loadingMore) item { AslLinearProgress(label = stringResource(R.string.git_history_loading_more), modifier = Modifier.padding(16.dp)) }
         if (state.shallow && state.nextCursor == null) {

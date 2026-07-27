@@ -3,7 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.history
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHistoryRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
 import java.io.File
 
 data class GitBlameUiState(
