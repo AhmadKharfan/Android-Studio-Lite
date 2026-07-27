@@ -23,6 +23,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,10 +62,9 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitChangeUiModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelUiState
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitPanelRoute(
@@ -116,9 +117,9 @@ private fun GitPanelScreen(
     val inSubView = uiState.remotesVisible || uiState.submodulesVisible
     AslToolWindowPanel(
         title = when {
-            uiState.remotesVisible -> "Git remotes"
-            uiState.submodulesVisible -> "Git submodules"
-            else -> "Git · ${uiState.branch}"
+            uiState.remotesVisible -> stringResource(R.string.git_panel_remotes_title)
+            uiState.submodulesVisible -> stringResource(R.string.git_panel_submodules_title)
+            else -> stringResource(R.string.git_panel_branch_title, uiState.branch)
         },
         width = rememberAslToolWindowWidth(),
         onClose = when {
@@ -127,13 +128,13 @@ private fun GitPanelScreen(
             else -> onClose
         },
         closeIcon = if (inSubView) "arrow-left" else "x",
-        closeContentDescription = if (inSubView) "Back" else "Close panel",
+        closeContentDescription = stringResource(if (inSubView) CommonR.string.action_back else R.string.git_panel_close),
         scrollable = false,
         actions = if (!inSubView && uiState.isRepository) {
             {
                 AslIconButton(
                     icon = "git-branch",
-                    contentDescription = "Branches",
+                    contentDescription = stringResource(R.string.git_panel_branches),
                     onClick = onOpenBranches,
                     size = 32.dp,
                     iconSize = 16.dp,
@@ -153,9 +154,9 @@ private fun GitPanelScreen(
         if (!uiState.isRepository) {
             AslEmptyState(
                 icon = "git-branch",
-                title = "Not a git repository",
-                subtitle = "Clone a repository or initialise git for this project to see changes here.",
-                actionLabel = "Enable version control",
+                title = stringResource(R.string.git_panel_not_repository),
+                subtitle = stringResource(R.string.git_panel_not_repository_hint),
+                actionLabel = stringResource(R.string.git_panel_enable_version_control),
                 onAction = interactionListener::onOpenBootstrap,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -189,11 +190,11 @@ private fun GitPanelScreen(
     }
     if (uiState.forcePushConfirmVisible) {
         AslDialog(
-            title = "Force push with lease?",
-            body = "This overwrites the remote branch only if it still matches your last fetched version. It never fetches first; a changed remote is rejected.",
+            title = stringResource(R.string.git_panel_force_push_title),
+            body = stringResource(R.string.git_panel_force_push_body),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Force push",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_panel_force_push),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = true,
             onDismiss = interactionListener::onDismissForcePush,
             onConfirm = interactionListener::onConfirmForcePush,
@@ -204,11 +205,11 @@ private fun GitPanelScreen(
     if (uiState.bootstrapVisible) BootstrapDialog(uiState, interactionListener)
     if (uiState.abortConfirmVisible) {
         AslDialog(
-            title = "Abort ${uiState.repositoryState.name.lowercase()}?",
-            body = "This restores the working tree and branch to the state before the in-progress operation.",
+            title = stringResource(R.string.git_panel_abort_title, uiState.repositoryState.name.lowercase()),
+            body = stringResource(R.string.git_panel_abort_body),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Abort operation",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_panel_abort),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = true,
             onDismiss = interactionListener::onDismissAbortOperation,
             onConfirm = interactionListener::onConfirmAbortOperation,
@@ -216,11 +217,11 @@ private fun GitPanelScreen(
     }
     if (uiState.pendingRestorePaths.isNotEmpty()) {
         AslDialog(
-            title = "Rollback local changes?",
-            body = "The following worktree changes will be discarded:\n${uiState.pendingRestorePaths.joinToString("\n")}",
+            title = stringResource(R.string.git_panel_rollback_title),
+            body = stringResource(R.string.git_panel_rollback_body, uiState.pendingRestorePaths.joinToString("\n")),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Rollback",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_panel_rollback),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = true,
             onDismiss = interactionListener::onDismissRestore,
             onConfirm = interactionListener::onConfirmRestore,
@@ -229,11 +230,11 @@ private fun GitPanelScreen(
     uiState.cleanPreview?.let { paths -> CleanDialog(uiState, paths, interactionListener) }
     uiState.pendingRemoteRemoval?.let { name ->
         AslDialog(
-            title = "Remove remote '$name'?",
-            body = "This removes the remote configuration. Local branches that reference it will keep broken upstream settings until reconfigured.",
+            title = stringResource(R.string.git_panel_remove_remote_title, name),
+            body = stringResource(R.string.git_panel_remove_remote_body),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Remove",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(CommonR.string.action_remove),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = true,
             onDismiss = interactionListener::onDismissRemoveRemote,
             onConfirm = interactionListener::onConfirmRemoveRemote,
@@ -291,7 +292,7 @@ private fun GitChangesHeader(
                     if (uiState.operationCancellable) {
                         AslIconButton(
                             icon = "x",
-                            contentDescription = "Cancel Git operation",
+                            contentDescription = stringResource(R.string.git_panel_cancel_operation),
                             onClick = interactionListener::onCancelOperation,
                             size = 32.dp,
                             iconSize = 16.dp,
@@ -318,13 +319,13 @@ private fun GitChangesHeader(
         ) {
             if (uiState.hasSelection) {
                 AslChip(
-                    label = "${uiState.selectionCount} selected",
+                    label = pluralStringResource(R.plurals.git_panel_selected, uiState.selectionCount, uiState.selectionCount),
                     kind = AslChipKind.Filter,
                     selected = true,
                 )
                 if (uiState.canStageSelection) {
                     AslChip(
-                        label = "Stage",
+                        label = stringResource(R.string.git_panel_stage),
                         icon = "plus",
                         kind = AslChipKind.Filter,
                         disabled = uiState.isBusy,
@@ -333,7 +334,7 @@ private fun GitChangesHeader(
                 }
                 if (uiState.canUnstageSelection) {
                     AslChip(
-                        label = "Unstage",
+                        label = stringResource(R.string.git_panel_unstage),
                         icon = "minus",
                         kind = AslChipKind.Filter,
                         disabled = uiState.isBusy,
@@ -342,7 +343,7 @@ private fun GitChangesHeader(
                 }
                 if (uiState.canRevertSelection) {
                     AslChip(
-                        label = "Revert",
+                        label = stringResource(R.string.git_panel_revert),
                         icon = "rotate-ccw",
                         kind = AslChipKind.Filter,
                         disabled = uiState.isBusy,
@@ -350,7 +351,7 @@ private fun GitChangesHeader(
                     )
                 }
                 AslChip(
-                    label = "Clear",
+                    label = stringResource(R.string.git_panel_clear),
                     icon = "x",
                     kind = AslChipKind.Assist,
                     disabled = uiState.isBusy,
@@ -359,7 +360,7 @@ private fun GitChangesHeader(
             } else {
                 if (changeCount > 0) {
                     AslChip(
-                        label = if (changeCount == 1) "1 change" else "$changeCount changes",
+                        label = pluralStringResource(R.plurals.git_panel_changes, changeCount, changeCount),
                         kind = AslChipKind.Status,
                         status = AslChipStatus.Neutral,
                     )
@@ -372,7 +373,7 @@ private fun GitChangesHeader(
                 }
                 if (changeCount > 0) {
                     AslChip(
-                        label = "Select",
+                        label = stringResource(R.string.git_panel_select),
                         icon = "circle-check",
                         kind = AslChipKind.Filter,
                         disabled = uiState.isBusy,
@@ -392,40 +393,50 @@ private fun GitActionsOverflowMenu(
     onOpenHistory: () -> Unit,
     onOpenStashes: () -> Unit,
 ) {
+    val push = stringResource(R.string.git_action_push)
+    val fetch = stringResource(R.string.git_action_fetch)
+    val pullMerge = stringResource(R.string.git_action_pull_merge)
+    val pullRebase = stringResource(R.string.git_action_pull_rebase)
+    val author = stringResource(R.string.git_action_author)
+    val remotes = stringResource(R.string.git_action_remotes)
+    val history = stringResource(R.string.git_action_commit_history)
+    val stashes = stringResource(R.string.git_action_stashes)
+    val clean = stringResource(R.string.git_action_clean)
     AslOverflowMenu(
         items = listOf(
-            AslOverflowMenuEntry.Item("Push", icon = "upload", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item("Fetch", icon = "refresh-cw", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item("Pull (merge)", icon = "download", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item("Pull (rebase)", icon = "download", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(push, icon = "upload", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(fetch, icon = "refresh-cw", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(pullMerge, icon = "download", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(pullRebase, icon = "download", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Git author", icon = "user", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item("Remotes", icon = "globe", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(author, icon = "user", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(remotes, icon = "globe", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Commit history", icon = "history", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item("Stashes", icon = "package", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(history, icon = "history", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(stashes, icon = "package", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Clean untracked files", icon = "trash-2", disabled = uiState.isBusy, destructive = true),
-            AslOverflowMenuEntry.Item("Force push (with lease)", icon = "upload", disabled = uiState.isBusy, destructive = true),
+            AslOverflowMenuEntry.Item(clean, icon = "trash-2", disabled = uiState.isBusy, destructive = true),
+            AslOverflowMenuEntry.Item(stringResource(R.string.git_action_force_push_lease), icon = "upload", disabled = uiState.isBusy, destructive = true),
         ),
-        onSelect = { item, _ ->
-            when (item.label) {
-                "Push" -> interactionListener.onPush()
-                "Fetch" -> interactionListener.onFetch()
-                "Pull (merge)" -> {
+        onSelect = { _, index ->
+            when (index) {
+                0 -> interactionListener.onPush()
+                1 -> interactionListener.onFetch()
+                2 -> {
                     interactionListener.onPullModeChanged(PullMode.MERGE)
                     interactionListener.onPull()
                 }
-                "Pull (rebase)" -> {
+                3 -> {
                     interactionListener.onPullModeChanged(PullMode.REBASE)
                     interactionListener.onPull()
                 }
-                "Git author" -> interactionListener.onOpenAuthorDialog()
-                "Remotes" -> interactionListener.onOpenRemotes()
-                "Commit history" -> onOpenHistory()
-                "Stashes" -> onOpenStashes()
-                "Clean untracked files" -> interactionListener.onPreviewClean()
-                else -> interactionListener.onRequestForcePush()
+                5 -> interactionListener.onOpenAuthorDialog()
+                6 -> interactionListener.onOpenRemotes()
+                8 -> onOpenHistory()
+                9 -> onOpenStashes()
+                11 -> interactionListener.onPreviewClean()
+                12 -> interactionListener.onRequestForcePush()
+                else -> Unit
             }
         },
     )
@@ -438,7 +449,7 @@ private fun SubmodulesView(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "Submodule repositories are initialised and updated here; their inner commits are not managed.",
+            text = stringResource(R.string.git_submodules_hint),
             style = MaterialTheme.typography.bodySmall,
             color = AslTheme.colors.textSecondary,
             modifier = Modifier.padding(12.dp),
@@ -448,14 +459,14 @@ private fun SubmodulesView(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             AslButton(
-                label = "Init",
+                label = stringResource(R.string.git_submodules_init),
                 onClick = interactionListener::onInitSubmodules,
                 variant = AslButtonVariant.Secondary,
                 disabled = uiState.isBusy,
                 modifier = Modifier.weight(1f),
             )
             AslButton(
-                label = "Update",
+                label = stringResource(R.string.git_submodules_update),
                 onClick = interactionListener::onUpdateSubmodules,
                 disabled = uiState.isBusy,
                 modifier = Modifier.weight(1f),
@@ -463,10 +474,10 @@ private fun SubmodulesView(
         }
         HorizontalDivider(color = AslTheme.colors.borderSubtle, modifier = Modifier.padding(top = 8.dp))
         when {
-            uiState.submodulesLoading -> AslLinearProgress(label = "Loading submodules", modifier = Modifier.padding(16.dp))
+            uiState.submodulesLoading -> AslLinearProgress(label = stringResource(R.string.git_submodules_loading), modifier = Modifier.padding(16.dp))
             uiState.submodules.isEmpty() -> AslEmptyState(
-                title = "No submodules",
-                subtitle = "This repository has no configured submodules.",
+                title = stringResource(R.string.git_submodules_none),
+                subtitle = stringResource(R.string.git_submodules_none_hint),
                 icon = "layers",
                 modifier = Modifier.fillMaxSize(),
             )
@@ -489,11 +500,11 @@ private fun SubmodulesView(
 @Composable
 private fun BootstrapDialog(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     AslDialog(
-        title = "Enable version control",
-        body = "Initialise Git and add a standard Android .gitignore.",
+        title = stringResource(R.string.git_bootstrap_title),
+        body = stringResource(R.string.git_bootstrap_body),
         variant = AslDialogVariant.Input,
-        confirmLabel = "Enable Git",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(R.string.git_bootstrap_enable),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         onDismiss = interactionListener::onDismissBootstrap,
         onConfirm = interactionListener::onConfirmBootstrap,
         inputContent = {
@@ -501,14 +512,14 @@ private fun BootstrapDialog(uiState: GitPanelUiState, interactionListener: GitPa
                 AslSwitch(
                     checked = uiState.bootstrapInitialCommit,
                     onCheckedChange = interactionListener::onBootstrapInitialCommitChanged,
-                    label = "Create initial commit",
+                    label = stringResource(R.string.git_bootstrap_initial_commit),
                 )
                 if (uiState.bootstrapInitialCommit) {
                     AslTextField(
                         value = uiState.bootstrapMessage,
                         onValueChange = interactionListener::onBootstrapMessageChanged,
-                        label = "Commit message",
-                        placeholder = "Initial commit",
+                        label = stringResource(R.string.git_commit_message),
+                        placeholder = stringResource(R.string.git_history_initial_commit),
                     )
                 }
             }
@@ -524,16 +535,19 @@ private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPa
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            "${uiState.repositoryState.name.lowercase().replaceFirstChar(Char::uppercase)} in progress",
+            stringResource(
+                R.string.git_operation_progress,
+                uiState.repositoryState.name.lowercase().replaceFirstChar(Char::uppercase),
+            ),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error,
         )
         if (uiState.repositoryState == GitRepositoryState.REBASING) {
-            AslButton("Continue", interactionListener::onContinueOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
+            AslButton(stringResource(R.string.git_operation_continue), interactionListener::onContinueOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
         }
         if (uiState.repositoryState != GitRepositoryState.BISECTING) {
-            AslButton("Abort", interactionListener::onRequestAbortOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
+            AslButton(stringResource(R.string.git_operation_abort), interactionListener::onRequestAbortOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
         }
     }
 }
@@ -545,12 +559,12 @@ private fun CleanDialog(
     interactionListener: GitPanelInteractionListener,
 ) {
     AslDialog(
-        title = "Clean untracked files?",
-        body = if (paths.isEmpty()) "Nothing would be removed." else
-            "These paths will be permanently deleted:\n${paths.joinToString("\n")}",
+        title = stringResource(R.string.git_clean_title),
+        body = if (paths.isEmpty()) stringResource(R.string.git_clean_nothing) else
+            stringResource(R.string.git_clean_paths, paths.joinToString("\n")),
         variant = AslDialogVariant.Confirm,
-        confirmLabel = "Delete ${paths.size} path(s)",
-        cancelLabel = "Cancel",
+        confirmLabel = pluralStringResource(R.plurals.git_clean_delete_paths, paths.size, paths.size),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         destructive = true,
         onDismiss = interactionListener::onDismissClean,
         onConfirm = interactionListener::onConfirmClean,
@@ -558,7 +572,7 @@ private fun CleanDialog(
             AslSwitch(
                 checked = uiState.cleanIncludeIgnored,
                 onCheckedChange = interactionListener::onCleanIncludeIgnoredChanged,
-                label = "Include ignored files",
+                label = stringResource(R.string.git_clean_include_ignored),
             )
         },
     )
@@ -582,21 +596,21 @@ private fun GitChangedFileList(
     ) { listState ->
         when (listState) {
             GitListState.Loading -> AslLinearProgress(
-                label = "Loading repository status",
+                label = stringResource(R.string.git_status_loading),
                 modifier = Modifier.padding(16.dp),
             )
             GitListState.Empty -> AslEmptyState(
                 icon = "git-commit",
-                title = "No local changes",
-                subtitle = "Edit files to see them appear here for commit.",
+                title = stringResource(R.string.git_status_no_changes),
+                subtitle = stringResource(R.string.git_status_no_changes_hint),
                 modifier = Modifier.fillMaxSize(),
             )
             GitListState.Populated ->
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     GitConflictSection(uiState.conflicts, interactionListener, onOpenConflicts)
-                    GitChangeSection("Staged", uiState.stagedChanges, GitDiffTarget.HEAD_TO_INDEX, uiState, interactionListener)
-                    GitChangeSection("Changes", uiState.unstagedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
-                    GitChangeSection("Untracked", uiState.untrackedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
+                    GitChangeSection(stringResource(R.string.git_section_staged), uiState.stagedChanges, GitDiffTarget.HEAD_TO_INDEX, uiState, interactionListener)
+                    GitChangeSection(stringResource(R.string.git_section_changes), uiState.unstagedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
+                    GitChangeSection(stringResource(R.string.git_section_untracked), uiState.untrackedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
                 }
             }
     }
@@ -611,7 +625,7 @@ private fun GitConflictSection(
     onOpenConflicts: () -> Unit,
 ) {
     if (conflicts.isEmpty()) return
-    SectionHeader(title = "Conflicts", count = conflicts.size)
+    SectionHeader(title = stringResource(R.string.git_section_conflicts), count = conflicts.size)
     conflicts.forEach { change ->
         AslListItem(
             title = change.displayPath.middleEllipsis(),
@@ -733,13 +747,13 @@ private fun GitCommitBox(
         AslTextField(
             value = uiState.commitMessage,
             onValueChange = { interactionListener.onCommitMessageChanged(it) },
-            placeholder = "Commit message",
+            placeholder = stringResource(R.string.git_commit_message),
         )
 
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             AslButton(
-                label = "Commit",
+                label = stringResource(R.string.git_commit),
                 onClick = { interactionListener.onCommit() },
                 icon = "git-commit",
                 modifier = Modifier.fillMaxWidth(),
@@ -747,7 +761,7 @@ private fun GitCommitBox(
                 disabled = !uiState.canCommit,
             )
             AslButton(
-                label = "Commit & push",
+                label = stringResource(R.string.git_commit_push),
                 onClick = { interactionListener.onCommitAndPush() },
                 icon = "upload",
                 modifier = Modifier.fillMaxWidth(),
@@ -761,10 +775,10 @@ private fun GitCommitBox(
 @Composable
 private fun GitAuthorDialog(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     AslDialog(
-        title = "Git author",
+        title = stringResource(R.string.git_action_author),
         variant = AslDialogVariant.Input,
-        confirmLabel = "Save override",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(R.string.git_author_save_override),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         onDismiss = interactionListener::onDismissAuthorDialog,
         onConfirm = interactionListener::onSaveLocalAuthor,
         inputContent = {
@@ -772,15 +786,15 @@ private fun GitAuthorDialog(uiState: GitPanelUiState, interactionListener: GitPa
                 AslTextField(
                     value = uiState.authorName,
                     onValueChange = interactionListener::onAuthorNameChanged,
-                    label = "Name",
+                    label = stringResource(R.string.git_author_name),
                 )
                 AslTextField(
                     value = uiState.authorEmail,
                     onValueChange = interactionListener::onAuthorEmailChanged,
-                    label = "Email",
+                    label = stringResource(R.string.git_author_email),
                 )
                 AslButton(
-                    label = "Use app default",
+                    label = stringResource(R.string.git_author_use_default),
                     onClick = interactionListener::onUseAppAuthor,
                     variant = AslButtonVariant.Tertiary,
                 )
@@ -797,13 +811,13 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Configured remotes",
+                text = stringResource(R.string.git_remotes_configured),
                 style = MaterialTheme.typography.labelMedium,
                 color = AslTheme.colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
             AslButton(
-                label = "Add",
+                label = stringResource(R.string.git_remotes_add),
                 icon = "plus",
                 onClick = interactionListener::onAddRemote,
                 variant = AslButtonVariant.Tertiary,
@@ -813,13 +827,13 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
         HorizontalDivider(color = AslTheme.colors.borderSubtle)
         when {
             uiState.remotesLoading -> AslLinearProgress(
-                label = "Loading remotes",
+                label = stringResource(R.string.git_remotes_loading),
                 modifier = Modifier.padding(16.dp),
             )
             uiState.remotes.isEmpty() -> AslEmptyState(
                 icon = "globe",
-                title = "No remotes",
-                subtitle = "Add an HTTP or file remote to fetch and push.",
+                title = stringResource(R.string.git_remotes_none),
+                subtitle = stringResource(R.string.git_remotes_none_hint),
                 modifier = Modifier.fillMaxSize(),
             )
             else -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -832,7 +846,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                             Row {
                                 AslIconButton(
                                     icon = "edit-2",
-                                    contentDescription = "Edit ${remote.name}",
+                                    contentDescription = stringResource(R.string.git_remotes_edit_description, remote.name),
                                     onClick = { interactionListener.onEditRemote(remote.name) },
                                     size = 28.dp,
                                     iconSize = 14.dp,
@@ -840,7 +854,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                                 )
                                 AslIconButton(
                                     icon = "trash-2",
-                                    contentDescription = "Remove ${remote.name}",
+                                    contentDescription = stringResource(R.string.git_remotes_remove_description, remote.name),
                                     onClick = { interactionListener.onRequestRemoveRemote(remote.name) },
                                     size = 28.dp,
                                     iconSize = 14.dp,
@@ -859,10 +873,10 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
 private fun RemoteEditorDialog(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
     val editing = uiState.editingRemoteName
     AslDialog(
-        title = if (editing == null) "Add remote" else "Edit remote '${editing}'",
+        title = if (editing == null) stringResource(R.string.git_remotes_add_title) else stringResource(R.string.git_remotes_edit_title, editing),
         variant = AslDialogVariant.Input,
-        confirmLabel = "Save",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(R.string.git_remotes_save),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         onDismiss = interactionListener::onDismissRemoteEditor,
         onConfirm = interactionListener::onSaveRemote,
         inputContent = {
@@ -872,9 +886,9 @@ private fun RemoteEditorDialog(uiState: GitPanelUiState, interactionListener: Gi
                 AslTextField(
                     value = uiState.remoteUrl,
                     onValueChange = interactionListener::onRemoteUrlChanged,
-                    label = "Repository URL",
-                    placeholder = "https://github.com/owner/repo.git",
-                    helper = if (editing == null) "Added as the 'origin' remote." else null,
+                    label = stringResource(R.string.git_remotes_repository_url),
+                    placeholder = stringResource(R.string.git_remotes_url_placeholder),
+                    helper = if (editing == null) stringResource(R.string.git_remotes_origin_hint) else null,
                     error = uiState.remoteUrlError,
                 )
             }
@@ -896,7 +910,7 @@ private fun DiffView(
                 .padding(start = 4.dp, end = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = { interactionListener.onCloseDiff() })
+            AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = { interactionListener.onCloseDiff() })
             Text(
                 text = uiState.selectedPath.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
@@ -906,7 +920,7 @@ private fun DiffView(
                 modifier = Modifier.weight(1f),
             )
             AslButton(
-                label = "Open diff",
+                label = stringResource(R.string.git_diff_open),
                 variant = AslButtonVariant.Tertiary,
                 onClick = { onOpenDiff(uiState.selectedPath.orEmpty(), uiState.selectedDiffTarget) },
             )

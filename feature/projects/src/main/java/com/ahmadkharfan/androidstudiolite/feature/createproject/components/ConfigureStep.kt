@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
@@ -20,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.feature.createproject.LANG_JAVA
 import com.ahmadkharfan.androidstudiolite.feature.createproject.LANG_KOTLIN
 import com.ahmadkharfan.androidstudiolite.feature.createproject.MIN_SDK_OPTIONS
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun ConfigureStep(
@@ -46,43 +48,43 @@ fun ConfigureStep(
         AslTextField(
             value = projectName,
             onValueChange = onNameChanged,
-            label = "Project name",
+            label = stringResource(R.string.projects_project_name),
             error = nameError,
-            helper = if (nameError == null) "Letters and digits, no spaces" else null,
+            helper = if (nameError == null) stringResource(R.string.projects_project_name_helper) else null,
         )
         AslTextField(
             value = packageName,
             onValueChange = onPackageChanged,
-            label = "Package name",
+            label = stringResource(R.string.projects_package_name),
             error = packageError,
-            helper = if (packageError == null) "Also the applicationId, e.g. com.example.myapp" else null,
+            helper = if (packageError == null) stringResource(R.string.projects_package_name_helper) else null,
         )
         AslTextField(
             value = location,
             onValueChange = onLocationChanged,
-            label = "Save location",
-            helper = "The project folder is created here",
+            label = stringResource(R.string.projects_save_location),
+            helper = stringResource(R.string.projects_save_location_helper),
             trailingIcon = "folder-open",
             onTrailingClick = onBrowseLocation,
         )
         LabeledSegmented(
-            label = "Language",
+            label = stringResource(R.string.projects_language),
             value = language,
             onValueChange = onLanguageChanged,
             options = listOf(
-                AslSegmentedOption("Kotlin", LANG_KOTLIN),
-                AslSegmentedOption("Java", LANG_JAVA, enabled = supportsJava),
+                AslSegmentedOption(stringResource(R.string.projects_language_kotlin), LANG_KOTLIN),
+                AslSegmentedOption(stringResource(R.string.projects_language_java), LANG_JAVA, enabled = supportsJava),
             ),
         )
         if (!supportsJava) {
             Text(
-                text = "This template requires Kotlin.",
+                text = stringResource(R.string.projects_kotlin_required),
                 style = MaterialTheme.typography.bodySmall,
                 color = AslTheme.colors.textSecondary,
             )
         }
         AslDropdown(
-            label = "Minimum SDK",
+            label = stringResource(R.string.projects_minimum_sdk),
             value = minSdk,
             onValueChange = onMinSdkChanged,
             options = MIN_SDK_OPTIONS.map { AslDropdownOption(it.label, it.value) },

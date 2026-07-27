@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
@@ -64,7 +65,7 @@ fun TerminalTabRow(
         }
         AslIconButton(
             icon = "plus",
-            contentDescription = "New terminal tab",
+            contentDescription = stringResource(R.string.terminal_new_tab),
             onClick = onNewTab,
         )
     }
@@ -92,7 +93,7 @@ private fun TerminalTabChip(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = if (tab.running) tab.title else "${tab.title} (exited)",
+            text = if (tab.running) tab.title else stringResource(R.string.terminal_tab_exited, tab.title),
             style = if (compact) AslCode.codeTiny else AslCode.codeSmall,
             color = if (active) colors.textPrimary else colors.textSecondary,
         )

@@ -13,13 +13,17 @@ fun LinuxInstallState.toLinuxStatus(proot: ProotEnvironment): LinuxStatus {
             installed = installed,
             isBusy = true,
             progressPercent = (progress * 100).toInt(),
-            phase = "Downloading ${(progress * 100).toInt()}%",
+            phase = LinuxInstallPhase.DOWNLOADING,
         )
-        LinuxInstallState.Extracting -> LinuxStatus(installed = installed, isBusy = true, phase = "Extracting…")
+        LinuxInstallState.Extracting -> LinuxStatus(
+            installed = installed,
+            isBusy = true,
+            phase = LinuxInstallPhase.EXTRACTING,
+        )
         LinuxInstallState.BootstrappingPackages -> LinuxStatus(
             installed = installed,
             isBusy = true,
-            phase = "Installing git, python3, curl…",
+            phase = LinuxInstallPhase.BOOTSTRAPPING_PACKAGES,
         )
         LinuxInstallState.Installed -> LinuxStatus(installed = true)
         is LinuxInstallState.Failed -> LinuxStatus(

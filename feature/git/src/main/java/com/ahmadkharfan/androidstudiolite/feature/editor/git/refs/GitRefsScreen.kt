@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,8 @@ import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitRefsRoute(
@@ -79,9 +82,9 @@ private fun GitRefsScreen(
     var dropStash by remember { mutableStateOf<GitStash?>(null) }
     var popStash by remember { mutableStateOf<GitStash?>(null) }
     val title = when (uiState.mode) {
-        GitRefsMode.BRANCHES -> "Branches"
-        GitRefsMode.TAGS -> "Tags"
-        GitRefsMode.STASHES -> "Stashes"
+        GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_branches)
+        GitRefsMode.TAGS -> stringResource(R.string.git_refs_tags)
+        GitRefsMode.STASHES -> stringResource(R.string.git_refs_stashes)
     }
     Scaffold(
         topBar = {
@@ -92,7 +95,7 @@ private fun GitRefsScreen(
                 actions = {
                     if (uiState.mode == GitRefsMode.TAGS && uiState.tags.isNotEmpty()) {
                         AslButton(
-                            label = "Push all",
+                            label = stringResource(R.string.git_refs_push_all),
                             onClick = interactionListener::pushAllTags,
                             variant = AslButtonVariant.Tertiary,
                             disabled = uiState.loading,
@@ -100,9 +103,9 @@ private fun GitRefsScreen(
                     }
                     AslButton(
                         label = when (uiState.mode) {
-                            GitRefsMode.STASHES -> "Stash changes"
-                            GitRefsMode.BRANCHES -> "New branch"
-                            GitRefsMode.TAGS -> "New"
+                            GitRefsMode.STASHES -> stringResource(R.string.git_refs_stash_changes)
+                            GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_new_branch)
+                            GitRefsMode.TAGS -> stringResource(R.string.git_refs_new)
                         },
                         onClick = { name = ""; message = ""; createOpen = true },
                         variant = AslButtonVariant.Tertiary,
@@ -121,7 +124,7 @@ private fun GitRefsScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            if (uiState.loading) AslLinearProgress(label = "Updating $title", modifier = Modifier.padding(12.dp))
+            if (uiState.loading) AslLinearProgress(label = stringResource(R.string.git_refs_updating, title), modifier = Modifier.padding(12.dp))
             when (uiState.mode) {
                 GitRefsMode.BRANCHES -> BranchList(
                     state = uiState,
@@ -139,13 +142,13 @@ private fun GitRefsScreen(
     if (createOpen) {
         AslDialog(
             title = when (uiState.mode) {
-                GitRefsMode.BRANCHES -> "Create branch"
-                GitRefsMode.TAGS -> "Create tag"
-                GitRefsMode.STASHES -> "Stash changes"
+                GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_create_branch)
+                GitRefsMode.TAGS -> stringResource(R.string.git_refs_create_tag)
+                GitRefsMode.STASHES -> stringResource(R.string.git_refs_stash_changes)
             },
             variant = AslDialogVariant.Input,
-            confirmLabel = "Create",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(CommonR.string.action_create),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             onDismiss = { createOpen = false },
             onConfirm = {
                 when (uiState.mode) {
@@ -157,10 +160,10 @@ private fun GitRefsScreen(
             },
             inputContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (uiState.mode != GitRefsMode.STASHES) AslTextField(name, { name = it }, label = "Name")
-                    if (uiState.mode != GitRefsMode.BRANCHES) AslTextField(message, { message = it }, label = "Message")
+                    if (uiState.mode != GitRefsMode.STASHES) AslTextField(name, { name = it }, label = stringResource(R.string.git_refs_name))
+                    if (uiState.mode != GitRefsMode.BRANCHES) AslTextField(message, { message = it }, label = stringResource(R.string.git_refs_message))
                     if (uiState.mode == GitRefsMode.STASHES) {
-                        AslCheckbox(includeUntracked, { includeUntracked = it }, label = "Include untracked files")
+                        AslCheckbox(includeUntracked, { includeUntracked = it }, label = stringResource(R.string.git_refs_include_untracked))
                     }
                 }
             },
@@ -168,38 +171,38 @@ private fun GitRefsScreen(
     }
     rename?.let { branch ->
         AslDialog(
-            title = "Rename ${branch.name}",
+            title = stringResource(R.string.git_refs_rename_title, branch.name),
             variant = AslDialogVariant.Input,
-            confirmLabel = "Rename",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(CommonR.string.action_rename),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             onDismiss = { rename = null },
             onConfirm = { interactionListener.renameBranch(branch.name, name); rename = null },
-            inputContent = { AslTextField(name, { name = it }, label = "New name") },
+            inputContent = { AslTextField(name, { name = it }, label = stringResource(R.string.git_refs_new_name)) },
         )
     }
     deleteBranch?.let { branch ->
         ConfirmDelete(
-            title = "Delete ${branch.name}?",
-            body = "The branch ref will be removed. Commits not reachable elsewhere may eventually be lost.",
+            title = stringResource(R.string.git_refs_delete_branch_title, branch.name),
+            body = stringResource(R.string.git_refs_delete_branch_body),
             confirm = { interactionListener.deleteBranch(branch.name); deleteBranch = null },
             dismiss = { deleteBranch = null },
         )
     }
     mergeBranch?.let { branch ->
         AslDialog(
-            title = "Merge ${branch.name} into current branch?",
-            body = "This merges ${branch.name} into the checked-out branch. If the changes conflict, the files appear in the Changes panel for you to resolve.",
+            title = stringResource(R.string.git_refs_merge_title, branch.name),
+            body = stringResource(R.string.git_refs_merge_body, branch.name),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Merge",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_refs_merge),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             onDismiss = { mergeBranch = null },
             onConfirm = { interactionListener.merge(branch.name); mergeBranch = null },
         )
     }
     uiState.forceDeleteCandidate?.let { branch ->
         ConfirmDelete(
-            title = "Force delete $branch?",
-            body = "This branch contains commits not merged into the current branch.",
+            title = stringResource(R.string.git_refs_force_delete_title, branch),
+            body = stringResource(R.string.git_refs_force_delete_body),
             confirm = { interactionListener.deleteBranch(branch, force = true) },
             dismiss = interactionListener::dismissForceDelete,
         )
@@ -207,27 +210,27 @@ private fun GitRefsScreen(
     GitHubAuthDialog(uiState.authPrompt, interactionListener)
     deleteTag?.let { tag ->
         ConfirmDelete(
-            title = "Delete tag ${tag.name}?",
-            body = "This deletes the local tag. A separately-pushed remote tag is unchanged.",
+            title = stringResource(R.string.git_refs_delete_tag_title, tag.name),
+            body = stringResource(R.string.git_refs_delete_tag_body),
             confirm = { interactionListener.deleteTag(tag.name); deleteTag = null },
             dismiss = { deleteTag = null },
         )
     }
     popStash?.let { stash ->
         AslDialog(
-            title = "Pop stash@{${stash.index}}?",
-            body = "The stash is applied and dropped only when apply succeeds.",
+            title = stringResource(R.string.git_refs_pop_stash_title, stash.index),
+            body = stringResource(R.string.git_refs_pop_stash_body),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Pop",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_refs_pop),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             onDismiss = { popStash = null },
             onConfirm = { interactionListener.popStash(stash.index); popStash = null },
         )
     }
     dropStash?.let { stash ->
         ConfirmDelete(
-            title = "Drop stash@{${stash.index}}?",
-            body = "This permanently removes the stashed changes.",
+            title = stringResource(R.string.git_refs_drop_stash_title, stash.index),
+            body = stringResource(R.string.git_refs_drop_stash_body),
             confirm = { interactionListener.dropStash(stash.index); dropStash = null },
             dismiss = { dropStash = null },
         )
@@ -267,15 +270,15 @@ private fun BranchList(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                AslIconButton(icon = "refresh-cw", contentDescription = "Fetch", onClick = interactionListener::fetch, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
-                AslIconButton(icon = "download", contentDescription = "Pull (merge)", onClick = { interactionListener.pull(PullMode.MERGE) }, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
-                AslIconButton(icon = "upload", contentDescription = "Push", onClick = interactionListener::push, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
+                AslIconButton(icon = "refresh-cw", contentDescription = stringResource(R.string.git_action_fetch), onClick = interactionListener::fetch, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
+                AslIconButton(icon = "download", contentDescription = stringResource(R.string.git_refs_pull_merge), onClick = { interactionListener.pull(PullMode.MERGE) }, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
+                AslIconButton(icon = "upload", contentDescription = stringResource(R.string.git_action_push), onClick = interactionListener::push, size = 32.dp, iconSize = 16.dp, disabled = state.isSyncing)
             }
             if (state.isSyncing) AslLinearProgress(modifier = Modifier.padding(top = 6.dp))
             AslTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = "Search branches",
+                placeholder = stringResource(R.string.git_refs_search_branches),
                 leadingIcon = "search",
                 trailingIcon = "x".takeIf { query.isNotEmpty() },
                 onTrailingClick = { query = "" },
@@ -287,64 +290,71 @@ private fun BranchList(
         val filtered = state.branches.filter { it.name.contains(query, ignoreCase = true) }
         if (filtered.isEmpty()) {
             AslEmptyState(
-                title = if (query.isBlank()) "No branches" else "No branches match \"$query\"",
+                title = if (query.isBlank()) stringResource(R.string.git_refs_no_branches) else stringResource(R.string.git_refs_no_branches_match, query),
                 modifier = Modifier.fillMaxSize(),
                 icon = "git-branch",
             )
             return
         }
+        val publish = stringResource(R.string.git_refs_publish)
+        val rename = stringResource(CommonR.string.action_rename)
+        val checkout = stringResource(R.string.git_refs_checkout)
+        val mergeCurrent = stringResource(R.string.git_refs_merge_current)
+        val delete = stringResource(CommonR.string.action_delete)
         LazyColumn(Modifier.fillMaxSize()) {
             val current = filtered.filter { it.current }
             val local = filtered.filter { !it.isRemote && !it.current }
             val remote = filtered.filter { it.isRemote }
             if (current.isNotEmpty()) {
-                item { SectionLabel("Current") }
+                item { SectionLabel(stringResource(R.string.git_refs_current)) }
                 items(current, key = { "current:${it.name}" }) { branch ->
                     BranchActionRow(
                         branch = branch,
                         entries = listOf(
-                            AslOverflowMenuEntry.Item("Publish", icon = "upload"),
-                            AslOverflowMenuEntry.Item("Rename", icon = "pencil"),
+                            AslOverflowMenuEntry.Item(publish, icon = "upload"),
+                            AslOverflowMenuEntry.Item(rename, icon = "pencil"),
                         ),
-                    ) { label ->
-                        when (label) {
-                            "Publish" -> interactionListener.publish(branch.name)
-                            "Rename" -> onRename(branch)
+                    ) { index ->
+                        when (index) {
+                            0 -> interactionListener.publish(branch.name)
+                            1 -> onRename(branch)
+                            else -> Unit
                         }
                     }
                 }
             }
             if (local.isNotEmpty()) {
-                item { SectionLabel("Local") }
+                item { SectionLabel(stringResource(R.string.git_refs_local)) }
                 items(local, key = { "local:${it.name}" }) { branch ->
                     BranchActionRow(
                         branch = branch,
                         entries = listOf(
-                            AslOverflowMenuEntry.Item("Checkout", icon = "git-branch"),
-                            AslOverflowMenuEntry.Item("Merge into current", icon = "sync"),
-                            AslOverflowMenuEntry.Item("Publish", icon = "upload"),
-                            AslOverflowMenuEntry.Item("Rename", icon = "pencil"),
+                            AslOverflowMenuEntry.Item(checkout, icon = "git-branch"),
+                            AslOverflowMenuEntry.Item(mergeCurrent, icon = "sync"),
+                            AslOverflowMenuEntry.Item(publish, icon = "upload"),
+                            AslOverflowMenuEntry.Item(rename, icon = "pencil"),
                             AslOverflowMenuEntry.Divider,
-                            AslOverflowMenuEntry.Item("Delete", icon = "trash-2", destructive = true),
+                            AslOverflowMenuEntry.Item(delete, icon = "trash-2", destructive = true),
                         ),
-                    ) { label ->
-                        when (label) {
-                            "Checkout" -> interactionListener.checkout(branch)
-                            "Merge into current" -> onMerge(branch)
-                            "Publish" -> interactionListener.publish(branch.name)
-                            "Rename" -> onRename(branch)
-                            "Delete" -> onDelete(branch)
+                    ) { index ->
+                        when (index) {
+                            0 -> interactionListener.checkout(branch)
+                            1 -> onMerge(branch)
+                            2 -> interactionListener.publish(branch.name)
+                            3 -> onRename(branch)
+                            5 -> onDelete(branch)
+                            else -> Unit
                         }
                     }
                 }
             }
             if (remote.isNotEmpty()) {
-                item { SectionLabel("Remote") }
+                item { SectionLabel(stringResource(R.string.git_refs_remote)) }
                 items(remote, key = { "remote:${it.name}" }) { branch ->
                     BranchActionRow(
                         branch = branch,
-                        entries = listOf(AslOverflowMenuEntry.Item("Checkout", icon = "git-branch")),
-                    ) { label -> if (label == "Checkout") interactionListener.checkout(branch) }
+                        entries = listOf(AslOverflowMenuEntry.Item(checkout, icon = "git-branch")),
+                    ) { interactionListener.checkout(branch) }
                 }
             }
         }
@@ -365,27 +375,27 @@ private fun SectionLabel(text: String) {
 private fun BranchActionRow(
     branch: GitBranch,
     entries: List<AslOverflowMenuEntry>,
-    onSelect: (String) -> Unit,
+    onSelect: (Int) -> Unit,
 ) {
     AslListItem(
         title = branch.name.middleEllipsis(),
-        subtitle = if (branch.current) "Checked out" else null,
+        subtitle = if (branch.current) stringResource(R.string.git_refs_checked_out) else null,
         icon = if (branch.current) "check" else "git-branch",
         iconColor = if (branch.current) AslTheme.colors.success else null,
         trailing = {
-            AslOverflowMenu(items = entries, onSelect = { item, _ -> onSelect(item.label) })
+            AslOverflowMenu(items = entries, onSelect = { _, index -> onSelect(index) })
         },
     )
 }
 
 @Composable
 private fun TagList(tags: List<GitTag>, interactionListener: GitRefsInteractionListener, onDelete: (GitTag) -> Unit) {
-    if (tags.isEmpty()) return AslEmptyState("No tags", modifier = Modifier.fillMaxSize(), icon = "tag")
+    if (tags.isEmpty()) return AslEmptyState(stringResource(R.string.git_refs_no_tags), modifier = Modifier.fillMaxSize(), icon = "tag")
     LazyColumn(Modifier.fillMaxSize()) {
         items(tags, key = { it.name }) { tag ->
-            RefRow(tag.name, if (tag.annotated) tag.message ?: "Annotated" else "Lightweight") {
-                AslButton("Push", { interactionListener.pushTag(tag.name) }, variant = AslButtonVariant.Tertiary)
-                AslButton("Delete", { onDelete(tag) }, variant = AslButtonVariant.Tertiary)
+            RefRow(tag.name, if (tag.annotated) tag.message ?: stringResource(R.string.git_refs_annotated) else stringResource(R.string.git_refs_lightweight)) {
+                AslButton(stringResource(R.string.git_action_push), { interactionListener.pushTag(tag.name) }, variant = AslButtonVariant.Tertiary)
+                AslButton(stringResource(CommonR.string.action_delete), { onDelete(tag) }, variant = AslButtonVariant.Tertiary)
             }
         }
     }
@@ -398,13 +408,13 @@ private fun StashList(
     onPop: (GitStash) -> Unit,
     onDrop: (GitStash) -> Unit,
 ) {
-    if (stashes.isEmpty()) return AslEmptyState("No stashes", modifier = Modifier.fillMaxSize(), icon = "package")
+    if (stashes.isEmpty()) return AslEmptyState(stringResource(R.string.git_refs_no_stashes), modifier = Modifier.fillMaxSize(), icon = "package")
     LazyColumn(Modifier.fillMaxSize()) {
         items(stashes, key = { it.id }) { stash ->
             RefRow("stash@{${stash.index}}", stash.message) {
-                AslButton("Apply", { interactionListener.applyStash(stash.index) }, variant = AslButtonVariant.Tertiary)
-                AslButton("Pop", { onPop(stash) }, variant = AslButtonVariant.Tertiary)
-                AslButton("Drop", { onDrop(stash) }, variant = AslButtonVariant.Tertiary)
+                AslButton(stringResource(R.string.git_refs_apply), { interactionListener.applyStash(stash.index) }, variant = AslButtonVariant.Tertiary)
+                AslButton(stringResource(R.string.git_refs_pop), { onPop(stash) }, variant = AslButtonVariant.Tertiary)
+                AslButton(stringResource(R.string.git_refs_drop), { onDrop(stash) }, variant = AslButtonVariant.Tertiary)
             }
         }
     }
@@ -426,8 +436,8 @@ private fun ConfirmDelete(title: String, body: String, confirm: () -> Unit, dism
         title = title,
         body = body,
         variant = AslDialogVariant.Confirm,
-        confirmLabel = "Delete",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(CommonR.string.action_delete),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         destructive = true,
         onDismiss = dismiss,
         onConfirm = confirm,

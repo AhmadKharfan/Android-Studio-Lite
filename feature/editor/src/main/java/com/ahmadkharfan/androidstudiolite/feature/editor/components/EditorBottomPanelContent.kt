@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,7 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
+import com.ahmadkharfan.androidstudiolite.feature.editor.R
 
 @Composable
 fun EditorBottomPanelContent(
@@ -45,8 +48,8 @@ fun EditorBottomPanelContent(
         "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
         else -> AslEmptyState(
             icon = "terminal",
-            title = "Nothing here yet",
-            subtitle = "The terminal is coming in a future update.",
+            title = stringResource(R.string.editor_bottom_empty),
+            subtitle = stringResource(R.string.editor_bottom_terminal_future),
             modifier = modifier.fillMaxSize(),
         )
     }
@@ -63,28 +66,34 @@ private fun BuildTab(
     if (isEmpty) {
         AslEmptyState(
             icon = "hammer",
-            title = "No build output yet",
-            subtitle = "Run the project to see the build output here.",
+            title = stringResource(R.string.editor_build_empty),
+            subtitle = stringResource(R.string.editor_build_empty_hint),
             modifier = modifier.fillMaxSize(),
         )
         return
     }
     val clipboard = LocalClipboardManager.current
+    val problemsLabel = pluralStringResource(R.plurals.editor_build_problems, console.problems.size, console.problems.size)
+    val tasksLabel = stringResource(R.string.editor_build_tasks)
+    val outputLabel = stringResource(R.string.editor_build_output)
+    val clipboardText = console.toClipboardText(console.statusLabel(), problemsLabel, tasksLabel, outputLabel)
     Column(modifier = modifier.fillMaxSize().padding(vertical = 6.dp)) {
         BuildStatusHeader(
             console = console,
-            onCopyAll = { clipboard.setText(AnnotatedString(console.toClipboardText())) },
+            onCopyAll = { clipboard.setText(AnnotatedString(clipboardText)) },
         )
 
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             console.artifact?.let { artifact ->
-                item { SectionLabel("Artifact") }
+                item { SectionLabel(stringResource(R.string.editor_build_artifact)) }
                 item {
                     val details = buildList {
                         add(artifact.kind.name)
                         artifact.sizeBytes?.let { add(formatBytes(it)) }
-                        artifact.signed?.let { add(if (it) "signed" else "unsigned") }
+                        artifact.signed?.let {
+                            add(stringResource(if (it) R.string.editor_build_signed else R.string.editor_build_unsigned))
+                        }
                         artifact.sha256?.let { add("SHA-256 ${it.take(12)}…") }
                     }.joinToString(" · ")
                     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
@@ -96,11 +105,11 @@ private fun BuildTab(
                 }
             }
             if (console.problems.isNotEmpty()) {
-                item { SectionLabel("Problems (${console.problems.size})") }
+                item { SectionLabel(problemsLabel) }
                 items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
             }
             if (console.taskGroups.isNotEmpty()) {
-                item { SectionLabel("Tasks") }
+                item { SectionLabel(tasksLabel) }
                 console.taskGroups.forEach { group ->
                     if (group.module.isNotEmpty()) {
                         item { AslBuildOutputLine(text = group.module, depth = 0) }
@@ -115,7 +124,7 @@ private fun BuildTab(
                 }
             }
             if (console.logs.isNotEmpty()) {
-                item { SectionLabel("Output") }
+                item { SectionLabel(outputLabel) }
                 item {
                     SelectionContainer {
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -143,18 +152,16 @@ private fun formatBytes(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
-private fun BuildConsoleState.toClipboardText(): String = buildString {
-    val statusLabel = when (status) {
-        BuildStatus.Running -> progressMessage ?: "Building…"
-        BuildStatus.Succeeded -> "Build successful"
-        BuildStatus.Failed -> "Build failed"
-        BuildStatus.Cancelled -> "Build cancelled"
-        BuildStatus.Idle -> "Ready"
-    }
+private fun BuildConsoleState.toClipboardText(
+    statusLabel: String,
+    problemsLabel: String,
+    tasksLabel: String,
+    outputLabel: String,
+): String = buildString {
     appendLine(statusLabel)
     if (problems.isNotEmpty()) {
         appendLine()
-        appendLine("Problems (${problems.size})")
+        appendLine(problemsLabel)
         problems.forEach { problem ->
             append("  [").append(problem.severity.name).append("] ").append(problem.message)
             problem.location?.let { append(" (").append(it).append(")") }
@@ -163,7 +170,7 @@ private fun BuildConsoleState.toClipboardText(): String = buildString {
     }
     if (taskGroups.isNotEmpty()) {
         appendLine()
-        appendLine("Tasks")
+        appendLine(tasksLabel)
         taskGroups.forEach { group ->
             if (group.module.isNotEmpty()) appendLine(group.module)
             group.tasks.forEach { task ->
@@ -175,7 +182,7 @@ private fun BuildConsoleState.toClipboardText(): String = buildString {
     }
     if (logs.isNotEmpty()) {
         appendLine()
-        appendLine("Output")
+        appendLine(outputLabel)
         logs.forEach { appendLine(it.text) }
     }
 }
@@ -193,11 +200,11 @@ private fun BuildStatusHeader(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             val (label, tint) = when (console.status) {
-                BuildStatus.Running -> (console.progressMessage ?: "Building…") to colors.info
-                BuildStatus.Succeeded -> "Build successful" to colors.success
-                BuildStatus.Failed -> "Build failed" to colors.error
-                BuildStatus.Cancelled -> "Build cancelled" to colors.textTertiary
-                BuildStatus.Idle -> "Ready" to colors.textTertiary
+                BuildStatus.Running -> console.statusLabel() to colors.info
+                BuildStatus.Succeeded -> console.statusLabel() to colors.success
+                BuildStatus.Failed -> console.statusLabel() to colors.error
+                BuildStatus.Cancelled -> console.statusLabel() to colors.textTertiary
+                BuildStatus.Idle -> console.statusLabel() to colors.textTertiary
             }
             Text(
                 text = label,
@@ -214,7 +221,7 @@ private fun BuildStatusHeader(
             if (hasContent) {
                 AslIconButton(
                     icon = "copy",
-                    contentDescription = "Copy build output",
+                    contentDescription = stringResource(R.string.editor_build_copy_output),
                     onClick = onCopyAll,
                     size = 32.dp,
                     iconSize = 16.dp,
@@ -224,11 +231,27 @@ private fun BuildStatusHeader(
         if (console.isRunning) {
             AslLinearProgress(
                 label = null,
-                detail = if (console.taskCount > 0) "${console.finishedTaskCount}/${console.taskCount} tasks" else null,
+                detail = if (console.taskCount > 0) {
+                    pluralStringResource(
+                        R.plurals.editor_build_task_progress,
+                        console.taskCount,
+                        console.finishedTaskCount,
+                        console.taskCount,
+                    )
+                } else null,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
             )
         }
     }
+}
+
+@Composable
+private fun BuildConsoleState.statusLabel(): String = when (status) {
+    BuildStatus.Running -> progressMessage ?: stringResource(R.string.editor_build_running)
+    BuildStatus.Succeeded -> stringResource(R.string.editor_build_successful)
+    BuildStatus.Failed -> stringResource(R.string.editor_build_failed)
+    BuildStatus.Cancelled -> stringResource(R.string.editor_build_cancelled)
+    BuildStatus.Idle -> stringResource(R.string.editor_build_ready)
 }
 
 @Composable

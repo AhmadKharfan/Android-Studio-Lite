@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.R
 
 class InstallPromptNotifier(private val context: Context) {
 
@@ -40,11 +41,11 @@ class InstallPromptNotifier(private val context: Context) {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Build successful. Tap to install")
+            .setContentTitle(context.getString(R.string.build_notification_success_install))
             .setContentText(apkLabel)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("Tap to open the install prompt for $apkLabel."),
+                    .bigText(context.getString(R.string.install_notification_body, apkLabel)),
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -72,10 +73,10 @@ class InstallPromptNotifier(private val context: Context) {
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Install prompts",
+                    context.getString(R.string.install_notification_channel),
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
-                    description = "Shows when a built APK is ready to install"
+                    description = context.getString(R.string.install_notification_channel_description)
                     enableVibration(true)
                     setShowBadge(true)
                 },

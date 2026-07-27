@@ -42,6 +42,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -50,7 +51,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.res.ResourcesCompat
-import com.ahmadkharfan.androidstudiolite.designsystem.R
+import com.ahmadkharfan.androidstudiolite.designsystem.R as DesignSystemR
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.DEFAULT_COLOR
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalCell
@@ -114,7 +115,13 @@ fun TerminalEmulatorView(
     }
     val toolbarBg = colors.surfaceContainerHigh
     val toolbarFg = colors.textPrimary
-    val typeface = remember { ResourcesCompat.getFont(context, R.font.jetbrains_mono) ?: Typeface.MONOSPACE }
+    val typeface = remember { ResourcesCompat.getFont(context, DesignSystemR.font.jetbrains_mono) ?: Typeface.MONOSPACE }
+    val nothingToCopyText = stringResource(R.string.terminal_nothing_to_copy)
+    val copiedText = stringResource(R.string.terminal_copied)
+    val clipboardEmptyText = stringResource(R.string.terminal_clipboard_empty)
+    val copyText = stringResource(R.string.terminal_copy)
+    val pasteText = stringResource(R.string.terminal_paste)
+    val selectAllText = stringResource(R.string.terminal_select_all)
 
     val textSizePx = with(density) { FONT_SP.sp.toPx() }
     val paint = remember(typeface, textSizePx) {
@@ -255,7 +262,7 @@ fun TerminalEmulatorView(
         val text = selectedText(screenState.value, sel)
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         clipboard?.setPrimaryClip(ClipData.newPlainText("terminal", text))
-        Toast.makeText(context, if (text.isBlank()) "Nothing to copy" else "Copied", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (text.isBlank()) nothingToCopyText else copiedText, Toast.LENGTH_SHORT).show()
         selection = null
     }
 
@@ -333,7 +340,7 @@ fun TerminalEmulatorView(
         pastePos = null
         selection = null
         if (text.isEmpty()) {
-            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, clipboardEmptyText, Toast.LENGTH_SHORT).show()
             return
         }
         emitKey(text)
@@ -677,9 +684,9 @@ fun TerminalEmulatorView(
                             },
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        ToolbarButton("Copy", toolbarFg) { copySelection() }
-                        ToolbarButton("Paste", toolbarFg) { pasteFromClipboard() }
-                        ToolbarButton("Select all", toolbarFg) { selectAll() }
+                        ToolbarButton(copyText, toolbarFg) { copySelection() }
+                        ToolbarButton(pasteText, toolbarFg) { pasteFromClipboard() }
+                        ToolbarButton(selectAllText, toolbarFg) { selectAll() }
                     }
                 }
             }
@@ -710,8 +717,8 @@ fun TerminalEmulatorView(
                             },
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        ToolbarButton("Paste", toolbarFg) { pasteFromClipboard() }
-                        ToolbarButton("Select all", toolbarFg) {
+                        ToolbarButton(pasteText, toolbarFg) { pasteFromClipboard() }
+                        ToolbarButton(selectAllText, toolbarFg) {
                             pastePos = null
                             selectAll()
                         }

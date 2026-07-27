@@ -10,9 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
@@ -24,9 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipK
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoUiState
-import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun CloneRepoRoute(
@@ -57,7 +57,9 @@ private fun CloneRepoScreen(
 ) {
     AslBottomSheet(
         onDismiss = onDismiss,
-        title = if (uiState.cloning) "Cloning…" else "Clone repository",
+        title = stringResource(
+            if (uiState.cloning) R.string.projects_cloning_title else R.string.projects_clone_title,
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
@@ -77,15 +79,20 @@ private fun CloneRepoProgress(uiState: CloneRepoUiState, onCancel: () -> Unit) {
     val chipLabel = uiState.progressMessage
         .substringBefore(' ')
         .takeIf { it.isNotBlank() }
-        ?.let { "Cloning · $it" }
-        ?: "Cloning…"
+        ?.let { stringResource(R.string.projects_cloning_detail, it) }
+        ?: stringResource(R.string.projects_cloning_title)
     AslStatusChip(status = AslStatus.Syncing, label = chipLabel)
     AslLinearProgress(
         value = uiState.progressPercent.toFloat(),
-        label = uiState.progressMessage.ifBlank { "Receiving objects" },
+        label = uiState.progressMessage.ifBlank { stringResource(R.string.projects_receiving_objects) },
         detail = "${uiState.progressPercent}%",
     )
-    AslButton(label = "Cancel", onClick = onCancel, variant = AslButtonVariant.Secondary, fullWidth = true)
+    AslButton(
+        label = stringResource(CommonR.string.action_cancel),
+        onClick = onCancel,
+        variant = AslButtonVariant.Secondary,
+        fullWidth = true,
+    )
 }
 
 @Composable
@@ -96,21 +103,21 @@ private fun CloneRepoForm(
     AslTextField(
         value = uiState.url,
         onValueChange = { interactionListener.onUrlChanged(it) },
-        label = "Repository URL",
-        placeholder = "https://github.com/user/repo.git",
+        label = stringResource(R.string.projects_repository_url),
+        placeholder = stringResource(R.string.projects_repository_url_placeholder),
         leadingIcon = "link",
         error = uiState.error,
     )
     AslTextField(
         value = uiState.branch,
         onValueChange = { interactionListener.onBranchChanged(it) },
-        label = "Branch",
-        placeholder = "main",
-        helper = "Optional. Leave blank to use the remote's default branch.",
+        label = stringResource(R.string.projects_branch),
+        placeholder = stringResource(R.string.projects_branch_placeholder),
+        helper = stringResource(R.string.projects_branch_helper),
     )
     CloneRepoOptions(uiState = uiState, interactionListener = interactionListener)
     AslButton(
-        label = "Clone",
+        label = stringResource(R.string.projects_clone_button),
         onClick = { interactionListener.onStartClone() },
         size = AslButtonSize.Lg,
         fullWidth = true,
@@ -126,7 +133,11 @@ private fun CloneRepoOptions(
 ) {
     val colors = AslTheme.colors
     Column {
-        Text(text = "Options", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+        Text(
+            text = stringResource(R.string.projects_options),
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.textSecondary,
+        )
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()

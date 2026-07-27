@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,6 +23,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitBlameRoute(
@@ -31,11 +33,11 @@ fun GitBlameRoute(
     viewModel: GitBlameViewModel = koinViewModel { parametersOf(projectId, path) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(topBar = { AslTopAppBar("Blame", subtitle = state.path.ifBlank { path }.middleEllipsis(), onBack = onBack, applyStatusBarInset = true) }) { padding ->
+    Scaffold(topBar = { AslTopAppBar(stringResource(R.string.git_blame_title), subtitle = state.path.ifBlank { path }.middleEllipsis(), onBack = onBack, applyStatusBarInset = true) }) { padding ->
         when {
-            state.loading -> AslLinearProgress(label = "Computing blame", modifier = Modifier.padding(padding).padding(16.dp))
+            state.loading -> AslLinearProgress(label = stringResource(R.string.git_blame_computing), modifier = Modifier.padding(padding).padding(16.dp))
             state.error != null -> AslEmptyState(
-                title = "Couldn't show blame",
+                title = stringResource(R.string.git_blame_error),
                 icon = "triangle-alert",
                 subtitle = state.error,
                 modifier = Modifier.padding(padding).fillMaxSize(),

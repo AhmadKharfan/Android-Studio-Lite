@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
@@ -40,28 +41,28 @@ fun TerminalSettingsSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = "Terminal settings", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+            Text(text = stringResource(R.string.terminal_settings_title), style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
             Text(
-                text = "Volume Up/Down moves the browse cursor one character at a time. Tap the terminal to return to live input.",
+                text = stringResource(R.string.terminal_settings_volume_hint),
                 style = AslCode.codeSmall,
                 color = colors.textSecondary,
             )
             if (linux.supported) {
                 Text(
                     text = when {
-                        linux.installed -> "Linux userland: installed (Alpine via proot)"
-                        linux.isBusy -> linux.phase ?: "Installing Linux userland…"
-                        else -> "Linux userland not installed. Install to run apk, git, python, gcc, etc."
+                        linux.installed -> stringResource(R.string.terminal_linux_installed)
+                        linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing_userland)
+                        else -> stringResource(R.string.terminal_linux_not_installed)
                     },
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,
                 )
                 linux.error?.let {
-                    Text(text = "Last install error: $it", style = AslCode.codeTiny, color = colors.error)
+                    Text(text = stringResource(R.string.terminal_last_install_error, it), style = AslCode.codeTiny, color = colors.error)
                 }
                 if (!linux.installed && !linux.isBusy) {
                     AslButton(
-                        label = if (linux.error != null) "Retry install" else "Install Linux userland",
+                        label = stringResource(if (linux.error != null) R.string.terminal_retry_install else R.string.terminal_install_userland),
                         onClick = onInstallLinux,
                         variant = AslButtonVariant.Primary,
                         size = AslButtonSize.Md,
@@ -71,12 +72,12 @@ fun TerminalSettingsSheet(
                 }
                 if (linux.installed && !linux.isBusy) {
                     Text(
-                        text = "Install tools inside the shell, e.g. apk add git. Projects are at /root/projects.",
+                        text = stringResource(R.string.terminal_linux_tools_hint),
                         style = AslCode.codeTiny,
                         color = colors.textSecondary,
                     )
                     AslButton(
-                        label = "Reinstall Linux userland",
+                        label = stringResource(R.string.terminal_reinstall_userland),
                         onClick = onReinstallLinux,
                         variant = AslButtonVariant.Secondary,
                         size = AslButtonSize.Md,
@@ -86,7 +87,7 @@ fun TerminalSettingsSheet(
                 }
             } else {
                 Text(
-                    text = "Full Linux userland is not available on this device architecture.",
+                    text = stringResource(R.string.terminal_linux_unsupported),
                     style = AslCode.codeSmall,
                     color = colors.textSecondary,
                 )

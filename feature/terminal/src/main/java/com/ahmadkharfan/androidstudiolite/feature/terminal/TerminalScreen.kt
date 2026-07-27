@@ -22,9 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
@@ -100,15 +102,15 @@ private fun TerminalTopBar(
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = onBack)
+            AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = onBack)
             Text(
-                text = "Terminal",
+                text = stringResource(R.string.terminal_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textPrimary,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
-            AslIconButton(icon = "plus", contentDescription = "New session", onClick = { interactionListener.onNewSession() })
-            AslIconButton(icon = "settings-2", contentDescription = "Terminal settings", onClick = { interactionListener.onOpenSettings() })
+            AslIconButton(icon = "plus", contentDescription = stringResource(R.string.terminal_new_session), onClick = { interactionListener.onNewSession() })
+            AslIconButton(icon = "settings-2", contentDescription = stringResource(R.string.terminal_settings_title), onClick = { interactionListener.onOpenSettings() })
         }
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
@@ -164,7 +166,7 @@ private fun TerminalTabChip(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = if (tab.running) tab.title else "${tab.title} (exited)",
+            text = if (tab.running) tab.title else stringResource(R.string.terminal_tab_exited, tab.title),
             style = AslCode.codeSmall,
             color = if (active) colors.textPrimary else colors.textSecondary,
         )
@@ -200,9 +202,9 @@ private fun TerminalLinuxBanner(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = when {
-                        linux.isBusy -> linux.phase ?: "Installing Linux…"
-                        linux.error != null -> "Linux tools install failed"
-                        else -> "Enable full Linux: apk, python, git, gcc, and more"
+                        linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing)
+                        linux.error != null -> stringResource(R.string.terminal_linux_install_failed)
+                        else -> stringResource(R.string.terminal_linux_enable)
                     },
                     style = AslCode.codeSmall,
                     color = colors.textPrimary,
@@ -212,7 +214,11 @@ private fun TerminalLinuxBanner(
                 }
             }
             if (!linux.isBusy) {
-                InstallPill(label = if (linux.error != null) "Retry" else "Install", onClick = onInstall, colors = colors)
+                InstallPill(
+                    label = stringResource(if (linux.error != null) R.string.terminal_retry else R.string.terminal_install),
+                    onClick = onInstall,
+                    colors = colors,
+                )
             }
         }
         if (linux.isBusy && linux.progressPercent in 1..99) {
@@ -232,6 +238,14 @@ private fun TerminalLinuxBanner(
         }
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
+}
+
+@Composable
+internal fun LinuxStatus.phaseText(): String? = when (phase) {
+    LinuxInstallPhase.DOWNLOADING -> stringResource(R.string.terminal_linux_downloading, progressPercent)
+    LinuxInstallPhase.EXTRACTING -> stringResource(R.string.terminal_linux_extracting)
+    LinuxInstallPhase.BOOTSTRAPPING_PACKAGES -> stringResource(R.string.terminal_linux_bootstrapping)
+    null -> null
 }
 
 @Composable

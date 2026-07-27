@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -35,9 +36,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsUiState
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsViewModel
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
 @Composable
 fun PermissionsRoute(
@@ -117,9 +116,13 @@ private fun PermissionsScreen(
 @Composable
 private fun PermissionsHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
-        Text(text = "A few permissions", style = MaterialTheme.typography.headlineMedium, color = colors.textPrimary)
         Text(
-            text = "The IDE needs these to build and install your apps.",
+            text = stringResource(R.string.onboarding_permissions_title),
+            style = MaterialTheme.typography.headlineMedium,
+            color = colors.textPrimary,
+        )
+        Text(
+            text = stringResource(R.string.onboarding_permissions_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
@@ -159,7 +162,7 @@ private fun PermissionsContinueSection(
 ) {
     Column(modifier = Modifier.padding(top = 14.dp)) {
         AslButton(
-            label = "Continue",
+            label = stringResource(R.string.onboarding_permissions_continue),
             onClick = onContinue,
             size = AslButtonSize.Lg,
             fullWidth = true,
@@ -167,7 +170,7 @@ private fun PermissionsContinueSection(
         )
         if (!uiState.canContinue) {
             Text(
-                text = "Grant storage and install access to continue",
+                text = stringResource(R.string.onboarding_permissions_required),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,
                 textAlign = TextAlign.Center,

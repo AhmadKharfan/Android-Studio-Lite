@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.core.linux.LinuxBootstrapInstaller
@@ -154,9 +155,9 @@ private fun EmbeddedLinuxBanner(
         ) {
             Text(
                 text = when {
-                    linux.isBusy -> linux.phase ?: "Installing Linux…"
+                    linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing)
                     linux.error != null -> linux.error
-                    else -> "Install Linux for apk, git, and more"
+                    else -> stringResource(R.string.terminal_linux_install_short)
                 },
                 style = AslCode.codeTiny,
                 color = if (linux.error != null) colors.error else colors.textSecondary,
@@ -164,7 +165,7 @@ private fun EmbeddedLinuxBanner(
             )
             if (!linux.isBusy) {
                 Text(
-                    text = if (linux.error != null) "Retry" else "Install",
+                    text = stringResource(if (linux.error != null) R.string.terminal_retry else R.string.terminal_install),
                     style = AslCode.codeSmall,
                     color = colors.terminalPrompt,
                     modifier = Modifier

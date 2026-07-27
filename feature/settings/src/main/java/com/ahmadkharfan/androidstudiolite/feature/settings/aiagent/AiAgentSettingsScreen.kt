@@ -97,7 +97,7 @@ private fun AiAgentSettingsScreen(
         containerColor = colors.bgBase,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            AslTopAppBar(title = "AI Agent", onBack = onBack, applyStatusBarInset = true)
+            AslTopAppBar(title = stringResource(CommonR.string.settings_ai_agent), onBack = onBack, applyStatusBarInset = true)
         },
     ) { padding ->
         Column(

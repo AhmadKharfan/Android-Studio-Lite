@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +30,7 @@ import java.io.File
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitConflictRoute(
@@ -53,21 +55,21 @@ private fun GitConflictScreen(
     onBack: () -> Unit,
     onOpenEditor: (String) -> Unit,
 ) {
-    Scaffold(topBar = { AslTopAppBar("Resolve conflicts", onBack = onBack, applyStatusBarInset = true) }) { padding ->
+    Scaffold(topBar = { AslTopAppBar(stringResource(R.string.git_conflict_title), onBack = onBack, applyStatusBarInset = true) }) { padding ->
         when {
             uiState.loading -> AslLinearProgress(
-                label = "Loading conflicts",
+                label = stringResource(R.string.git_conflict_loading),
                 modifier = Modifier.padding(padding).padding(16.dp),
             )
             uiState.error != null -> AslEmptyState(
-                title = "Couldn't load conflicts",
+                title = stringResource(R.string.git_conflict_load_error),
                 subtitle = uiState.error,
                 icon = "triangle-alert",
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
             uiState.entries.isEmpty() -> AslEmptyState(
-                title = "No unresolved files",
-                subtitle = "Continue or complete the Git operation.",
+                title = stringResource(R.string.git_conflict_none),
+                subtitle = stringResource(R.string.git_conflict_none_hint),
                 icon = "check",
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
@@ -77,12 +79,12 @@ private fun GitConflictScreen(
                         Text(entry.path.middleEllipsis(), style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
                         Text(entry.worktree.orEmpty().lineSequence().take(8).joinToString("\n"), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AslButton("Accept ours", { interactionListener.acceptOurs(entry.path) }, variant = AslButtonVariant.Secondary)
-                            AslButton("Accept theirs", { interactionListener.acceptTheirs(entry.path) }, variant = AslButtonVariant.Secondary)
+                            AslButton(stringResource(R.string.git_conflict_accept_ours), { interactionListener.acceptOurs(entry.path) }, variant = AslButtonVariant.Secondary)
+                            AslButton(stringResource(R.string.git_conflict_accept_theirs), { interactionListener.acceptTheirs(entry.path) }, variant = AslButtonVariant.Secondary)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AslButton("Open in editor", { onOpenEditor(File(uiState.rootPath, entry.path).absolutePath) }, variant = AslButtonVariant.Tertiary)
-                            AslButton("Mark resolved", { interactionListener.markResolved(entry.path) }, variant = AslButtonVariant.Primary)
+                            AslButton(stringResource(R.string.git_conflict_open_editor), { onOpenEditor(File(uiState.rootPath, entry.path).absolutePath) }, variant = AslButtonVariant.Tertiary)
+                            AslButton(stringResource(R.string.git_conflict_mark_resolved), { interactionListener.markResolved(entry.path) }, variant = AslButtonVariant.Primary)
                         }
                     }
                     HorizontalDivider()
@@ -92,11 +94,11 @@ private fun GitConflictScreen(
     }
     uiState.markerOverridePath?.let { path ->
         AslDialog(
-            title = "Conflict markers remain",
-            body = "$path still contains conflict-marker lines. Mark it resolved anyway?",
+            title = stringResource(R.string.git_conflict_markers_title),
+            body = stringResource(R.string.git_conflict_markers_body, path),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Mark resolved",
-            cancelLabel = "Keep editing",
+            confirmLabel = stringResource(R.string.git_conflict_mark_resolved),
+            cancelLabel = stringResource(R.string.git_conflict_keep_editing),
             destructive = true,
             onDismiss = interactionListener::dismissMarkerWarning,
             onConfirm = { interactionListener.markResolved(path, allowMarkers = true) },
