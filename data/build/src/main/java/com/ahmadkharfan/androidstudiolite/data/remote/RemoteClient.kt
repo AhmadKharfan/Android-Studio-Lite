@@ -17,6 +17,7 @@ import java.io.IOException
 import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -218,14 +219,13 @@ class RemoteClient(
                 val transient = e.httpStatus == 0 || e.httpStatus in 500..599
                 if (!transient || attempt >= MAX_ATTEMPTS - 1) throw e
             }
-            delay(BASE_BACKOFF_MS shl attempt)
+            delay((BASE_BACKOFF_MS shl attempt).milliseconds)
             attempt++
         }
     }
 
     private suspend fun executeWithRetry(request: Request, allowUnauthorizedThrow: Boolean): ResponseSnapshot {
         var attempt = 0
-        var lastError: RemoteException? = null
         while (true) {
             try {
                 val snapshot = withContext(Dispatchers.IO) {
@@ -236,13 +236,11 @@ class RemoteClient(
                 val transient = snapshot.code in 500..599
                 if (snapshot.code == 401 && allowUnauthorizedThrow) throw ex
                 if (!transient || attempt >= MAX_ATTEMPTS - 1) throw ex
-                lastError = ex
             } catch (e: IOException) {
                 val mapped = RemoteException(0, "NETWORK", networkErrorMessage(e))
                 if (attempt >= MAX_ATTEMPTS - 1) throw mapped
-                lastError = mapped
             }
-            delay(BASE_BACKOFF_MS shl attempt)
+            delay((BASE_BACKOFF_MS shl attempt).milliseconds)
             attempt++
         }
     }

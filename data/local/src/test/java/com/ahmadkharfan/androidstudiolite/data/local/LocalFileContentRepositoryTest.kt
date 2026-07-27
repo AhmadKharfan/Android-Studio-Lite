@@ -8,6 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
@@ -90,5 +91,5 @@ internal suspend fun <T> awaitFirst(flow: Flow<T>, action: suspend () -> Unit): 
     val deferred = async(Dispatchers.Unconfined) { flow.first() }
     yield()
     action()
-    withTimeout(2000) { deferred.await() }
+    withTimeout(2000.milliseconds) { deferred.await() }
 }

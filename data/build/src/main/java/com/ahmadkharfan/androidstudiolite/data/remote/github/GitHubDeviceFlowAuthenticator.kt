@@ -10,6 +10,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -61,7 +62,7 @@ class GitHubDeviceFlowAuthenticator(
             deadline = clock.elapsedMillis() + code.expiresIn * 1000L,
         )
         while (clock.elapsedMillis() < polling.deadline) {
-            delay(polling.intervalSeconds * 1000L)
+            delay(polling.intervalSeconds.seconds)
             val token = try {
                 pollForToken(code.deviceCode).also { polling.consecutiveErrors = 0 }
             } catch (error: IOException) {

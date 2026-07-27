@@ -4,6 +4,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import java.io.File
+import kotlin.enums.enumEntries
 
 object BuildEventMapper {
 
@@ -47,17 +48,17 @@ object BuildEventMapper {
     }
 
     private fun buildKind(raw: String): BuildKind =
-        enumValues<BuildKind>().firstOrNull { it.name == raw } ?: BuildKind.ASSEMBLE
+        enumEntries<BuildKind>().firstOrNull { it.name == raw } ?: BuildKind.ASSEMBLE
 
     private fun taskResult(raw: String): BuildEvent.TaskResult =
-        enumValues<BuildEvent.TaskResult>().firstOrNull { it.name == raw } ?: BuildEvent.TaskResult.SUCCESS
+        enumEntries<BuildEvent.TaskResult>().firstOrNull { it.name == raw } ?: BuildEvent.TaskResult.SUCCESS
 
     private fun outputStream(raw: String): BuildEvent.OutputStream =
-        enumValues<BuildEvent.OutputStream>().firstOrNull { it.name == raw } ?: BuildEvent.OutputStream.STDOUT
+        enumEntries<BuildEvent.OutputStream>().firstOrNull { it.name == raw } ?: BuildEvent.OutputStream.STDOUT
 
     private fun severity(raw: String): BuildEvent.ProblemSeverity =
-        enumValues<BuildEvent.ProblemSeverity>().firstOrNull { it.name == raw } ?: BuildEvent.ProblemSeverity.INFO
+        enumEntries<BuildEvent.ProblemSeverity>().firstOrNull { it.name == raw } ?: BuildEvent.ProblemSeverity.INFO
 
     private fun artifactKind(raw: String): BuildEvent.ArtifactKind =
-        enumValues<BuildEvent.ArtifactKind>().firstOrNull { it.name == raw } ?: BuildEvent.ArtifactKind.OTHER
+        enumEntries<BuildEvent.ArtifactKind>().firstOrNull { it.name == raw } ?: BuildEvent.ArtifactKind.OTHER
 }

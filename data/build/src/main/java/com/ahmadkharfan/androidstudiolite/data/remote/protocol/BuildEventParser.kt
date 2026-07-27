@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.data.remote.protocol
 
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import java.io.File
-import kotlinx.serialization.decodeFromString
 
 class BuildEventParser(private val json: kotlinx.serialization.json.Json = RemoteJson) {
 

@@ -75,7 +75,7 @@ class LocalFileTreeRepository(
         target.absolutePath
     }
 
-    private suspend fun copyEntry(source: File, target: File) {
+    private fun copyEntry(source: File, target: File) {
         if (source.isDirectory) {
             val copied = source.copyRecursively(target = target, overwrite = false)
             if (!copied) throw IOException("Could not copy: ${source.absolutePath}")

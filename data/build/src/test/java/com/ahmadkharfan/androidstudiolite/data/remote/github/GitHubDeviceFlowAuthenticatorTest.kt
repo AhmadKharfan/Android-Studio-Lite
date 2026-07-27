@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
@@ -109,7 +110,7 @@ class GitHubDeviceFlowAuthenticatorTest {
         val states = authenticator.authenticate().toList()
         val completionTime = testScheduler.currentTime
         val pollsAtExpiry = tokenPolls
-        advanceTimeBy(60_000)
+        advanceTimeBy(60_000.milliseconds)
 
         val error = states.last() as GitHubDeviceAuthState.Error
         assertTrue(error.message.contains("expired", ignoreCase = true))

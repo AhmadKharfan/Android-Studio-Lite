@@ -86,9 +86,7 @@ class AndroidProjectRepository(
     }
 
     override suspend fun renameProject(id: String, newName: String) {
-
-
-        val project = current().firstOrNull { it.id == id } ?: return
+        if (current().none { it.id == id }) return
         save(current().map { if (it.id == id) it.copy(name = newName) else it })
     }
 

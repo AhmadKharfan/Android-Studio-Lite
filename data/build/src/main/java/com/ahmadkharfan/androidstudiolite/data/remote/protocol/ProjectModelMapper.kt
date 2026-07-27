@@ -8,6 +8,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.SourceSetModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.VariantModel
 import java.io.File
+import kotlin.enums.enumEntries
 
 object ProjectModelMapper {
 
@@ -52,5 +53,5 @@ object ProjectModelMapper {
     }
 
     private inline fun <reified E : Enum<E>> enumOrDefault(raw: String, default: E): E =
-        enumValues<E>().firstOrNull { it.name == raw } ?: default
+        enumEntries<E>().firstOrNull { it.name == raw } ?: default
 }

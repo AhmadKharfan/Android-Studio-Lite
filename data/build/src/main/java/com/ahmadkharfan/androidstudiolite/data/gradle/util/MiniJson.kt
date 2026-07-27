@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.data.gradle.util
 
 object MiniJson {
 
-    fun parse(text: String): Any? = Parser(text).parseValue().also { }
+    fun parse(text: String): Any? = Parser(text).parseValue()
 
     private class Parser(private val s: String) {
         private var i = 0
@@ -61,12 +61,10 @@ object MiniJson {
             expect('"')
             val sb = StringBuilder()
             while (i < s.length) {
-                val c = s[i++]
-                when (c) {
+                when (val c = s[i++]) {
                     '"' -> return sb.toString()
                     '\\' -> {
-                        val e = s[i++]
-                        when (e) {
+                        when (val e = s[i++]) {
                             '"' -> sb.append('"'); '\\' -> sb.append('\\'); '/' -> sb.append('/')
                             'n' -> sb.append('\n'); 't' -> sb.append('\t'); 'r' -> sb.append('\r')
                             'b' -> sb.append('\b')

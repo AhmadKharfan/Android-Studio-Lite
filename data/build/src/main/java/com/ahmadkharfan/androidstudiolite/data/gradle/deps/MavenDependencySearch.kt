@@ -38,7 +38,7 @@ class MavenDependencySearch(
     fun versions(group: String, artifact: String, rows: Int = 50): List<String> {
         val q = "g:\"$group\" AND a:\"$artifact\""
         val url = "$baseUrl?q=${encode(q)}&core=gav&rows=$rows&wt=json"
-        return parseDocs(http.get(url)) { doc -> doc["v"] as? String }.filterNotNull()
+        return parseDocs(http.get(url)) { doc -> doc["v"] as? String }
     }
 
     private fun <T> parseDocs(body: String, map: (Map<String, Any?>) -> T?): List<T> {

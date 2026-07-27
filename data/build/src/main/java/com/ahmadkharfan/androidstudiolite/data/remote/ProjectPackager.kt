@@ -8,7 +8,6 @@ import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.coroutineContext
 
 class ProjectPackager(
     private val excludedDirs: Set<String> = DEFAULT_EXCLUDED_DIRS,
@@ -36,7 +35,7 @@ class ProjectPackager(
         zip.inputStream().buffered(BUFFER_SIZE).use { input ->
             val buffer = ByteArray(BUFFER_SIZE)
             while (true) {
-                coroutineContext.ensureActive()
+                kotlin.coroutines.coroutineContext.ensureActive()
                 val read = input.read(buffer)
                 if (read <= 0) break
                 digest.update(buffer, 0, read)
@@ -85,7 +84,7 @@ class ProjectPackager(
     private suspend fun zipDirectory(root: File, dir: File, zip: ZipOutputStream) {
         val children = dir.listFiles() ?: return
         for (child in children.sortedBy { it.name }) {
-            coroutineContext.ensureActive()
+            kotlin.coroutines.coroutineContext.ensureActive()
             if (child.isDirectory) {
                 if (isExcludedDir(child)) continue
                 if (child.listFiles().isNullOrEmpty()) {
@@ -150,8 +149,8 @@ class ProjectPackager(
                 val field = ZipEntry::class.java.getDeclaredField(name)
                 field.isAccessible = true
                 when (field.type) {
-                    java.lang.Long.TYPE, java.lang.Long::class.java -> field.setLong(entry, attrs)
-                    java.lang.Integer.TYPE, java.lang.Integer::class.java -> field.setInt(entry, attrs.toInt())
+                    Long::class.javaPrimitiveType, Long::class.java -> field.setLong(entry, attrs)
+                    Int::class.javaPrimitiveType, Int::class.java -> field.setInt(entry, attrs.toInt())
                     else -> continue
                 }
                 return
