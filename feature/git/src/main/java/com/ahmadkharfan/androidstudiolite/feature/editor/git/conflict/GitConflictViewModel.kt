@@ -3,8 +3,8 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict
 import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitIntegrationRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
 import java.io.File
 
 data class GitConflictUiState(
@@ -55,7 +55,7 @@ class GitConflictViewModel(
         mutate { gitRepository.markResolved(requireRoot(), path) }
     }
 
-    override fun dismissMarkerWarning() = updateState { copy(markerOverridePath = null) }
+    override fun dismissMarkerWarning(): Unit = updateState { copy(markerOverridePath = null) }
 
     private fun mutate(block: suspend () -> Unit) {
         updateState { copy(loading = true, error = null) }

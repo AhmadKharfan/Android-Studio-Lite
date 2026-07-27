@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.ActionMode
 import android.view.KeyEvent
+import android.view.View.OnFocusChangeListener
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
@@ -42,7 +43,7 @@ class TerminalInputEditText @JvmOverloads constructor(
         setTextIsSelectable(false)
         customSelectionActionModeCallback = DisabledActionMode
 
-        onFocusChangeListener = android.view.View.OnFocusChangeListener { _, hasFocus ->
+        onFocusChangeListener = OnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) hideKeyboard()
         }
         inputType = InputType.TYPE_CLASS_TEXT or

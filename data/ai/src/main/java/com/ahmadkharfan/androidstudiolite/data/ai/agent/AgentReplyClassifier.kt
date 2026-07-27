@@ -21,7 +21,7 @@ internal object AgentReplyClassifier {
             salvaged.isNotEmpty() && preferActions -> "salvage"
             truncated -> "truncated"
             looksLike && root == null -> "invalid_protocol_json"
-            looksLike && actions.isEmpty() && salvaged.isEmpty() -> "empty_protocol_json"
+            looksLike && salvaged.isEmpty() -> "empty_protocol_json"
             else -> "prose_or_failure"
         }
         return AgentProtocol.ParseDiagnostic(

@@ -2,7 +2,6 @@ package com.ahmadkharfan.androidstudiolite.data.local
 
 import com.ahmadkharfan.androidstudiolite.domain.model.FileChangeEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.RootInvalidationReason
-import java.io.File
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.take

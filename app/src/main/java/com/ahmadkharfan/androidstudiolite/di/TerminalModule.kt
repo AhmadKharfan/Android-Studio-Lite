@@ -11,7 +11,7 @@ import java.io.File
 
 val terminalModule: Module = module {
     single { ProotEnvironment(androidContext()) }
-    single { LinuxBootstrapInstaller(androidContext(), get()) }
+    single { LinuxBootstrapInstaller(get()) }
     single {
         val proot: ProotEnvironment = get()
         TerminalSessionManager(

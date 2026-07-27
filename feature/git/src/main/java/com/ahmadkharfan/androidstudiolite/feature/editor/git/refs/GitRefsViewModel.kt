@@ -11,11 +11,11 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthController
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptState
-import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
 import java.io.File
 import java.net.URI
 
@@ -41,8 +41,8 @@ class GitRefsViewModel(
     private val mode: GitRefsMode,
     projectPathResolver: ProjectPathResolver,
     private val gitRepository: GitRepository,
-    private val credentialStore: GitCredentialStore,
-    private val authenticator: GitHubDeviceAuthenticator,
+    credentialStore: GitCredentialStore,
+    authenticator: GitHubDeviceAuthenticator,
 ) : GitViewModel<GitRefsUiState, Nothing>(
     GitRefsUiState(mode, authPrompt = GitAuthPromptState(gitHubAvailable = authenticator.isConfigured)),
 ), GitRefsInteractionListener {
@@ -129,7 +129,7 @@ class GitRefsViewModel(
         },
     )
 
-    override fun dismissForceDelete() = updateState { copy(forceDeleteCandidate = null) }
+    override fun dismissForceDelete(): Unit = updateState { copy(forceDeleteCandidate = null) }
 
     override fun publish(name: String) {
         ensureRemoteAuth { syncOp(retry = { publish(name) }) { gitRepository.publishBranch(requireRoot(), name).detail } }
@@ -199,13 +199,13 @@ class GitRefsViewModel(
         return runCatching { URI(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 
-    override fun onAuthModeChanged(mode: GitAuthMode) = authController.onAuthModeChanged(mode)
-    override fun onAuthTokenChanged(token: String) = authController.onAuthTokenChanged(token)
-    override fun onSubmitAuthToken() = authController.onSubmitAuthToken()
-    override fun onStartGitHubSignIn() = authController.onStartGitHubSignIn()
-    override fun onDismissAuthPrompt() = authController.onDismissAuthPrompt()
+    override fun onAuthModeChanged(mode: GitAuthMode): Unit = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String): Unit = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken(): Unit = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn(): Unit = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt(): Unit = authController.onDismissAuthPrompt()
 
-    override fun dismissSyncMessage() = updateState { copy(syncMessage = null) }
+    override fun dismissSyncMessage(): Unit = updateState { copy(syncMessage = null) }
 
     override fun createTag(name: String, message: String?) = runMutation {
         gitRepository.createTag(requireRoot(), name.trim(), message?.takeIf { it.isNotBlank() })

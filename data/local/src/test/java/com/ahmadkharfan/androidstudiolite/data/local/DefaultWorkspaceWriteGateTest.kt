@@ -13,7 +13,7 @@ class DefaultWorkspaceWriteGateTest {
         val gate = DefaultWorkspaceWriteGate()
         val root = File("/projects/sample")
         var prepared = false
-        val registration = gate.register(root, WorkspaceWriteHandler { prepared = true })
+        val registration = gate.register(root) { prepared = true }
 
         gate.prepareForWorktreeMutation(File("/projects/../projects/sample"))
         assertTrue(prepared)

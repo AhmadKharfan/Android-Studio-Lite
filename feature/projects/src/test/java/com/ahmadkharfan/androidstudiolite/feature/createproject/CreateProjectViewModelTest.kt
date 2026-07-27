@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.createproject
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.model.ProjectTemplate
+import com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.TemplateRepository
 import kotlinx.coroutines.Dispatchers
@@ -138,7 +139,7 @@ class CreateProjectViewModelTest {
         vm.onLanguageChanged(LANG_JAVA)
         vm.onCreateProject()
 
-        assertEquals(com.ahmadkharfan.androidstudiolite.domain.model.TemplateLanguage.JAVA, projects.created?.language)
+        assertEquals(TemplateLanguage.JAVA, projects.created?.language)
     }
 
     @Test

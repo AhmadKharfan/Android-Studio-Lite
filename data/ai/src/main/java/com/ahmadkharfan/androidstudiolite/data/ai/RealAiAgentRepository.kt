@@ -45,34 +45,34 @@ class RealAiAgentRepository(
         } else {
             keyStore.setKey(providerId, normalized)
         }
-        keyErrors.value = keyErrors.value - providerId
+        keyErrors.value -= providerId
         preferencesStore.setKeyStatus(providerId, null)
     }
 
     override suspend fun testApiKey(providerId: String) {
         val key = keyStore.getKey(providerId)
         if (key.isBlank()) {
-            keyErrors.value = keyErrors.value + (providerId to "Enter an API key first.")
+            keyErrors.value += providerId to "Enter an API key first."
             preferencesStore.setKeyStatus(providerId, "invalid")
             return
         }
         val baseUrl = customBaseUrlFor(providerId)
         if (providerId == AiProviderCatalog.CUSTOM_ID && baseUrl.isBlank()) {
-            keyErrors.value = keyErrors.value + (providerId to "Enter a base URL first.")
+            keyErrors.value += providerId to "Enter a base URL first."
             preferencesStore.setKeyStatus(providerId, "invalid")
             return
         }
-        testingProviders.value = testingProviders.value + providerId
+        testingProviders.value += providerId
         val result = withContext(Dispatchers.IO) {
             runCatching { gateway.testKey(providerId, key, baseUrl) }
         }
-        keyErrors.value = if (result.isSuccess) {
-            keyErrors.value - providerId
+        if (result.isSuccess) {
+            keyErrors.value -= providerId
         } else {
-            keyErrors.value + (providerId to (result.exceptionOrNull()?.message ?: "Unknown error"))
+            keyErrors.value += providerId to (result.exceptionOrNull()?.message ?: "Unknown error")
         }
         preferencesStore.setKeyStatus(providerId, if (result.isSuccess) "valid" else "invalid")
-        testingProviders.value = testingProviders.value - providerId
+        testingProviders.value -= providerId
         if (result.isSuccess) refreshModels(providerId)
     }
 
@@ -104,7 +104,7 @@ class RealAiAgentRepository(
         if (providerId == AiProviderCatalog.CUSTOM_ID && baseUrl.isBlank()) return
         val models = withContext(Dispatchers.IO) { gateway.listModels(providerId, key, baseUrl) }
         if (models.isNotEmpty()) {
-            fetchedModels.value = fetchedModels.value + (providerId to models)
+            fetchedModels.value += providerId to models
         }
     }
 

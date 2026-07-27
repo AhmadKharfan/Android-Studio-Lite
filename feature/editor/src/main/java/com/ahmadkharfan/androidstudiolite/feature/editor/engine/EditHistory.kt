@@ -10,7 +10,6 @@ class EditHistory(private val coalesceLimit: Int = 80) {
     private val undoStack = ArrayList<EditRecord>()
     private val redoStack = ArrayList<EditRecord>()
     val canUndo: Boolean get() = undoStack.isNotEmpty()
-    val canRedo: Boolean get() = redoStack.isNotEmpty()
     fun record(edit: EditRecord, coalesce: Boolean) {
         redoStack.clear()
         val top = undoStack.lastOrNull()
@@ -32,10 +31,7 @@ class EditHistory(private val coalesceLimit: Int = 80) {
         undoStack.add(record)
         return record
     }
-    fun clear() {
-        undoStack.clear()
-        redoStack.clear()
-    }
+
     private fun canCoalesce(top: EditRecord, next: EditRecord): Boolean {
         val insertRun = top.removed.isEmpty() && next.removed.isEmpty() &&
             next.inserted.length == 1 && next.inserted[0] != '\n' &&

@@ -30,7 +30,6 @@ class EditorSession(
     val text: String get() = document.text
     val lineCount: Int get() = document.lineCount
     val canUndo: Boolean get() = history.canUndo
-    val canRedo: Boolean get() = history.canRedo
     val caretPosition: TextPosition get() = document.offsetToPosition(selection.caret)
     fun tokensForLine(line: Int): List<SyntaxToken> = lineTokens.getOrElse(line) { emptyList() }
     fun setSelection(anchor: Int, caret: Int) {
@@ -80,7 +79,7 @@ class EditorSession(
     private fun tokenizeAll() {
         lineTokens.clear()
         lineEndStates.clear()
-        var state = lexer.initialState
+        var state = LexerState.Default
         for (line in 0 until document.lineCount) {
             val result = lexer.tokenizeLine(document.lineText(line), state)
             lineTokens.add(result.tokens)
@@ -99,11 +98,11 @@ class EditorSession(
             lineEndStates.removeAt(lineEndStates.lastIndex)
         }
         var i = firstLine
-        var entry = if (firstLine == 0) lexer.initialState else lineEndStates[firstLine - 1]
+        var entry = if (firstLine == 0) LexerState.Default else lineEndStates[firstLine - 1]
         while (i < newCount) {
             val oldIndex = i - delta
             val converged = i > lastChangedLine && oldIndex in 0 until oldCount &&
-                entry == (if (oldIndex == 0) lexer.initialState else oldEndStates[oldIndex - 1])
+                entry == (if (oldIndex == 0) LexerState.Default else oldEndStates[oldIndex - 1])
             if (converged) {
                 var k = oldIndex
                 while (i < newCount) {

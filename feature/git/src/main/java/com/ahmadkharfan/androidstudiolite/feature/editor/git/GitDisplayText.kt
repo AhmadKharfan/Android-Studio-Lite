@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.feature.git
+package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
 fun String.middleEllipsis(maxChars: Int = 48): String {
     if (length <= maxChars) return this

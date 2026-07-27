@@ -55,6 +55,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegme
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
@@ -62,7 +63,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
@@ -182,7 +183,7 @@ private fun ColumnScope.DiffContent(
 
 @Composable
 private fun ColumnScope.UnifiedDiff(
-    diff: com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff,
+    diff: GitFileDiff,
     target: GitDiffTarget,
     onStage: (GitDiffHunk) -> Unit,
     onUnstage: (GitDiffHunk) -> Unit,
@@ -226,7 +227,7 @@ private fun ColumnScope.UnifiedDiff(
 
 @Composable
 private fun ColumnScope.SideBySideDiff(
-    diff: com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff,
+    diff: GitFileDiff,
     target: GitDiffTarget,
     onStage: (GitDiffHunk) -> Unit,
     onUnstage: (GitDiffHunk) -> Unit,
@@ -338,8 +339,6 @@ private fun Context.findActivity(): Activity? {
 }
 
 internal sealed interface DiffRow {
-    data class Header(val index: Int, val hunk: GitDiffHunk) : DiffRow
-    data class Unified(val line: GitDiffLine) : DiffRow
     data class Paired(val left: GitDiffLine?, val right: GitDiffLine?) : DiffRow
 }
 

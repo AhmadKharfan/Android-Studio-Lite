@@ -66,7 +66,7 @@ internal object AgentReplySalvage {
         var end = -1
         for (pattern in endPatterns) {
             val index = slice.indexOf(pattern)
-            if (index >= 0 && (end < 0 || index < end)) {
+            if (index >= 0 && (end == -1 || index < end)) {
                 end = index
             }
         }

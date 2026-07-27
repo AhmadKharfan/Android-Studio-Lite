@@ -28,7 +28,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R

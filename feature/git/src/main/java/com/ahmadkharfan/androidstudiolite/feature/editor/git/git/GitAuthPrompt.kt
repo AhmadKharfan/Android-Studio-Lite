@@ -1,5 +1,6 @@
-package com.ahmadkharfan.androidstudiolite.feature.editor.git
+package com.ahmadkharfan.androidstudiolite.feature.editor.git.git
 
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,8 +82,6 @@ class GitAuthController(
     private var deviceJob: Job? = null
     private var closeJob: Job? = null
 
-    val isGitHubSignInAvailable: Boolean get() = authenticator.isConfigured
-
     fun hasCredentials(host: String?): Boolean = host != null && credentialStore.hasCredentials(host)
 
     fun open(host: String?, retry: () -> Unit) {
@@ -155,7 +154,7 @@ class GitAuthController(
         set { copy(isBusy = false, device = null, succeeded = true, error = null) }
         closeJob?.cancel()
         closeJob = scope.launch {
-            delay(1100)
+            delay(1.1.seconds)
             closeAndRetry()
         }
     }
@@ -175,8 +174,8 @@ class GitAuthController(
         closeJob = null
     }
 
-    private fun set(block: GitAuthPromptState.() -> GitAuthPromptState) {
-        current = current.block()
+    private fun set(transform: GitAuthPromptState.() -> GitAuthPromptState) {
+        current = transform(current)
         emit(current)
     }
 }

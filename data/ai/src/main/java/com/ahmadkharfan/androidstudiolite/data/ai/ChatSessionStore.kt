@@ -35,7 +35,7 @@ internal class ChatSessionStore(
     suspend fun newChat(projectId: String) {
         val session = sessionFor(projectId)
         val thread = newThread()
-        session.threads.value = session.threads.value + thread
+        session.threads.value += thread
         session.activeThreadId.value = thread.id
         persist(session)
     }

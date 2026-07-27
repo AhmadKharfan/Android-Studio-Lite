@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.hub
 
+import kotlin.time.Duration.Companion.milliseconds
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
@@ -40,7 +41,7 @@ class HubViewModel(
             },
         )
         viewModelScope.launch {
-            delay(350)
+            delay(350.milliseconds)
             updateState { copy(isLoadingRecents = false) }
         }
     }

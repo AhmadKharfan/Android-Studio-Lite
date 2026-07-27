@@ -145,7 +145,5 @@ class TerminalSessionManager(
 
         fun legacyProjectSessionId(projectPath: String): String =
             PROJECT_SESSION_PREFIX + projectKey(projectPath)
-
-        fun projectSessionId(projectPath: String): String = legacyProjectSessionId(projectPath)
     }
 }

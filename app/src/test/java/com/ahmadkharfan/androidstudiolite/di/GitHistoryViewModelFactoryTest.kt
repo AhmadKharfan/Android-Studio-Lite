@@ -43,7 +43,7 @@ class GitHistoryViewModelFactoryTest {
 
                     factory { params ->
                         GitHistoryViewModel(
-                            projectId = params.get(0),
+                            projectId = params[0],
                             requestedPath = params.get<String>(1).takeIf { it.isNotBlank() },
                             projectPathResolver = get(),
                             gitRepository = get(),

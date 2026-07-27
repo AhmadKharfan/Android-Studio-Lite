@@ -16,16 +16,20 @@ private const val OUTGOING_FRACTION = 0.12f
 
 private fun offset(fraction: Float): (Int) -> Int = { fullWidth -> (fullWidth * fraction).roundToInt() }
 
+@Suppress("UnusedReceiverParameter")
 fun AnimatedContentTransitionScope<NavBackStackEntry>.aslEnter(): EnterTransition =
     slideInHorizontally(AslMotion.offsetSpec(), offset(INCOMING_FRACTION)) + fadeIn(AslMotion.enterSpec())
 
+@Suppress("UnusedReceiverParameter")
 fun AnimatedContentTransitionScope<NavBackStackEntry>.aslExit(): ExitTransition =
     slideOutHorizontally(AslMotion.offsetSpec()) { -(it * OUTGOING_FRACTION).roundToInt() } +
         fadeOut(AslMotion.exitSpec())
 
+@Suppress("UnusedReceiverParameter")
 fun AnimatedContentTransitionScope<NavBackStackEntry>.aslPopEnter(): EnterTransition =
     slideInHorizontally(AslMotion.offsetSpec()) { -(it * OUTGOING_FRACTION).roundToInt() } +
         fadeIn(AslMotion.enterSpec())
 
+@Suppress("UnusedReceiverParameter")
 fun AnimatedContentTransitionScope<NavBackStackEntry>.aslPopExit(): ExitTransition =
     slideOutHorizontally(AslMotion.offsetSpec(), offset(INCOMING_FRACTION)) + fadeOut(AslMotion.exitSpec())

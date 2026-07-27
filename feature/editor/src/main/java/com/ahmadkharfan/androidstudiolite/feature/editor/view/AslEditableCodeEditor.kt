@@ -30,9 +30,12 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSugg
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.R as DesignSystemR
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
+import android.view.KeyEvent
 
 @Composable
 fun AslEditableCodeEditor(
@@ -51,8 +54,7 @@ fun AslEditableCodeEditor(
     revealNonce: Int = 0,
     revealOffset: Int = 0,
     enableVolumeKeys: Boolean = true,
-    projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
+    projectIndex: ProjectSymbolIndex = ProjectSymbolIndex.EMPTY,
 ) {
     val colors = AslTheme.colors
     val density = LocalDensity.current
@@ -62,7 +64,7 @@ fun AslEditableCodeEditor(
             "monospace" -> android.graphics.Typeface.MONOSPACE
             else -> ResourcesCompat.getFont(
                 context,
-                com.ahmadkharfan.androidstudiolite.designsystem.R.font.jetbrains_mono,
+                DesignSystemR.font.jetbrains_mono,
             )
         }
     }
@@ -170,11 +172,11 @@ fun EditorVolumeScrollEffect(
         if (!enabled) return@DisposableEffect onDispose {}
         EditorVolumeKeyDispatcher.handler = { event ->
             when (event.keyCode) {
-                android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     onVolumeKey(false)
                     true
                 }
-                android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
+                KeyEvent.KEYCODE_VOLUME_UP -> {
                     onVolumeKey(true)
                     true
                 }

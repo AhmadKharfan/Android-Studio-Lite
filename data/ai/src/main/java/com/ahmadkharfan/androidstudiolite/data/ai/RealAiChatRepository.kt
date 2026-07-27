@@ -23,15 +23,15 @@ class RealAiChatRepository(
     private val aiAgentRepository: AiAgentRepository,
     private val keyStore: EncryptedAiKeyStore,
     private val gateway: AiLlmGateway,
-    private val executor: AgentToolExecutor,
-    private val historyStore: ChatHistoryStore,
+    executor: AgentToolExecutor,
+    historyStore: ChatHistoryStore,
 ) : AiChatRepository {
 
     private val messageEditor = ChatMessageEditor()
     private val sessionStore = ChatSessionStore(historyStore) { messageEditor.newThread() }
     private val pendingApprovals = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val agentRunner = AgentTurnRunner(
-        streamer = LlmStreamer { request, onDelta ->
+        streamer = { request, onDelta ->
             gateway.chatRawStream(
                 request.providerId,
                 request.apiKey,

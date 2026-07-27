@@ -4,6 +4,7 @@ import com.ahmadkharfan.androidstudiolite.data.remote.protocol.ArtifactResponse
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import java.io.File
 import java.security.MessageDigest
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
 class ArtifactDownloader internal constructor(
@@ -17,7 +18,7 @@ class ArtifactDownloader internal constructor(
         downloadDir = downloadDir,
         fetchArtifact = client::artifact,
         transferArtifact = client::download,
-        waitBeforeRetry = { delay(it) },
+        waitBeforeRetry = { delay(it.milliseconds) },
     )
 
     data class DownloadedArtifact(val file: File, val kind: BuildEvent.ArtifactKind)

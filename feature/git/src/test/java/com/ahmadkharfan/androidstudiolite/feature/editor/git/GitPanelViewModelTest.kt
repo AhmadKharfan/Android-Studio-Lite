@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
+import kotlin.time.Duration.Companion.seconds
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.domain.model.ActiveOperation
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
@@ -11,6 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCommit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictInfo
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitHeadState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
@@ -19,10 +21,23 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitRemote
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSyncResult
 import com.ahmadkharfan.androidstudiolite.domain.model.GitUpstream
-import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
+import com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine
+import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
+import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFastForwardMode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage
+import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
+import com.ahmadkharfan.androidstudiolite.domain.model.GitSubmodule
+import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
@@ -75,7 +90,7 @@ class GitPanelViewModelTest {
             headState = GitHeadState.Branch("main"),
         )
 
-        val state = withTimeout(5_000) { viewModel.state.first { it.untrackedChanges.isNotEmpty() } }
+        val state = withTimeout(5.seconds) { viewModel.state.first { it.untrackedChanges.isNotEmpty() } }
         assertEquals(listOf("conflict.kt"), state.conflicts.map { it.path })
         assertEquals(listOf("staged.kt", "both.kt"), state.stagedChanges.map { it.path })
         assertEquals(listOf("changed.kt", "both.kt"), state.unstagedChanges.map { it.path })
@@ -93,7 +108,7 @@ class GitPanelViewModelTest {
             ),
         )
 
-        val rename = withTimeout(5_000) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
+        val rename = withTimeout(5.seconds) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
             .stagedChanges.single()
         assertEquals("old.kt → new.kt", rename.displayPath)
         assertEquals("new.kt", rename.path)
@@ -107,10 +122,10 @@ class GitPanelViewModelTest {
             commitMessage = "message",
         )
         val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
+        withTimeout(5.seconds) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
 
         viewModel.onCommitAndPush()
-        val result = withTimeout(5_000) { viewModel.state.first { it.statusMessage?.contains("Committed and pushed") == true } }
+        val result = withTimeout(5.seconds) { viewModel.state.first { it.statusMessage?.contains("Committed and pushed") == true } }
 
         assertEquals(1, repository.commitCalls)
         assertEquals(1, repository.pushCalls)
@@ -126,10 +141,10 @@ class GitPanelViewModelTest {
             commitMessage = "message",
         )
         val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
+        withTimeout(5.seconds) { viewModel.state.first { it.stagedChanges.isNotEmpty() } }
 
         viewModel.onCommitAndPush()
-        val result = withTimeout(5_000) { viewModel.state.first { it.statusMessage?.contains("but push failed") == true } }
+        val result = withTimeout(5.seconds) { viewModel.state.first { it.statusMessage?.contains("but push failed") == true } }
 
         assertEquals(1, repository.commitCalls)
         assertEquals(1, repository.pushCalls)
@@ -140,7 +155,7 @@ class GitPanelViewModelTest {
     @Test
     fun `remote editor validates URL then adds origin and updates it on re-add`() = runBlocking {
         val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { !it.loading } }
+        withTimeout(5.seconds) { viewModel.state.first { !it.loading } }
         viewModel.onOpenRemotes()
         viewModel.onAddRemote()
         viewModel.onRemoteUrlChanged("ssh://example.com/repo.git")
@@ -150,14 +165,14 @@ class GitPanelViewModelTest {
 
         viewModel.onRemoteUrlChanged("https://example.com/repo.git")
         viewModel.onSaveRemote()
-        val saved = withTimeout(5_000) { viewModel.state.first { it.remotes.any { remote -> remote.name == "origin" } } }
+        val saved = withTimeout(5.seconds) { viewModel.state.first { it.remotes.any { remote -> remote.name == "origin" } } }
         assertEquals("https://example.com/repo.git", saved.remotes.single().url)
 
 
         viewModel.onAddRemote()
         viewModel.onRemoteUrlChanged("https://example.org/other.git")
         viewModel.onSaveRemote()
-        val updated = withTimeout(5_000) { viewModel.state.first { it.remotes.singleOrNull()?.url == "https://example.org/other.git" } }
+        val updated = withTimeout(5.seconds) { viewModel.state.first { it.remotes.singleOrNull()?.url == "https://example.org/other.git" } }
         assertEquals(1, updated.remotes.size)
         viewModel.viewModelScope.cancel()
     }
@@ -165,11 +180,11 @@ class GitPanelViewModelTest {
     @Test
     fun `selected pull mode is passed to repository`() = runBlocking {
         val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { !it.loading } }
+        withTimeout(5.seconds) { viewModel.state.first { !it.loading } }
 
         viewModel.onPullModeChanged(PullMode.REBASE)
         viewModel.onPull()
-        withTimeout(5_000) { viewModel.state.first { it.statusMessage?.startsWith("Pull:") == true } }
+        withTimeout(5.seconds) { viewModel.state.first { it.statusMessage?.startsWith("Pull:") == true } }
 
         assertEquals(PullMode.REBASE, repository.lastPullMode)
         viewModel.viewModelScope.cancel()
@@ -189,12 +204,11 @@ class GitPanelViewModelTest {
             override fun hasCredentials(host: String): Boolean = false
             override fun save(host: String, credentials: GitCredentials) = Unit
             override fun clear(host: String) = Unit
-            override val changes = kotlinx.coroutines.flow.emptyFlow<Unit>()
+            override val changes = emptyFlow<Unit>()
         },
-        authenticator = object : com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator {
+        authenticator = object : GitHubDeviceAuthenticator {
             override val isConfigured: Boolean = false
-            override fun authenticate() =
-                kotlinx.coroutines.flow.emptyFlow<com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState>()
+            override fun authenticate() = emptyFlow<GitHubDeviceAuthState>()
         },
     )
 
@@ -220,22 +234,22 @@ class GitPanelViewModelTest {
         override suspend fun refresh(repoDir: File, includeIgnored: Boolean) = Unit
         override fun clone(url: String, destination: File, options: CloneOptions, credentials: GitCredentials?): Flow<CloneProgress> = emptyFlow()
         override suspend fun diffIndexToWorktree(repoDir: File, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun diffHeadToIndex(repoDir: File, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun diffCommitToParent(repoDir: File, commitId: String, path: String, force: Boolean) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun diffIndexToBuffer(repoDir: File, path: String, buffer: String) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff(path)
+            GitFileDiff(path)
         override suspend fun stageHunk(
             repoDir: File,
             path: String,
-            hunk: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk,
+            hunk: GitDiffHunk,
         ) = Unit
         override suspend fun unstageHunk(
             repoDir: File,
             path: String,
-            hunk: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk,
+            hunk: GitDiffHunk,
         ) = Unit
         override suspend fun stage(repoDir: File, path: String) = Unit
         override suspend fun unstage(repoDir: File, path: String) = Unit
@@ -274,47 +288,49 @@ class GitPanelViewModelTest {
             listOf(GitCommit("id", "id", it, "Test", "test@example.com", 0L))
         }.orEmpty()
         override suspend fun log(repoDir: File, cursor: String?, limit: Int) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage(emptyList(), null)
+            GitLogPage(emptyList(), null)
         override suspend fun fileHistory(repoDir: File, path: String, cursor: String?, limit: Int) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage(emptyList(), null)
+            GitLogPage(emptyList(), null)
+        @Suppress("UNUSED_PARAMETER")
         override suspend fun commitDetails(repoDir: File, commitId: String) = error("unused")
         override suspend fun blame(repoDir: File, path: String) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine>()
+            emptyList<GitBlameLine>()
         override suspend fun isShallow(repoDir: File) = false
         override suspend fun deepen(repoDir: File) = GitSyncResult(true, "")
         override suspend fun listTags(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitTag>()
+            emptyList<GitTag>()
         override suspend fun createTag(repoDir: File, name: String, message: String?, targetCommit: String?) = Unit
         override suspend fun deleteTag(repoDir: File, name: String) = Unit
         override suspend fun pushTag(repoDir: File, name: String) = GitSyncResult(true, "")
         override suspend fun pushAllTags(repoDir: File) = GitSyncResult(true, "")
         override suspend fun stashCreate(repoDir: File, message: String?, includeUntracked: Boolean): String? = null
         override suspend fun stashList(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitStash>()
+            emptyList<GitStash>()
         override suspend fun stashApply(repoDir: File, index: Int) = Unit
         override suspend fun stashPop(repoDir: File, index: Int) = Unit
         override suspend fun stashDrop(repoDir: File, index: Int) = Unit
-        override suspend fun merge(repoDir: File, ref: String, ffMode: com.ahmadkharfan.androidstudiolite.domain.model.GitFastForwardMode, message: String?) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED)
+        override suspend fun merge(repoDir: File, ref: String, ffMode: GitFastForwardMode, message: String?) = GitIntegrationResult(GitIntegrationStatus.MERGED)
         override suspend fun mergeAbort(repoDir: File) = Unit
-        override suspend fun cherryPick(repoDir: File, commitId: String) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED)
+        override suspend fun cherryPick(repoDir: File, commitId: String) = GitIntegrationResult(GitIntegrationStatus.APPLIED)
         override suspend fun cherryPickAbort(repoDir: File) = Unit
-        override suspend fun revert(repoDir: File, commitId: String) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED)
+        override suspend fun revert(repoDir: File, commitId: String) = GitIntegrationResult(GitIntegrationStatus.APPLIED)
         override suspend fun revertAbort(repoDir: File) = Unit
-        override suspend fun rebase(repoDir: File, upstreamRef: String) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED)
-        override suspend fun rebaseContinue(repoDir: File) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED)
-        override suspend fun rebaseSkip(repoDir: File) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED)
-        override suspend fun rebaseAbort(repoDir: File) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.ABORTED)
-        override suspend fun conflictEntries(repoDir: File) = emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry>()
+        override suspend fun rebase(repoDir: File, upstreamRef: String) = GitIntegrationResult(GitIntegrationStatus.MERGED)
+        override suspend fun rebaseContinue(repoDir: File) = GitIntegrationResult(GitIntegrationStatus.MERGED)
+        override suspend fun rebaseSkip(repoDir: File) = GitIntegrationResult(GitIntegrationStatus.MERGED)
+        override suspend fun rebaseAbort(repoDir: File) = GitIntegrationResult(GitIntegrationStatus.ABORTED)
+        override suspend fun conflictEntries(repoDir: File) = emptyList<GitConflictEntry>()
         override suspend fun resolveAcceptOurs(repoDir: File, path: String) = Unit
         override suspend fun resolveAcceptTheirs(repoDir: File, path: String) = Unit
         override suspend fun markResolved(repoDir: File, path: String) = Unit
         override suspend fun restoreFiles(repoDir: File, paths: List<String>) = Unit
-        override suspend fun reset(repoDir: File, commitId: String, mode: com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode) = Unit
+        override suspend fun reset(repoDir: File, commitId: String, mode: GitResetMode) = Unit
         override suspend fun clean(repoDir: File, dryRun: Boolean, includeIgnored: Boolean) = emptyList<String>()
         override suspend fun submodules(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitSubmodule>()
+            emptyList<GitSubmodule>()
         override suspend fun submoduleInit(repoDir: File) = Unit
         override suspend fun submoduleUpdate(repoDir: File) = Unit
+        @Suppress("UNUSED_PARAMETER")
         override suspend fun bootstrapRepository(repoDir: File, initialCommitMessage: String?): String? = null
         override suspend fun addToGitignore(repoDir: File, path: String) = Unit
         override suspend fun push(repoDir: File, setUpstreamIfMissing: Boolean): GitSyncResult {

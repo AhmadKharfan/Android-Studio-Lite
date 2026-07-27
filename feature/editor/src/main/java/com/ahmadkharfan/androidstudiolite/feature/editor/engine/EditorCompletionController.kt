@@ -1,12 +1,15 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.engine
+
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolCompletionProvider
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
+
 class EditorCompletionController {
     private val builtInCache = HashMap<EditorLanguage, BuiltInCompletionProvider>()
 
-    var projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY
+    var projectIndex: ProjectSymbolIndex = ProjectSymbolIndex.EMPTY
 
-    private val projectProvider =
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolCompletionProvider { projectIndex }
+    private val projectProvider = ProjectSymbolCompletionProvider { projectIndex }
 
     private fun providersFor(language: EditorLanguage): List<CompletionProvider> {
         val builtIn = builtInCache.getOrPut(language) {
@@ -44,8 +47,7 @@ class EditorCompletionController {
     fun query(session: EditorSession): List<CompletionItem> {
         if (!session.selection.isCollapsed) return emptyList()
         if (session.language == EditorLanguage.Xml) {
-            return com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
-                .complete(session.text, session.selection.caret, session.filePath).items
+            return XmlBackend.complete(session.text, session.selection.caret, session.filePath).items
         }
         return queryHeuristic(session)
     }
@@ -67,14 +69,17 @@ class EditorCompletionController {
         ) {
             return emptyList()
         }
-        val merged = providersFor(context.language).flatMap { it.complete(context) }
-        val seen = HashSet<String>()
-        return merged
+        val merged = providersFor(context.language)
+            .asSequence()
+            .flatMap { it.complete(context) }
             .filter { isUsefulCompletion(it, context) }
             .filter { matchesPrefix(it, context) }
+        val seen = HashSet<String>()
+        return merged
             .filter { seen.add(it.label) }
             .sortedWith(rankComparator(context))
             .take(MAX_ITEMS)
+            .toList()
     }
     private fun isUsefulCompletion(item: CompletionItem, context: CompletionContext): Boolean {
         if (item.kind == CompletionKind.Keyword || item.kind == CompletionKind.Snippet) {
@@ -97,8 +102,7 @@ class EditorCompletionController {
             return KotlinCompletionScanner.shouldAutoPopup(session.text, session.selection.caret, typedChar)
         }
         if (session.language == EditorLanguage.Xml) {
-            return com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
-                .shouldAutoPopup(session.text, session.selection.caret, typedChar, session.filePath)
+            return XmlBackend.shouldAutoPopup(session.text, session.selection.caret, typedChar, session.filePath)
         }
         return isTriggerChar(typedChar)
     }
@@ -115,8 +119,7 @@ class EditorCompletionController {
     }
 
     private fun acceptXmlCompletion(session: EditorSession, item: CompletionItem): String {
-        val (start, _) = com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlBackend
-            .replacementRangeAt(session.text, session.selection.caret, session.filePath)
+        val (start, _) = XmlBackend.replacementRangeAt(session.text, session.selection.caret, session.filePath)
         val insertion = completionInsertion(item)
         val caretTarget = start + (insertion.marker.takeIf { it >= 0 } ?: insertion.text.length)
         session.replaceRange(start, session.selection.caret, insertion.text, caret = caretTarget)
@@ -124,7 +127,7 @@ class EditorCompletionController {
     }
 
     private fun completionInsertion(item: CompletionItem): CompletionInsertion {
-        val marker = item.insertText.indexOf("\$0")
+        val marker = item.insertText.indexOf("$0")
         val text = if (marker >= 0) item.insertText.removeRange(marker, marker + 2) else item.insertText
         return CompletionInsertion(text, marker)
     }
@@ -280,7 +283,7 @@ class EditorCompletionController {
         fun importPathStart(text: String, caret: Int): Int {
             val lineStart = text.lastIndexOf('\n', caret - 1) + 1
             val importIdx = text.indexOf("import ", lineStart)
-            return if (importIdx >= 0 && importIdx < caret) importIdx + "import ".length else caret
+            return if (importIdx in 0..<caret) importIdx + "import ".length else caret
         }
         fun matchesPrefix(item: CompletionItem, context: CompletionContext): Boolean {
             if (context.prefix.isEmpty()) return true

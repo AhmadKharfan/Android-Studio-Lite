@@ -5,7 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
 import java.io.File
 
 data class GitDiffUiState(
@@ -41,7 +41,7 @@ class GitDiffViewModel(
         )
     }
 
-    override fun setSideBySide(enabled: Boolean) = updateState { copy(sideBySide = enabled) }
+    override fun setSideBySide(enabled: Boolean): Unit = updateState { copy(sideBySide = enabled) }
 
     override fun showAnyway() = load(force = true)
 

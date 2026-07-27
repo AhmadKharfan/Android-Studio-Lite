@@ -4,8 +4,6 @@ import android.os.Build
 
 object LinuxDistro {
 
-    const val DISPLAY_NAME = "Alpine Linux"
-
     data class Rootfs(val url: String, val sha256: String)
 
 

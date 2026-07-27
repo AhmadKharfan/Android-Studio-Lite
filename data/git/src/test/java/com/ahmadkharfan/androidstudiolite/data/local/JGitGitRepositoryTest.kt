@@ -39,7 +39,7 @@ class JGitGitRepositoryTest {
         File(dir, name).apply { parentFile?.mkdirs() }.writeText(content)
     }
 
-    private suspend fun JGitGitRepository.pendingFiles(dir: File) =
+    private fun JGitGitRepository.pendingFiles(dir: File) =
         observeState(dir).value.files.filter { it.hasPendingChange }
 
     @Test

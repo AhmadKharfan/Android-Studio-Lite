@@ -11,6 +11,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.VariantModel
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildClientMeta
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
@@ -221,7 +222,7 @@ class EditorBuildController(
         val taskPath: String?,
     )
 
-    private suspend fun resolveBuildTargets(root: File, variant: String, kind: BuildKind, install: Boolean): BuildTargets? {
+    private fun resolveBuildTargets(root: File, variant: String, kind: BuildKind, install: Boolean): BuildTargets? {
         val appModule = projectModelFor(root)?.let { RunTargetResolver.resolveAppModule(it) }
         if (appModule == null || appModule.variants.isEmpty()) {
             failBuildPreparation("No supported Android application variants were found. Sync the project and try again.")
@@ -261,7 +262,7 @@ class EditorBuildController(
     }
 
     private fun applyPreflight(warnings: List<PreflightWarning>) {
-        val prefix = com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine(
+        val prefix = BuildLogLine(
             text = "Preflight: " + warnings.joinToString("; ") { "${it.title}: ${it.detail}" },
             isError = warnings.any { it.severity == PreflightSeverity.BLOCKER },
         )

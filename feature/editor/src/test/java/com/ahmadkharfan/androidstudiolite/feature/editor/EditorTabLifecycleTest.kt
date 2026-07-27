@@ -1,9 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
+import kotlin.time.Duration.Companion.seconds
 import androidx.lifecycle.viewModelScope
 import android.content.ContextWrapper
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
@@ -76,7 +78,7 @@ class EditorTabLifecycleTest {
     fun opensDefaultFileOnLoad() = runBlocking {
         val vm = viewModel()
         try {
-            val state = withTimeout(5_000) { vm.state.first { it.tabs.isNotEmpty() } }
+            val state = withTimeout(5.seconds) { vm.state.first { it.tabs.isNotEmpty() } }
             assertEquals(listOf(fileA.absolutePath), state.tabs.map { it.id })
             assertEquals(fileA.absolutePath, state.activeTabId)
         } finally {
@@ -88,14 +90,14 @@ class EditorTabLifecycleTest {
     fun openingASecondFileAddsAnActiveTabAndReopeningActivatesWithoutDuplicating() = runBlocking {
         val vm = viewModel()
         try {
-            withTimeout(5_000) { vm.state.first { it.tabs.isNotEmpty() } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.isNotEmpty() } }
 
             vm.onOpenFile(fileB.absolutePath, fileB.name)
-            withTimeout(5_000) { vm.state.first { it.activeTabId == fileB.absolutePath } }
+            withTimeout(5.seconds) { vm.state.first { it.activeTabId == fileB.absolutePath } }
             assertEquals(listOf(fileA.absolutePath, fileB.absolutePath), vm.state.value.tabs.map { it.id })
 
             vm.onOpenFile(fileA.absolutePath, fileA.name)
-            withTimeout(5_000) { vm.state.first { it.activeTabId == fileA.absolutePath } }
+            withTimeout(5.seconds) { vm.state.first { it.activeTabId == fileA.absolutePath } }
             assertEquals(2, vm.state.value.tabs.size)
         } finally {
             vm.viewModelScope.cancel()
@@ -106,12 +108,12 @@ class EditorTabLifecycleTest {
     fun closingActiveTabRemovesItAndActivatesRemaining() = runBlocking {
         val vm = viewModel()
         try {
-            withTimeout(5_000) { vm.state.first { it.tabs.isNotEmpty() } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.isNotEmpty() } }
             vm.onOpenFile(fileB.absolutePath, fileB.name)
-            withTimeout(5_000) { vm.state.first { it.tabs.size == 2 } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.size == 2 } }
 
             vm.onCloseTab(fileB.absolutePath)
-            withTimeout(5_000) { vm.state.first { it.tabs.size == 1 } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.size == 1 } }
             assertEquals(listOf(fileA.absolutePath), vm.state.value.tabs.map { it.id })
             assertEquals(fileA.absolutePath, vm.state.value.activeTabId)
         } finally {
@@ -123,12 +125,12 @@ class EditorTabLifecycleTest {
     fun editingASessionMarksItsTabModified() = runBlocking {
         val vm = viewModel()
         try {
-            withTimeout(5_000) { vm.state.first { it.tabs.isNotEmpty() } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.isNotEmpty() } }
             val session = vm.sessionFor(fileA.absolutePath)!!
             session.replaceRange(0, session.text.length, "edited")
             vm.onSessionEdited(fileA.absolutePath)
 
-            withTimeout(5_000) { vm.state.first { it.tabs.single().modified } }
+            withTimeout(5.seconds) { vm.state.first { it.tabs.single().modified } }
             assertTrue(vm.state.value.tabs.single { it.id == fileA.absolutePath }.modified)
         } finally {
             vm.viewModelScope.cancel()
@@ -175,7 +177,7 @@ class EditorTabLifecycleTest {
             apkInstaller = ApkInstaller(context),
             gradleReader = GradleProjectReader(),
             notifier = BuildNotifier(context),
-            activeBuildStore = com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore(),
+            activeBuildStore = InMemoryActiveBuildStore(),
         )
     }
 

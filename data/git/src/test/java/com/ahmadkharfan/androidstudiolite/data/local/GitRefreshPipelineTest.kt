@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.local
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -20,7 +21,7 @@ class GitRefreshPipelineTest {
         runCurrent()
         assertEquals(0, scans)
 
-        advanceTimeBy(300)
+        advanceTimeBy(300.milliseconds)
         runCurrent()
         assertEquals(1, scans)
     }
@@ -36,7 +37,7 @@ class GitRefreshPipelineTest {
 
         assertEquals(1, scans)
         immediate.await()
-        advanceTimeBy(300)
+        advanceTimeBy(300.milliseconds)
         runCurrent()
         assertEquals(1, scans)
     }

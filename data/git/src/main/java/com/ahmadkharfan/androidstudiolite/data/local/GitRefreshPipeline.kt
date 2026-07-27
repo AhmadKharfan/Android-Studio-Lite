@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.currentCoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -41,7 +42,7 @@ internal class GitRefreshPipeline(
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             requests
                 .transformLatest { request ->
-                    if (request.kind == GitRefreshKind.DEBOUNCED) delay(debounceMillis)
+                    if (request.kind == GitRefreshKind.DEBOUNCED) delay(debounceMillis.milliseconds)
                     emit(request)
                 }
                 .collectLatest { request ->

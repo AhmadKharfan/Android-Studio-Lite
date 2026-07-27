@@ -13,8 +13,8 @@ class ChatMessageEditorTest {
 
     private var counter = 0
     private val editor = ChatMessageEditor(
-        ids = ChatIdGenerator { "id-${++counter}" },
-        clock = ChatClock { "12:00 PM" },
+        ids = { "id-${++counter}" },
+        clock = { "12:00 PM" },
     )
 
     private fun sessionWithThread(): ChatSession = ChatSession("p").apply {

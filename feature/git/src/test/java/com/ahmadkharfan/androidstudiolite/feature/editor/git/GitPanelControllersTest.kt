@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.domain.model.ActiveOperation
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
@@ -28,6 +30,15 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.NewProjectSpec
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine
+import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
+import com.ahmadkharfan.androidstudiolite.domain.model.GitFastForwardMode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult
+import com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus
+import com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage
+import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
+import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
+import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
@@ -80,7 +91,7 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onOpenSubmodules()
-        val opened = withTimeout(5_000) {
+        val opened = withTimeout(5.seconds) {
             viewModel.state.first { it.submodulesVisible && !it.submodulesLoading }
         }
         assertEquals(repository.submoduleItems, opened.submodules)
@@ -89,14 +100,14 @@ class GitPanelControllersTest {
         assertFalse(viewModel.state.value.submodulesVisible)
 
         viewModel.onInitSubmodules()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.statusMessage == "Submodules initialised" }
         }
         assertEquals(1, repository.submoduleInitCalls)
 
         viewModel.onStatusMessageShown()
         viewModel.onUpdateSubmodules()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.statusMessage == "Submodules updated" }
         }
         assertEquals(1, repository.submoduleUpdateCalls)
@@ -116,7 +127,7 @@ class GitPanelControllersTest {
 
         viewModel.onBootstrapInitialCommitChanged(true)
         viewModel.onConfirmBootstrap()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.statusMessage == "Version control enabled" }
         }
         assertEquals(1, repository.bootstrapCalls)
@@ -139,7 +150,7 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onOpenAuthorDialog()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.authorDialogVisible }
         }
         assertEquals("Local Author", viewModel.state.value.authorName)
@@ -150,23 +161,23 @@ class GitPanelControllersTest {
         assertEquals("  New Author  ", viewModel.state.value.authorName)
         assertEquals("  new@example.com  ", viewModel.state.value.authorEmail)
         viewModel.onSaveLocalAuthor()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.statusMessage == "Local Git author saved" }
         }
         assertEquals(GitAuthorConfig("New Author", "new@example.com"), repository.savedLocalAuthor)
 
         viewModel.onOpenAuthorDialog()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.authorDialogVisible }
         }
         viewModel.onUseAppAuthor()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.statusMessage == "Using app Git author" }
         }
         assertNull(repository.savedLocalAuthor)
 
         viewModel.onOpenAuthorDialog()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.authorDialogVisible }
         }
         val saveCalls = repository.setLocalAuthorCalls
@@ -188,7 +199,7 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onStage("modified.kt")
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { state ->
                 state.stagedChanges.map { it.path }.toSet() == setOf("modified.kt", "staged.kt") &&
                     state.unstagedChanges.isEmpty()
@@ -197,7 +208,7 @@ class GitPanelControllersTest {
         assertEquals(listOf("modified.kt"), repository.stageCalls)
 
         viewModel.onUnstage("staged.kt")
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { state ->
                 state.stagedChanges.single().path == "modified.kt" &&
                     state.unstagedChanges.single().path == "staged.kt"
@@ -213,13 +224,13 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onStageAll()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.stagedChanges.map { change -> change.path }.toSet() == ALL_PATHS }
         }
         assertEquals(1, repository.stageAllCalls)
 
         viewModel.onUnstageAll()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.stagedChanges.isEmpty() && it.allChangePaths == ALL_PATHS }
         }
         assertEquals(1, repository.unstageAllCalls)
@@ -255,14 +266,14 @@ class GitPanelControllersTest {
 
         viewModel.onToggleSectionSelect(listOf("modified.kt", "new.kt", "staged.kt"), true)
         viewModel.onStageSelected()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.selectedPaths.isEmpty() && repository.stageCalls.size == 2 }
         }
         assertEquals(setOf("modified.kt", "new.kt"), repository.stageCalls.toSet())
 
         viewModel.onToggleSectionSelect(listOf("modified.kt", "staged.kt"), true)
         viewModel.onUnstageSelected()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.selectedPaths.isEmpty() && repository.unstageCalls.size == 2 }
         }
         assertEquals(setOf("modified.kt", "staged.kt"), repository.unstageCalls.toSet())
@@ -282,7 +293,7 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onSelectChange("modified.kt", GitDiffTarget.INDEX_TO_WORKTREE)
-        val selected = withTimeout(5_000) {
+        val selected = withTimeout(5.seconds) {
             viewModel.state.first { it.selectedPath == "modified.kt" && it.diffLines.isNotEmpty() }
         }
         assertEquals(GitDiffTarget.INDEX_TO_WORKTREE, selected.selectedDiffTarget)
@@ -331,24 +342,24 @@ class GitPanelControllersTest {
         val viewModel = readyViewModel()
 
         viewModel.onPreviewClean()
-        withTimeout(5_000) { viewModel.state.first { it.cleanPreview == listOf("build/") } }
+        withTimeout(5.seconds) { viewModel.state.first { it.cleanPreview == listOf("build/") } }
         assertEquals(listOf(true to false), repository.cleanCalls)
 
         viewModel.onCleanIncludeIgnoredChanged(true)
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.cleanPreview == listOf("build/", ".cache/") }
         }
         assertTrue(viewModel.state.value.cleanIncludeIgnored)
         assertEquals(listOf(true to false, true to true), repository.cleanCalls)
 
         viewModel.onConfirmClean()
-        withTimeout(5_000) {
+        withTimeout(5.seconds) {
             viewModel.state.first { it.cleanPreview == null && it.statusMessage == "Removed 2 path(s)" }
         }
         assertEquals(false to true, repository.cleanCalls.last())
 
         viewModel.onPreviewClean()
-        withTimeout(5_000) { viewModel.state.first { it.cleanPreview != null } }
+        withTimeout(5.seconds) { viewModel.state.first { it.cleanPreview != null } }
         viewModel.onDismissClean()
         assertNull(viewModel.state.value.cleanPreview)
         viewModel.viewModelScope.cancel()
@@ -356,13 +367,13 @@ class GitPanelControllersTest {
 
     private suspend fun readyViewModel(): GitPanelViewModel {
         val viewModel = viewModel()
-        withTimeout(5_000) { viewModel.state.first { !it.loading } }
+        withTimeout(5.seconds) { viewModel.state.first { !it.loading } }
         return viewModel
     }
 
     private suspend fun awaitCondition(condition: () -> Boolean) {
-        withTimeout(5_000) {
-            while (!condition()) delay(1)
+        withTimeout(5.seconds) {
+            while (!condition()) delay(1.milliseconds)
         }
     }
 
@@ -455,12 +466,12 @@ class GitPanelControllersTest {
         override suspend fun stageHunk(
             repoDir: File,
             path: String,
-            hunk: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk,
+            hunk: GitDiffHunk,
         ) = Unit
         override suspend fun unstageHunk(
             repoDir: File,
             path: String,
-            hunk: com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk,
+            hunk: GitDiffHunk,
         ) = Unit
         override suspend fun stage(repoDir: File, path: String) {
             stageCalls += path
@@ -512,16 +523,17 @@ class GitPanelControllersTest {
         override suspend fun publishBranch(repoDir: File, name: String) = GitSyncResult(true, "")
         override suspend fun log(repoDir: File, max: Int): List<GitCommit> = emptyList()
         override suspend fun log(repoDir: File, cursor: String?, limit: Int) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage(emptyList(), null)
+            GitLogPage(emptyList(), null)
         override suspend fun fileHistory(repoDir: File, path: String, cursor: String?, limit: Int) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitLogPage(emptyList(), null)
+            GitLogPage(emptyList(), null)
+        @Suppress("UNUSED_PARAMETER")
         override suspend fun commitDetails(repoDir: File, commitId: String) = error("unused")
         override suspend fun blame(repoDir: File, path: String) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitBlameLine>()
+            emptyList<GitBlameLine>()
         override suspend fun isShallow(repoDir: File) = false
         override suspend fun deepen(repoDir: File) = GitSyncResult(true, "")
         override suspend fun listTags(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitTag>()
+            emptyList<GitTag>()
         override suspend fun createTag(
             repoDir: File,
             name: String,
@@ -533,53 +545,53 @@ class GitPanelControllersTest {
         override suspend fun pushAllTags(repoDir: File) = GitSyncResult(true, "")
         override suspend fun stashCreate(repoDir: File, message: String?, includeUntracked: Boolean): String? = null
         override suspend fun stashList(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitStash>()
+            emptyList<GitStash>()
         override suspend fun stashApply(repoDir: File, index: Int) = Unit
         override suspend fun stashPop(repoDir: File, index: Int) = Unit
         override suspend fun stashDrop(repoDir: File, index: Int) = Unit
         override suspend fun merge(
             repoDir: File,
             ref: String,
-            ffMode: com.ahmadkharfan.androidstudiolite.domain.model.GitFastForwardMode,
+            ffMode: GitFastForwardMode,
             message: String?,
-        ) = com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
+        ) = GitIntegrationResult(
+            GitIntegrationStatus.MERGED,
         )
         override suspend fun mergeAbort(repoDir: File) {
             abortCalls += "merge"
         }
         override suspend fun cherryPick(repoDir: File, commitId: String) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED,
+            GitIntegrationResult(
+                GitIntegrationStatus.APPLIED,
             )
         override suspend fun cherryPickAbort(repoDir: File) {
             abortCalls += "cherry-pick"
         }
         override suspend fun revert(repoDir: File, commitId: String) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.APPLIED,
+            GitIntegrationResult(
+                GitIntegrationStatus.APPLIED,
             )
         override suspend fun revertAbort(repoDir: File) {
             abortCalls += "revert"
         }
         override suspend fun rebase(repoDir: File, upstreamRef: String) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
+            GitIntegrationResult(
+                GitIntegrationStatus.MERGED,
             )
         override suspend fun rebaseContinue(repoDir: File) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
+            GitIntegrationResult(
+                GitIntegrationStatus.MERGED,
             ).also { rebaseContinueCalls++ }
         override suspend fun rebaseSkip(repoDir: File) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.MERGED,
+            GitIntegrationResult(
+                GitIntegrationStatus.MERGED,
             )
         override suspend fun rebaseAbort(repoDir: File) =
-            com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationResult(
-                com.ahmadkharfan.androidstudiolite.domain.model.GitIntegrationStatus.ABORTED,
+            GitIntegrationResult(
+                GitIntegrationStatus.ABORTED,
             ).also { abortCalls += "rebase" }
         override suspend fun conflictEntries(repoDir: File) =
-            emptyList<com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry>()
+            emptyList<GitConflictEntry>()
         override suspend fun resolveAcceptOurs(repoDir: File, path: String) = Unit
         override suspend fun resolveAcceptTheirs(repoDir: File, path: String) = Unit
         override suspend fun markResolved(repoDir: File, path: String) = Unit
@@ -589,7 +601,7 @@ class GitPanelControllersTest {
         override suspend fun reset(
             repoDir: File,
             commitId: String,
-            mode: com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode,
+            mode: GitResetMode,
         ) = Unit
         override suspend fun clean(repoDir: File, dryRun: Boolean, includeIgnored: Boolean): List<String> {
             cleanCalls += dryRun to includeIgnored
@@ -602,10 +614,11 @@ class GitPanelControllersTest {
         override suspend fun submoduleUpdate(repoDir: File) {
             submoduleUpdateCalls++
         }
+        @Suppress("UNUSED_PARAMETER")
         override suspend fun bootstrapRepository(repoDir: File, initialCommitMessage: String?): String? {
             bootstrapCalls++
             bootstrapMessage = initialCommitMessage
-            return "abc123"
+            return initialCommitMessage?.let { "abc123" }
         }
         override suspend fun addToGitignore(repoDir: File, path: String) = Unit
         override suspend fun push(repoDir: File, setUpstreamIfMissing: Boolean) = GitSyncResult(true, "")

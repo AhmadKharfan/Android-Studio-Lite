@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.gitauth
 
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions
 
 interface GitAuthSettingsInteractionListener : GitAuthPromptActions {
     fun onConnectGitHub()

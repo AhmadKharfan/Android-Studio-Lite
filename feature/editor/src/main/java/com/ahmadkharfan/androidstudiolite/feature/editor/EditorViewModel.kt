@@ -1,4 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
+import kotlin.time.Duration.Companion.milliseconds
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
@@ -9,8 +10,8 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
-import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteHandler
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
@@ -46,7 +47,7 @@ class EditorViewModel(
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
     private val preferencesRepository: PreferencesRepository,
-    private val gradleProjectReader: com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader,
+    private val gradleProjectReader: GradleProjectReader,
     private val buildRunCoordinator: BuildRunApi,
     private val networkMonitor: NetworkMonitor? = null,
     private val gitRepository: GitRepository? = null,
@@ -212,12 +213,9 @@ class EditorViewModel(
 
     private fun registerWorkspaceWriteGuard(projectPath: String) {
         workspaceWriteRegistration?.close()
-        workspaceWriteRegistration = workspaceWriteGate?.register(
-            File(projectPath),
-            WorkspaceWriteHandler {
-                check(tabManager.flushDirtyBuffers()) { "Couldn't save pending editor changes" }
-            },
-        )
+        workspaceWriteRegistration = workspaceWriteGate?.register(File(projectPath)) {
+            check(tabManager.flushDirtyBuffers()) { "Couldn't save pending editor changes" }
+        }
     }
 
     private fun observeExternalFileChanges() {
@@ -569,8 +567,6 @@ class EditorViewModel(
 
     fun flushPendingSaves() = tabManager.flushPendingSaves()
 
-    suspend fun flushDirtyBuffers(): Boolean = tabManager.flushDirtyBuffers()
-
     fun onAppForegrounded() {
         val root = projectRootPath?.let(::File) ?: return
         val git = gitRepository ?: return
@@ -601,10 +597,6 @@ class EditorViewModel(
         gutterController.request(tabId, immediate)
     }
 
-    private fun clearGutter(tabId: String) {
-        gutterController.clear(tabId)
-    }
-
     override fun onCleared() {
         tabManager.shutdown()
         workspaceWriteRegistration?.close()
@@ -632,7 +624,7 @@ class EditorViewModel(
         viewModelScope.launch {
 
             repeat(20) {
-                val session = tabManager.sessionFor(path) ?: run { delay(20); return@repeat }
+                val session = tabManager.sessionFor(path) ?: run { delay(20.milliseconds); return@repeat }
                 val offset = session.document.positionToOffset(line - 1, (problem.column ?: 1) - 1)
                 session.setCaret(offset.coerceIn(0, session.document.length))
                 val caret = session.caretPosition

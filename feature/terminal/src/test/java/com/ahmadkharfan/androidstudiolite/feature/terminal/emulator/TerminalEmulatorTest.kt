@@ -9,7 +9,7 @@ import org.junit.Test
 
 class TerminalEmulatorTest {
 
-    private val ESC = "\u001B"
+    private val esc = "\u001B"
 
     private fun TerminalEmulator.rowText(row: Int): String =
         snapshot().lines[row].joinToString("") { it.char.toString() }.trimEnd()
@@ -45,7 +45,7 @@ class TerminalEmulatorTest {
         val term = TerminalEmulator(4, 20)
 
         term.feed("first line")
-        term.feed("${ESC}[H")
+        term.feed("${esc}[H")
         term.feed("SECOND")
         assertEquals("SECONDline", term.rowText(0))
         assertEquals(0, term.cursorRow)
@@ -56,7 +56,7 @@ class TerminalEmulatorTest {
     fun erase_display_clears_screen() {
         val term = TerminalEmulator(4, 20)
         term.feed("line one\r\nline two")
-        term.feed("${ESC}[2J")
+        term.feed("${esc}[2J")
         assertEquals("", term.rowText(0))
         assertEquals("", term.rowText(1))
     }
@@ -65,9 +65,9 @@ class TerminalEmulatorTest {
     fun erase_to_end_of_line() {
         val term = TerminalEmulator(4, 20)
         term.feed("abcdef")
-        term.feed("${ESC}[H")
-        term.feed("${ESC}[3C")
-        term.feed("${ESC}[K")
+        term.feed("${esc}[H")
+        term.feed("${esc}[3C")
+        term.feed("${esc}[K")
         assertEquals("abc", term.rowText(0))
     }
 
@@ -84,7 +84,7 @@ class TerminalEmulatorTest {
     @Test
     fun sgr_sets_colors_and_reset_clears_them() {
         val term = TerminalEmulator(2, 20)
-        term.feed("${ESC}[31mRED${ESC}[0mX")
+        term.feed("${esc}[31mRED${esc}[0mX")
         val row = term.snapshot().lines[0]
         assertEquals(1, row[0].fg)
         assertTrue(row[0].char == 'R')
@@ -95,9 +95,9 @@ class TerminalEmulatorTest {
     @Test
     fun hides_and_shows_cursor_via_dec_private_mode() {
         val term = TerminalEmulator(2, 10)
-        term.feed("${ESC}[?25l")
+        term.feed("${esc}[?25l")
         assertFalse(term.snapshot().cursorVisible)
-        term.feed("${ESC}[?25h")
+        term.feed("${esc}[?25h")
         assertTrue(term.snapshot().cursorVisible)
     }
 
@@ -105,7 +105,7 @@ class TerminalEmulatorTest {
     fun resize_preserves_content_and_clamps_cursor() {
         val term = TerminalEmulator(4, 20)
         term.feed("keep me")
-        term.feed("${ESC}[4;10H")
+        term.feed("${esc}[4;10H")
         term.resize(2, 20)
         assertEquals("keep me", term.rowText(0))
         assertEquals(2, term.snapshot().rows)
@@ -115,11 +115,11 @@ class TerminalEmulatorTest {
     @Test
     fun scroll_region_confines_scrolling() {
         val term = TerminalEmulator(5, 10)
-        term.feed("${ESC}[2;4r")
+        term.feed("${esc}[2;4r")
 
         term.feed("a\r\n")
-        term.feed("${ESC}[3;1Hb\r\n")
-        term.feed("${ESC}[4;1Hc\r\n")
+        term.feed("${esc}[3;1Hb\r\n")
+        term.feed("${esc}[4;1Hc\r\n")
 
         assertEquals("", term.rowText(0))
     }
@@ -128,11 +128,11 @@ class TerminalEmulatorTest {
     fun delete_and_insert_characters() {
         val term = TerminalEmulator(2, 20)
         term.feed("abcdef")
-        term.feed("${ESC}[H")
-        term.feed("${ESC}[2P")
+        term.feed("${esc}[H")
+        term.feed("${esc}[2P")
         assertEquals("cdef", term.rowText(0))
-        term.feed("${ESC}[H")
-        term.feed("${ESC}[2@")
+        term.feed("${esc}[H")
+        term.feed("${esc}[2@")
         assertEquals("  cdef", term.rowText(0))
     }
 
@@ -163,7 +163,7 @@ class TerminalEmulatorTest {
     @Test
     fun alt_screen_does_not_pollute_scrollback() {
         val term = TerminalEmulator(2, 10)
-        term.feed("${ESC}[?1049h")
+        term.feed("${esc}[?1049h")
         term.feed("x\r\ny\r\nz")
         assertTrue(term.snapshot().scrollback.isEmpty())
     }

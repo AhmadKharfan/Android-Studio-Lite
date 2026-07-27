@@ -28,7 +28,7 @@ class FileChangeBus {
         val normalizedRoot = canonicalPath(root)
         val generation = synchronized(generationLock) {
             val next = (_generations.value[normalizedRoot] ?: 0L) + 1L
-            _generations.value = _generations.value + (normalizedRoot to next)
+            _generations.value += normalizedRoot to next
             next
         }
         _events.emit(FileChangeEvent.RootInvalidated(normalizedRoot, generation, reason))

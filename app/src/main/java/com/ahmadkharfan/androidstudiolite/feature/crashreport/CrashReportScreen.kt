@@ -33,6 +33,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSnackbar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -57,7 +59,7 @@ private fun CrashReportScreen(onRestart: () -> Unit, onClose: () -> Unit) {
 
     LaunchedEffect(showCopiedSnackbar) {
         if (showCopiedSnackbar) {
-            kotlinx.coroutines.delay(2000)
+            delay(2.seconds)
             showCopiedSnackbar = false
         }
     }

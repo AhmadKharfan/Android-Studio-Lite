@@ -45,7 +45,7 @@ class ProjectSymbolIndexTest {
     }
 
     private fun jarWithClasses(vararg classPaths: String): File {
-        val jar = tmp.newFile("dep-${classPaths.hashCode()}.jar")
+        val jar = tmp.newFile("dep-${classPaths.contentHashCode()}.jar")
         ZipOutputStream(jar.outputStream()).use { zip ->
             for (path in classPaths) {
                 zip.putNextEntry(ZipEntry("$path.class"))

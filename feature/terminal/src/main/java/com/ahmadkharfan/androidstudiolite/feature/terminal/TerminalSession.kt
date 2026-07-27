@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
 
+import kotlin.time.Duration.Companion.milliseconds
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import com.ahmadkharfan.androidstudiolite.domain.repository.TerminalRepository
 import com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulator
@@ -72,7 +73,7 @@ class TerminalSession(
                 lastTick = tick
                 _screen.value = synchronized(emulatorLock) { emulator.snapshot() }
             }
-            delay(FRAME_INTERVAL_MS)
+            delay(FRAME_INTERVAL_MS.milliseconds)
         }
     }
 
@@ -81,8 +82,6 @@ class TerminalSession(
     fun submitInput(text: String) {
         scope.launch { repository.writeInput(text) }
     }
-
-    suspend fun writeInput(text: String) = repository.writeInput(text)
 
     fun resize(newRows: Int, newCols: Int) {
         val changed = synchronized(emulatorLock) {

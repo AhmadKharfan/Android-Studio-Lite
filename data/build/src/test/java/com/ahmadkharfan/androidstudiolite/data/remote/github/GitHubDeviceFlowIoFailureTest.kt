@@ -84,7 +84,7 @@ class GitHubDeviceFlowIoFailureTest {
     private companion object {
         const val DEVICE_CODE_PATH = "/login/device/code"
         val JSON_MEDIA_TYPE = "application/json".toMediaType()
-        val DEVICE_CODE_JSON =
+        const val DEVICE_CODE_JSON =
             """{"device_code":"device-code","user_code":"ABCD-EFGH","verification_uri":"https://github.com/login/device","expires_in":30,"interval":5}"""
     }
 }

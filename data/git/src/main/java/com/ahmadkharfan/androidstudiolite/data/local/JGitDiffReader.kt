@@ -241,11 +241,26 @@ internal class JGitDiffReader {
         return repo.open(entry.objectId, Constants.OBJ_BLOB).size
     }
 
-    internal data class WorktreeContent(
+    internal class WorktreeContent(
         val content: ByteArray?,
         val filterCommand: String? = null,
         val binaryByAttribute: Boolean = false,
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is WorktreeContent) return false
+            return content.contentEquals(other.content) &&
+                filterCommand == other.filterCommand &&
+                binaryByAttribute == other.binaryByAttribute
+        }
+
+        override fun hashCode(): Int {
+            var result = content?.contentHashCode() ?: 0
+            result = 31 * result + (filterCommand?.hashCode() ?: 0)
+            result = 31 * result + binaryByAttribute.hashCode()
+            return result
+        }
+    }
 
     internal fun worktreeContent(repo: Repository, path: String): WorktreeContent {
         TreeWalk(repo).use { walk ->

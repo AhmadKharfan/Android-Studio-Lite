@@ -173,7 +173,9 @@ class BuildInstallOrchestrationTest {
             keyAlias: String,
             keyPassword: String,
         ): SigningConfig = unexpectedCall()
-        override suspend fun releaseSigningConfig(): SigningConfig? = unexpectedCall()
+        override suspend fun releaseSigningConfig(): SigningConfig? {
+            unexpectedCall()
+        }
         override suspend fun clearReleaseKeystore() = unexpectedCall()
         override suspend fun signingConfigFor(buildType: String): SigningConfig = unexpectedCall()
     }

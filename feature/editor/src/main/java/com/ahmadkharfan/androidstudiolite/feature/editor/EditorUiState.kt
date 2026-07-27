@@ -10,6 +10,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
 @Immutable
 data class EditorTabUiModel(
     val id: String,
@@ -134,8 +135,7 @@ data class EditorUiState(
     val caretColumn: Int = 0,
     val editorRevealNonce: Int = 0,
     val editorRevealOffset: Int = 0,
-    val projectIndex: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex =
-        com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex.EMPTY,
+    val projectIndex: ProjectSymbolIndex = ProjectSymbolIndex.EMPTY,
 ) {
     val activeTab: EditorTabUiModel?
         get() = tabs.firstOrNull { it.id == activeTabId }

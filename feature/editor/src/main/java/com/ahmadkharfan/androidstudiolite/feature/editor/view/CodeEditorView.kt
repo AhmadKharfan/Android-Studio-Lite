@@ -26,6 +26,7 @@ import android.view.inputmethod.InputMethodManager
 import com.ahmadkharfan.androidstudiolite.core.selection.SelectionActionModeController
 import com.ahmadkharfan.androidstudiolite.designsystem.editor.EditorPalette
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionItem
+import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinSignatureHelpResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpResult
@@ -37,6 +38,7 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.engine.TokenType
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.bracketMatchAt
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 data class CompletionOverlay(
     val items: List<CompletionItem>,
     val selectedIndex: Int,
@@ -83,7 +85,7 @@ class CodeEditorView(context: Context) : View(context) {
     private var findCurrentIndex: Int = 0
     private var findMatches: List<Int> = emptyList()
     private val completionController = EditorCompletionController()
-    fun setProjectIndex(index: com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex) {
+    fun setProjectIndex(index: ProjectSymbolIndex) {
         completionController.projectIndex = index
     }
     private var completionActive = false
@@ -272,7 +274,7 @@ class CodeEditorView(context: Context) : View(context) {
             fillPaint.alpha = 255
         }
         canvas.restore()
-        drawGutter(canvas, session, palette, firstLine, lastLine, caret.line)
+        drawGutter(canvas, palette, firstLine, lastLine, caret.line)
         if (handlesVisible && !sel.isCollapsed) {
             drawHandles(canvas, session, palette, codeLeft)
         }
@@ -348,7 +350,7 @@ class CodeEditorView(context: Context) : View(context) {
         strokePaint.strokeWidth = dp(1f)
         canvas.drawRect(left, top, left + charWidthPx, top + glyphHeightPx, strokePaint)
     }
-    private fun drawGutter(canvas: Canvas, session: EditorSession, palette: EditorPalette, firstLine: Int, lastLine: Int, activeLine: Int) {
+    private fun drawGutter(canvas: Canvas, palette: EditorPalette, firstLine: Int, lastLine: Int, activeLine: Int) {
         gutterPaint.color = palette.gutter
         canvas.drawRect(0f, 0f, gutterWidthPx, height.toFloat(), gutterPaint)
         fillPaint.color = palette.divider
@@ -483,8 +485,8 @@ class CodeEditorView(context: Context) : View(context) {
         val session = session ?: return 0
         val doc = session.document
         val codeLeft = gutterWidthPx + dp(CODE_PADDING_DP)
-        val line = ((y + scrollYpx) / lineHeightPx).toInt().coerceIn(0, doc.lineCount - 1)
-        val col = ((x - codeLeft + scrollXpx) / charWidthPx).let { Math.round(it) }.coerceAtLeast(0)
+        val line = ((y + scrollYpx) / lineHeightPx).toInt().coerceIn(0 until doc.lineCount)
+        val col = ((x - codeLeft + scrollXpx) / charWidthPx).roundToInt().coerceAtLeast(0)
         val lineStart = doc.lineStartOffset(line)
         val lineLen = doc.lineText(line).length
         return lineStart + col.coerceAtMost(lineLen)
@@ -539,7 +541,7 @@ class CodeEditorView(context: Context) : View(context) {
                     return true
                 }
                 KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> {
-                    if (completionActive) dismissCompletion() else dismissSignatureHelp()
+                    dismissCompletion()
                     return true
                 }
             }
@@ -784,10 +786,6 @@ class CodeEditorView(context: Context) : View(context) {
         onSignatureHelpOverlay?.invoke(SignatureHelpOverlay(help, anchorX, anchorY))
         handler.removeCallbacks(signatureHelpHideRunnable)
         handler.postDelayed(signatureHelpHideRunnable, SIGNATURE_HELP_VISIBLE_MS)
-    }
-    private fun dismissSignatureHelp() {
-        signatureHelpDismissed = true
-        clearSignatureHelpOverlay()
     }
     private fun afterTextEditTriggers(session: EditorSession, typedChar: Char? = null, isBackspace: Boolean = false) {
         if (completionSuppressNext) {

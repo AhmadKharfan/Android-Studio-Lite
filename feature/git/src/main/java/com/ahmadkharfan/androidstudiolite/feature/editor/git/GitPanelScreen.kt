@@ -1,4 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
@@ -61,8 +62,8 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
-import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
@@ -143,6 +144,7 @@ private fun GitPanelScreen(
                     uiState = uiState,
                     interactionListener = interactionListener,
                     onOpenHistory = onOpenHistory,
+                    onOpenTags = onOpenTags,
                     onOpenStashes = onOpenStashes,
                 )
             }
@@ -271,7 +273,7 @@ private fun GitChangesHeader(
     val colors = AslTheme.colors
     LaunchedEffect(uiState.statusMessage) {
         if (uiState.statusMessage != null) {
-            delay(4000)
+            delay(4.seconds)
             interactionListener.onStatusMessageShown()
         }
     }
@@ -390,6 +392,7 @@ private fun GitActionsOverflowMenu(
     uiState: GitPanelUiState,
     interactionListener: GitPanelInteractionListener,
     onOpenHistory: () -> Unit,
+    onOpenTags: () -> Unit,
     onOpenStashes: () -> Unit,
 ) {
     val push = stringResource(R.string.git_action_push)
@@ -399,6 +402,7 @@ private fun GitActionsOverflowMenu(
     val author = stringResource(R.string.git_action_author)
     val remotes = stringResource(R.string.git_action_remotes)
     val history = stringResource(R.string.git_action_commit_history)
+    val tags = stringResource(R.string.git_refs_tags)
     val stashes = stringResource(R.string.git_action_stashes)
     val clean = stringResource(R.string.git_action_clean)
     AslOverflowMenu(
@@ -412,6 +416,7 @@ private fun GitActionsOverflowMenu(
             AslOverflowMenuEntry.Item(remotes, icon = "globe", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
             AslOverflowMenuEntry.Item(history, icon = "history", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(tags, icon = "tag", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Item(stashes, icon = "package", disabled = uiState.isBusy),
             AslOverflowMenuEntry.Divider,
             AslOverflowMenuEntry.Item(clean, icon = "trash-2", disabled = uiState.isBusy, destructive = true),
@@ -432,9 +437,10 @@ private fun GitActionsOverflowMenu(
                 5 -> interactionListener.onOpenAuthorDialog()
                 6 -> interactionListener.onOpenRemotes()
                 8 -> onOpenHistory()
-                9 -> onOpenStashes()
-                11 -> interactionListener.onPreviewClean()
-                12 -> interactionListener.onRequestForcePush()
+                9 -> onOpenTags()
+                10 -> onOpenStashes()
+                12 -> interactionListener.onPreviewClean()
+                13 -> interactionListener.onRequestForcePush()
                 else -> Unit
             }
         },
@@ -606,7 +612,7 @@ private fun GitChangedFileList(
             )
             GitListState.Populated ->
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    GitConflictSection(uiState.conflicts, interactionListener, onOpenConflicts)
+                    GitConflictSection(uiState.conflicts, onOpenConflicts)
                     GitChangeSection(stringResource(R.string.git_section_staged), uiState.stagedChanges, GitDiffTarget.HEAD_TO_INDEX, uiState, interactionListener)
                     GitChangeSection(stringResource(R.string.git_section_changes), uiState.unstagedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
                     GitChangeSection(stringResource(R.string.git_section_untracked), uiState.untrackedChanges, GitDiffTarget.INDEX_TO_WORKTREE, uiState, interactionListener)
@@ -620,7 +626,6 @@ private enum class GitListState { Loading, Empty, Populated }
 @Composable
 private fun GitConflictSection(
     conflicts: List<GitChangeUiModel>,
-    interactionListener: GitPanelInteractionListener,
     onOpenConflicts: () -> Unit,
 ) {
     if (conflicts.isEmpty()) return

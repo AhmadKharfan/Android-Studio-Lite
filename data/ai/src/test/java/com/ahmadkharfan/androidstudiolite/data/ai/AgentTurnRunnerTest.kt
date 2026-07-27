@@ -11,7 +11,6 @@ import com.ahmadkharfan.androidstudiolite.domain.model.ChatThread
 import com.ahmadkharfan.androidstudiolite.domain.model.ToolCallStatus
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -42,7 +41,7 @@ private class FakeTools : AgentTools {
 class AgentTurnRunnerTest {
 
     private var counter = 0
-    private val editor = ChatMessageEditor(ids = ChatIdGenerator { "id-${++counter}" }, clock = ChatClock { "12:00 PM" })
+    private val editor = ChatMessageEditor(ids = { "id-${++counter}" }, clock = { "12:00 PM" })
     private val provider = AiProviderConfig(id = "anthropic", name = "Anthropic", icon = "", description = "")
 
     private fun sessionWithUserMessage(text: String): ChatSession = ChatSession("p").apply {

@@ -44,7 +44,7 @@ class PtyTerminalRepositoryTest {
         shellCommandProvider = { listOf("/system/bin/sh") },
         environmentProvider = { mapOf("TERM" to "xterm-256color") },
         defaultWorkingDirectory = { null },
-        sessionFactory = PtySessionFactory { _, _, _, _, _ -> fake },
+        sessionFactory = { _, _, _, _, _ -> fake },
         ioDispatcher = Dispatchers.IO,
     )
 
@@ -83,7 +83,7 @@ class PtyTerminalRepositoryTest {
         repo.send("ls -la")
         runCatching {
             withTimeout(30_000.milliseconds) {
-                while (fake.captured.toString(Charsets.UTF_8.name()) != "qls -la\n") { delay(1) }
+                while (fake.captured.toString(Charsets.UTF_8.name()) != "qls -la\n") { delay(1.milliseconds) }
             }
         }
         assertEquals("qls -la\n", fake.captured.toString(Charsets.UTF_8.name()))

@@ -48,7 +48,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -161,11 +160,11 @@ class JGitGitRepository internal constructor(
                 configureCloneCommand(cleanUrl, destination, options, credentials, monitor)
                     .call()
                     .close()
-                if (monitor.isCancelled()) throw CancellationException("Clone cancelled")
+                if (monitor.isCancelled) throw CancellationException("Clone cancelled")
                 close()
             } catch (t: Throwable) {
                 destination.deleteRecursively()
-                if (monitor.isCancelled() || t is CancellationException) {
+                if (monitor.isCancelled || t is CancellationException) {
                     val cancellation = CancellationException("Clone cancelled")
                     cancellation.initCause(t)
                     close(cancellation)

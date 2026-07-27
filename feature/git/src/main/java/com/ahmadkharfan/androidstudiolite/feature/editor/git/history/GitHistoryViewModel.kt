@@ -4,8 +4,8 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
 import java.io.File
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 
@@ -65,7 +65,7 @@ class GitHistoryViewModel(
         )
     }
 
-    override fun clearSelection() = updateState { copy(selected = null) }
+    override fun clearSelection(): Unit = updateState { copy(selected = null) }
 
     override fun deepen() {
         val root = repoDir ?: return

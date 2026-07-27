@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
+
 interface EditorInteractionListener {
     fun onSelectTab(id: String)
     fun onCloseTab(id: String)
@@ -20,7 +22,7 @@ interface EditorInteractionListener {
     fun onSelectVariant(variant: String)
     fun onCancelBuild()
     fun onBuildRelease()
-    fun onJumpToBuildProblem(problem: com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem)
+    fun onJumpToBuildProblem(problem: BuildProblem)
     fun onSelectBottomTab(id: String)
     fun onToggleBottomPanel()
     fun onBottomPanelHeightChanged(heightDp: Float)
