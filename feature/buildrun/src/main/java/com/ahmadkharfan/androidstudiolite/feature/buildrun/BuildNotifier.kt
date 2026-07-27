@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,9 +13,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
+import java.util.Locale
 
 class BuildNotifier(private val context: Context) {
 
+    @SuppressLint("MissingPermission")
     fun notifyFinished(
         projectName: String,
         success: Boolean,
@@ -37,7 +40,7 @@ class BuildNotifier(private val context: Context) {
         }
         val text = buildString {
             append(projectName)
-            if (seconds != null) append(" · ").append(String.format("%.1fs", seconds))
+            if (seconds != null) append(" · ").append(String.format(Locale.ROOT, "%.1fs", seconds))
         }
 
 
