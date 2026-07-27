@@ -31,9 +31,9 @@ class BuildNotifier(private val context: Context) {
 
         val seconds = durationMillis?.let { it / 1000.0 }
         val title = when {
-            success && installFollows -> "Build successful. Tap to install"
-            success -> "Build successful"
-            else -> "Build failed"
+            success && installFollows -> context.getString(R.string.build_notification_success_install)
+            success -> context.getString(R.string.build_notification_success)
+            else -> context.getString(R.string.build_notification_failed)
         }
         val text = buildString {
             append(projectName)
@@ -90,10 +90,10 @@ class BuildNotifier(private val context: Context) {
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Build results",
+                    context.getString(R.string.build_notification_channel_results),
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
-                    description = "Build completion alerts"
+                    description = context.getString(R.string.build_notification_channel_results_description)
                     enableVibration(true)
                     setShowBadge(true)
                 },

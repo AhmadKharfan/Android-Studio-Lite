@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
@@ -23,7 +24,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteViewModel
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
 @Composable
 fun CompleteRoute(
@@ -58,21 +59,26 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                     AslIcon(name = "check", size = 40.dp, tint = colors.success)
                 }
                 Text(
-                    text = "You're ready to build",
+                    text = stringResource(R.string.onboarding_complete_title),
                     style = MaterialTheme.typography.headlineLarge,
                     color = colors.textPrimary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 18.dp),
                 )
                 Text(
-                    text = "Create a project and hit Run. It builds in the cloud and installs here.",
+                    text = stringResource(R.string.onboarding_complete_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            AslButton(label = "Open Android Studio Lite", onClick = onOpen, size = AslButtonSize.Lg, fullWidth = true)
+            AslButton(
+                label = stringResource(R.string.onboarding_complete_open),
+                onClick = onOpen,
+                size = AslButtonSize.Lg,
+                fullWidth = true,
+            )
         }
     }
 }

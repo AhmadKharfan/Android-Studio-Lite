@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,16 +38,9 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
-import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsUiState
-import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsViewModel
-
-private val COLOR_SCHEME_SWATCHES = listOf(
-    AslThemeSwatch("darcula", "Darcula", listOf(Color(0xFF1E1E1E), Color(0xFFCC7832), Color(0xFF6A8759))),
-    AslThemeSwatch("hc", "High Contrast", listOf(Color(0xFF000000), Color(0xFFFFFFFF), Color(0xFF34D399))),
-    AslThemeSwatch("light", "GitHub Light", listOf(Color(0xFFFFFFFF), Color(0xFFCF222E), Color(0xFF0A3069))),
-)
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 
 @Composable
 fun EditorSettingsRoute(
@@ -66,7 +60,7 @@ private fun EditorSettingsScreen(
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = "Editor", onBack = onBack)
+            AslTopAppBar(title = stringResource(CommonR.string.settings_editor), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -111,15 +105,15 @@ private fun EditorFontFamilySection(
     colors: AslColorScheme,
 ) {
     Text(
-        text = "Font family",
+        text = stringResource(R.string.settings_editor_font_family),
         style = MaterialTheme.typography.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(bottom = 8.dp),
     )
     AslSegmentedButton(
         options = listOf(
-            AslSegmentedOption("JetBrains Mono", "jetbrains"),
-            AslSegmentedOption("System mono", "monospace"),
+            AslSegmentedOption(stringResource(R.string.settings_editor_font_jetbrains_mono), "jetbrains"),
+            AslSegmentedOption(stringResource(R.string.settings_editor_font_system_mono), "monospace"),
         ),
         value = fontFamilyId,
         onValueChange = onFontFamilyChanged,
@@ -154,12 +148,12 @@ private fun EditorFontSizeSlider(
                 dragging = false
                 commitFontSize(localFontSize)
             },
-            label = "Font size",
+            label = stringResource(R.string.settings_editor_font_size),
             valueRange = 10f..24f,
-            unit = "sp",
+            unit = stringResource(R.string.settings_editor_font_unit),
         )
         Text(
-            text = "val preview = \"Aa 0O 1lI\"",
+            text = stringResource(R.string.settings_editor_preview),
             style = AslCode.codeBody.copy(fontSize = localFontSize.sp),
             color = Color(previewPalette.defaultText),
             modifier = Modifier
@@ -179,15 +173,15 @@ private fun EditorColorSchemeSection(
     colors: AslColorScheme,
 ) {
     AslThemeSwatchPicker(
-        label = "Color scheme",
-        swatches = COLOR_SCHEME_SWATCHES,
+        label = stringResource(R.string.settings_editor_color_scheme),
+        swatches = colorSchemeSwatches(),
         value = colorSchemeId,
         onValueChange = onColorSchemeChanged,
         modifier = Modifier.padding(top = 18.dp),
     )
     if (!EditorPalette.isDarkScheme(colorSchemeId)) {
         Text(
-            text = "Light scheme keeps the editor bright even in dark UI mode.",
+            text = stringResource(R.string.settings_editor_light_scheme_hint),
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
             modifier = Modifier.padding(top = 8.dp),
@@ -202,15 +196,15 @@ private fun EditorTabSizeSection(
     colors: AslColorScheme,
 ) {
     Text(
-        text = "Tab size",
+        text = stringResource(R.string.settings_editor_tab_size),
         style = MaterialTheme.typography.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
     )
     AslSegmentedButton(
         options = listOf(
-            AslSegmentedOption("2 spaces", "2"),
-            AslSegmentedOption("4 spaces", "4"),
+            AslSegmentedOption(stringResource(R.string.settings_editor_two_spaces), "2"),
+            AslSegmentedOption(stringResource(R.string.settings_editor_four_spaces), "4"),
         ),
         value = tabSize.toString(),
         onValueChange = { onTabSizeChanged(it.toInt()) },
@@ -224,7 +218,7 @@ private fun EditorBehaviorSection(
     onToggleAutoSave: (Boolean) -> Unit,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader("Behavior")
+    HubSectionHeader(stringResource(R.string.settings_editor_behavior))
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,10 +227,17 @@ private fun EditorBehaviorSection(
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
-            label = "Auto-save",
+            label = stringResource(R.string.settings_editor_auto_save),
             checked = autoSave,
             onCheckedChange = onToggleAutoSave,
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
+
+@Composable
+private fun colorSchemeSwatches(): List<AslThemeSwatch> = listOf(
+    AslThemeSwatch("darcula", stringResource(R.string.settings_editor_scheme_darcula), listOf(Color(0xFF1E1E1E), Color(0xFFCC7832), Color(0xFF6A8759))),
+    AslThemeSwatch("hc", stringResource(R.string.settings_editor_scheme_high_contrast), listOf(Color(0xFF000000), Color(0xFFFFFFFF), Color(0xFF34D399))),
+    AslThemeSwatch("light", stringResource(R.string.settings_editor_scheme_github_light), listOf(Color(0xFFFFFFFF), Color(0xFFCF222E), Color(0xFF0A3069))),
+)

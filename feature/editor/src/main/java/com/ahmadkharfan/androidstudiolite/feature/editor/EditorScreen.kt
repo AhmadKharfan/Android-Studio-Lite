@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -61,6 +62,7 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.components.MarkdownPrev
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import java.io.File
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 
 private data class GitNavigationCallbacks(
     val openDiff: (String, GitDiffTarget) -> Unit,
@@ -207,13 +209,12 @@ private fun EditorScreen(
             }
             uiState.installConflict?.let { conflict ->
                 AslDialog(
-                    title = "Uninstall the existing app?",
-                    body = "A different-signed version of ${conflict.applicationId} is already installed, " +
-                        "so this build can't replace it. Uninstalling removes that app's data.",
+                    title = stringResource(R.string.editor_uninstall_title),
+                    body = stringResource(R.string.editor_uninstall_body, conflict.applicationId),
                     variant = AslDialogVariant.Confirm,
                     destructive = true,
-                    confirmLabel = "Uninstall & reinstall",
-                    cancelLabel = "Cancel",
+                    confirmLabel = stringResource(R.string.editor_uninstall_reinstall),
+                    cancelLabel = stringResource(CommonR.string.action_cancel),
                     onConfirm = interactionListener::onConfirmInstallConflictUninstall,
                     onDismiss = interactionListener::onDismissInstallConflict,
                 )
@@ -238,21 +239,21 @@ private fun EditorFileOperationDialog(
             var name by remember(dialog) { mutableStateOf("") }
             val isFile = dialog.kind == EditorFileCreateKind.File
             AslDialog(
-                title = if (isFile) "New file" else "New folder",
-                body = "Create in ${dialog.parentName}",
+                title = stringResource(if (isFile) R.string.editor_new_file else R.string.editor_new_folder),
+                body = stringResource(R.string.editor_create_in, dialog.parentName),
                 variant = AslDialogVariant.Input,
-                confirmLabel = "Create",
-                cancelLabel = "Cancel",
+                confirmLabel = stringResource(CommonR.string.action_create),
+                cancelLabel = stringResource(CommonR.string.action_cancel),
                 onConfirm = { interactionListener.onConfirmCreateFileTreeEntry(name) },
                 onDismiss = interactionListener::onDismissFileOperationDialog,
                 inputContent = {
                     AslTextField(
                         value = name,
                         onValueChange = { name = sanitizeFileEntryName(it) },
-                        label = if (isFile) "File name" else "Folder name",
-                        placeholder = if (isFile) "Example.kt" else "feature",
+                        label = stringResource(if (isFile) R.string.editor_file_name else R.string.editor_folder_name),
+                        placeholder = stringResource(if (isFile) R.string.editor_file_placeholder else R.string.editor_folder_placeholder),
                         leadingIcon = if (isFile) "file-code" else "folder",
-                        helper = "Use one name, without / or \\",
+                        helper = stringResource(R.string.editor_name_helper),
                     )
                 },
             )
@@ -260,29 +261,32 @@ private fun EditorFileOperationDialog(
         is EditorFileOperationDialogUiState.Rename -> {
             var name by remember(dialog) { mutableStateOf(dialog.currentName) }
             AslDialog(
-                title = "Rename",
+                title = stringResource(CommonR.string.action_rename),
                 body = dialog.currentName,
                 variant = AslDialogVariant.Input,
-                confirmLabel = "Rename",
-                cancelLabel = "Cancel",
+                confirmLabel = stringResource(CommonR.string.action_rename),
+                cancelLabel = stringResource(CommonR.string.action_cancel),
                 onConfirm = { interactionListener.onConfirmRenameFileTreeEntry(name) },
                 onDismiss = interactionListener::onDismissFileOperationDialog,
                 inputContent = {
                     AslTextField(
                         value = name,
                         onValueChange = { name = sanitizeFileEntryName(it) },
-                        label = "New name",
+                        label = stringResource(R.string.editor_new_name),
                         leadingIcon = "pencil",
                     )
                 },
             )
         }
         is EditorFileOperationDialogUiState.Delete -> AslDialog(
-            title = if (dialog.isDirectory) "Delete folder?" else "Delete file?",
-            body = "Delete ${dialog.name}${if (dialog.isDirectory) " and everything inside it" else ""}. This cannot be undone.",
+            title = stringResource(if (dialog.isDirectory) R.string.editor_delete_folder_title else R.string.editor_delete_file_title),
+            body = stringResource(
+                if (dialog.isDirectory) R.string.editor_delete_folder_body else R.string.editor_delete_file_body,
+                dialog.name,
+            ),
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Delete",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(CommonR.string.action_delete),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = true,
             onConfirm = interactionListener::onConfirmDeleteFileTreeEntry,
             onDismiss = interactionListener::onDismissFileOperationDialog,
@@ -299,23 +303,28 @@ private fun EditorTopBar(
     isTablet: Boolean,
 ) {
     val activeTab = uiState.activeTab
-    val overflowItems = remember(uiState.releaseBuildLabel) {
+    val findInFile = stringResource(R.string.editor_find_file)
+    val reformatCode = stringResource(R.string.editor_reformat_code)
+    val closeProject = stringResource(R.string.editor_close_project)
+    val loading = stringResource(R.string.editor_loading)
+    val overflowItems = remember(uiState.releaseBuildLabel, findInFile, reformatCode, closeProject) {
         listOf(
-            AslOverflowMenuEntry.Item("Find in file", icon = "search", shortcut = "⌘F"),
-            AslOverflowMenuEntry.Item("Reformat code", icon = "align-left"),
+            AslOverflowMenuEntry.Item(findInFile, icon = "search", shortcut = "⌘F"),
+            AslOverflowMenuEntry.Item(reformatCode, icon = "align-left"),
             AslOverflowMenuEntry.Divider,
             AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package"),
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item("Close project", icon = "x"),
+            AslOverflowMenuEntry.Item(closeProject, icon = "x"),
         )
     }
     val onOverflowSelect = remember(interactionListener) {
-        { item: AslOverflowMenuEntry.Item, _: Int ->
-            when (item.label) {
-                "Find in file" -> interactionListener.onToggleFindBar()
-                "Reformat code" -> interactionListener.onReformatCode()
-                "Close project" -> interactionListener.onCloseProject()
-                else -> if (item.icon == "package") interactionListener.onBuildRelease()
+        { _: AslOverflowMenuEntry.Item, index: Int ->
+            when (index) {
+                0 -> interactionListener.onToggleFindBar()
+                1 -> interactionListener.onReformatCode()
+                3 -> interactionListener.onBuildRelease()
+                5 -> interactionListener.onCloseProject()
+                else -> Unit
             }
         }
     }
@@ -323,7 +332,7 @@ private fun EditorTopBar(
     val onCloseTab = remember(interactionListener) { interactionListener::onCloseTab }
     Column(modifier = Modifier.fillMaxWidth().zIndex(2f)) {
         AslEditorToolbar(
-            projectName = uiState.projectName.ifBlank { "Loading…" },
+            projectName = uiState.projectName.ifBlank { loading },
             running = uiState.running,
             onRun = {
                 if (uiState.running) interactionListener.onCancelBuild()
@@ -360,12 +369,12 @@ private fun EditorToolbarEditActions(
 ) {
     val onUndo = remember(interactionListener) { { interactionListener.onUndo() } }
     val onRedo = remember(interactionListener) { { interactionListener.onRedo() } }
-    AslIconButton(icon = "undo-2", contentDescription = "Undo", onClick = onUndo)
-    AslIconButton(icon = "redo-2", contentDescription = "Redo", onClick = onRedo)
+    AslIconButton(icon = "undo-2", contentDescription = stringResource(R.string.editor_undo), onClick = onUndo)
+    AslIconButton(icon = "redo-2", contentDescription = stringResource(R.string.editor_redo), onClick = onRedo)
     if (showMarkdownPreviewToggle) {
         AslIconButton(
             icon = if (markdownPreview) "code" else "eye",
-            contentDescription = if (markdownPreview) "Edit markdown" else "Preview markdown",
+            contentDescription = stringResource(if (markdownPreview) R.string.editor_markdown_edit else R.string.editor_markdown_preview),
             onClick = { interactionListener.onToggleMarkdownPreview() },
         )
     }
@@ -553,16 +562,20 @@ private fun EditorBottomToolSection(
 
 @Composable
 private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Unit) {
+    val building = stringResource(R.string.editor_building)
+    val buildFailed = stringResource(R.string.editor_build_failed)
+    val plainText = stringResource(R.string.editor_plain_text)
+    val caretPosition = stringResource(R.string.editor_caret_position, uiState.caretLine + 1, uiState.caretColumn + 1)
     AslStatusBar(
         items = buildList {
             uiState.gitStatusText?.let { add(AslStatusBarEntry.Item(it, icon = "git-branch", onClick = onOpenBranches)) }
             when {
-                uiState.running -> add(AslStatusBarEntry.Item("Building"))
-                uiState.buildFailed -> add(AslStatusBarEntry.Item("Build failed", icon = "octagon-alert", tone = AslStatusTone.Error))
-                else -> add(AslStatusBarEntry.Item(uiState.activeTab?.language?.displayName ?: "Plain text"))
+                uiState.running -> add(AslStatusBarEntry.Item(building))
+                uiState.buildFailed -> add(AslStatusBarEntry.Item(buildFailed, icon = "octagon-alert", tone = AslStatusTone.Error))
+                else -> add(AslStatusBarEntry.Item(uiState.activeTab?.language?.displayName ?: plainText))
             }
             add(AslStatusBarEntry.Spacer)
-            add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
+            add(AslStatusBarEntry.Item(caretPosition))
             val statusVariant = if (uiState.running) uiState.buildConsole.request?.variantName else null
             val variantLabel = (statusVariant ?: uiState.selectedVariant)
                 .replaceFirstChar { it.uppercase() }
@@ -576,9 +589,10 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
 
 @Composable
 private fun EditorCompactStatusBar(uiState: EditorUiState) {
+    val caretPosition = stringResource(R.string.editor_caret_position, uiState.caretLine + 1, uiState.caretColumn + 1)
     AslStatusBar(
         items = buildList {
-            add(AslStatusBarEntry.Item("Ln ${uiState.caretLine + 1}, Col ${uiState.caretColumn + 1}"))
+            add(AslStatusBarEntry.Item(caretPosition))
         },
     )
 }

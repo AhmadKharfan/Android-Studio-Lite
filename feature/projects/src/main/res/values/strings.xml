@@ -1,0 +1,50 @@
+<resources>
+    <string name="projects_preferences">Preferences</string>
+    <string name="projects_open_title">Open project</string>
+    <string name="projects_search_placeholder">Search projects</string>
+    <string name="projects_empty_title">No projects yet</string>
+    <string name="projects_empty_body">Create a new project or clone one from Git to get started.</string>
+    <string name="projects_create_action">Create project</string>
+    <string name="projects_clone_action">Clone repo</string>
+    <string name="projects_no_matches_title">No matches for “%1$s”</string>
+    <string name="projects_no_matches_body">Check the spelling or browse another folder.</string>
+    <string name="projects_browse_other">Browse other location</string>
+    <string name="projects_clone_title">Clone repository</string>
+    <string name="projects_cloning_title">Cloning…</string>
+    <string name="projects_cloning_detail">Cloning · %1$s</string>
+    <string name="projects_receiving_objects">Receiving objects</string>
+    <string name="projects_repository_url">Repository URL</string>
+    <string name="projects_repository_url_placeholder" translatable="false">https://github.com/user/repo.git</string>
+    <string name="projects_branch">Branch</string>
+    <string name="projects_branch_placeholder" translatable="false">main</string>
+    <string name="projects_branch_helper">Optional. Leave blank to use the remote\'s default branch.</string>
+    <string name="projects_clone_button">Clone</string>
+    <string name="projects_options">Options</string>
+    <string name="projects_choose_folder">Choose folder</string>
+    <string name="projects_folder_name">Folder name</string>
+    <string name="projects_new_folder">New folder</string>
+    <string name="projects_select">Select</string>
+    <string name="projects_create_title">Create project</string>
+    <string name="projects_step_template">Template</string>
+    <string name="projects_step_configure">Configure</string>
+    <string name="projects_step_create">Create</string>
+    <string name="projects_next">Next</string>
+    <string name="projects_project_name">Project name</string>
+    <string name="projects_project_name_helper">Letters and digits, no spaces</string>
+    <string name="projects_package_name">Package name</string>
+    <string name="projects_package_name_helper">Also the applicationId, e.g. com.example.myapp</string>
+    <string name="projects_save_location">Save location</string>
+    <string name="projects_save_location_helper">The project folder is created here</string>
+    <string name="projects_language">Language</string>
+    <string name="projects_language_kotlin" translatable="false">Kotlin</string>
+    <string name="projects_language_java" translatable="false">Java</string>
+    <string name="projects_kotlin_required">This template requires Kotlin.</string>
+    <string name="projects_minimum_sdk">Minimum SDK</string>
+    <string name="projects_summary_template">Template</string>
+    <string name="projects_summary_location">Location</string>
+    <string name="projects_summary_language">Language</string>
+    <string name="projects_summary_sdk" translatable="false">SDK</string>
+    <string name="projects_summary_min_sdk">min %1$s</string>
+    <string name="projects_creating">Creating project…</string>
+    <string name="projects_creating_detail">writing Gradle wrapper</string>
+</resources>

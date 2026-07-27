@@ -36,6 +36,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -61,6 +63,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitDiffRoute(
@@ -103,7 +106,9 @@ private fun GitDiffScreen(
                 actions = {
                     AslIconButton(
                         icon = if (landscape) "smartphone" else "monitor",
-                        contentDescription = if (landscape) "Rotate to portrait" else "Rotate to landscape",
+                        contentDescription = stringResource(
+                            if (landscape) R.string.git_diff_rotate_portrait else R.string.git_diff_rotate_landscape,
+                        ),
                         onClick = { landscape = !landscape },
                     )
                 },
@@ -118,8 +123,8 @@ private fun GitDiffScreen(
             ) {
                 AslSegmentedButton(
                     options = listOf(
-                        AslSegmentedOption("Unified", "unified", icon = "align-left"),
-                        AslSegmentedOption("Side-by-side", "split", icon = "layout"),
+                        AslSegmentedOption(stringResource(R.string.git_diff_unified), "unified", icon = "align-left"),
+                        AslSegmentedOption(stringResource(R.string.git_diff_side_by_side), "split", icon = "layout"),
                     ),
                     value = if (uiState.sideBySide) "split" else "unified",
                     onValueChange = { interactionListener.setSideBySide(it == "split") },
@@ -127,32 +132,32 @@ private fun GitDiffScreen(
             }
             HorizontalDivider()
             when {
-                uiState.loading -> AslLinearProgress(label = "Computing diff", modifier = Modifier.padding(16.dp))
+                uiState.loading -> AslLinearProgress(label = stringResource(R.string.git_diff_computing), modifier = Modifier.padding(16.dp))
                 uiState.error != null -> AslEmptyState(
-                    title = "Couldn't show diff",
+                    title = stringResource(R.string.git_diff_error),
                     icon = "triangle-alert",
                     subtitle = uiState.error,
                     modifier = Modifier.fillMaxSize(),
                 )
                 uiState.diff?.isBinary == true -> AslEmptyState(
-                    title = "Binary file",
+                    title = stringResource(R.string.git_diff_binary),
                     icon = "file",
-                    subtitle = "Binary content cannot be displayed or partially staged.",
+                    subtitle = stringResource(R.string.git_diff_binary_hint),
                     modifier = Modifier.fillMaxSize(),
                 )
                 uiState.diff?.tooLarge == true -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
                     AslEmptyState(
-                        title = "Diff is large",
+                        title = stringResource(R.string.git_diff_large),
                         icon = "triangle-alert",
-                        subtitle = "Files over 512 KiB or 20,000 lines are hidden to keep the editor responsive.",
+                        subtitle = stringResource(R.string.git_diff_large_hint),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    AslButton("Show anyway", interactionListener::showAnyway, modifier = Modifier.padding(16.dp))
+                    AslButton(stringResource(R.string.git_diff_show_anyway), interactionListener::showAnyway, modifier = Modifier.padding(16.dp))
                 }
                 uiState.diff?.hunks?.isEmpty() == true -> AslEmptyState(
-                    title = "No differences",
+                    title = stringResource(R.string.git_diff_none),
                     icon = "check",
-                    subtitle = "This side of the file matches its Git comparison target.",
+                    subtitle = stringResource(R.string.git_diff_none_hint),
                     modifier = Modifier.fillMaxSize(),
                 )
                 uiState.diff != null -> DiffContent(uiState, interactionListener::stage, interactionListener::unstage)
@@ -298,13 +303,13 @@ private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         Text(
-            "$count hunks",
+            pluralStringResource(R.plurals.git_diff_hunks, count, count),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        AslIconButton(icon = "chevron-up", contentDescription = "Previous hunk", onClick = onPrevious, size = 32.dp, iconSize = 16.dp)
-        AslIconButton(icon = "chevron-down", contentDescription = "Next hunk", onClick = onNext, size = 32.dp, iconSize = 16.dp)
+        AslIconButton(icon = "chevron-up", contentDescription = stringResource(R.string.git_diff_previous_hunk), onClick = onPrevious, size = 32.dp, iconSize = 16.dp)
+        AslIconButton(icon = "chevron-down", contentDescription = stringResource(R.string.git_diff_next_hunk), onClick = onNext, size = 32.dp, iconSize = 16.dp)
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
@@ -315,7 +320,7 @@ private fun HunkHeader(hunk: GitDiffHunk, target: GitDiffTarget, onStage: (GitDi
         Text("@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@", modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
         if (target != GitDiffTarget.COMMIT_TO_PARENT) {
             AslButton(
-                if (target == GitDiffTarget.HEAD_TO_INDEX) "Unstage hunk" else "Stage hunk",
+                stringResource(if (target == GitDiffTarget.HEAD_TO_INDEX) R.string.git_diff_unstage_hunk else R.string.git_diff_stage_hunk),
                 { if (target == GitDiffTarget.HEAD_TO_INDEX) onUnstage(hunk) else onStage(hunk) },
                 variant = AslButtonVariant.Tertiary,
             )

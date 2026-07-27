@@ -289,7 +289,7 @@ private fun HubTopBar(
         )
         AslIconButton(
             icon = "settings",
-            contentDescription = "Preferences",
+            contentDescription = stringResource(CommonR.string.settings_title),
             onClick = { interactionListener.onOpenPreferences() },
         )
     }

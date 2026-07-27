@@ -6,12 +6,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.feature.editor.R
 
 @Composable
 fun VariantsRoute(
@@ -25,7 +27,7 @@ fun VariantsRoute(
     val options = variants.map { AslDropdownOption(it, it) }
     val isDebugish = selectedVariant.contains("debug", ignoreCase = true) &&
         !selectedVariant.contains("release", ignoreCase = true)
-    AslToolWindowPanel(title = "Build Variants", width = rememberAslToolWindowWidth(), onClose = onClose) {
+    AslToolWindowPanel(title = stringResource(R.string.editor_variants_title), width = rememberAslToolWindowWidth(), onClose = onClose) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
             AslDropdown(
                 label = module,
@@ -35,9 +37,9 @@ fun VariantsRoute(
             )
             Text(
                 text = if (isDebugish) {
-                    "Debug builds keep debugging symbols and are not optimized. Run installs this variant."
+                    stringResource(R.string.editor_variants_debug_hint)
                 } else {
-                    "Release builds use the project's release configuration and require a valid release signing key. Run can install APK variants."
+                    stringResource(R.string.editor_variants_release_hint)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,

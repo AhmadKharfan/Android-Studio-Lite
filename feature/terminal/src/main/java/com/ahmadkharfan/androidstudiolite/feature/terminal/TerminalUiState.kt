@@ -18,9 +18,15 @@ data class LinuxStatus(
     val installed: Boolean = false,
     val isBusy: Boolean = false,
     val progressPercent: Int = 0,
-    val phase: String? = null,
+    val phase: LinuxInstallPhase? = null,
     val error: String? = null,
 )
+
+enum class LinuxInstallPhase {
+    DOWNLOADING,
+    EXTRACTING,
+    BOOTSTRAPPING_PACKAGES,
+}
 
 @Immutable
 data class TerminalTab(

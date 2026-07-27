@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
@@ -29,6 +30,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -53,7 +56,11 @@ private fun GitAuthSettingsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            AslTopAppBar(title = "Git & GitHub", subtitle = "Sign-in, tokens, author", onBack = onBack)
+            AslTopAppBar(
+                title = stringResource(CommonR.string.settings_git_auth),
+                subtitle = stringResource(CommonR.string.settings_git_auth_sub),
+                onBack = onBack,
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -61,13 +68,13 @@ private fun GitAuthSettingsScreen(
                     .aslImePadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                HubSectionHeader("GitHub account")
+                HubSectionHeader(stringResource(R.string.settings_git_account))
                 GitHubAccountCard(uiState = uiState, interactionListener = interactionListener)
 
                 Spacer(Modifier.height(20.dp))
-                HubSectionHeader("Git author")
+                HubSectionHeader(stringResource(R.string.settings_git_author))
                 Text(
-                    text = "Used as the author and committer of new commits across all projects.",
+                    text = stringResource(R.string.settings_git_author_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                 )
@@ -75,19 +82,19 @@ private fun GitAuthSettingsScreen(
                 AslTextField(
                     value = uiState.gitAuthorName,
                     onValueChange = interactionListener::onGitAuthorNameChanged,
-                    label = "Name",
-                    placeholder = "Your name",
+                    label = stringResource(R.string.settings_git_name),
+                    placeholder = stringResource(R.string.settings_git_name_placeholder),
                 )
                 Spacer(Modifier.height(10.dp))
                 AslTextField(
                     value = uiState.gitAuthorEmail,
                     onValueChange = interactionListener::onGitAuthorEmailChanged,
-                    label = "Email",
-                    placeholder = "you@example.com",
+                    label = stringResource(R.string.settings_git_email),
+                    placeholder = stringResource(R.string.settings_git_email_placeholder),
                 )
                 Spacer(Modifier.height(10.dp))
                 AslButton(
-                    label = "Save Git author",
+                    label = stringResource(R.string.settings_git_save_author),
                     onClick = interactionListener::onSaveGitAuthor,
                     disabled = !uiState.gitAuthorDirty,
                 )
@@ -121,18 +128,18 @@ private fun GitHubAccountCard(
             .padding(16.dp),
     ) {
         Text(
-            text = if (uiState.gitHubConnected) "Connected" else "Not connected",
+            text = stringResource(if (uiState.gitHubConnected) R.string.settings_git_connected else R.string.settings_git_not_connected),
             style = MaterialTheme.typography.titleSmall,
             color = if (uiState.gitHubConnected) colors.success else colors.textSecondary,
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = if (uiState.gitHubConnected) {
-                "A GitHub credential is saved and reused for push/pull in every project."
+                stringResource(R.string.settings_git_connected_hint)
             } else if (uiState.gitHubAvailable) {
-                "Sign in with your GitHub account or add an access token. Stored securely and shared across projects."
+                stringResource(R.string.settings_git_sign_in_hint)
             } else {
-                "Add a GitHub personal access token. Stored securely and shared across projects."
+                stringResource(R.string.settings_git_token_hint)
             },
             style = MaterialTheme.typography.bodySmall,
             color = colors.textTertiary,
@@ -141,16 +148,16 @@ private fun GitHubAccountCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AslButton(
                 label = when {
-                    uiState.gitHubConnected -> "Update credential"
-                    uiState.gitHubAvailable -> "Sign in with GitHub"
-                    else -> "Add access token"
+                    uiState.gitHubConnected -> stringResource(R.string.settings_git_update_credential)
+                    uiState.gitHubAvailable -> stringResource(R.string.settings_git_sign_in)
+                    else -> stringResource(R.string.settings_git_add_token)
                 },
                 icon = if (uiState.gitHubAvailable && !uiState.gitHubConnected) "github" else "key-round",
                 onClick = interactionListener::onConnectGitHub,
             )
             if (uiState.gitHubConnected) {
                 AslButton(
-                    label = "Sign out",
+                    label = stringResource(R.string.settings_git_sign_out),
                     onClick = interactionListener::onDisconnectGitHub,
                     variant = AslButtonVariant.Secondary,
                 )

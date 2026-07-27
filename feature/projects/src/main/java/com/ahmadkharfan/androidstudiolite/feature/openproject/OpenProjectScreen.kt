@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
@@ -16,8 +17,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmpt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
-import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectUiState
-import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectViewModel
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun OpenProjectRoute(
@@ -57,12 +57,12 @@ private fun OpenProjectScreen(
     onCreateProject: () -> Unit,
     onCloneRepository: () -> Unit,
 ) {
-    AslBottomSheet(onDismiss = onDismiss, title = "Open project") {
+    AslBottomSheet(onDismiss = onDismiss, title = stringResource(R.string.projects_open_title)) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             AslSearchField(
                 value = uiState.query,
                 onValueChange = { interactionListener.onQueryChanged(it) },
-                placeholder = "Search projects",
+                placeholder = stringResource(R.string.projects_search_placeholder),
                 modifier = Modifier.fillMaxWidth(),
             )
             OpenProjectResults(
@@ -86,18 +86,18 @@ private fun OpenProjectResults(
 ) {
     when {
         uiState.allProjects.isEmpty() -> AslEmptyState(
-            title = "No projects yet",
-            subtitle = "Create a new project or clone one from Git to get started.",
-            actionLabel = "Create project",
+            title = stringResource(R.string.projects_empty_title),
+            subtitle = stringResource(R.string.projects_empty_body),
+            actionLabel = stringResource(R.string.projects_create_action),
             onAction = onCreateProject,
-            secondaryLabel = "Clone repo",
+            secondaryLabel = stringResource(R.string.projects_clone_action),
             onSecondary = onCloneRepository,
         )
         uiState.filteredProjects.isEmpty() -> AslEmptyState(
             icon = "search-x",
-            title = "No matches for “${uiState.query}”",
-            subtitle = "Check the spelling or browse another folder.",
-            secondaryLabel = "Browse other location",
+            title = stringResource(R.string.projects_no_matches_title, uiState.query),
+            subtitle = stringResource(R.string.projects_no_matches_body),
+            secondaryLabel = stringResource(R.string.projects_browse_other),
             onSecondary = onBrowseOtherLocation,
         )
         else -> OpenProjectList(
@@ -126,7 +126,7 @@ private fun OpenProjectList(
         }
     }
     AslButton(
-        label = "Browse other location",
+        label = stringResource(R.string.projects_browse_other),
         onClick = onBrowseOtherLocation,
         variant = AslButtonVariant.Tertiary,
         icon = "folder-search",

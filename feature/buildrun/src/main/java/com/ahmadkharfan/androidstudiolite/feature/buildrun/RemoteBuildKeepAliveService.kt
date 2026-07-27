@@ -56,9 +56,11 @@ class RemoteBuildKeepAliveService : Service() {
             ACTION_EXECUTE -> {
                 val operationId = intent.getStringExtra(EXTRA_OPERATION_ID) ?: return START_NOT_STICKY
                 promote(
-                    projectName = intent.getStringExtra(EXTRA_PROJECT_NAME).orEmpty().ifBlank { "Project" },
+                    projectName = intent.getStringExtra(EXTRA_PROJECT_NAME).orEmpty().ifBlank {
+                        getString(R.string.build_notification_project)
+                    },
                     projectId = intent.getStringExtra(EXTRA_PROJECT_ID).orEmpty(),
-                    progress = "Preparing…",
+                    progress = getString(R.string.build_notification_preparing),
                 )
                 if (executionJob?.isActive == true) return START_REDELIVER_INTENT
                 val root = intent.getStringExtra(EXTRA_PROJECT_ROOT)?.let(::File) ?: return START_NOT_STICKY
@@ -156,13 +158,13 @@ class RemoteBuildKeepAliveService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("Building…")
+            .setContentTitle(getString(R.string.build_notification_building))
             .setContentText(progress?.takeIf { it.isNotBlank() } ?: projectName)
             .setSubText(projectName.takeIf { !progress.isNullOrBlank() })
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(contentIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", cancelIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.build_notification_cancel), cancelIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(0, 0, true)
@@ -176,10 +178,10 @@ class RemoteBuildKeepAliveService : Service() {
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Build progress",
+                    getString(R.string.build_notification_channel_progress),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Ongoing remote builds"
+                    description = getString(R.string.build_notification_channel_progress_description)
                 },
             )
         }

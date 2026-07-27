@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
@@ -46,6 +47,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.editor.R
 
 @Composable
 fun AssetsRoute(
@@ -70,7 +73,7 @@ private fun AssetsScreen(
     onClose: () -> Unit,
     onOpenFile: (path: String, name: String) -> Unit,
 ) {
-    AslToolWindowPanel(title = "Assets", width = rememberAslToolWindowWidth(), onClose = onClose, scrollable = false) {
+    AslToolWindowPanel(title = stringResource(R.string.editor_assets_title), width = rememberAslToolWindowWidth(), onClose = onClose, scrollable = false) {
         when {
             uiState.loading -> AslSkeleton(variant = AslSkeletonVariant.List, rows = 6)
             uiState.selectedAsset != null -> AssetDetailView(
@@ -117,7 +120,7 @@ private fun AssetDetailView(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = onBack, size = 32.dp, iconSize = 16.dp)
+            AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = onBack, size = 32.dp, iconSize = 16.dp)
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(text = asset.name, style = MaterialTheme.typography.titleSmall, color = colors.textPrimary)
                 Text(text = asset.subtitle, style = MaterialTheme.typography.bodySmall, color = colors.textTertiary)
@@ -126,7 +129,7 @@ private fun AssetDetailView(
         AssetDetailPreview(asset = asset)
         if (asset.kind != AssetKind.RasterImage) {
             AslButton(
-                label = "Open in editor",
+                label = stringResource(R.string.editor_assets_open),
                 icon = "file-code",
                 onClick = onOpenInEditor,
                 variant = AslButtonVariant.Secondary,
@@ -183,13 +186,13 @@ private fun AssetDetailFont(path: String) {
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "The quick brown fox",
+            text = stringResource(R.string.editor_assets_font_sample),
             style = MaterialTheme.typography.headlineSmall,
             fontFamily = typeface?.let { FontFamily(it) },
             color = AslTheme.colors.textPrimary,
         )
         Text(
-            text = "0123456789 AaBbCc",
+            text = stringResource(R.string.editor_assets_font_characters),
             style = MaterialTheme.typography.bodyMedium,
             fontFamily = typeface?.let { FontFamily(it) },
             color = AslTheme.colors.textSecondary,
@@ -222,7 +225,7 @@ private fun AssetDetailText(path: String) {
         text = withContext(Dispatchers.IO) { AssetPreview.readText(path) }
     }
     Text(
-        text = text ?: "Loading…",
+        text = text ?: stringResource(R.string.editor_loading),
         style = AslCode.codeBody.copy(fontSize = 11.sp, lineHeight = 15.sp),
         color = AslTheme.colors.textSecondary,
         modifier = Modifier.fillMaxWidth(),
@@ -233,7 +236,7 @@ private fun AssetDetailText(path: String) {
 private fun EmptyAssets() {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Text(
-            text = "No resources or assets found in this project.",
+            text = stringResource(R.string.editor_assets_empty),
             style = MaterialTheme.typography.bodySmall,
             color = AslTheme.colors.textTertiary,
         )

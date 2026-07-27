@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
@@ -51,17 +52,19 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRailTool
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.FileTreeSearchPanel
 import com.ahmadkharfan.androidstudiolite.feature.editor.variants.VariantsRoute
 import org.koin.compose.koinInject
+import com.ahmadkharfan.androidstudiolite.feature.editor.R
 
+@Composable
 private fun railItems(gitBadge: String?) = listOf(
-    AslToolRailEntry.Item("files", "folder", "Files"),
-    AslToolRailEntry.Item("git", "git-branch", "Git", badge = gitBadge),
-    AslToolRailEntry.Item("ai", "sparkles", "AI Agent"),
-    AslToolRailEntry.Item("variants", "layers", "Variants"),
-    AslToolRailEntry.Item("assets", "image", "Assets"),
+    AslToolRailEntry.Item("files", "folder", stringResource(R.string.editor_files)),
+    AslToolRailEntry.Item("git", "git-branch", stringResource(R.string.editor_git), badge = gitBadge),
+    AslToolRailEntry.Item("ai", "sparkles", stringResource(R.string.editor_ai_agent)),
+    AslToolRailEntry.Item("variants", "layers", stringResource(R.string.editor_variants)),
+    AslToolRailEntry.Item("assets", "image", stringResource(R.string.editor_assets)),
     AslToolRailEntry.Spacer,
     AslToolRailEntry.Divider,
-    AslToolRailEntry.Item("settings", "settings", "Settings"),
-    AslToolRailEntry.Item("close", "x", "Close project"),
+    AslToolRailEntry.Item("settings", "settings", stringResource(R.string.editor_settings)),
+    AslToolRailEntry.Item("close", "x", stringResource(R.string.editor_close_project)),
 )
 
 private fun EditorRailTool?.toRailId(): String? = when (this) {
@@ -278,7 +281,7 @@ private fun EditorToolRail(
     onOpenSettings: () -> Unit,
     onCloseProject: () -> Unit,
 ) {
-    val items = remember(gitBadge) { railItems(gitBadge) }
+    val items = railItems(gitBadge)
     AslToolRail(
         items = items,
         activeId = activeId,
@@ -402,7 +405,7 @@ private fun EditorFilesToolPanel(
     var fileTreeSearchOpen by remember { mutableStateOf(false) }
     val toolWindowWidth = rememberAslToolWindowWidth()
     AslToolWindowPanel(
-        title = "Project",
+        title = stringResource(R.string.editor_project),
         width = toolWindowWidth,
         onClose = onDismiss,
         scrollable = !fileTreeSearchOpen,
@@ -410,7 +413,7 @@ private fun EditorFilesToolPanel(
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 AslIconButton(
                     icon = "search",
-                    contentDescription = "Search project",
+                    contentDescription = stringResource(R.string.editor_search_project),
                     onClick = { fileTreeSearchOpen = !fileTreeSearchOpen },
                     active = fileTreeSearchOpen,
                     size = 32.dp,
@@ -458,7 +461,7 @@ private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
     Box {
         AslIconButton(
             icon = "file-plus-2",
-            contentDescription = "New file or folder",
+            contentDescription = stringResource(R.string.editor_new_file_or_folder),
             onClick = toggleOpen,
             active = open,
             size = 32.dp,
@@ -470,7 +473,7 @@ private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
                 onDismissRequest = dismiss,
             ) {
                 AslDropdownMenuItem(
-                    label = "New file",
+                    label = stringResource(R.string.editor_new_file),
                     icon = "file-plus-2",
                     onClick = {
                         dismiss()
@@ -478,7 +481,7 @@ private fun FileTreeCreateMenu(onCreate: (EditorFileCreateKind) -> Unit) {
                     },
                 )
                 AslDropdownMenuItem(
-                    label = "New folder",
+                    label = stringResource(R.string.editor_new_folder),
                     icon = "folder",
                     onClick = {
                         dismiss()

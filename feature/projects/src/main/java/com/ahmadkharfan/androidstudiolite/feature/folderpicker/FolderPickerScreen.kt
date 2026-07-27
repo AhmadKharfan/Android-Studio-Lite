@@ -12,9 +12,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslFileTree
@@ -22,9 +24,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBreadcrumbBar
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerUiState
-import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerViewModel
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun FolderPickerRoute(
@@ -51,7 +51,7 @@ private fun FolderPickerScreen(
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = "Choose folder", onBack = onCancel)
+            AslTopAppBar(title = stringResource(R.string.projects_choose_folder), onBack = onCancel)
             AslBreadcrumbBar(segments = uiState.breadcrumb)
             Column(
                 modifier = Modifier
@@ -84,26 +84,26 @@ private fun FolderPickerScreen(
                         AslTextField(
                             value = uiState.newFolderName,
                             onValueChange = { interactionListener.onNewFolderNameChanged(it) },
-                            label = "Folder name",
-                            placeholder = "New folder",
+                            label = stringResource(R.string.projects_folder_name),
+                            placeholder = stringResource(R.string.projects_new_folder),
                             error = uiState.createFolderError,
                             modifier = Modifier.weight(1f),
                         )
                         AslButton(
-                            label = "Create",
+                            label = stringResource(CommonR.string.action_create),
                             onClick = { interactionListener.onConfirmCreateFolder() },
                             disabled = uiState.newFolderName.isBlank(),
                         )
                     }
                     AslButton(
-                        label = "Cancel",
+                        label = stringResource(CommonR.string.action_cancel),
                         onClick = { interactionListener.onCancelCreateFolder() },
                         variant = AslButtonVariant.Tertiary,
                         fullWidth = true,
                     )
                 } else {
                     AslButton(
-                        label = "New folder",
+                        label = stringResource(R.string.projects_new_folder),
                         icon = "folder",
                         onClick = { interactionListener.onStartCreateFolder() },
                         variant = AslButtonVariant.Secondary,
@@ -115,14 +115,14 @@ private fun FolderPickerScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     AslButton(
-                        label = "Cancel",
+                        label = stringResource(CommonR.string.action_cancel),
                         onClick = onCancel,
                         variant = AslButtonVariant.Secondary,
                         fullWidth = true,
                         modifier = Modifier.weight(1f),
                     )
                     AslButton(
-                        label = "Select",
+                        label = stringResource(R.string.projects_select),
                         onClick = onSelect,
                         variant = AslButtonVariant.Primary,
                         disabled = uiState.selectedId == null,

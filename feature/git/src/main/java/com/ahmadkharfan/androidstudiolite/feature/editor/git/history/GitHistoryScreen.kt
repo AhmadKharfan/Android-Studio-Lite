@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
@@ -54,6 +55,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import com.ahmadkharfan.androidstudiolite.feature.git.middleEllipsis
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
 fun GitHistoryRoute(
@@ -87,14 +90,14 @@ private fun GitHistoryScreen(
     Scaffold(
         topBar = {
             AslTopAppBar(
-                title = if (uiState.path == null) "Git history" else "File history",
+                title = stringResource(if (uiState.path == null) R.string.git_history_title else R.string.git_history_file_title),
                 subtitle = uiState.path?.middleEllipsis(),
                 onBack = if (uiState.selected == null) onBack else interactionListener::clearSelection,
                 applyStatusBarInset = true,
                 actions = {
                     if (uiState.selected == null && uiState.path == null) {
                         AslButton(
-                            label = if (uiState.graphEnabled) "Graph on" else "Graph off",
+                            label = stringResource(if (uiState.graphEnabled) R.string.git_history_graph_on else R.string.git_history_graph_off),
                             onClick = interactionListener::toggleGraph,
                             variant = AslButtonVariant.Tertiary,
                         )
@@ -105,17 +108,17 @@ private fun GitHistoryScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             when {
-                uiState.loading -> AslLinearProgress(label = "Loading history", modifier = Modifier.padding(16.dp))
+                uiState.loading -> AslLinearProgress(label = stringResource(R.string.git_history_loading), modifier = Modifier.padding(16.dp))
                 uiState.error != null && uiState.commits.isEmpty() -> AslEmptyState(
-                    title = "Couldn't load history",
+                    title = stringResource(R.string.git_history_error),
                     subtitle = uiState.error,
                     icon = "triangle-alert",
                     modifier = Modifier.fillMaxSize(),
                 )
                 uiState.selected != null -> CommitDetails(uiState.selected, onOpenDiff)
                 uiState.commits.isEmpty() -> AslEmptyState(
-                    title = "No commits",
-                    subtitle = "Commit changes to start repository history.",
+                    title = stringResource(R.string.git_history_no_commits),
+                    subtitle = stringResource(R.string.git_history_no_commits_hint),
                     icon = "git-commit",
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -129,15 +132,15 @@ private fun GitHistoryScreen(
     }
     resetCommit?.let { commit ->
         AslDialog(
-            title = "Reset current branch to ${commit.take(7)}?",
+            title = stringResource(R.string.git_history_reset_title, commit.take(7)),
             body = when (resetMode) {
-                GitResetMode.SOFT -> "Soft: move HEAD; keep the index and working tree unchanged."
-                GitResetMode.MIXED -> "Mixed: move HEAD and reset the index; keep working-tree files."
-                GitResetMode.HARD -> "Hard: move HEAD and permanently discard index and working-tree changes."
+                GitResetMode.SOFT -> stringResource(R.string.git_history_reset_soft)
+                GitResetMode.MIXED -> stringResource(R.string.git_history_reset_mixed)
+                GitResetMode.HARD -> stringResource(R.string.git_history_reset_hard)
             },
             variant = AslDialogVariant.Confirm,
-            confirmLabel = "Reset",
-            cancelLabel = "Cancel",
+            confirmLabel = stringResource(R.string.git_history_reset),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
             destructive = resetMode == GitResetMode.HARD,
             onDismiss = { resetCommit = null },
             onConfirm = {
@@ -151,7 +154,13 @@ private fun GitHistoryScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         GitResetMode.entries.forEach { mode ->
                             AslChip(
-                                label = mode.name.lowercase().replaceFirstChar(Char::uppercase),
+                                label = stringResource(
+                                    when (mode) {
+                                        GitResetMode.SOFT -> R.string.git_history_reset_mode_soft
+                                        GitResetMode.MIXED -> R.string.git_history_reset_mode_mixed
+                                        GitResetMode.HARD -> R.string.git_history_reset_mode_hard
+                                    },
+                                ),
                                 kind = AslChipKind.Filter,
                                 selected = resetMode == mode,
                                 onClick = { resetMode = mode },
@@ -159,7 +168,7 @@ private fun GitHistoryScreen(
                         }
                     }
                     if (resetMode == GitResetMode.HARD) {
-                        AslTextField(resetConfirmation, { resetConfirmation = it }, placeholder = "Type RESET")
+                        AslTextField(resetConfirmation, { resetConfirmation = it }, placeholder = stringResource(R.string.git_history_type_reset))
                     }
                 }
             },
@@ -185,12 +194,12 @@ private fun HistoryList(
         items(state.commits, key = { it.id }) { commit ->
             HistoryRow(commit, state.graphRows[commit.id].takeIf { state.graphEnabled }, { onSelect(commit.id) }, { onReset(commit.id) })
         }
-        if (state.loadingMore) item { AslLinearProgress(label = "Loading more", modifier = Modifier.padding(16.dp)) }
+        if (state.loadingMore) item { AslLinearProgress(label = stringResource(R.string.git_history_loading_more), modifier = Modifier.padding(16.dp)) }
         if (state.shallow && state.nextCursor == null) {
             item {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("This clone has shallow history.", style = MaterialTheme.typography.bodyMedium)
-                    AslButton("Deepen history", onDeepen, variant = AslButtonVariant.Secondary)
+                    Text(stringResource(R.string.git_history_shallow), style = MaterialTheme.typography.bodyMedium)
+                    AslButton(stringResource(R.string.git_history_deepen), onDeepen, variant = AslButtonVariant.Secondary)
                 }
             }
         }
@@ -225,7 +234,7 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
             )
             Text(commit.shortId, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium)
             AslOverflowMenu(
-                items = listOf(AslOverflowMenuEntry.Item("Reset current branch to here…", icon = "rotate-ccw", destructive = true)),
+                items = listOf(AslOverflowMenuEntry.Item(stringResource(R.string.git_history_reset_here), icon = "rotate-ccw", destructive = true)),
                 onSelect = { _, _ -> onReset() },
             )
         }
@@ -245,7 +254,7 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
                 }
             }
         }
-        if (commit.isShallowBoundary) Text("Shallow boundary", style = MaterialTheme.typography.labelSmall)
+        if (commit.isShallowBoundary) Text(stringResource(R.string.git_history_shallow_boundary), style = MaterialTheme.typography.labelSmall)
         commit.path?.let { Text(it.middleEllipsis(), style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace) }
         }
     }
@@ -312,11 +321,18 @@ private fun GitGraphGutter(row: GitGraphRow) {
 private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
         item {
+            val initialCommit = stringResource(R.string.git_history_initial_commit)
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(details.fullMessage, style = MaterialTheme.typography.titleMedium)
                 Text("${details.author.name} <${details.author.email}>", style = MaterialTheme.typography.bodyMedium)
                 Text(details.id, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                Text("Parents: ${details.parents.joinToString().ifEmpty { "Initial commit" }}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(
+                        R.string.git_history_parents,
+                        details.parents.joinToString().ifEmpty { initialCommit },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             HorizontalDivider()
         }
@@ -339,13 +355,14 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
     }
 }
 
+@Composable
 private fun relativeTime(timeMillis: Long): String {
     val seconds = ((System.currentTimeMillis() - timeMillis).coerceAtLeast(0L) / 1_000L)
     return when {
-        seconds < 60 -> "just now"
-        seconds < 3_600 -> "${seconds / 60}m ago"
-        seconds < 86_400 -> "${seconds / 3_600}h ago"
-        seconds < 2_592_000 -> "${seconds / 86_400}d ago"
-        else -> "${seconds / 2_592_000}mo ago"
+        seconds < 60 -> stringResource(R.string.git_time_just_now)
+        seconds < 3_600 -> stringResource(R.string.git_time_minutes_ago, seconds / 60)
+        seconds < 86_400 -> stringResource(R.string.git_time_hours_ago, seconds / 3_600)
+        seconds < 2_592_000 -> stringResource(R.string.git_time_days_ago, seconds / 86_400)
+        else -> stringResource(R.string.git_time_months_ago, seconds / 2_592_000)
     }
 }

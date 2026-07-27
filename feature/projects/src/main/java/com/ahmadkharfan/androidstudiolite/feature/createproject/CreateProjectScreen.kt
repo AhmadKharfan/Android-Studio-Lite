@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
@@ -21,11 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.createproject.components.ConfigureStep
 import com.ahmadkharfan.androidstudiolite.feature.createproject.components.SummaryStep
 import com.ahmadkharfan.androidstudiolite.feature.createproject.components.TemplateStep
-import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectUiState
-import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
-
-private val CREATE_PROJECT_STEPS = listOf("Template", "Configure", "Create")
+import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun CreateProjectRoute(
@@ -64,6 +61,11 @@ private fun CreateProjectScreen(
     onBrowseLocation: () -> Unit,
 ) {
     val colors = AslTheme.colors
+    val steps = listOf(
+        stringResource(R.string.projects_step_template),
+        stringResource(R.string.projects_step_configure),
+        stringResource(R.string.projects_step_create),
+    )
     val navigateBack = {
         if (uiState.step == 0) onBack() else interactionListener.onBackStep()
     }
@@ -71,11 +73,11 @@ private fun CreateProjectScreen(
     Scaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).aslImePadding()) {
             AslTopAppBar(
-                title = "Create project",
+                title = stringResource(R.string.projects_create_title),
                 onBack = navigateBack,
             )
             AslWizardStepper(
-                steps = CREATE_PROJECT_STEPS,
+                steps = steps,
                 current = uiState.step,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
@@ -141,7 +143,9 @@ private fun CreateProjectPrimaryAction(
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         AslButton(
-            label = if (uiState.step == 2) "Create project" else "Next",
+            label = stringResource(
+                if (uiState.step == 2) R.string.projects_create_action else R.string.projects_next,
+            ),
             icon = if (uiState.step == 2) "hammer" else null,
             onClick = {
                 if (uiState.step == 2) {

@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 enum class GitAuthMode { SignIn, Token }
 
@@ -185,18 +188,18 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
     val uriHandler = LocalUriHandler.current
     val clipboard = LocalClipboardManager.current
     var codeCopied by remember(state.device?.userCode) { mutableStateOf(false) }
-    val host = state.host ?: "the remote"
+    val host = state.host ?: stringResource(R.string.git_auth_remote)
     val confirmLabel = when {
-        state.succeeded -> "Done"
-        state.mode == GitAuthMode.Token -> "Save & retry"
-        state.isBusy || state.device != null -> "Waiting…"
-        else -> "Sign in"
+        state.succeeded -> stringResource(R.string.git_auth_done)
+        state.mode == GitAuthMode.Token -> stringResource(R.string.git_auth_save_retry)
+        state.isBusy || state.device != null -> stringResource(R.string.git_auth_waiting)
+        else -> stringResource(R.string.git_auth_sign_in)
     }
     AslDialog(
-        title = if (state.succeeded) "Connected" else "Sign in to $host",
+        title = if (state.succeeded) stringResource(R.string.git_auth_connected) else stringResource(R.string.git_auth_sign_in_to, host),
         variant = AslDialogVariant.Input,
         confirmLabel = confirmLabel,
-        cancelLabel = if (state.succeeded) null else "Cancel",
+        cancelLabel = if (state.succeeded) null else stringResource(CommonR.string.action_cancel),
         onDismiss = actions::onDismissAuthPrompt,
         onConfirm = {
             when {
@@ -211,12 +214,12 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (state.succeeded) {
                     Text(
-                        text = "Connected to GitHub",
+                        text = stringResource(R.string.git_auth_connected_github),
                         style = MaterialTheme.typography.titleSmall,
                         color = colors.success,
                     )
                     Text(
-                        text = "You're signed in. This credential is saved and reused across all your projects.",
+                        text = stringResource(R.string.git_auth_connected_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textSecondary,
                     )
@@ -225,13 +228,13 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                 if (state.gitHubAvailable) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AslChip(
-                            label = "GitHub account",
+                            label = stringResource(R.string.git_auth_github_account),
                             kind = AslChipKind.Filter,
                             selected = state.mode == GitAuthMode.SignIn,
                             onClick = { actions.onAuthModeChanged(GitAuthMode.SignIn) },
                         )
                         AslChip(
-                            label = "Access token",
+                            label = stringResource(R.string.git_auth_access_token),
                             kind = AslChipKind.Filter,
                             selected = state.mode == GitAuthMode.Token,
                             onClick = { actions.onAuthModeChanged(GitAuthMode.Token) },
@@ -243,14 +246,13 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                     val device = state.device
                     if (device == null) {
                         Text(
-                            "Sign in with your GitHub account. We'll show you a short code to enter on " +
-                                "github.com; the resulting access is stored securely and reused for every project.",
+                            stringResource(R.string.git_auth_device_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )
                     } else {
                         Text(
-                            "Tap the code to copy it, then open GitHub and paste it:",
+                            stringResource(R.string.git_auth_copy_code_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )
@@ -269,41 +271,40 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                                 .padding(vertical = 12.dp),
                         )
                         Text(
-                            text = if (codeCopied) "Copied to clipboard" else "Tap to copy",
+                            text = stringResource(if (codeCopied) R.string.git_auth_copied else R.string.git_auth_tap_copy),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (codeCopied) colors.success else colors.textTertiary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         AslButton(
-                            label = "Open GitHub",
+                            label = stringResource(R.string.git_auth_open_github),
                             onClick = { uriHandler.openUri(device.verificationUri) },
                             icon = "external-link",
                             variant = AslButtonVariant.Secondary,
                             fullWidth = true,
                         )
                         Text(
-                            "Waiting for you to authorize on GitHub…",
+                            stringResource(R.string.git_auth_waiting_github),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textTertiary,
                         )
                     }
                 } else {
                     Text(
-                        "Pushing to $host needs a GitHub personal access token (classic or fine-grained) " +
-                            "with repository write access. It's stored securely and reused for future push/pull.",
+                        stringResource(R.string.git_auth_token_hint, host),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textSecondary,
                     )
                     AslTextField(
                         value = state.token,
                         onValueChange = actions::onAuthTokenChanged,
-                        label = "Access token",
-                        placeholder = "ghp_…",
+                        label = stringResource(R.string.git_auth_access_token),
+                        placeholder = stringResource(R.string.git_auth_token_placeholder),
                         type = AslTextFieldType.Password,
                     )
                     AslButton(
-                        label = "Create a token on GitHub",
+                        label = stringResource(R.string.git_auth_create_token),
                         onClick = {
                             uriHandler.openUri(
                                 "https://github.com/settings/tokens/new?scopes=repo&description=Android%20Studio%20Lite",

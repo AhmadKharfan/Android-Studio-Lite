@@ -15,12 +15,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
+import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.fileIconFor
 
 @Composable
@@ -43,7 +45,7 @@ fun FileTreeSearchPanel(
         AslSearchField(
             value = query,
             onValueChange = { query = it },
-            placeholder = "Search files and folders",
+            placeholder = stringResource(R.string.editor_search_files),
             onClear = { query = "" },
             modifier = Modifier
                 .fillMaxWidth()
@@ -57,7 +59,7 @@ fun FileTreeSearchPanel(
                         .padding(horizontal = 16.dp, vertical = 24.dp),
                 ) {
                     Text(
-                        text = "Type to search every file and folder in the project.",
+                        text = stringResource(R.string.editor_search_files_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textTertiary,
                     )
@@ -70,7 +72,7 @@ fun FileTreeSearchPanel(
                         .padding(horizontal = 16.dp, vertical = 24.dp),
                 ) {
                     Text(
-                        text = "No matches for \"$query\"",
+                        text = stringResource(R.string.editor_search_no_matches, query),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textTertiary,
                     )

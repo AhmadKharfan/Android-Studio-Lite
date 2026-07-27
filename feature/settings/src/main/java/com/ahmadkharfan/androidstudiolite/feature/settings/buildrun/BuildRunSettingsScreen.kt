@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
@@ -40,6 +41,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
+import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
+import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -70,7 +73,7 @@ private fun BuildRunSettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AslTopAppBar(title = "Build & Run", onBack = onBack)
+            AslTopAppBar(title = stringResource(CommonR.string.settings_build_run), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -108,17 +111,17 @@ private fun BuildRunOutputSection(
     interactionListener: BuildRunInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader("Output format")
+    HubSectionHeader(stringResource(R.string.settings_build_output_format))
     SectionCard(colors) {
         AslSwitch(
-            label = "Build App Bundle (.aab) for release",
+            label = stringResource(R.string.settings_build_aab_release),
             checked = uiState.buildOutputAab,
             onCheckedChange = { interactionListener.onToggleAabOutput(it) },
             modifier = Modifier.fillMaxWidth(),
         )
     }
     Text(
-        text = "App Bundles are required for Play Store uploads; APKs install directly on device.",
+        text = stringResource(R.string.settings_build_aab_hint),
         style = MaterialTheme.typography.bodySmall,
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
@@ -132,17 +135,17 @@ private fun BuildRunSigningSection(
     interactionListener: BuildRunInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader("Signing")
+    HubSectionHeader(stringResource(R.string.settings_build_signing))
     SectionCard(colors) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            Text("Debug keystore", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+            Text(stringResource(R.string.settings_build_debug_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
             Text(
-                text = uiState.debugKeystorePath.ifBlank { "Auto-generated on first build" },
+                text = uiState.debugKeystorePath.ifBlank { stringResource(R.string.settings_build_debug_keystore_auto) },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textTertiary,
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Release keystore", style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+            Text(stringResource(R.string.settings_build_release_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
             if (uiState.hasReleaseKeystore) {
                 Text(
                     text = uiState.releaseKeystoreSummary.orEmpty(),
@@ -151,26 +154,26 @@ private fun BuildRunSigningSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 AslButton(
-                    label = "Remove",
+                    label = stringResource(CommonR.string.action_remove),
                     onClick = { interactionListener.onRemoveReleaseKeystore() },
                     variant = AslButtonVariant.Tertiary,
                 )
             } else {
                 Text(
-                    text = "Release builds are blocked until you create or import a valid private-key keystore.",
+                    text = stringResource(R.string.settings_build_release_blocked),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AslButton(
-                        label = "Create…",
+                        label = stringResource(R.string.settings_build_create_ellipsis),
                         onClick = { interactionListener.onOpenKeystoreDialog(KeystoreDialogMode.Create) },
                         variant = AslButtonVariant.Secondary,
                         icon = "plus",
                     )
                     AslButton(
-                        label = "Import…",
+                        label = stringResource(R.string.settings_build_import_ellipsis),
                         onClick = { interactionListener.onOpenKeystoreDialog(KeystoreDialogMode.Import) },
                         variant = AslButtonVariant.Secondary,
                         icon = "folder-open",
@@ -187,10 +190,10 @@ private fun BuildRunAfterBuildSection(
     interactionListener: BuildRunInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader("After build")
+    HubSectionHeader(stringResource(R.string.settings_build_after_build))
     SectionCard(colors) {
         AslSwitch(
-            label = "Launch app after install",
+            label = stringResource(R.string.settings_build_launch_after_install),
             checked = uiState.launchAfterInstall,
             onCheckedChange = { interactionListener.onToggleLaunchAfterInstall(it) },
             modifier = Modifier.fillMaxWidth(),
@@ -233,11 +236,11 @@ private fun ReleaseKeystoreDialog(
     }
 
     AslDialog(
-        title = if (creating) "Create release keystore" else "Import release keystore",
+        title = stringResource(if (creating) R.string.settings_build_create_release_keystore else R.string.settings_build_import_release_keystore),
         onDismiss = onDismiss,
         variant = AslDialogVariant.Input,
-        confirmLabel = if (creating) "Create" else "Import",
-        cancelLabel = "Cancel",
+        confirmLabel = stringResource(if (creating) CommonR.string.action_create else CommonR.string.action_import),
+        cancelLabel = stringResource(CommonR.string.action_cancel),
         onConfirm = {
             if (!isBusy) {
                 onSubmit(
@@ -256,22 +259,22 @@ private fun ReleaseKeystoreDialog(
         },
         inputContent = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AslTextField(value = path, onValueChange = { path = it }, label = "Keystore path")
+                AslTextField(value = path, onValueChange = { path = it }, label = stringResource(R.string.settings_build_keystore_path))
                 if (!creating) {
                     AslButton(
-                        label = "Choose keystore file",
+                        label = stringResource(R.string.settings_build_choose_keystore),
                         onClick = { keystorePicker.launch(arrayOf("application/octet-stream", "application/x-pkcs12")) },
                         variant = AslButtonVariant.Secondary,
                     )
                 }
-                AslTextField(value = storePassword, onValueChange = { storePassword = it }, label = "Store password", type = AslTextFieldType.Password)
-                AslTextField(value = alias, onValueChange = { alias = it }, label = "Key alias")
-                AslTextField(value = keyPassword, onValueChange = { keyPassword = it }, label = "Key password", type = AslTextFieldType.Password)
+                AslTextField(value = storePassword, onValueChange = { storePassword = it }, label = stringResource(R.string.settings_build_store_password), type = AslTextFieldType.Password)
+                AslTextField(value = alias, onValueChange = { alias = it }, label = stringResource(R.string.settings_build_key_alias))
+                AslTextField(value = keyPassword, onValueChange = { keyPassword = it }, label = stringResource(R.string.settings_build_key_password), type = AslTextFieldType.Password)
                 if (creating) {
-                    AslTextField(value = commonName, onValueChange = { commonName = it }, label = "Name (CN)")
-                    AslTextField(value = organization, onValueChange = { organization = it }, label = "Organization (O)")
-                    AslTextField(value = country, onValueChange = { country = it }, label = "Country (C)")
-                    AslTextField(value = validity, onValueChange = { validity = it }, label = "Validity (years)", type = AslTextFieldType.Number)
+                    AslTextField(value = commonName, onValueChange = { commonName = it }, label = stringResource(R.string.settings_build_common_name))
+                    AslTextField(value = organization, onValueChange = { organization = it }, label = stringResource(R.string.settings_build_organization))
+                    AslTextField(value = country, onValueChange = { country = it }, label = stringResource(R.string.settings_build_country))
+                    AslTextField(value = validity, onValueChange = { validity = it }, label = stringResource(R.string.settings_build_validity_years), type = AslTextFieldType.Number)
                 }
                 if (error != null) {
                     Text(text = error, style = MaterialTheme.typography.bodySmall, color = AslTheme.colors.error)
