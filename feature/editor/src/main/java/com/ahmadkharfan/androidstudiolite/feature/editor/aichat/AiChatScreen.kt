@@ -61,10 +61,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatUiState
-import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.ChatMessageUiModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
 
 @Composable
 fun AiChatRoute(

@@ -25,9 +25,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
-import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootUiState
-import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootViewModel
 
 private data class SettingsRow(val title: String, val subtitle: String?, val icon: String, val onClick: () -> Unit = {})
 

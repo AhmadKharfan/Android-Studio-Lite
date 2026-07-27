@@ -65,6 +65,7 @@ class PtyTerminalRepository(
         sessionScope.launch { drainOutput(launched) }
     }
 
+    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun drainInput(stream: OutputStream) {
         for (bytes in inputChannel) {
             try {
@@ -76,6 +77,7 @@ class PtyTerminalRepository(
         }
     }
 
+    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun drainOutput(target: PtySession) {
 
 

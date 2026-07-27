@@ -315,7 +315,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
     }
 
     private fun insertLines(n: Int) {
-        if (cursorRow < scrollTop || cursorRow > scrollBottom) return
+        if (cursorRow !in scrollTop..scrollBottom) return
         repeat(n.coerceAtMost(scrollBottom - cursorRow + 1)) {
             for (r in scrollBottom downTo cursorRow + 1) grid[r] = grid[r - 1]
             grid[cursorRow] = blankRowArray()
@@ -324,7 +324,7 @@ class TerminalEmulator(rows: Int, cols: Int) {
     }
 
     private fun deleteLines(n: Int) {
-        if (cursorRow < scrollTop || cursorRow > scrollBottom) return
+        if (cursorRow !in scrollTop..scrollBottom) return
         repeat(n.coerceAtMost(scrollBottom - cursorRow + 1)) {
             for (r in cursorRow until scrollBottom) grid[r] = grid[r + 1]
             grid[scrollBottom] = blankRowArray()

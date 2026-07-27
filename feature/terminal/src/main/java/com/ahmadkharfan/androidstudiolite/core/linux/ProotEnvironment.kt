@@ -43,7 +43,7 @@ class ProotEnvironment(private val context: Context) {
     }
 
     fun shellCommand(hostWorkingDir: File? = null): List<String> {
-        if (!isInstalled()) return listOf(systemShell())
+        if (!isInstalled()) return listOf("/system/bin/sh")
         prepareRuntime()
         val rootfs = rootfsDir.absolutePath
         val projects = IdeEnvironmentPaths.projectsDir(context).absolutePath
@@ -120,8 +120,6 @@ class ProotEnvironment(private val context: Context) {
         }
         return GuestCwd("/root/project", extraBind = canonical.path to "/root/project")
     }
-
-    private fun systemShell(): String = "/system/bin/sh"
 
     private fun isSymlink(file: File): Boolean = runCatching {
         file.absolutePath != file.canonicalPath

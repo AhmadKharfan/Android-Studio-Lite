@@ -45,8 +45,8 @@ object AssetPreview {
 
     private fun calculateInSampleSize(width: Int, height: Int, maxSide: Int): Int {
         var inSampleSize = 1
-        var halfW = width / 2
-        var halfH = height / 2
+        val halfW = width / 2
+        val halfH = height / 2
         while (halfW / inSampleSize >= maxSide && halfH / inSampleSize >= maxSide) {
             inSampleSize *= 2
         }

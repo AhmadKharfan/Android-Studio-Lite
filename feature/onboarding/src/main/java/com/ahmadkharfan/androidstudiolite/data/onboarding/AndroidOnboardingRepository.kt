@@ -31,7 +31,7 @@ class AndroidOnboardingRepository(private val context: Context) : OnboardingRepo
         }
 
     override suspend fun refreshPermissions() {
-        refreshTrigger.value = refreshTrigger.value + 1
+        refreshTrigger.value += 1
     }
 
     override suspend fun markSetupComplete() {

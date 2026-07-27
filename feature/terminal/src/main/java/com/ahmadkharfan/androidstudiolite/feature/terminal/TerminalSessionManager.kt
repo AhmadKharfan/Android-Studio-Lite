@@ -34,7 +34,7 @@ class TerminalSessionManager(
             initialRows = rows.coerceAtLeast(1),
             initialCols = cols.coerceAtLeast(1),
         )
-        _sessions.value = _sessions.value + session
+        _sessions.value += session
         _activeId.value = session.id
         return session.id
     }
@@ -76,7 +76,7 @@ class TerminalSessionManager(
             initialRows = rows.coerceAtLeast(1),
             initialCols = cols.coerceAtLeast(1),
         )
-        _sessions.value = _sessions.value + session
+        _sessions.value += session
         selectProjectTab(projectPath, id)
         return session
     }
@@ -84,7 +84,7 @@ class TerminalSessionManager(
     fun selectProjectTab(projectPath: String, sessionId: String) {
         if (_sessions.value.none { it.id == sessionId }) return
         val key = projectKey(projectPath)
-        _projectActiveIds.value = _projectActiveIds.value + (key to sessionId)
+        _projectActiveIds.value += key to sessionId
         _activeId.value = sessionId
     }
 

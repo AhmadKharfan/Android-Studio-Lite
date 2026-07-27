@@ -45,7 +45,6 @@ class ImeComposeEditTest {
 
     @Test
     fun `ime commit of duplicate word alone is no-op`() {
-        val session = EditorSession("Text", EditorLanguage.Kotlin).also { it.setCaret(4) }
         val imeCommit = "Text"
         val word = "Text"
         val tail = imeCommit.removePrefix(word)

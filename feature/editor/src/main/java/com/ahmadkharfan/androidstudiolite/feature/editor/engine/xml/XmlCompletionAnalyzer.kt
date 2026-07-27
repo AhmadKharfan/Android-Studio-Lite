@@ -44,7 +44,7 @@ object XmlCompletionAnalyzer {
     }
 
     private fun findEnclosingOpenTag(text: CharSequence, caret: Int): OpenTag? {
-        val angleIndex = previousIndexOf(text, '<', caret)
+        val angleIndex = previousIndexOf(text, caret)
         if (angleIndex < 0) return null
         val nameEnd = nameEndAt(text, angleIndex + 1)
         val name = text.subSequence(angleIndex + 1, nameEnd).toString().ifEmpty { null }
@@ -236,8 +236,8 @@ object XmlCompletionAnalyzer {
         return node?.name?.ifEmpty { null }
     }
 
-    private fun previousIndexOf(text: CharSequence, ch: Char, before: Int): Int {
-        for (i in before - 1 downTo 0) if (text[i] == ch) return i
+    private fun previousIndexOf(text: CharSequence, before: Int): Int {
+        for (i in before - 1 downTo 0) if (text[i] == '<') return i
         return -1
     }
 

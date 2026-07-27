@@ -214,7 +214,7 @@ class LinuxBootstrapInstaller(
                     else -> {
                         out.parentFile?.mkdirs()
                         out.outputStream().use { tar.copyTo(it) }
-                        applyMode(out, entry.mode, directory = false)
+                        applyMode(out, entry.mode)
                     }
                 }
                 entry = tar.nextTarEntry
@@ -222,8 +222,8 @@ class LinuxBootstrapInstaller(
         }
     }
 
-    private fun applyMode(file: File, mode: Int, directory: Boolean) {
-        val perm = (mode and 0x1FF).let { if (it == 0) (if (directory) 0x1ED else 0x1A4) else it }
+    private fun applyMode(file: File, mode: Int) {
+        val perm = (mode and 0x1FF).let { if (it == 0) 0x1A4 else it }
         runCatching { Os.chmod(file.absolutePath, perm) }
     }
 

@@ -64,7 +64,7 @@ class GitGraphLaneComputer(private val maxLanes: Int = 8) {
         parents.forEachIndexed { index, parent ->
             if (lanes.any { parent in it }) return@forEachIndexed
             val requested = (commitLane + index).coerceAtMost(maxLanes - 1)
-            if (requested < lanes.size && lanes.size < maxLanes) lanes.add(requested, mutableListOf(parent))
+            if (requested in 0 until lanes.size && lanes.size < maxLanes) lanes.add(requested, mutableListOf(parent))
             else if (lanes.size < maxLanes) lanes += mutableListOf(parent)
             else lanes[maxLanes - 1] += parent
         }

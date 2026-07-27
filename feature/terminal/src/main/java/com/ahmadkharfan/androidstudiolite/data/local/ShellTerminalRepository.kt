@@ -57,6 +57,7 @@ class ShellTerminalRepository(
         sessionScope.launch { drainOutput(launched) }
     }
 
+    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun drainOutput(target: Process) {
         val reader = target.inputStream.bufferedReader()
         try {
