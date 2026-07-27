@@ -634,7 +634,7 @@ class CodeEditorView(context: Context) : View(context) {
         val items = completionController.query(session)
         if (items.isEmpty()) {
             dismissCompletion()
-            refreshSignatureHelp(immediate = true)
+            refreshSignatureHelp()
             return
         }
         completionItems = items
@@ -686,7 +686,7 @@ class CodeEditorView(context: Context) : View(context) {
         completionSelected = 0
         onCompletionOverlay?.invoke(null)
         if (wasActive) {
-            refreshSignatureHelp(immediate = true)
+            refreshSignatureHelp()
         }
     }
     private fun reportCompletionOverlay() {
@@ -749,13 +749,9 @@ class CodeEditorView(context: Context) : View(context) {
         signatureHelpDismissed = false
         signatureHelpAutoHidden = false
     }
-    private fun refreshSignatureHelp(immediate: Boolean) {
-        if (immediate) {
-            handler.removeCallbacks(signatureHelpRunnable)
-            runSignatureHelp()
-        } else {
-            syncSignatureHelpNow()
-        }
+    private fun refreshSignatureHelp() {
+        handler.removeCallbacks(signatureHelpRunnable)
+        runSignatureHelp()
     }
     private fun shouldOfferSignatureHelp(session: EditorSession): Boolean {
         if (session.language != EditorLanguage.Kotlin) return false
@@ -1033,7 +1029,12 @@ class CodeEditorView(context: Context) : View(context) {
         val codeLeft = gutterWidthPx + dp(CODE_PADDING_DP)
         val x = codeLeft + caret.column * charWidthPx - scrollXpx
         val top = caret.line * lineHeightPx - scrollYpx
-        invalidate((x - dp(2f)).toInt(), top.toInt(), (x + dp(CARET_W_DP) + dp(2f)).toInt(), (top + lineHeightPx).toInt())
+        postInvalidateOnAnimation(
+            (x - dp(2f)).toInt(),
+            top.toInt(),
+            (x + dp(CARET_W_DP) + dp(2f)).toInt(),
+            (top + lineHeightPx).toInt(),
+        )
     }
     private fun focusAndShowKeyboard() {
         if (!isFocused) requestFocus()

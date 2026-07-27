@@ -239,7 +239,7 @@ class EditorBuildController(
         return BuildTargets(appModule.path, resolvedVariant, variantModel?.buildType, taskPathFor(variantModel, kind))
     }
 
-    private suspend fun projectModelFor(root: File): ProjectModel? = cachedProjectModel
+    private fun projectModelFor(root: File): ProjectModel? = cachedProjectModel
         ?.takeIf { it.first == root.absolutePath }
         ?.second
         ?: runCatching { gradleProjectReader.read(root).model }

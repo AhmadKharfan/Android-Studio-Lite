@@ -259,7 +259,7 @@ object KotlinCompletionScanner {
     }
     private fun extractQualifier(text: String, prefixStart: Int): String? {
         if (prefixStart <= 0 || text[prefixStart - 1] != '.') return null
-        var end = prefixStart - 1
+        val end = prefixStart - 1
         var start = end
         while (start > 0) {
             val c = text[start - 1]

@@ -19,7 +19,6 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds
-import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.canonicalPath
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.defaultExpandedIds
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.findFileTreeNode
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.firstOpenableFile
@@ -29,7 +28,6 @@ import java.io.File
 import java.io.Closeable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
