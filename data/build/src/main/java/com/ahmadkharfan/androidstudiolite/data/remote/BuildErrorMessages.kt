@@ -2,23 +2,8 @@ package com.ahmadkharfan.androidstudiolite.data.remote
 
 internal object BuildErrorMessages {
     fun userFacingBuildError(t: Throwable): String {
-        for (err in generateSequence(t) { it.cause }) {
-            if (err is RemoteException) {
-                val code = err.code?.lowercase().orEmpty()
-                val msg = err.message.takeIf { it.isNotBlank() && !it.matches(Regex("""HTTP \d+""")) }
-                when {
-                    code == "quota_exceeded" || "quota" in err.message.lowercase() ||
-                        "build time" in err.message.lowercase() ->
-                        return msg
-                            ?: "You've used today's build time for this device. Quota resets at midnight UTC. Try again tomorrow."
-                    err.httpStatus == 429 || code == "rate_limited" ->
-                        return msg
-                            ?: "Too many builds right now. Wait a moment and try again."
-                }
-            }
-        }
-
         val chain = generateSequence(t) { it.cause }.toList()
+        chain.filterIsInstance<RemoteException>().forEach { remoteErrorMessage(it)?.let { message -> return message } }
         for (err in chain) {
             when (err) {
                 is java.net.UnknownHostException ->
@@ -31,7 +16,28 @@ internal object BuildErrorMessages {
                     return "Build server timed out. Check your internet connection and try again."
             }
         }
-        val message = chain.mapNotNull { it.message?.takeIf(String::isNotBlank) }.firstOrNull().orEmpty()
+        val messages = chain.mapNotNull { it.message?.takeIf(String::isNotBlank) }
+        messages.forEach { networkErrorMessage(it)?.let { message -> return message } }
+        return messages.firstOrNull().orEmpty().ifBlank {
+            "Build failed. Check your internet connection and try again."
+        }
+    }
+
+    private fun remoteErrorMessage(error: RemoteException): String? {
+        val code = error.code?.lowercase().orEmpty()
+        val message = error.message.takeIf { it.isNotBlank() && !it.matches(Regex("""HTTP \d+""")) }
+        return when {
+            code == "quota_exceeded" || "quota" in error.message.lowercase() ||
+                "build time" in error.message.lowercase() ->
+                message
+                    ?: "You've used today's build time for this device. Quota resets at midnight UTC. Try again tomorrow."
+            error.httpStatus == 429 || code == "rate_limited" ->
+                message ?: "Too many builds right now. Wait a moment and try again."
+            else -> null
+        }
+    }
+
+    private fun networkErrorMessage(message: String): String? {
         val lower = message.lowercase()
         return when {
             "unable to resolve host" in lower ||
@@ -44,8 +50,7 @@ internal object BuildErrorMessages {
             message.contains("PROTOCOL_ERROR", ignoreCase = true) ||
                 message.contains("stream was reset", ignoreCase = true) ->
                 "Connection to the build server was interrupted. Check your internet and try again."
-            message.isNotBlank() -> message
-            else -> "Build failed. Check your internet connection and try again."
+            else -> null
         }
     }
 }
