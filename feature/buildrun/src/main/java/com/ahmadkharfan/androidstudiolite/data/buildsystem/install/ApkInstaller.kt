@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.buildsystem.install
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
@@ -122,6 +123,7 @@ class ApkInstaller(private val context: Context) {
         runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
     }
 
+    @SuppressLint("MissingPermission")
     fun uninstall(packageName: String): Flow<UninstallEvent> = callbackFlow {
         val requestToken = UUID.randomUUID().toString()
         val installer = context.packageManager.packageInstaller

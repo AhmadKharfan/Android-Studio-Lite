@@ -138,7 +138,7 @@ internal class JGitHistoryEngine {
                 commitId = commit?.name.orEmpty(),
                 shortId = commit?.abbreviate(SHORT_ID_LENGTH)?.name().orEmpty(),
                 authorName = author?.name.orEmpty(),
-                authorTimeMillis = author?.whenAsInstant?.toEpochMilli() ?: 0L,
+                authorTimeMillis = author?.getWhen()?.time ?: 0L,
                 lineText = contents.getString(index),
             )
         }
@@ -195,7 +195,7 @@ internal class JGitHistoryEngine {
         fullMessage = fullMessage,
         authorName = authorIdent.name,
         authorEmail = authorIdent.emailAddress,
-        authorTimeMillis = authorIdent.whenAsInstant.toEpochMilli(),
+        authorTimeMillis = authorIdent.getWhen().time,
         parents = parents.map { it.name },
         refs = refs,
         isShallowBoundary = isBoundary(repo, shallow),
@@ -205,7 +205,7 @@ internal class JGitHistoryEngine {
     private fun RevCommit.isBoundary(repo: Repository, shallow: Set<String>): Boolean =
         name in shallow || parents.any { parent -> runCatching { repo.open(parent, Constants.OBJ_COMMIT) }.isFailure }
 
-    private fun PersonIdent.toIdentity() = GitCommitIdentity(name, emailAddress, whenAsInstant.toEpochMilli())
+    private fun PersonIdent.toIdentity() = GitCommitIdentity(name, emailAddress, getWhen().time)
 
     private fun DiffEntry.ChangeType.toDomainType() = when (this) {
         DiffEntry.ChangeType.ADD -> GitCommitChangeType.ADDED

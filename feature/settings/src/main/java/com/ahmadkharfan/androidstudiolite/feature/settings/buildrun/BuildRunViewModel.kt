@@ -16,8 +16,10 @@ import kotlinx.coroutines.launch
 class BuildRunViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val keystoreManager: KeystoreManager,
-    private val context: Context,
+    context: Context,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
+
+    private val applicationContext = context.applicationContext
 
     init {
         tryToCollect(
@@ -83,8 +85,8 @@ class BuildRunViewModel(
     override fun onImportReleaseKeystore(form: KeystoreForm) {
         runKeystoreOp {
             val source = if (form.storePath.startsWith("content://")) {
-                val target = File(context.cacheDir, "keystore-import-${java.util.UUID.randomUUID()}")
-                context.contentResolver.openInputStream(Uri.parse(form.storePath))?.use { input ->
+                val target = File(applicationContext.cacheDir, "keystore-import-${java.util.UUID.randomUUID()}")
+                applicationContext.contentResolver.openInputStream(Uri.parse(form.storePath))?.use { input ->
                     target.outputStream().use(input::copyTo)
                 } ?: throw KeystoreException(KeystoreError.FileNotFound)
                 target
