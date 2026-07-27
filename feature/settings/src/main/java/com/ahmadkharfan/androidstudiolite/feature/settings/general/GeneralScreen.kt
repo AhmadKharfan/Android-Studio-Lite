@@ -30,9 +30,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
-import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralInteractionListener
-import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralUiState
-import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
 
 @Composable
 fun GeneralRoute(

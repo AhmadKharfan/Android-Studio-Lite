@@ -11,7 +11,6 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCommit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictInfo
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
-import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitHeadState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
