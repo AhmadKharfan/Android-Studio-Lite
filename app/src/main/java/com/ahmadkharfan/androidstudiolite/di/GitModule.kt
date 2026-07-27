@@ -90,9 +90,9 @@ val gitModule = module {
     }
     viewModel { params ->
         GitDiffViewModel(
-            projectId = params.get(0),
-            path = params.get(1),
-            target = params.get(2),
+            projectId = params[0],
+            path = params[1],
+            target = params[2],
             commitId = params.get<String>(3).takeIf { it.isNotBlank() },
             projectPathResolver = get(),
             gitRepository = get(),
@@ -100,7 +100,7 @@ val gitModule = module {
     }
     viewModel { params ->
         GitHistoryViewModel(
-            projectId = params.get(0),
+            projectId = params[0],
 
             requestedPath = params.get<String>(1).takeIf { it.isNotBlank() },
             projectPathResolver = get(),
@@ -109,16 +109,16 @@ val gitModule = module {
     }
     viewModel { params ->
         GitBlameViewModel(
-            projectId = params.get(0),
-            requestedPath = params.get(1),
+            projectId = params[0],
+            requestedPath = params[1],
             projectPathResolver = get(),
             gitRepository = get(),
         )
     }
     viewModel { params ->
         GitRefsViewModel(
-            projectId = params.get(0),
-            mode = params.get(1),
+            projectId = params[0],
+            mode = params[1],
             projectPathResolver = get(),
             gitRepository = get(),
             credentialStore = get(),

@@ -18,7 +18,7 @@ val remoteModule = module {
 
     single<IntegrityTokenProvider> {
         val projectNumber = BuildConfig.PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER
-        if (BuildConfig.PLAY_INTEGRITY_ENABLED && projectNumber > 0L) {
+        if (BuildConfig.PLAY_INTEGRITY_ENABLED && projectNumber != 0L) {
             PlayIntegrityTokenProvider(androidContext(), projectNumber)
         } else {
             NoopIntegrityTokenProvider
