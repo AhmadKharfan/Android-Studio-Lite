@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -113,6 +114,7 @@ class MainActivity : ComponentActivity() {
         runCatching { startActivity(confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             EditorVolumeKeyDispatcher.handler?.invoke(event)?.takeIf { it }?.let { return true }

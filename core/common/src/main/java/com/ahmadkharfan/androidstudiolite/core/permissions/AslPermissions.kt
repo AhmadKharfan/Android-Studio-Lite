@@ -65,7 +65,10 @@ object AslPermissions {
                 title = "Install apps",
                 reason = "Install the debug APKs Gradle builds, straight from the IDE.",
                 optional = false,
-                request = AslPermissionRequest.SettingsScreen(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                request = AslPermissionRequest.SettingsScreen(
+                    if (isAtLeastO()) Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES
+                    else Settings.ACTION_SECURITY_SETTINGS,
+                ),
             ),
         )
         if (isAtLeastTiramisu()) {
@@ -94,7 +97,7 @@ object AslPermissions {
     }
 
     fun canRequestPackageInstalls(context: Context): Boolean =
-        context.packageManager.canRequestPackageInstalls()
+        isAtLeastO() && context.packageManager.canRequestPackageInstalls()
 
     fun allRequiredGranted(context: Context): Boolean =
         descriptors().filterNot { it.optional }.all { isGranted(context, it.id) }
@@ -108,5 +111,6 @@ object AslPermissions {
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun isAtLeastR(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+    private fun isAtLeastO(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
     private fun isAtLeastTiramisu(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 }

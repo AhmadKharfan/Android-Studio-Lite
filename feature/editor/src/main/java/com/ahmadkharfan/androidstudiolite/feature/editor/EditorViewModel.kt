@@ -610,7 +610,6 @@ class EditorViewModel(
     override fun onCleared() {
         tabManager.shutdown()
         workspaceWriteRegistration?.close()
-        super.onCleared()
     }
     fun onCaretMoved(line: Int, column: Int) = tabManager.onCaretMoved(line, column)
     private fun updateFindQuery(query: String) {
