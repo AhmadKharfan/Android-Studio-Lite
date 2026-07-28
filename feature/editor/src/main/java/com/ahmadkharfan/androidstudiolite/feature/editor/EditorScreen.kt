@@ -305,27 +305,22 @@ private fun EditorTopBar(
     val reformatCode = stringResource(R.string.editor_reformat_code)
     val closeProject = stringResource(R.string.editor_close_project)
     val loading = stringResource(R.string.editor_loading)
-    val overflowItems = remember(uiState.releaseBuildLabel, findInFile, reformatCode, closeProject) {
-        listOf(
-            AslOverflowMenuEntry.Item(findInFile, icon = "search", shortcut = "⌘F"),
-            AslOverflowMenuEntry.Item(reformatCode, icon = "align-left"),
-            AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package"),
-            AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item(closeProject, icon = "x"),
-        )
-    }
-    val onOverflowSelect = remember(interactionListener) {
-        { _: AslOverflowMenuEntry.Item, index: Int ->
-            when (index) {
-                0 -> interactionListener.onToggleFindBar()
-                1 -> interactionListener.onReformatCode()
-                3 -> interactionListener.onBuildRelease()
-                5 -> interactionListener.onCloseProject()
-                else -> Unit
-            }
-        }
-    }
+    val overflowItems = listOf(
+        AslOverflowMenuEntry.Item(findInFile, icon = "search", shortcut = "⌘F") {
+            interactionListener.onToggleFindBar()
+        },
+        AslOverflowMenuEntry.Item(reformatCode, icon = "align-left") {
+            interactionListener.onReformatCode()
+        },
+        AslOverflowMenuEntry.Divider,
+        AslOverflowMenuEntry.Item(uiState.releaseBuildLabel, icon = "package") {
+            interactionListener.onBuildRelease()
+        },
+        AslOverflowMenuEntry.Divider,
+        AslOverflowMenuEntry.Item(closeProject, icon = "x") {
+            interactionListener.onCloseProject()
+        },
+    )
     val onSelectTab = remember(interactionListener) { { id: String -> interactionListener.onSelectTab(id) } }
     val onCloseTab = remember(interactionListener) { { id: String -> interactionListener.onCloseTab(id) } }
     Column(modifier = Modifier.fillMaxWidth().zIndex(2f)) {
@@ -345,7 +340,6 @@ private fun EditorTopBar(
                 )
             },
             overflowItems = overflowItems,
-            onOverflowSelect = onOverflowSelect,
         )
         AslFileTabBar(
             tabs = uiState.tabs.map { AslFileTab(it.id, it.name, fileIconFor(it.name), it.modified) },
