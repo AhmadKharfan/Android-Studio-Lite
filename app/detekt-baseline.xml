@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ForbiddenImport:AcsMissingScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:CrashReportScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>LambdaParameterInRestartableEffect:AslNavHost.kt$onOpenProjectConsumed</ID>
+    <ID>LongMethod:AslNavHost.kt$@Composable fun AslNavHost( startDestination: String, openProjectId: String? = null, onOpenProjectConsumed: () -&gt; Unit = {}, navController: NavHostController = rememberNavController(), )</ID>
+    <ID>MatchingDeclarationName:BlockingErrorScreen.kt$BlockingErrorType</ID>
+    <ID>ParameterNaming:AslNavHost.kt$onOpenProjectConsumed</ID>
+    <ID>WildcardImport:ExampleUnitTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

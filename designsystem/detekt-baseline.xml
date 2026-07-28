@@ -1,0 +1,131 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:Appear.kt$AslStaggeredAppear</ID>
+    <ID>ComposableParamOrder:StatusChip.kt$AslStatusChip</ID>
+    <ID>CyclomaticComplexMethod:ApiKeyCard.kt$@Composable fun AslApiKeyCard( provider: String, value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, providerIcon: String = "sparkles", description: String? = null, placeholder: String = "sk-…", status: AslApiKeyStatus = AslApiKeyStatus.None, errorMessage: String? = null, onTest: (String) -&gt; Unit = {}, testing: Boolean = false, onCollapse: (() -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:AslMarkdownText.kt$@Composable fun AslMarkdownText( markdown: String, modifier: Modifier = Modifier, onCopyCode: (String) -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:BottomToolPanel.kt$@Composable fun AslBottomToolPanel( tabs: List&lt;AslBottomPanelTab&gt;, activeId: String?, modifier: Modifier = Modifier, contentHeight: Dp = 0.dp, defaultContentHeight: Dp = 260.dp, onContentHeightChange: (Dp) -&gt; Unit = {}, onSelect: (String) -&gt; Unit = {}, onToggle: () -&gt; Unit = {}, content: @Composable () -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:Chip.kt$@Composable fun AslChip( label: String, modifier: Modifier = Modifier, kind: AslChipKind = AslChipKind.Filter, selected: Boolean = false, disabled: Boolean = false, icon: String? = null, status: AslChipStatus = AslChipStatus.Neutral, onRemove: (() -&gt; Unit)? = null, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:DiffLine.kt$@Composable fun AslDiffLine( kind: AslDiffKind, text: String, modifier: Modifier = Modifier, oldNo: Int? = null, newNo: Int? = null, noWrap: Boolean = false, )</ID>
+    <ID>CyclomaticComplexMethod:FileIcons.kt$AslFileIcons$fun iconFor(fileName: String): String</ID>
+    <ID>CyclomaticComplexMethod:FileIcons.kt$AslFileIcons$fun tintFor(fileName: String, colors: AslColorScheme): Color</ID>
+    <ID>CyclomaticComplexMethod:FileTree.kt$@Composable private fun AslFileTreeRow( node: AslFileTreeNode, depth: Int, expanded: Boolean, selected: Boolean, rowWidth: Dp, actionsEnabled: Boolean, canPaste: Boolean, selectDirectories: Boolean, onToggle: (String) -&gt; Unit, onSelect: (AslFileTreeNode) -&gt; Unit, onFocus: (AslFileTreeNode) -&gt; Unit, onAction: (AslFileTreeNode, AslFileTreeAction) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ListItem.kt$@Composable fun AslListItem( title: String, modifier: Modifier = Modifier, subtitle: String? = null, icon: String? = null, iconColor: Color? = null, leading: (@Composable () -&gt; Unit)? = null, trailing: (@Composable () -&gt; Unit)? = null, divider: Boolean = true, selected: Boolean = false, disabled: Boolean = false, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:TextField.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun AslTextField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, helper: String? = null, error: String? = null, disabled: Boolean = false, type: AslTextFieldType = AslTextFieldType.Text, leadingIcon: String? = null, trailingIcon: String? = null, onTrailingClick: (() -&gt; Unit)? = null, onFocusChanged: ((Boolean) -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:ToolCallCard.kt$private fun computeLineDiff(old: String?, new: String): List&lt;DiffLine&gt;</ID>
+    <ID>ForbiddenImport:ApiKeyCard.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:AslMarkdownText.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:AslThinkingBlock.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Badge.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Banner.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:BottomSheet.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:BottomToolPanel.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Button.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ChatBubble.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ChatCodeBlock.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Checkbox.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Chip.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Dialog.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Dropdown.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:EditorToolbar.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:EmptyState.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ErrorState.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Fab.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:FileTabBar.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:FileTree.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:IconButton.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:LinearProgress.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ListItem.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:MemoryChartMini.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Menu.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:NavRail.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:PermissionCard.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ProjectCard.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:RadioGroup.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:SegmentedButton.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Slider.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Snackbar.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:SplitButton.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:StatusChip.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Switch.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:TemplateCard.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:TextField.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:Theme.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ThemeSwatchPicker.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ToolCallCard.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:ToolWindowPanel.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:TopAppBar.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:WizardStepper.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>LongMethod:ApiKeyCard.kt$@Composable fun AslApiKeyCard( provider: String, value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, providerIcon: String = "sparkles", description: String? = null, placeholder: String = "sk-…", status: AslApiKeyStatus = AslApiKeyStatus.None, errorMessage: String? = null, onTest: (String) -&gt; Unit = {}, testing: Boolean = false, onCollapse: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:AslMarkdownText.kt$@Composable fun AslMarkdownText( markdown: String, modifier: Modifier = Modifier, onCopyCode: (String) -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:AutocompletePopup.kt$@Composable fun AslAutocompletePopup( suggestions: List&lt;AslSuggestion&gt;, modifier: Modifier = Modifier, activeIndex: Int = 0, onSelect: (AslSuggestion, Int) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>LongMethod:BottomToolPanel.kt$@Composable fun AslBottomToolPanel( tabs: List&lt;AslBottomPanelTab&gt;, activeId: String?, modifier: Modifier = Modifier, contentHeight: Dp = 0.dp, defaultContentHeight: Dp = 260.dp, onContentHeightChange: (Dp) -&gt; Unit = {}, onSelect: (String) -&gt; Unit = {}, onToggle: () -&gt; Unit = {}, content: @Composable () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:Button.kt$@Composable fun AslButton( label: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, variant: AslButtonVariant = AslButtonVariant.Primary, size: AslButtonSize = AslButtonSize.Md, icon: String? = null, trailingIcon: String? = null, disabled: Boolean = false, loading: Boolean = false, fullWidth: Boolean = false, )</ID>
+    <ID>LongMethod:Checkbox.kt$@Composable fun AslCheckbox( checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, indeterminate: Boolean = false, disabled: Boolean = false, )</ID>
+    <ID>LongMethod:Dialog.kt$@Composable fun AslDialog( title: String, onDismiss: () -&gt; Unit, modifier: Modifier = Modifier, variant: AslDialogVariant = AslDialogVariant.Alert, body: String? = null, confirmLabel: String = "OK", cancelLabel: String? = null, destructive: Boolean = false, onConfirm: () -&gt; Unit = {}, inputContent: (@Composable () -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:Dropdown.kt$@Composable fun AslDropdown( options: List&lt;AslDropdownOption&gt;, value: String?, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String = "Select…", disabled: Boolean = false, )</ID>
+    <ID>LongMethod:FileTabBar.kt$@Composable private fun AslFileTabItem( tab: AslFileTab, active: Boolean, onSelect: (String) -&gt; Unit, onClose: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:FileTree.kt$@Composable private fun AslFileTreeRow( node: AslFileTreeNode, depth: Int, expanded: Boolean, selected: Boolean, rowWidth: Dp, actionsEnabled: Boolean, canPaste: Boolean, selectDirectories: Boolean, onToggle: (String) -&gt; Unit, onSelect: (AslFileTreeNode) -&gt; Unit, onFocus: (AslFileTreeNode) -&gt; Unit, onAction: (AslFileTreeNode, AslFileTreeAction) -&gt; Unit, )</ID>
+    <ID>LongMethod:ListItem.kt$@Composable fun AslListItem( title: String, modifier: Modifier = Modifier, subtitle: String? = null, icon: String? = null, iconColor: Color? = null, leading: (@Composable () -&gt; Unit)? = null, trailing: (@Composable () -&gt; Unit)? = null, divider: Boolean = true, selected: Boolean = false, disabled: Boolean = false, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:ProjectCard.kt$@Composable fun AslProjectCard( name: String, path: String, modifier: Modifier = Modifier, lastOpened: String? = null, language: String = "Kotlin", onClick: () -&gt; Unit = {}, onMenu: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:SegmentedButton.kt$@Composable fun AslSegmentedButton( options: List&lt;AslSegmentedOption&gt;, value: String?, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, disabled: Boolean = false, fullWidth: Boolean = false, )</ID>
+    <ID>LongMethod:Switch.kt$@Composable fun AslSwitch( checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, disabled: Boolean = false, )</ID>
+    <ID>LongMethod:TemplateCard.kt$@Composable fun AslTemplateCard( name: String, modifier: Modifier = Modifier, thumbnail: Int? = null, icon: String = "smartphone", selected: Boolean = false, onClick: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:TextField.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun AslTextField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, helper: String? = null, error: String? = null, disabled: Boolean = false, type: AslTextFieldType = AslTextFieldType.Text, leadingIcon: String? = null, trailingIcon: String? = null, onTrailingClick: (() -&gt; Unit)? = null, onFocusChanged: ((Boolean) -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:ToolRail.kt$@Composable fun AslToolRail( items: List&lt;AslToolRailEntry&gt;, activeId: String?, onSelect: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:WizardStepper.kt$@Composable fun AslWizardStepper( steps: List&lt;String&gt;, current: Int, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:ApiKeyCard.kt$( provider: String, value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, providerIcon: String = "sparkles", description: String? = null, placeholder: String = "sk-…", status: AslApiKeyStatus = AslApiKeyStatus.None, errorMessage: String? = null, onTest: (String) -&gt; Unit = {}, testing: Boolean = false, onCollapse: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:BottomToolPanel.kt$( currentHeightPx: Float, dragStartHeightPx: Float, upwardDragPx: Float, defaultHeightPx: Float, maxHeightPx: Float, collapseThresholdPx: Float, openGestureThresholdPx: Float, freeZoneMarginPx: Float, )</ID>
+    <ID>LongParameterList:BottomToolPanel.kt$( tabs: List&lt;AslBottomPanelTab&gt;, activeId: String?, modifier: Modifier = Modifier, contentHeight: Dp = 0.dp, defaultContentHeight: Dp = 260.dp, onContentHeightChange: (Dp) -&gt; Unit = {}, onSelect: (String) -&gt; Unit = {}, onToggle: () -&gt; Unit = {}, content: @Composable () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:Button.kt$( label: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, variant: AslButtonVariant = AslButtonVariant.Primary, size: AslButtonSize = AslButtonSize.Md, icon: String? = null, trailingIcon: String? = null, disabled: Boolean = false, loading: Boolean = false, fullWidth: Boolean = false, )</ID>
+    <ID>LongParameterList:Chip.kt$( label: String, modifier: Modifier = Modifier, kind: AslChipKind = AslChipKind.Filter, selected: Boolean = false, disabled: Boolean = false, icon: String? = null, status: AslChipStatus = AslChipStatus.Neutral, onRemove: (() -&gt; Unit)? = null, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:Dialog.kt$( title: String, onDismiss: () -&gt; Unit, modifier: Modifier = Modifier, variant: AslDialogVariant = AslDialogVariant.Alert, body: String? = null, confirmLabel: String = "OK", cancelLabel: String? = null, destructive: Boolean = false, onConfirm: () -&gt; Unit = {}, inputContent: (@Composable () -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:EditorToolbar.kt$( modifier: Modifier = Modifier, projectName: String = "MyApplication", running: Boolean = false, onRun: () -&gt; Unit = {}, onMenu: () -&gt; Unit = {}, actions: @Composable (RowScope.() -&gt; Unit)? = null, overflowItems: List&lt;AslOverflowMenuEntry&gt; = emptyList(), onOverflowSelect: (AslOverflowMenuEntry.Item, Int) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>LongParameterList:EmptyState.kt$( title: String, modifier: Modifier = Modifier, icon: String = "folder-open", subtitle: String? = null, actionLabel: String? = null, onAction: () -&gt; Unit = {}, secondaryLabel: String? = null, onSecondary: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:ErrorState.kt$( title: String, modifier: Modifier = Modifier, icon: String = "triangle-alert", explanation: String? = null, detail: String? = null, actionLabel: String = "Retry", onAction: () -&gt; Unit = {}, secondaryLabel: String? = null, onSecondary: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:FileTree.kt$( items: List&lt;AslFileTreeNode&gt;, expandedIds: Set&lt;String&gt;, modifier: Modifier = Modifier, selectedId: String? = null, actionsEnabled: Boolean = false, canPaste: Boolean = false, selectDirectories: Boolean = false, onToggle: (String) -&gt; Unit = {}, onSelect: (AslFileTreeNode) -&gt; Unit = {}, onFocus: (AslFileTreeNode) -&gt; Unit = {}, onAction: (AslFileTreeNode, AslFileTreeAction) -&gt; Unit = { _, _ -&gt; }, )</ID>
+    <ID>LongParameterList:FileTree.kt$( node: AslFileTreeNode, depth: Int, expanded: Boolean, selected: Boolean, rowWidth: Dp, actionsEnabled: Boolean, canPaste: Boolean, selectDirectories: Boolean, onToggle: (String) -&gt; Unit, onSelect: (AslFileTreeNode) -&gt; Unit, onFocus: (AslFileTreeNode) -&gt; Unit, onAction: (AslFileTreeNode, AslFileTreeAction) -&gt; Unit, )</ID>
+    <ID>LongParameterList:FindBar.kt$( query: String, onChange: (String) -&gt; Unit, modifier: Modifier = Modifier, matchCount: Int = 0, currentMatch: Int = 0, onNext: () -&gt; Unit = {}, onPrev: () -&gt; Unit = {}, onClose: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:IconButton.kt$( icon: String, contentDescription: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, variant: AslIconButtonVariant = AslIconButtonVariant.Ghost, size: Dp = 40.dp, iconSize: Dp = 20.dp, active: Boolean = false, disabled: Boolean = false, badge: String? = null, )</ID>
+    <ID>LongParameterList:ListItem.kt$( title: String, modifier: Modifier = Modifier, subtitle: String? = null, icon: String? = null, iconColor: Color? = null, leading: (@Composable () -&gt; Unit)? = null, trailing: (@Composable () -&gt; Unit)? = null, divider: Boolean = true, selected: Boolean = false, disabled: Boolean = false, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:Menu.kt$( label: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, icon: String? = null, shortcut: String? = null, destructive: Boolean = false, enabled: Boolean = true, trailingIcon: (@Composable () -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:Slider.kt$( value: Float, onValueChange: (Float) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, valueRange: ClosedFloatingPointRange&lt;Float&gt; = 0f..100f, steps: Int = 0, unit: String = "", disabled: Boolean = false, onValueChangeFinished: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:TextField.kt$( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, helper: String? = null, error: String? = null, disabled: Boolean = false, type: AslTextFieldType = AslTextFieldType.Text, leadingIcon: String? = null, trailingIcon: String? = null, onTrailingClick: (() -&gt; Unit)? = null, onFocusChanged: ((Boolean) -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:ToolCallCard.kt$( title: String, icon: String, state: AslToolCallState, modifier: Modifier = Modifier, diffOld: String? = null, diffNew: String? = null, result: String? = null, approveLabel: String = "Approve", rejectLabel: String = "Reject", onApprove: () -&gt; Unit = {}, onReject: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:ToolWindowPanel.kt$( title: String, modifier: Modifier = Modifier, width: Dp = 280.dp, actions: @Composable (RowScope.() -&gt; Unit)? = null, onClose: (() -&gt; Unit)? = null, closeIcon: String = "x", closeContentDescription: String = "Close panel", scrollable: Boolean = true, content: @Composable () -&gt; Unit, )</ID>
+    <ID>LoopWithTooManyJumpStatements:MarkdownParser.kt$MarkdownParser$while</ID>
+    <ID>MatchingDeclarationName:ApiKeyCard.kt$AslApiKeyStatus</ID>
+    <ID>MatchingDeclarationName:Badge.kt$AslBadgeTone</ID>
+    <ID>MatchingDeclarationName:Banner.kt$AslBannerTone</ID>
+    <ID>MatchingDeclarationName:BottomSheet.kt$AslBottomSheetSize</ID>
+    <ID>MatchingDeclarationName:BottomToolPanel.kt$AslBottomPanelTab</ID>
+    <ID>MatchingDeclarationName:BuildOutputLine.kt$AslTaskStatus</ID>
+    <ID>MatchingDeclarationName:ChatBubble.kt$AslChatRole</ID>
+    <ID>MatchingDeclarationName:Dialog.kt$AslDialogVariant</ID>
+    <ID>MatchingDeclarationName:DiffLine.kt$AslDiffKind</ID>
+    <ID>MatchingDeclarationName:Dropdown.kt$AslDropdownOption</ID>
+    <ID>MatchingDeclarationName:Elevation.kt$AslElevation</ID>
+    <ID>MatchingDeclarationName:FileIcons.kt$AslFileIcons</ID>
+    <ID>MatchingDeclarationName:FileTabBar.kt$AslFileTab</ID>
+    <ID>MatchingDeclarationName:IconButton.kt$AslIconButtonVariant</ID>
+    <ID>MatchingDeclarationName:LogLine.kt$AslLogLevel</ID>
+    <ID>MatchingDeclarationName:MemoryChartMini.kt$AslMemoryChartTone</ID>
+    <ID>MatchingDeclarationName:Motion.kt$AslMotion</ID>
+    <ID>MatchingDeclarationName:NavRail.kt$AslNavRailItem</ID>
+    <ID>MatchingDeclarationName:OverflowMenu.kt$AslOverflowMenuEntry</ID>
+    <ID>MatchingDeclarationName:RadioGroup.kt$AslRadioOption</ID>
+    <ID>MatchingDeclarationName:SegmentedButton.kt$AslSegmentedOption</ID>
+    <ID>MatchingDeclarationName:Shape.kt$AslShape</ID>
+    <ID>MatchingDeclarationName:Skeleton.kt$AslSkeletonVariant</ID>
+    <ID>MatchingDeclarationName:Snackbar.kt$AslSnackbarTone</ID>
+    <ID>MatchingDeclarationName:SplitButton.kt$AslSplitButtonItem</ID>
+    <ID>MatchingDeclarationName:StatusChip.kt$AslStatus</ID>
+    <ID>MatchingDeclarationName:TextField.kt$AslTextFieldType</ID>
+    <ID>MatchingDeclarationName:ThemeSwatchPicker.kt$AslThemeSwatch</ID>
+    <ID>MatchingDeclarationName:ToolCallCard.kt$AslToolCallState</ID>
+    <ID>MatchingDeclarationName:ToolRail.kt$AslToolRailEntry</ID>
+    <ID>ModifierMissing:Theme.kt$AslAppTheme</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:XmlParser.kt$XmlParser$cursor &lt; length &amp;&amp; !src[cursor].isWhitespace() &amp;&amp; src[cursor] != '&gt;' &amp;&amp; src[cursor] != '&lt;'</ID>
+    <ID>TooGenericExceptionCaught:BaseViewModel.kt$BaseViewModel$e: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>
