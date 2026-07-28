@@ -17,12 +17,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ahmadkharfan.androidstudiolite.core.format.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable

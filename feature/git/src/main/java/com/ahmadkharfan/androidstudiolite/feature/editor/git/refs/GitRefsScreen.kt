@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ahmadkharfan.androidstudiolite.core.format.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
@@ -52,7 +53,6 @@ import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable
