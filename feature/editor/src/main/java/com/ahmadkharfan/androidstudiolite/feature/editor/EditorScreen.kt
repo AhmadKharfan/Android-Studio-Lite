@@ -223,10 +223,6 @@ private fun EditorScreen(
     }
 }
 
-private val WHITESPACE_AFTER_DOT = Regex("\\.\\s+")
-
-private fun sanitizeFileEntryName(raw: String): String = raw.replace(WHITESPACE_AFTER_DOT, ".")
-
 @Composable
 private fun EditorFileOperationDialog(
     dialog: EditorFileOperationDialogUiState,
@@ -567,11 +563,15 @@ private fun EditorFullStatusBar(uiState: EditorUiState, onOpenBranches: () -> Un
             add(AslStatusBarEntry.Spacer)
             add(AslStatusBarEntry.Item(caretPosition))
             val statusVariant = if (uiState.running) uiState.buildConsole.request?.variantName else null
-            val variantLabel = (statusVariant ?: uiState.selectedVariant)
-                .replaceFirstChar { it.uppercase() }
+            val variant = statusVariant ?: uiState.selectedVariant
             when {
-                uiState.running -> add(AslStatusBarEntry.Item("assemble$variantLabel", tone = AslStatusTone.Warning))
-                else -> add(AslStatusBarEntry.Item(variantLabel, icon = "layers"))
+                uiState.running -> add(
+                    AslStatusBarEntry.Item(
+                        gradleAssembleTaskName(variant),
+                        tone = AslStatusTone.Warning,
+                    ),
+                )
+                else -> add(AslStatusBarEntry.Item(variantLabel(variant), icon = "layers"))
             }
         },
     )
