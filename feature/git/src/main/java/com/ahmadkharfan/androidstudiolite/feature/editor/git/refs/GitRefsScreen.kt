@@ -49,6 +49,9 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
 import com.ahmadkharfan.androidstudiolite.domain.model.GitTag
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.aheadLabel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.behindLabel
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.stashLabel
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -265,8 +268,8 @@ private fun BranchList(
 
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                state.behind?.takeIf { it > 0 }?.let { AslChip(label = "↓$it", kind = AslChipKind.Status, status = AslChipStatus.Info) }
-                state.ahead?.takeIf { it > 0 }?.let { AslChip(label = "↑$it", kind = AslChipKind.Status, status = AslChipStatus.Success) }
+                state.behind?.takeIf { it > 0 }?.let { AslChip(label = behindLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Info) }
+                state.ahead?.takeIf { it > 0 }?.let { AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success) }
                 Text(
                     text = state.syncMessage.orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
@@ -418,7 +421,7 @@ private fun StashList(
     if (stashes.isEmpty()) return AslEmptyState(stringResource(R.string.git_refs_no_stashes), modifier = Modifier.fillMaxSize(), icon = "package")
     LazyColumn(Modifier.fillMaxSize()) {
         items(stashes, key = { it.id }) { stash ->
-            RefRow("stash@{${stash.index}}", stash.message) {
+            RefRow(stashLabel(stash.index), stash.message) {
                 AslButton(stringResource(R.string.git_refs_apply), { interactionListener.applyStash(stash.index) }, variant = AslButtonVariant.Tertiary)
                 AslButton(stringResource(R.string.git_refs_pop), { onPop(stash) }, variant = AslButtonVariant.Tertiary)
                 AslButton(stringResource(R.string.git_refs_drop), { onDrop(stash) }, variant = AslButtonVariant.Tertiary)

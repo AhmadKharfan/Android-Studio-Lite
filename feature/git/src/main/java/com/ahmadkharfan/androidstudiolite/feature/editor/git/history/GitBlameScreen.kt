@@ -21,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.core.format.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.blameGutterText
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import com.ahmadkharfan.androidstudiolite.feature.git.R
@@ -47,7 +48,7 @@ fun GitBlameRoute(
                 LazyColumn(Modifier.padding(padding).fillMaxSize()) {
                     items(state.lines, key = { it.lineNo }) { line ->
                         Row(Modifier.horizontalScroll(scroll).padding(horizontal = 8.dp, vertical = 2.dp)) {
-                            Text("${line.lineNo.toString().padStart(4)}  ${line.shortId.padEnd(7)}  ${line.authorName.take(12).padEnd(12)}  ", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                            Text(blameGutterText(line.lineNo, line.shortId, line.authorName), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                             Text(line.lineText, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                         }
                     }
