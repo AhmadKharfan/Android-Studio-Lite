@@ -21,13 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -66,11 +66,11 @@ private fun GitAuthSettingsScreen(
                     .aslImePadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                HubSectionHeader(stringResource(R.string.settings_git_account))
+                AslSectionHeader(stringResource(R.string.settings_git_account))
                 GitHubAccountCard(uiState = uiState, interactionListener = interactionListener)
 
                 Spacer(Modifier.height(20.dp))
-                HubSectionHeader(stringResource(R.string.settings_git_author))
+                AslSectionHeader(stringResource(R.string.settings_git_author))
                 Text(
                     text = stringResource(R.string.settings_git_author_hint),
                     style = MaterialTheme.typography.bodySmall,

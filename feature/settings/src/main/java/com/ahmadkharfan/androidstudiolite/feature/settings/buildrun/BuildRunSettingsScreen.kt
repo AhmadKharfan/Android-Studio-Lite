@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
@@ -38,7 +39,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -109,7 +109,7 @@ private fun BuildRunOutputSection(
     interactionListener: BuildRunInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader(stringResource(R.string.settings_build_output_format))
+    AslSectionHeader(stringResource(R.string.settings_build_output_format))
     SectionCard {
         AslSwitch(
             label = stringResource(R.string.settings_build_aab_release),
@@ -133,7 +133,7 @@ private fun BuildRunSigningSection(
     interactionListener: BuildRunInteractionListener,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader(stringResource(R.string.settings_build_signing))
+    AslSectionHeader(stringResource(R.string.settings_build_signing))
     SectionCard {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
             Text(stringResource(R.string.settings_build_debug_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
@@ -187,7 +187,7 @@ private fun BuildRunAfterBuildSection(
     uiState: BuildRunUiState,
     interactionListener: BuildRunInteractionListener,
 ) {
-    HubSectionHeader(stringResource(R.string.settings_build_after_build))
+    AslSectionHeader(stringResource(R.string.settings_build_after_build))
     SectionCard {
         AslSwitch(
             label = stringResource(R.string.settings_build_launch_after_install),
