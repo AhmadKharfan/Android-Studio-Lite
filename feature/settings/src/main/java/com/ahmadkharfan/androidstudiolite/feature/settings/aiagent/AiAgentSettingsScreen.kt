@@ -5,8 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,8 +56,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus
 
@@ -138,8 +136,7 @@ private fun AiAgentEnableToggle(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(
@@ -187,7 +184,7 @@ private fun AiAgentProviderSection(
             if (isExpanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (provider.requiresBaseUrl) {
-                        AiAgentBaseUrlField(provider = provider, interactionListener = interactionListener, colors = colors)
+                        AiAgentBaseUrlField(provider = provider, interactionListener = interactionListener)
                     }
                     AslApiKeyCard(
                         provider = provider.name,
@@ -225,8 +222,7 @@ private fun AiAgentCollapsedProviderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .defaultMinSize(minHeight = 60.dp)
             .clickable(onClick = onExpand)
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -266,8 +262,7 @@ private fun AiAgentModelPicker(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -314,14 +309,12 @@ private fun AiAgentModelPicker(
 private fun AiAgentBaseUrlField(
     provider: AiProviderUiModel,
     interactionListener: AiAgentInteractionListener,
-    colors: AslColorScheme,
 ) {
     var draft by remember(provider.baseUrl) { mutableStateOf(provider.baseUrl) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(16.dp),
     ) {
         AslTextField(

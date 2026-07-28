@@ -1,7 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.gitauth
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +24,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
@@ -123,8 +121,7 @@ private fun GitHubAccountCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(16.dp),
     ) {
         Text(

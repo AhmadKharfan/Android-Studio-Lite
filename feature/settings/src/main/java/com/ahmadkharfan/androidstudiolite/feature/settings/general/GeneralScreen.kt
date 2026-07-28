@@ -1,6 +1,4 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.general
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,8 +24,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwa
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 
@@ -70,7 +68,7 @@ private fun GeneralScreen(
                     onValueChange = { interactionListener.onAccentChanged(it) },
                     modifier = Modifier.padding(top = 20.dp),
                 )
-                GeneralTogglesSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                GeneralTogglesSection(uiState = uiState, interactionListener = interactionListener)
             }
         }
     }
@@ -99,14 +97,12 @@ private fun GeneralUiModeSection(
 private fun GeneralTogglesSection(
     uiState: GeneralUiState,
     interactionListener: GeneralInteractionListener,
-    colors: AslColorScheme,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 20.dp)
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(

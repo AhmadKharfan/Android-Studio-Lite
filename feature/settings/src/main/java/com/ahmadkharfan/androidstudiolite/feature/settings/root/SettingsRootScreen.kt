@@ -1,6 +1,4 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.root
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,8 +19,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearc
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 
@@ -178,8 +176,7 @@ private fun SettingsRowGroup(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg),
+            .aslCard(),
     ) {
         rows.forEachIndexed { index, row ->
             AslListItem(

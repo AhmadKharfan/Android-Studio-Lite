@@ -39,6 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipK
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
@@ -178,8 +179,7 @@ private fun AboutLinksCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg),
+            .aslCard(),
     ) {
         AslListItem(
             title = stringResource(CommonR.string.about_github),
