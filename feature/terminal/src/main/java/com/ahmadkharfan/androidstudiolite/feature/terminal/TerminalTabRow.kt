@@ -73,7 +73,7 @@ fun TerminalTabRow(
 }
 
 @Composable
-private fun TerminalTabChip(
+internal fun TerminalTabChip(
     tab: TerminalTab,
     active: Boolean,
     canClose: Boolean,
