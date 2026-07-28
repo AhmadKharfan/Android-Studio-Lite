@@ -42,7 +42,7 @@ val viewModelModule = module {
         )
     }
 
-    viewModel { params -> AiChatViewModel(get(), get(), projectId = params.get()) }
+    viewModel { params -> AiChatViewModel(get(), get(), get(), projectId = params.get()) }
     viewModelOf(::TerminalViewModel)
     viewModelOf(::FolderPickerViewModel)
     viewModelOf(::SettingsRootViewModel)

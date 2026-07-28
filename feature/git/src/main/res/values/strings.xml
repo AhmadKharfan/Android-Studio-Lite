@@ -66,12 +66,6 @@
     <string name="git_history_shallow_boundary">Shallow boundary</string>
     <string name="git_history_parents">Parents: %1$s</string>
     <string name="git_history_initial_commit">Initial commit</string>
-    <string name="git_time_just_now">just now</string>
-    <string name="git_time_minutes_ago">%1$dm ago</string>
-    <string name="git_time_hours_ago">%1$dh ago</string>
-    <string name="git_time_days_ago">%1$dd ago</string>
-    <string name="git_time_months_ago">%1$dmo ago</string>
-
     <string name="git_blame_title">Blame</string>
     <string name="git_blame_computing">Computing blame</string>
     <string name="git_blame_error">Couldn\'t show blame</string>
