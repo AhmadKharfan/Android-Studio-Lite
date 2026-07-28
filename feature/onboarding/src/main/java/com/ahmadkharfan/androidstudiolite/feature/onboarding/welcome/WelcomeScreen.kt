@@ -16,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,13 +72,13 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .size(88.dp)
-                    .background(Color(0xFF1E1E2E), RoundedCornerShape(22.dp))
+                    .background(colors.bgBase, RoundedCornerShape(22.dp))
                     .border(1.dp, colors.borderDefault, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "{ }",
-                    color = Color(0xFF34D399),
+                    color = colors.accentPrimary,
                     fontFamily = AslCode.codeBody.fontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 34.sp,
