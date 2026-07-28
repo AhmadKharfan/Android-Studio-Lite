@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -17,13 +16,13 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDro
 
 @Immutable
 sealed interface AslOverflowMenuEntry {
-    @Immutable
-    data class Item(
+    class Item(
         val label: String,
         val icon: String? = null,
         val shortcut: String? = null,
         val disabled: Boolean = false,
         val destructive: Boolean = false,
+        val onClick: () -> Unit,
     ) : AslOverflowMenuEntry
 
     data object Divider : AslOverflowMenuEntry
@@ -32,11 +31,9 @@ sealed interface AslOverflowMenuEntry {
 @Composable
 fun AslOverflowMenu(
     items: List<AslOverflowMenuEntry>,
-    onSelect: (AslOverflowMenuEntry.Item, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
-    val latestOnSelect by rememberUpdatedState(onSelect)
     val toggleOpen = remember { { open = !open } }
     val dismiss = remember { { open = false } }
 
@@ -52,11 +49,7 @@ fun AslOverflowMenu(
                 expanded = true,
                 onDismissRequest = dismiss,
             ) {
-                OverflowMenuEntries(
-                    items = items,
-                    onDismiss = dismiss,
-                    onSelect = { item, index -> latestOnSelect(item, index) },
-                )
+                OverflowMenuEntries(items = items, onDismiss = dismiss)
             }
         }
     }
@@ -66,9 +59,7 @@ fun AslOverflowMenu(
 private fun OverflowMenuEntries(
     items: List<AslOverflowMenuEntry>,
     onDismiss: () -> Unit,
-    onSelect: (AslOverflowMenuEntry.Item, Int) -> Unit,
 ) {
-    val latestOnSelect by rememberUpdatedState(onSelect)
     val dismissMenu = remember(onDismiss) { onDismiss }
     items.forEachIndexed { index, entry ->
         key(
@@ -88,7 +79,7 @@ private fun OverflowMenuEntries(
                         enabled = !entry.disabled,
                         onClick = {
                             dismissMenu()
-                            latestOnSelect(entry, index)
+                            entry.onClick()
                         },
                     )
                 }

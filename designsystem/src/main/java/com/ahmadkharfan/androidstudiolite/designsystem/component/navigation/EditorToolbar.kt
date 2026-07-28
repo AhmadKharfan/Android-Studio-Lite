@@ -38,7 +38,6 @@ fun AslEditorToolbar(
     onMenu: () -> Unit = {},
     actions: @Composable (RowScope.() -> Unit)? = null,
     overflowItems: List<AslOverflowMenuEntry> = emptyList(),
-    onOverflowSelect: (AslOverflowMenuEntry.Item, Int) -> Unit = { _, _ -> },
 ) {
     val colors = AslTheme.colors
     Column(modifier = modifier.background(colors.bgElevated)) {
@@ -91,7 +90,7 @@ fun AslEditorToolbar(
                 )
             }
             if (overflowItems.isNotEmpty()) {
-                AslOverflowMenu(items = overflowItems, onSelect = onOverflowSelect)
+                AslOverflowMenu(items = overflowItems)
             }
         }
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)

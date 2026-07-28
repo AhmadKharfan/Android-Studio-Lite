@@ -244,10 +244,7 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
                 overflow = TextOverflow.Ellipsis,
             )
             Text(commit.shortId, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium)
-            AslOverflowMenu(
-                items = listOf(AslOverflowMenuEntry.Item(stringResource(R.string.git_history_reset_here), icon = "rotate-ccw", destructive = true)),
-                onSelect = { _, _ -> onReset() },
-            )
+            HistoryResetMenu(onReset = onReset)
         }
         Text(
             "${commit.authorName} · ${formatRelativeTime(LocalContext.current, commit.authorTimeMillis)}",
@@ -270,6 +267,21 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
         }
     }
     HorizontalDivider()
+}
+
+@Composable
+private fun HistoryResetMenu(onReset: () -> Unit) {
+    AslOverflowMenu(
+        items = listOf(
+            AslOverflowMenuEntry.Item(
+                stringResource(R.string.git_history_reset_here),
+                icon = "rotate-ccw",
+                destructive = true,
+            ) {
+                onReset()
+            },
+        ),
+    )
 }
 
 private val GitGraphGutterWidth = 44.dp
