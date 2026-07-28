@@ -207,7 +207,7 @@ private fun GitPanelScreen(
     if (uiState.bootstrapVisible) BootstrapDialog(uiState, interactionListener)
     if (uiState.abortConfirmVisible) {
         AslDialog(
-            title = stringResource(R.string.git_panel_abort_title, uiState.repositoryState.name.lowercase()),
+            title = stringResource(R.string.git_panel_abort_title, repositoryStateSentenceLabel(uiState.repositoryState)),
             body = stringResource(R.string.git_panel_abort_body),
             variant = AslDialogVariant.Confirm,
             confirmLabel = stringResource(R.string.git_panel_abort),
@@ -368,10 +368,10 @@ private fun GitChangesHeader(
                     )
                 }
                 uiState.behind?.takeIf { it > 0 }?.let {
-                    AslChip(label = "↓$it", kind = AslChipKind.Status, status = AslChipStatus.Info)
+                    AslChip(label = behindLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Info)
                 }
                 uiState.ahead?.takeIf { it > 0 }?.let {
-                    AslChip(label = "↑$it", kind = AslChipKind.Status, status = AslChipStatus.Success)
+                    AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success)
                 }
                 if (changeCount > 0) {
                     AslChip(
@@ -497,7 +497,7 @@ private fun SubmodulesView(
             else -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 uiState.submodules.forEach { module ->
                     AslListItem(
-                        title = "${module.name} · ${module.status.name.lowercase().replace('_', ' ')}",
+                        title = "${module.name} · ${submoduleStatusLabel(module.status)}",
                         subtitle = listOf(module.path, module.url)
                             .filter(String::isNotBlank)
                             .joinToString(" · ")
@@ -550,7 +550,7 @@ private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPa
         Text(
             stringResource(
                 R.string.git_operation_progress,
-                uiState.repositoryState.name.lowercase().replaceFirstChar(Char::uppercase),
+                repositoryStateLabel(uiState.repositoryState),
             ),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelMedium,

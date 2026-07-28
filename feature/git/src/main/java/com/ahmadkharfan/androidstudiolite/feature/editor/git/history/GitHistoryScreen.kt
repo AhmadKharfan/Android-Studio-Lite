@@ -54,6 +54,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.changeTypeLabel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -364,7 +365,7 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
                 Modifier.fillMaxWidth().clickable { onOpenDiff(change.path, details.id) }.padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(change.type.name.first().toString(), fontFamily = FontFamily.Monospace)
+                Text(changeTypeLabel(change.type), fontFamily = FontFamily.Monospace)
                 Text(
                     (change.oldPath?.let { "$it → ${change.path}" } ?: change.path).middleEllipsis(),
                     modifier = Modifier.weight(1f),
