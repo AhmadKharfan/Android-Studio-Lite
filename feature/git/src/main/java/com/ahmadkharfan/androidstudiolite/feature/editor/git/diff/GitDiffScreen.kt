@@ -61,6 +61,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffLine
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
+import com.ahmadkharfan.androidstudiolite.feature.editor.git.hunkHeader
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -318,7 +319,7 @@ private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
 @Composable
 private fun HunkHeader(hunk: GitDiffHunk, target: GitDiffTarget, onStage: (GitDiffHunk) -> Unit, onUnstage: (GitDiffHunk) -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp)) {
-        Text("@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@", modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
+        Text(hunkHeader(hunk), modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
         if (target != GitDiffTarget.COMMIT_TO_PARENT) {
             AslButton(
                 stringResource(if (target == GitDiffTarget.HEAD_TO_INDEX) R.string.git_diff_unstage_hunk else R.string.git_diff_stage_hunk),
@@ -338,39 +339,9 @@ private fun Context.findActivity(): Activity? {
     return null
 }
 
-internal sealed interface DiffRow {
-    data class Paired(val left: GitDiffLine?, val right: GitDiffLine?) : DiffRow
-}
-
-internal fun GitDiffHunk.alignedRows(): List<DiffRow.Paired> {
-    val rows = mutableListOf<DiffRow.Paired>()
-    val pendingRemoved = mutableListOf<GitDiffLine>()
-    val pendingAdded = mutableListOf<GitDiffLine>()
-    fun flush() {
-        repeat(maxOf(pendingRemoved.size, pendingAdded.size)) { index ->
-            rows += DiffRow.Paired(pendingRemoved.getOrNull(index), pendingAdded.getOrNull(index))
-        }
-        pendingRemoved.clear(); pendingAdded.clear()
-    }
-    lines.forEach { line ->
-        when (line.kind) {
-            GitDiffKind.REMOVED -> pendingRemoved += line
-            GitDiffKind.ADDED, GitDiffKind.MODIFIED -> pendingAdded += line
-            GitDiffKind.CONTEXT -> { flush(); rows += DiffRow.Paired(line, line) }
-        }
-    }
-    flush()
-    return rows
-}
-
 private fun GitDiffKind.toUiKind() = when (this) {
     GitDiffKind.ADDED -> AslDiffKind.Added
     GitDiffKind.REMOVED -> AslDiffKind.Removed
     GitDiffKind.MODIFIED -> AslDiffKind.Modified
     GitDiffKind.CONTEXT -> AslDiffKind.Context
-}
-
-private fun targetOffset(offsets: Map<Int, Int>, current: Int, next: Boolean): Int? {
-    val sorted = offsets.values.sorted()
-    return if (next) sorted.firstOrNull { it > current + 1 } else sorted.lastOrNull { it < current - 1 }
 }
