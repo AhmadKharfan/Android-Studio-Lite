@@ -21,6 +21,8 @@ jgit = "6.10.0.202406032230-r"
 securityCrypto = "1.1.0-alpha06"
 playIntegrity = "1.4.0"
 desugarJdkLibs = "2.1.2"
+detekt = "1.23.8"
+composeRules = "0.4.22"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,8 +60,10 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+detekt-compose-rules = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRules" }
 
 [plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

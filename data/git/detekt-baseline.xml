@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:JGitDiffReader.kt$JGitDiffReader$!force &amp;&amp; (indexSize(repo, oldPath ?: path) &gt; MAX_BYTES || java.io.File(repo.workTree, newPath).let { it.isFile &amp;&amp; it.length() &gt; MAX_BYTES })</ID>
+    <ID>CyclomaticComplexMethod:JGitDiffReader.kt$JGitDiffReader$fun commitToParent(repo: Repository, commitId: String, path: String, force: Boolean): GitFileDiff</ID>
+    <ID>InstanceOfCheckForException:JGitGitRepository.kt$JGitGitRepository$t is CancellationException</ID>
+    <ID>LongParameterList:JGitGitRepository.kt$JGitGitRepository$( private val credentialStore: GitCredentialStore, private val io: CoroutineDispatcher, private val operationCoordinator: GitOperationCoordinator, private val fileChangeBus: FileChangeBus, private val authorStore: GitAuthorStore, private val workspaceWriteGate: WorkspaceWriteGate, private val statusComputer: JGitStatusComputer, private val diffReader: JGitDiffReader, private val indexEditor: JGitIndexEditor, private val historyEngine: JGitHistoryEngine, private val stashEngine: JGitStashEngine, private val branchEngine: JGitBranchEngine, private val remoteEngine: JGitRemoteEngine, private val integrationEngine: JGitIntegrationEngine, private val tagEngine: JGitTagEngine, private val submoduleEngine: JGitSubmoduleEngine, )</ID>
+    <ID>LoopWithTooManyJumpStatements:JGitHistoryEngine.kt$JGitHistoryEngine$for</ID>
+    <ID>ThrowsCount:JGitIndexEditor.kt$JGitIndexEditor$private fun validateIndexState(repo: Repository, path: String, reverse: Boolean): DirCacheEntry?</ID>
+    <ID>TooGenericExceptionCaught:GitRefreshPipeline.kt$GitRefreshPipeline$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:JGitGitRepository.kt$JGitGitRepository$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:JGitGitRepository.kt$JGitGitRepository$t: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

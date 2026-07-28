@@ -1,0 +1,111 @@
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 8
+    ignoreDefaultParameters: false
+    ignoreAnnotated: []
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 15
+  TooManyFunctions:
+    active: false
+  LargeClass:
+    active: false
+  NestedBlockDepth:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    active: true
+  MaxLineLength:
+    active: false
+  ForbiddenImport:
+    active: true
+    imports:
+      - value: 'androidx.compose.material.MaterialTheme'
+        reason: 'Material2 is not used in this app. Use AslTheme, or AslTheme-backed Material3.'
+      - value: 'androidx.compose.material.Text'
+        reason: 'Material2 is not used in this app.'
+      - value: 'androidx.compose.material.Button'
+        reason: 'Material2 is not used in this app. Use AslButton.'
+      - value: 'androidx.compose.material3.MaterialTheme'
+        reason: 'Read design tokens from AslTheme. Baselined; burned down in the token-adoption phase.'
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+
+Compose:
+  ComposableAnnotationNaming:
+    active: true
+  ComposableNaming:
+    active: true
+  ComposableParamOrder:
+    active: true
+  CompositionLocalAllowlist:
+    active: true
+    allowedCompositionLocals:
+      - LocalAslColors
+  ContentEmitterReturningValues:
+    active: true
+  ContentSlotReused:
+    active: true
+  ModifierClickableOrder:
+    active: true
+  ModifierComposed:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  ModifierReused:
+    active: true
+  ModifierWithoutDefault:
+    active: true
+  MultipleEmitters:
+    active: true
+  ParameterNaming:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  MutableParams:
+    active: true
+  MutableStateAutoboxing:
+    active: true
+  MutableStateParam:
+    active: true
+  PreviewAnnotationNaming:
+    active: true
+  PreviewPublic:
+    active: true
+  RememberContentMissing:
+    active: true
+  RememberMissing:
+    active: true
+  UnstableCollections:
+    active: false
+  # Disabled, not baselined: every hit is the deliberate XRoute -> private XScreen handoff, where
+  # the receiving parameter is the narrow XInteractionListener interface that the ViewModel happens
+  # to implement. detekt runs without type resolution here, so the rule only sees a variable of
+  # ViewModel type crossing a composable boundary and cannot tell that apart from real forwarding.
+  # Verified: 23 hits, 23 Routes, and zero composables take a ViewModel-typed parameter.
+  ViewModelForwarding:
+    active: false
+  ViewModelInjection:
+    active: true
+  Material2:
+    active: true

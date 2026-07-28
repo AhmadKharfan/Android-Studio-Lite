@@ -20,12 +20,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -147,5 +149,17 @@ private fun WelcomeBullet(icon: String, title: String, text: String) {
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun WelcomeBulletPreview() {
+    AslAppTheme(darkTheme = true) {
+        WelcomeBullet(
+            icon = "git-branch",
+            title = "Git and AI built in",
+            text = "Clone, branch, and review changes without leaving the editor.",
+        )
     }
 }

@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ForbiddenImport:AboutScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:AiAgentSettingsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:BuildRunSettingsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:EditorSettingsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:GeneralScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:GitAuthSettingsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>LongMethod:BuildRunSettingsScreen.kt$@Composable private fun ReleaseKeystoreDialog( mode: KeystoreDialogMode, suggestedPath: String, isBusy: Boolean, error: String?, onDismiss: () -&gt; Unit, onSubmit: (KeystoreForm) -&gt; Unit, )</ID>
+    <ID>LongMethod:GitAuthSettingsScreen.kt$@Composable private fun GitAuthSettingsScreen( uiState: GitAuthSettingsUiState, interactionListener: GitAuthSettingsInteractionListener, onBack: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SettingsRootScreen.kt$( onBack: () -&gt; Unit, onOpenGeneral: () -&gt; Unit, onOpenEditor: () -&gt; Unit, onOpenAiAgent: () -&gt; Unit, onOpenBuildRun: () -&gt; Unit, onOpenGitAuth: () -&gt; Unit, onOpenAbout: () -&gt; Unit, viewModel: SettingsRootViewModel = koinViewModel(), )</ID>
+    <ID>LongParameterList:SettingsRootScreen.kt$( uiState: SettingsRootUiState, interactionListener: SettingsRootInteractionListener, onBack: () -&gt; Unit, onOpenGeneral: () -&gt; Unit, onOpenEditor: () -&gt; Unit, onOpenAiAgent: () -&gt; Unit, onOpenBuildRun: () -&gt; Unit, onOpenGitAuth: () -&gt; Unit, onOpenAbout: () -&gt; Unit, )</ID>
+    <ID>MatchingDeclarationName:SettingsSearchIndex.kt$SettingsSearchEntry</ID>
+    <ID>MultipleEmitters:BuildRunSettingsScreen.kt$BuildRunOutputSection</ID>
+    <ID>MultipleEmitters:EditorSettingsScreen.kt$EditorColorSchemeSection</ID>
+    <ID>ParameterNaming:EditorSettingsScreen.kt$onColorSchemeChanged</ID>
+    <ID>ParameterNaming:EditorSettingsScreen.kt$onFontFamilyChanged</ID>
+    <ID>ParameterNaming:EditorSettingsScreen.kt$onFontSizeChanged</ID>
+    <ID>ParameterNaming:EditorSettingsScreen.kt$onTabSizeChanged</ID>
+    <ID>TooGenericExceptionCaught:BuildRunViewModel.kt$BuildRunViewModel$e: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ExplicitItLambdaParameter:PermissionsScreen.kt${ _, it -&gt; it.id }</ID>
+    <ID>ForbiddenImport:CompleteScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:HowItWorksScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:PermissionsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>ForbiddenImport:WelcomeScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
+    <ID>LongMethod:HowItWorksScreen.kt$@Composable private fun HowItWorksScreen(onContinue: () -&gt; Unit)</ID>
+    <ID>ParameterNaming:WelcomeScreen.kt$onGetStarted</ID>
+    <ID>UnusedPrivateMember:WelcomeScreen.kt$@Preview @Composable private fun WelcomeBulletPreview()</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongMethod:EmptyComposeTemplate.kt$EmptyComposeTemplate$override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe)</ID>
+    <ID>LongMethod:NavTemplates.kt$BottomNavigationTemplate$override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe)</ID>
+    <ID>LongMethod:NavTemplates.kt$NavDrawerTemplate$override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe)</ID>
+    <ID>LongMethod:RecipeGradleScripts.kt$RecipeGradleScripts$private fun renderAppBuildGroovy(): String</ID>
+    <ID>LongMethod:RecipeGradleScripts.kt$RecipeGradleScripts$private fun renderAppBuildKts(): String</ID>
+    <ID>LongMethod:TemplateContent.kt$TemplateContent$fun composeThemeFiles(recipe: ProjectRecipe, spec: NewProjectSpec)</ID>
+    <ID>LongMethod:ViewsTemplates.kt$BasicViewsTemplate$override fun assemble(spec: NewProjectSpec, recipe: ProjectRecipe)</ID>
+    <ID>MatchingDeclarationName:BaseTemplates.kt$NoActivityTemplate : Template</ID>
+  </CurrentIssues>
+</SmellBaseline>
