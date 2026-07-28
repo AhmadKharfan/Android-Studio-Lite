@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.feedback
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -10,23 +11,25 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 enum class AslStatus { Building, Syncing, Indexing, Success, Failed }
 
-private data class StatusSpec(val label: String, val icon: String, val isBusy: Boolean)
+private data class StatusSpec(@StringRes val labelRes: Int, val icon: String, val isBusy: Boolean)
 
 private fun spec(status: AslStatus): StatusSpec = when (status) {
-    AslStatus.Building -> StatusSpec("Building", "hammer", isBusy = true)
-    AslStatus.Syncing -> StatusSpec("Syncing", "refresh-cw", isBusy = true)
-    AslStatus.Indexing -> StatusSpec("Indexing", "database", isBusy = true)
-    AslStatus.Success -> StatusSpec("Success", "check", isBusy = false)
-    AslStatus.Failed -> StatusSpec("Failed", "x", isBusy = false)
+    AslStatus.Building -> StatusSpec(R.string.asl_status_building, "hammer", isBusy = true)
+    AslStatus.Syncing -> StatusSpec(R.string.asl_status_syncing, "refresh-cw", isBusy = true)
+    AslStatus.Indexing -> StatusSpec(R.string.asl_status_indexing, "database", isBusy = true)
+    AslStatus.Success -> StatusSpec(R.string.asl_status_success, "check", isBusy = false)
+    AslStatus.Failed -> StatusSpec(R.string.asl_status_failed, "x", isBusy = false)
 }
 
 @Composable
@@ -58,7 +61,7 @@ fun AslStatusChip(
             AslIcon(name = s.icon, size = 13.dp, tint = fg)
         }
         Text(
-            text = label ?: s.label,
+            text = label ?: stringResource(s.labelRes),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = fg,
