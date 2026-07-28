@@ -32,10 +32,8 @@ jobs:
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           fi
 
-  deploy:
-    name: Build signed APK and upload to Slack
-    needs: gate
-    if: needs.gate.outputs.should_deploy == 'true'
+  build:
+    name: Build signed APK
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -104,6 +102,31 @@ jobs:
           name: app-release-${{ github.run_number }}
           path: ${{ steps.apk.outputs.path }}
           retention-days: 14
+
+  deploy:
+    name: Upload APK to Slack
+    needs: [gate, build]
+    if: needs.gate.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-${{ github.run_number }}
+          path: downloaded-apk
+
+      - name: Locate downloaded APK
+        id: apk
+        run: |
+          APK_PATH=$(find downloaded-apk -type f -name '*.apk' -print -quit)
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            echo "::error::Release APK not found in downloaded artifact"
+            find downloaded-apk -maxdepth 3 -type f -print || true
+            exit 1
+          fi
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK to Slack
         uses: MeilCli/slack-upload-file@v4.0.20
