@@ -34,8 +34,9 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
-import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
+import com.ahmadkharfan.androidstudiolite.feature.editor.toClipboardText
+import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 
 @Composable
 fun EditorBottomPanelContent(
@@ -145,41 +146,6 @@ private fun BuildTab(
                 }
             }
         }
-    }
-}
-
-private fun BuildConsoleState.toClipboardText(
-    statusLabel: String,
-    problemsLabel: String,
-    tasksLabel: String,
-    outputLabel: String,
-): String = buildString {
-    appendLine(statusLabel)
-    if (problems.isNotEmpty()) {
-        appendLine()
-        appendLine(problemsLabel)
-        problems.forEach { problem ->
-            append("  [").append(problem.severity.name).append("] ").append(problem.message)
-            problem.location?.let { append(" (").append(it).append(")") }
-            appendLine()
-        }
-    }
-    if (taskGroups.isNotEmpty()) {
-        appendLine()
-        appendLine(tasksLabel)
-        taskGroups.forEach { group ->
-            if (group.module.isNotEmpty()) appendLine(group.module)
-            group.tasks.forEach { task ->
-                append("  ").append(task.name)
-                task.result?.let { append(" ").append(it.name) }
-                appendLine()
-            }
-        }
-    }
-    if (logs.isNotEmpty()) {
-        appendLine()
-        appendLine(outputLabel)
-        logs.forEach { appendLine(it.text) }
     }
 }
 
