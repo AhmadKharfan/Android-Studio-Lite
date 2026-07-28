@@ -187,6 +187,14 @@ private fun GitPanelScreen(
             }
         }
     }
+    GitPanelDialogs(uiState, interactionListener)
+}
+
+@Composable
+private fun GitPanelDialogs(
+    uiState: GitPanelUiState,
+    interactionListener: GitPanelInteractionListener,
+) {
     if (uiState.authorDialogVisible) {
         GitAuthorDialog(uiState, interactionListener)
     }
