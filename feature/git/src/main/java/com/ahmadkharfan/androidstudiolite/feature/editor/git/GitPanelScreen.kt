@@ -408,43 +408,50 @@ private fun GitActionsOverflowMenu(
     val clean = stringResource(R.string.git_action_clean)
     AslOverflowMenu(
         items = listOf(
-            AslOverflowMenuEntry.Item(push, icon = "upload", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(fetch, icon = "refresh-cw", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(pullMerge, icon = "download", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(pullRebase, icon = "download", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(push, icon = "upload", disabled = uiState.isBusy) {
+                interactionListener.onPush()
+            },
+            AslOverflowMenuEntry.Item(fetch, icon = "refresh-cw", disabled = uiState.isBusy) {
+                interactionListener.onFetch()
+            },
+            AslOverflowMenuEntry.Item(pullMerge, icon = "download", disabled = uiState.isBusy) {
+                interactionListener.onPullModeChanged(PullMode.MERGE)
+                interactionListener.onPull()
+            },
+            AslOverflowMenuEntry.Item(pullRebase, icon = "download", disabled = uiState.isBusy) {
+                interactionListener.onPullModeChanged(PullMode.REBASE)
+                interactionListener.onPull()
+            },
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item(author, icon = "user", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(remotes, icon = "globe", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(author, icon = "user", disabled = uiState.isBusy) {
+                interactionListener.onOpenAuthorDialog()
+            },
+            AslOverflowMenuEntry.Item(remotes, icon = "globe", disabled = uiState.isBusy) {
+                interactionListener.onOpenRemotes()
+            },
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item(history, icon = "history", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(tags, icon = "tag", disabled = uiState.isBusy),
-            AslOverflowMenuEntry.Item(stashes, icon = "package", disabled = uiState.isBusy),
+            AslOverflowMenuEntry.Item(history, icon = "history", disabled = uiState.isBusy) {
+                onOpenHistory()
+            },
+            AslOverflowMenuEntry.Item(tags, icon = "tag", disabled = uiState.isBusy) {
+                onOpenTags()
+            },
+            AslOverflowMenuEntry.Item(stashes, icon = "package", disabled = uiState.isBusy) {
+                onOpenStashes()
+            },
             AslOverflowMenuEntry.Divider,
-            AslOverflowMenuEntry.Item(clean, icon = "trash-2", disabled = uiState.isBusy, destructive = true),
-            AslOverflowMenuEntry.Item(stringResource(R.string.git_action_force_push_lease), icon = "upload", disabled = uiState.isBusy, destructive = true),
+            AslOverflowMenuEntry.Item(clean, icon = "trash-2", disabled = uiState.isBusy, destructive = true) {
+                interactionListener.onPreviewClean()
+            },
+            AslOverflowMenuEntry.Item(
+                stringResource(R.string.git_action_force_push_lease),
+                icon = "upload",
+                disabled = uiState.isBusy,
+                destructive = true,
+            ) {
+                interactionListener.onRequestForcePush()
+            },
         ),
-        onSelect = { _, index ->
-            when (index) {
-                0 -> interactionListener.onPush()
-                1 -> interactionListener.onFetch()
-                2 -> {
-                    interactionListener.onPullModeChanged(PullMode.MERGE)
-                    interactionListener.onPull()
-                }
-                3 -> {
-                    interactionListener.onPullModeChanged(PullMode.REBASE)
-                    interactionListener.onPull()
-                }
-                5 -> interactionListener.onOpenAuthorDialog()
-                6 -> interactionListener.onOpenRemotes()
-                8 -> onOpenHistory()
-                9 -> onOpenTags()
-                10 -> onOpenStashes()
-                12 -> interactionListener.onPreviewClean()
-                13 -> interactionListener.onRequestForcePush()
-                else -> Unit
-            }
-        },
     )
 }
 

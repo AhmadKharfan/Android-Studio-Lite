@@ -316,16 +316,14 @@ private fun BranchList(
                     BranchActionRow(
                         branch = branch,
                         entries = listOf(
-                            AslOverflowMenuEntry.Item(publish, icon = "upload"),
-                            AslOverflowMenuEntry.Item(rename, icon = "pencil"),
+                            AslOverflowMenuEntry.Item(publish, icon = "upload") {
+                                interactionListener.publish(branch.name)
+                            },
+                            AslOverflowMenuEntry.Item(rename, icon = "pencil") {
+                                onRename(branch)
+                            },
                         ),
-                    ) { index ->
-                        when (index) {
-                            0 -> interactionListener.publish(branch.name)
-                            1 -> onRename(branch)
-                            else -> Unit
-                        }
-                    }
+                    )
                 }
             }
             if (local.isNotEmpty()) {
@@ -334,23 +332,24 @@ private fun BranchList(
                     BranchActionRow(
                         branch = branch,
                         entries = listOf(
-                            AslOverflowMenuEntry.Item(checkout, icon = "git-branch"),
-                            AslOverflowMenuEntry.Item(mergeCurrent, icon = "sync"),
-                            AslOverflowMenuEntry.Item(publish, icon = "upload"),
-                            AslOverflowMenuEntry.Item(rename, icon = "pencil"),
+                            AslOverflowMenuEntry.Item(checkout, icon = "git-branch") {
+                                interactionListener.checkout(branch)
+                            },
+                            AslOverflowMenuEntry.Item(mergeCurrent, icon = "sync") {
+                                onMerge(branch)
+                            },
+                            AslOverflowMenuEntry.Item(publish, icon = "upload") {
+                                interactionListener.publish(branch.name)
+                            },
+                            AslOverflowMenuEntry.Item(rename, icon = "pencil") {
+                                onRename(branch)
+                            },
                             AslOverflowMenuEntry.Divider,
-                            AslOverflowMenuEntry.Item(delete, icon = "trash-2", destructive = true),
+                            AslOverflowMenuEntry.Item(delete, icon = "trash-2", destructive = true) {
+                                onDelete(branch)
+                            },
                         ),
-                    ) { index ->
-                        when (index) {
-                            0 -> interactionListener.checkout(branch)
-                            1 -> onMerge(branch)
-                            2 -> interactionListener.publish(branch.name)
-                            3 -> onRename(branch)
-                            5 -> onDelete(branch)
-                            else -> Unit
-                        }
-                    }
+                    )
                 }
             }
             if (remote.isNotEmpty()) {
@@ -358,8 +357,12 @@ private fun BranchList(
                 items(remote, key = { "remote:${it.name}" }) { branch ->
                     BranchActionRow(
                         branch = branch,
-                        entries = listOf(AslOverflowMenuEntry.Item(checkout, icon = "git-branch")),
-                    ) { interactionListener.checkout(branch) }
+                        entries = listOf(
+                            AslOverflowMenuEntry.Item(checkout, icon = "git-branch") {
+                                interactionListener.checkout(branch)
+                            },
+                        ),
+                    )
                 }
             }
         }
@@ -380,7 +383,6 @@ private fun SectionLabel(text: String) {
 private fun BranchActionRow(
     branch: GitBranch,
     entries: List<AslOverflowMenuEntry>,
-    onSelect: (Int) -> Unit,
 ) {
     AslListItem(
         title = branch.name.middleEllipsis(),
@@ -388,7 +390,7 @@ private fun BranchActionRow(
         icon = if (branch.current) "check" else "git-branch",
         iconColor = if (branch.current) AslTheme.colors.success else null,
         trailing = {
-            AslOverflowMenu(items = entries, onSelect = { _, index -> onSelect(index) })
+            AslOverflowMenu(items = entries)
         },
     )
 }
