@@ -50,6 +50,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslS
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslStatusTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOverflowMenuEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslBreakpoints
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import com.ahmadkharfan.androidstudiolite.feature.editor.view.AslEditableCodeEditor
@@ -183,7 +184,7 @@ private fun EditorScreen(
                 .padding(padding)
                 .statusBarsPadding(),
         ) {
-            val isTablet = maxWidth >= TABLET_BREAKPOINT
+            val isTablet = maxWidth >= AslBreakpoints.tablet
             Column(modifier = Modifier.fillMaxSize()) {
                 EditorTopBar(uiState = uiState, interactionListener = interactionListener, isTablet = isTablet)
                 EditorContentArea(
@@ -291,8 +292,6 @@ private fun EditorFileOperationDialog(
         )
     }
 }
-
-private val TABLET_BREAKPOINT = 600.dp
 
 @Composable
 private fun EditorTopBar(

@@ -29,3 +29,7 @@ object AslMetrics {
     val tabHeight: Dp = 40.dp
     val panelPeek: Dp = 40.dp
 }
+
+object AslBreakpoints {
+    val tablet: Dp = 600.dp
+}
