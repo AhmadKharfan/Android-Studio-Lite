@@ -31,6 +31,12 @@ data class GitDiffLineUiModel(
 )
 
 @Immutable
+data class GitSectionSelection(
+    val allSelected: Boolean,
+    val indeterminate: Boolean,
+)
+
+@Immutable
 data class GitPanelUiState(
     val branch: String = "—",
     val isRepository: Boolean = true,
@@ -101,9 +107,20 @@ data class GitPanelUiState(
 
     val selectionCount: Int get() = selectedPaths.size
     val hasSelection: Boolean get() = selectedPaths.isNotEmpty()
+    val changeCount: Int get() =
+        stagedChanges.size + unstagedChanges.size + untrackedChanges.size
+    val hasChipRow: Boolean get() =
+        hasSelection || changeCount > 0 || (behind ?: 0) > 0 || (ahead ?: 0) > 0
     val canStageSelection: Boolean get() = !isBusy && selectedPaths.any { it in unstagedOrUntrackedPaths }
     val canUnstageSelection: Boolean get() = !isBusy && selectedPaths.any { it in stagedPaths }
     val canRevertSelection: Boolean get() = !isBusy && selectedPaths.any { it in revertablePaths }
+    fun sectionSelection(paths: List<String>): GitSectionSelection {
+        val selectedInSection = paths.count { it in selectedPaths }
+        return GitSectionSelection(
+            allSelected = selectedInSection == paths.size,
+            indeterminate = selectedInSection in 1 until paths.size,
+        )
+    }
     fun revertableSelection(): List<String> = selectedPaths.filter { it in revertablePaths }
 }
 
