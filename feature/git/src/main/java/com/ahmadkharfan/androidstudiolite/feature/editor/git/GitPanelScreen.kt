@@ -307,10 +307,7 @@ private fun GitChangesHeader(
             }
         }
     }
-    val changeCount = uiState.stagedChanges.size + uiState.unstagedChanges.size + uiState.untrackedChanges.size
-    val hasChipRow = uiState.hasSelection || changeCount > 0 ||
-        (uiState.behind ?: 0) > 0 || (uiState.ahead ?: 0) > 0
-    if (hasChipRow) {
+    if (uiState.hasChipRow) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -360,9 +357,13 @@ private fun GitChangesHeader(
                     onClick = interactionListener::onClearSelection,
                 )
             } else {
-                if (changeCount > 0) {
+                if (uiState.changeCount > 0) {
                     AslChip(
-                        label = pluralStringResource(R.plurals.git_panel_changes, changeCount, changeCount),
+                        label = pluralStringResource(
+                            R.plurals.git_panel_changes,
+                            uiState.changeCount,
+                            uiState.changeCount,
+                        ),
                         kind = AslChipKind.Status,
                         status = AslChipStatus.Neutral,
                     )
@@ -373,7 +374,7 @@ private fun GitChangesHeader(
                 uiState.ahead?.takeIf { it > 0 }?.let {
                     AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success)
                 }
-                if (changeCount > 0) {
+                if (uiState.changeCount > 0) {
                     AslChip(
                         label = stringResource(R.string.git_panel_select),
                         icon = "circle-check",
@@ -660,16 +661,15 @@ private fun GitChangeSection(
 ) {
     if (changes.isEmpty()) return
     val paths = changes.map { it.path }
-    val selectedInSection = paths.count { it in uiState.selectedPaths }
-    val allSelected = selectedInSection == paths.size
+    val sectionSelection = uiState.sectionSelection(paths)
     SectionHeader(
         title = title,
         count = changes.size,
         onToggleSection = if (uiState.isBusy) null else {
             { select -> interactionListener.onToggleSectionSelect(paths, select) }
         },
-        sectionSelected = allSelected,
-        sectionIndeterminate = selectedInSection in 1 until paths.size,
+        sectionSelected = sectionSelection.allSelected,
+        sectionIndeterminate = sectionSelection.indeterminate,
     )
     changes.forEach { change ->
         val checked = change.path in uiState.selectedPaths
