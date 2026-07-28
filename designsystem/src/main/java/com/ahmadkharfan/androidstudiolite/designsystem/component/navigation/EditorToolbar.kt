@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOverflowMenuEntry
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOverflowMenu
@@ -47,7 +49,7 @@ fun AslEditorToolbar(
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AslIconButton(icon = "menu", contentDescription = "Tool windows", onClick = onMenu)
+            AslIconButton(icon = "menu", contentDescription = stringResource(R.string.asl_tool_windows), onClick = onMenu)
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -82,7 +84,7 @@ fun AslEditorToolbar(
                     tint = if (running) Color.White else colors.accentOnPrimary,
                 )
                 Text(
-                    text = if (running) "Stop" else "Run",
+                    text = stringResource(if (running) R.string.asl_action_stop else R.string.asl_action_run),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (running) Color.White else colors.accentOnPrimary,

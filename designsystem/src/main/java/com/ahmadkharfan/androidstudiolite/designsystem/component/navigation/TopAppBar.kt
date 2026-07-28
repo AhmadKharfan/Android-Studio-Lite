@@ -19,8 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -58,7 +60,7 @@ fun AslTopAppBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onBack != null) {
-                AslIconButton(icon = "arrow-left", contentDescription = "Back", onClick = onBack)
+                AslIconButton(icon = "arrow-left", contentDescription = stringResource(R.string.asl_navigate_back), onClick = onBack)
             }
             Column(
                 modifier = Modifier

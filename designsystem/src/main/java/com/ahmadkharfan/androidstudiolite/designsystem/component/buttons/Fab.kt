@@ -10,7 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
@@ -20,7 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 fun AslFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Quick Run",
+    label: String = stringResource(R.string.asl_fab_quick_run),
     icon: String = "play",
     loading: Boolean = false,
 ) {

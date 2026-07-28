@@ -18,7 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -35,7 +37,7 @@ fun AslDropdown(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     label: String? = null,
-    placeholder: String = "Select…",
+    placeholder: String = stringResource(R.string.asl_dropdown_select),
     disabled: Boolean = false,
 ) {
     val colors = AslTheme.colors

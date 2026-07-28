@@ -33,10 +33,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
@@ -310,17 +312,17 @@ private fun AslFileTreeActionMenu(
         offset = if (openUpward) DpOffset(0.dp, (-8).dp) else DpOffset.Zero,
     ) {
         if (isDirectory) {
-            AslDropdownMenuItem(label = "New file", icon = "file-plus-2", onClick = { latestOnSelect(AslFileTreeAction.NewFile) })
-            AslDropdownMenuItem(label = "New folder", icon = "folder", onClick = { latestOnSelect(AslFileTreeAction.NewFolder) })
+            AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_new_file), icon = "file-plus-2", onClick = { latestOnSelect(AslFileTreeAction.NewFile) })
+            AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_new_folder), icon = "folder", onClick = { latestOnSelect(AslFileTreeAction.NewFolder) })
             if (canPaste) {
-                AslDropdownMenuItem(label = "Paste", icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Paste) })
+                AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_paste), icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Paste) })
             }
             AslDropdownMenuDivider()
         }
-        AslDropdownMenuItem(label = "Rename", icon = "pencil", onClick = { latestOnSelect(AslFileTreeAction.Rename) })
-        AslDropdownMenuItem(label = "Copy", icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Copy) })
+        AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_rename), icon = "pencil", onClick = { latestOnSelect(AslFileTreeAction.Rename) })
+        AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_copy), icon = "copy", onClick = { latestOnSelect(AslFileTreeAction.Copy) })
         AslDropdownMenuDivider()
-        AslDropdownMenuItem(label = "Delete", icon = "trash-2", destructive = true, onClick = { latestOnSelect(AslFileTreeAction.Delete) })
+        AslDropdownMenuItem(label = stringResource(R.string.asl_file_tree_delete), icon = "trash-2", destructive = true, onClick = { latestOnSelect(AslFileTreeAction.Delete) })
     }
 }
 

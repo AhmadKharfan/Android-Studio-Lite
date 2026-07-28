@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.designsystem.component.content
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -19,13 +20,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonSize
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -40,8 +45,8 @@ fun AslToolCallCard(
     diffOld: String? = null,
     diffNew: String? = null,
     result: String? = null,
-    approveLabel: String = "Approve",
-    rejectLabel: String = "Reject",
+    approveLabel: String = stringResource(R.string.asl_tool_call_approve),
+    rejectLabel: String = stringResource(R.string.asl_tool_call_reject),
     onApprove: () -> Unit = {},
     onReject: () -> Unit = {},
 ) {
@@ -110,23 +115,31 @@ fun AslToolCallCard(
 @Composable
 private fun ToolStatusChip(state: AslToolCallState) {
     val colors = AslTheme.colors
-    val (label, fg, bg) = when (state) {
-        AslToolCallState.Pending -> Triple("Review", colors.warning, colors.warningContainer)
-        AslToolCallState.Running -> Triple("Running", colors.info, colors.infoContainer)
-        AslToolCallState.Done -> Triple("Done", colors.success, colors.successContainer)
-        AslToolCallState.Failed -> Triple("Failed", colors.error, colors.errorContainer)
-        AslToolCallState.Rejected -> Triple("Rejected", colors.textTertiary, colors.surfaceContainerHigh)
-    }
+    val statusSpec = toolStatusSpec(state, colors)
     Text(
-        text = label,
+        text = stringResource(statusSpec.labelRes),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.SemiBold,
-        color = fg,
+        color = statusSpec.foreground,
         modifier = Modifier
             .clip(AslShape.full)
-            .background(bg)
+            .background(statusSpec.background)
             .padding(horizontal = 10.dp, vertical = 3.dp),
     )
+}
+
+private data class ToolStatusSpec(
+    @StringRes val labelRes: Int,
+    val foreground: Color,
+    val background: Color,
+)
+
+private fun toolStatusSpec(state: AslToolCallState, colors: AslColorScheme): ToolStatusSpec = when (state) {
+    AslToolCallState.Pending -> ToolStatusSpec(R.string.asl_tool_call_review, colors.warning, colors.warningContainer)
+    AslToolCallState.Running -> ToolStatusSpec(R.string.asl_tool_call_running, colors.info, colors.infoContainer)
+    AslToolCallState.Done -> ToolStatusSpec(R.string.asl_tool_call_done, colors.success, colors.successContainer)
+    AslToolCallState.Failed -> ToolStatusSpec(R.string.asl_tool_call_failed, colors.error, colors.errorContainer)
+    AslToolCallState.Rejected -> ToolStatusSpec(R.string.asl_tool_call_rejected, colors.textTertiary, colors.surfaceContainerHigh)
 }
 
 @Composable

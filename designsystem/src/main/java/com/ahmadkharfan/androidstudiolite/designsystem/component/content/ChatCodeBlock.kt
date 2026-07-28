@@ -19,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
@@ -51,10 +53,10 @@ fun AslChatCodeBlock(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = language, style = AslCode.codeTiny, color = colors.textTertiary, modifier = Modifier.weight(1f))
-            ChatCodeButton(icon = "copy", label = "Copy", tint = colors.textSecondary, onClick = onCopy)
+            ChatCodeButton(icon = "copy", label = stringResource(R.string.asl_code_copy), tint = colors.textSecondary, onClick = onCopy)
             ChatCodeButton(
                 icon = if (applied) "check" else "circle-play",
-                label = if (applied) "Applied" else "Apply",
+                label = stringResource(if (applied) R.string.asl_code_applied else R.string.asl_code_apply),
                 tint = colors.accentPrimary,
                 onClick = onApply,
             )

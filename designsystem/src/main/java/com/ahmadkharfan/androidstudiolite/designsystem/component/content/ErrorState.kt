@@ -18,8 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -34,7 +36,7 @@ fun AslErrorState(
     icon: String = "triangle-alert",
     explanation: String? = null,
     detail: String? = null,
-    actionLabel: String = "Retry",
+    actionLabel: String = stringResource(R.string.asl_action_retry),
     onAction: () -> Unit = {},
     secondaryLabel: String? = null,
     onSecondary: () -> Unit = {},
