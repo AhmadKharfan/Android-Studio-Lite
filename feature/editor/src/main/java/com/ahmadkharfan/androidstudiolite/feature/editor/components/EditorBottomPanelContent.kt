@@ -20,7 +20,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import java.util.Locale
+import com.ahmadkharfan.androidstudiolite.core.format.formatBytes
+import com.ahmadkharfan.androidstudiolite.core.format.formatSeconds
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
@@ -147,12 +148,6 @@ private fun BuildTab(
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes >= 1024L * 1024L -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
-    bytes >= 1024L -> String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0)
-    else -> "$bytes B"
-}
-
 private fun BuildConsoleState.toClipboardText(
     statusLabel: String,
     problemsLabel: String,
@@ -216,7 +211,7 @@ private fun BuildStatusHeader(
                 overflow = TextOverflow.Ellipsis,
             )
             console.durationMillis?.let {
-                Text(text = String.format(Locale.ROOT, "%.1fs", it / 1000.0), style = AslCode.codeTiny, color = colors.textTertiary)
+                Text(text = formatSeconds(it), style = AslCode.codeTiny, color = colors.textTertiary)
             }
             val hasContent = console.problems.isNotEmpty() || console.taskGroups.isNotEmpty() || console.logs.isNotEmpty()
             if (hasContent) {
