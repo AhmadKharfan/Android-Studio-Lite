@@ -1,7 +1,9 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.aichat
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.format.formatRelativeTime
 import com.ahmadkharfan.androidstudiolite.domain.model.AiAgentSettings
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMessage
@@ -11,16 +13,13 @@ import com.ahmadkharfan.androidstudiolite.domain.model.ChatThreadSelection
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatThreadSummary
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiAgentRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.AiChatRepository
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class AiChatViewModel(
     private val aiChatRepository: AiChatRepository,
     private val aiAgentRepository: AiAgentRepository,
+    private val appContext: Context,
     private val projectId: String,
 ) : BaseViewModel<AiChatUiState, Nothing>(
     initialState = AiChatUiState(),
@@ -202,23 +201,9 @@ class AiChatViewModel(
     private fun ChatThreadSummary.toUiModel(activeId: String) = ChatThreadUiModel(
         id = id,
         title = title,
-        subtitle = relativeTime(updatedAt),
+        subtitle = formatRelativeTime(appContext, updatedAt),
         isActive = id == activeId,
     )
-
-    private fun relativeTime(epochMillis: Long): String {
-        val diff = System.currentTimeMillis() - epochMillis
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
-        val hours = TimeUnit.MILLISECONDS.toHours(diff)
-        val days = TimeUnit.MILLISECONDS.toDays(diff)
-        return when {
-            minutes < 1 -> "Just now"
-            minutes < 60 -> "${minutes}m ago"
-            hours < 24 -> "${hours}h ago"
-            days < 7 -> "${days}d ago"
-            else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(epochMillis))
-        }
-    }
 
     private fun ChatMessage.toUiModel() = ChatMessageUiModel(
         id = id,
