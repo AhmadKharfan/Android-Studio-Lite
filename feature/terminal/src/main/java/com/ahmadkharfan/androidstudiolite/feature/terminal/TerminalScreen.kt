@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -136,6 +135,7 @@ private fun TerminalTabStrip(
                     tab = tab,
                     active = tab.id == uiState.activeTabId,
                     canClose = uiState.tabs.size > 1,
+                    compact = false,
                     onSelect = { interactionListener.onSelectTab(tab.id) },
                     onClose = { interactionListener.onCloseTab(tab.id) },
                     colors = colors,
@@ -143,43 +143,6 @@ private fun TerminalTabStrip(
             }
         }
         HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
-    }
-}
-
-@Composable
-private fun TerminalTabChip(
-    tab: TerminalTab,
-    active: Boolean,
-    canClose: Boolean,
-    onSelect: () -> Unit,
-    onClose: () -> Unit,
-    colors: AslColorScheme,
-) {
-    Row(
-        modifier = Modifier
-            .height(32.dp)
-            .background(if (active) colors.surfaceContainerHigh else colors.bgElevated, AslShape.sm)
-            .border(1.dp, if (active) colors.borderStrong else colors.borderDefault, AslShape.sm)
-            .clickable(onClick = onSelect)
-            .padding(start = 10.dp, end = if (canClose) 4.dp else 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = if (tab.running) tab.title else stringResource(R.string.terminal_tab_exited, tab.title),
-            style = AslCode.codeSmall,
-            color = if (active) colors.textPrimary else colors.textSecondary,
-        )
-        if (canClose) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "×", style = AslCode.codeSmall, color = colors.textTertiary)
-            }
-        }
     }
 }
 

@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,6 +57,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSke
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSnackbar
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslSnackbarTone
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslBreakpoints
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
@@ -231,8 +231,6 @@ private fun HubDialogHost(
     }
 }
 
-private val TABLET_BREAKPOINT = 600.dp
-
 @Composable
 private fun HubScreen(
     uiState: HubUiState,
@@ -241,7 +239,7 @@ private fun HubScreen(
     val colors = AslTheme.colors
     Scaffold(containerColor = colors.bgBase) { padding ->
         BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val isTablet = maxWidth >= TABLET_BREAKPOINT
+            val isTablet = maxWidth >= AslBreakpoints.tablet
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -276,10 +274,10 @@ private fun HubTopBar(
         Box(
             modifier = Modifier
                 .size(30.dp)
-                .background(Color(0xFF1E1E2E), RoundedCornerShape(8.dp)),
+                .background(colors.bgBase, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "{ }", color = Color(0xFF34D399), fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+            Text(text = "{ }", color = colors.accentPrimary, fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
         }
         Text(
             text = stringResource(CommonR.string.app_name),
