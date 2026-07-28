@@ -1,7 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.acsmissing
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 @Composable
@@ -40,8 +39,7 @@ private fun AcsMissingScreen(onExit: () -> Unit) {
                     .fillMaxWidth()
                     .height(90.dp)
                     .padding(top = 14.dp)
-                    .background(colors.surface, AslShape.lg)
-                    .border(1.dp, colors.borderDefault, AslShape.lg),
+                    .aslCard(),
             )
         }
         AslDialog(

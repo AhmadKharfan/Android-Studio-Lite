@@ -1,7 +1,5 @@
 package com.ahmadkharfan.androidstudiolite.feature.createproject.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,20 +11,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectUiState
 import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
 fun SummaryStep(uiState: CreateProjectUiState, modifier: Modifier = Modifier) {
-    val colors = AslTheme.colors
     Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.surface, AslShape.lg)
-                .border(1.dp, colors.borderDefault, AslShape.lg),
+                .aslCard(),
         ) {
             AslListItem(
                 title = stringResource(R.string.projects_summary_template),
