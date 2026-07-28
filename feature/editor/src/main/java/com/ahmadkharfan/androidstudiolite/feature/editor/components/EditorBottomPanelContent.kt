@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,11 +30,15 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslBuildOut
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslTaskStatus
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildArtifact
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildTaskGroup
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.toClipboardText
 import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
@@ -76,6 +81,10 @@ private fun BuildTab(
         return
     }
     val clipboard = LocalClipboardManager.current
+    val artifactLabel = stringResource(R.string.editor_build_artifact)
+    val artifactSigningLabel = console.artifact?.signed?.let {
+        stringResource(if (it) R.string.editor_build_signed else R.string.editor_build_unsigned)
+    }
     val problemsLabel = pluralStringResource(R.plurals.editor_build_problems, console.problems.size, console.problems.size)
     val tasksLabel = stringResource(R.string.editor_build_tasks)
     val outputLabel = stringResource(R.string.editor_build_output)
@@ -88,60 +97,90 @@ private fun BuildTab(
 
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            console.artifact?.let { artifact ->
-                item { SectionLabel(stringResource(R.string.editor_build_artifact)) }
-                item {
-                    val details = buildList {
-                        add(artifact.kind.name)
-                        artifact.sizeBytes?.let { add(formatBytes(it)) }
-                        artifact.signed?.let {
-                            add(stringResource(if (it) R.string.editor_build_signed else R.string.editor_build_unsigned))
-                        }
-                        artifact.sha256?.let { add("SHA-256 ${it.take(12)}…") }
-                    }.joinToString(" · ")
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        Text(artifact.name, style = AslCode.codeSmall, color = colors.textPrimary)
-                        if (details.isNotBlank()) {
-                            Text(details, style = AslCode.codeTiny, color = colors.textTertiary)
-                        }
-                    }
+            buildArtifactSection(console.artifact, artifactLabel, artifactSigningLabel, colors)
+            buildProblemsSection(console.problems, problemsLabel, onJumpToBuildProblem)
+            buildTasksSection(console.taskGroups, tasksLabel)
+            buildOutputSection(console.logs, outputLabel, colors)
+        }
+    }
+}
+
+private fun LazyListScope.buildArtifactSection(
+    artifact: BuildArtifact?,
+    artifactLabel: String,
+    artifactSigningLabel: String?,
+    colors: AslColorScheme,
+) {
+    artifact?.let { artifact ->
+        item { SectionLabel(artifactLabel) }
+        item {
+            val details = buildList {
+                add(artifact.kind.name)
+                artifact.sizeBytes?.let { add(formatBytes(it)) }
+                artifactSigningLabel?.let { add(it) }
+                artifact.sha256?.let { add("SHA-256 ${it.take(12)}…") }
+            }.joinToString(" · ")
+            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                Text(artifact.name, style = AslCode.codeSmall, color = colors.textPrimary)
+                if (details.isNotBlank()) {
+                    Text(details, style = AslCode.codeTiny, color = colors.textTertiary)
                 }
             }
-            if (console.problems.isNotEmpty()) {
-                item { SectionLabel(problemsLabel) }
-                items(console.problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
+        }
+    }
+}
+
+private fun LazyListScope.buildProblemsSection(
+    problems: List<BuildProblem>,
+    problemsLabel: String,
+    onJumpToBuildProblem: (BuildProblem) -> Unit,
+) {
+    if (problems.isNotEmpty()) {
+        item { SectionLabel(problemsLabel) }
+        items(problems) { problem -> ProblemRow(problem, onJumpToBuildProblem) }
+    }
+}
+
+private fun LazyListScope.buildTasksSection(
+    taskGroups: List<BuildTaskGroup>,
+    tasksLabel: String,
+) {
+    if (taskGroups.isNotEmpty()) {
+        item { SectionLabel(tasksLabel) }
+        taskGroups.forEach { group ->
+            if (group.module.isNotEmpty()) {
+                item { AslBuildOutputLine(text = group.module, depth = 0) }
             }
-            if (console.taskGroups.isNotEmpty()) {
-                item { SectionLabel(tasksLabel) }
-                console.taskGroups.forEach { group ->
-                    if (group.module.isNotEmpty()) {
-                        item { AslBuildOutputLine(text = group.module, depth = 0) }
-                    }
-                    items(group.tasks) { task ->
-                        AslBuildOutputLine(
-                            text = task.name,
-                            depth = if (group.module.isEmpty()) 0 else 1,
-                            status = task.result.toTaskStatus(),
+            items(group.tasks) { task ->
+                AslBuildOutputLine(
+                    text = task.name,
+                    depth = if (group.module.isEmpty()) 0 else 1,
+                    status = task.result.toTaskStatus(),
+                )
+            }
+        }
+    }
+}
+
+private fun LazyListScope.buildOutputSection(
+    logs: List<BuildLogLine>,
+    outputLabel: String,
+    colors: AslColorScheme,
+) {
+    if (logs.isNotEmpty()) {
+        item { SectionLabel(outputLabel) }
+        item {
+            SelectionContainer {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    logs.forEach { line ->
+                        Text(
+                            text = line.text,
+                            style = AslCode.codeTiny,
+                            color = if (line.isError) colors.error else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 1.dp),
                         )
-                    }
-                }
-            }
-            if (console.logs.isNotEmpty()) {
-                item { SectionLabel(outputLabel) }
-                item {
-                    SelectionContainer {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            console.logs.forEach { line ->
-                                Text(
-                                    text = line.text,
-                                    style = AslCode.codeTiny,
-                                    color = if (line.isError) colors.error else colors.textSecondary,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 1.dp),
-                                )
-                            }
-                        }
                     }
                 }
             }
