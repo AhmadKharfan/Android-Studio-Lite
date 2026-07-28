@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.editor.EditorPalette
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslThemeSwatchPicker
@@ -91,7 +92,6 @@ private fun EditorSettingsScreen(
                 EditorBehaviorSection(
                     autoSave = uiState.autoSave,
                     onToggleAutoSave = interactionListener::onToggleAutoSave,
-                    colors = colors,
                 )
             }
         }
@@ -216,14 +216,12 @@ private fun EditorTabSizeSection(
 private fun EditorBehaviorSection(
     autoSave: Boolean,
     onToggleAutoSave: (Boolean) -> Unit,
-    colors: AslColorScheme,
 ) {
     HubSectionHeader(stringResource(R.string.settings_editor_behavior))
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(horizontal = 16.dp),
     ) {
         AslSwitch(

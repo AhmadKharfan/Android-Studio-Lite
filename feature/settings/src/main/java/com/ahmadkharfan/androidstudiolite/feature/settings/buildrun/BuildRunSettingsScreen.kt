@@ -1,8 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,8 +35,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
@@ -83,7 +81,7 @@ private fun BuildRunSettingsScreen(
             ) {
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
-                BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener)
             }
         }
     }
@@ -112,7 +110,7 @@ private fun BuildRunOutputSection(
     colors: AslColorScheme,
 ) {
     HubSectionHeader(stringResource(R.string.settings_build_output_format))
-    SectionCard(colors) {
+    SectionCard {
         AslSwitch(
             label = stringResource(R.string.settings_build_aab_release),
             checked = uiState.buildOutputAab,
@@ -136,7 +134,7 @@ private fun BuildRunSigningSection(
     colors: AslColorScheme,
 ) {
     HubSectionHeader(stringResource(R.string.settings_build_signing))
-    SectionCard(colors) {
+    SectionCard {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
             Text(stringResource(R.string.settings_build_debug_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
             Text(
@@ -188,10 +186,9 @@ private fun BuildRunSigningSection(
 private fun BuildRunAfterBuildSection(
     uiState: BuildRunUiState,
     interactionListener: BuildRunInteractionListener,
-    colors: AslColorScheme,
 ) {
     HubSectionHeader(stringResource(R.string.settings_build_after_build))
-    SectionCard(colors) {
+    SectionCard {
         AslSwitch(
             label = stringResource(R.string.settings_build_launch_after_install),
             checked = uiState.launchAfterInstall,
@@ -202,12 +199,11 @@ private fun BuildRunAfterBuildSection(
 }
 
 @Composable
-private fun SectionCard(colors: AslColorScheme, content: @Composable () -> Unit) {
+private fun SectionCard(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.surface, AslShape.lg)
-            .border(1.dp, colors.borderDefault, AslShape.lg)
+            .aslCard()
             .padding(horizontal = 16.dp),
         content = { content() },
     )
