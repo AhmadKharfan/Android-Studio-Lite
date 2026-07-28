@@ -4,10 +4,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.format.formatRelativeTime
 import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
-import com.ahmadkharfan.androidstudiolite.feature.formatRelativeTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
