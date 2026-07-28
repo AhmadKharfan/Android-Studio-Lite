@@ -20,11 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
@@ -115,7 +117,7 @@ fun AslProjectCard(
             )
             if (lastOpened != null) {
                 Text(
-                    text = "Opened $lastOpened",
+                    text = stringResource(R.string.asl_project_opened, lastOpened),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.textTertiary,
                     modifier = Modifier.padding(top = 2.dp),
@@ -123,7 +125,7 @@ fun AslProjectCard(
             }
         }
         if (onMenu != null) {
-            AslIconButton(icon = "more-vertical", contentDescription = "Project options", onClick = onMenu)
+            AslIconButton(icon = "more-vertical", contentDescription = stringResource(R.string.asl_project_options), onClick = onMenu)
         }
     }
 }

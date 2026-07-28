@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -40,7 +42,7 @@ fun AslToolWindowPanel(
     actions: @Composable (RowScope.() -> Unit)? = null,
     onClose: (() -> Unit)? = null,
     closeIcon: String = "x",
-    closeContentDescription: String = "Close panel",
+    closeContentDescription: String = stringResource(R.string.asl_close_panel),
     scrollable: Boolean = true,
     content: @Composable () -> Unit,
 ) {

@@ -23,8 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
@@ -41,7 +43,7 @@ fun AslDialog(
     modifier: Modifier = Modifier,
     variant: AslDialogVariant = AslDialogVariant.Alert,
     body: String? = null,
-    confirmLabel: String = "OK",
+    confirmLabel: String = stringResource(R.string.asl_action_ok),
     cancelLabel: String? = null,
     destructive: Boolean = false,
     onConfirm: () -> Unit = {},

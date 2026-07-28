@@ -20,8 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -77,9 +79,9 @@ fun AslPermissionCard(
             Box(modifier = Modifier.animateContentSize(AslMotion.standardSpec())) {
                 AslStateCrossfade(targetState = granted, label = "permCta") { isGranted ->
                     if (isGranted) {
-                        Text(text = "Granted", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
+                        Text(text = stringResource(R.string.asl_permission_granted), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
                     } else {
-                        AslButton(label = "Grant access", onClick = onGrant)
+                        AslButton(label = stringResource(R.string.asl_permission_grant_access), onClick = onGrant)
                     }
                 }
             }

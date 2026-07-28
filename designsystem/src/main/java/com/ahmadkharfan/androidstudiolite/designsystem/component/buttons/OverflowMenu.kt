@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenu
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuDivider
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
@@ -41,7 +43,7 @@ fun AslOverflowMenu(
     Box(modifier = modifier) {
         AslIconButton(
             icon = "more-vertical",
-            contentDescription = "More options",
+            contentDescription = stringResource(R.string.asl_more_options),
             active = open,
             onClick = toggleOpen,
         )

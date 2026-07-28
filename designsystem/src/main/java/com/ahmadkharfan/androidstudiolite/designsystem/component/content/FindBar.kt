@@ -13,7 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
@@ -55,7 +57,7 @@ fun AslFindBar(
             modifier = Modifier.weight(1f),
             decorationBox = { inner ->
                 if (query.isEmpty()) {
-                    Text(text = "Find in file", style = AslCode.codeSmall, color = colors.textTertiary)
+                    Text(text = stringResource(R.string.asl_find_in_file), style = AslCode.codeSmall, color = colors.textTertiary)
                 }
                 inner()
             },
@@ -63,14 +65,14 @@ fun AslFindBar(
         Text(
             text = when {
                 query.isEmpty() -> ""
-                matchCount == 0 -> "No results"
+                matchCount == 0 -> stringResource(R.string.asl_find_no_results)
                 else -> "$currentMatch/$matchCount"
             },
             style = AslCode.codeTiny,
             color = if (query.isNotEmpty() && matchCount == 0) colors.error else colors.textTertiary,
         )
-        AslIconButton(icon = "chevron-up", contentDescription = "Previous match", onClick = onPrev, size = 32.dp, iconSize = 16.dp, disabled = matchCount == 0)
-        AslIconButton(icon = "chevron-down", contentDescription = "Next match", onClick = onNext, size = 32.dp, iconSize = 16.dp, disabled = matchCount == 0)
-        AslIconButton(icon = "x", contentDescription = "Close find bar", onClick = onClose, size = 32.dp, iconSize = 16.dp)
+        AslIconButton(icon = "chevron-up", contentDescription = stringResource(R.string.asl_find_previous_match), onClick = onPrev, size = 32.dp, iconSize = 16.dp, disabled = matchCount == 0)
+        AslIconButton(icon = "chevron-down", contentDescription = stringResource(R.string.asl_find_next_match), onClick = onNext, size = 32.dp, iconSize = 16.dp, disabled = matchCount == 0)
+        AslIconButton(icon = "x", contentDescription = stringResource(R.string.asl_find_close), onClick = onClose, size = 32.dp, iconSize = 16.dp)
     }
 }

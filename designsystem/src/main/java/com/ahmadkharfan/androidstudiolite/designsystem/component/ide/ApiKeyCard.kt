@@ -21,8 +21,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
@@ -98,18 +100,18 @@ fun AslApiKeyCard(
             when (status) {
                 AslApiKeyStatus.Valid -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     AslIcon(name = "check", size = 14.dp, tint = colors.success)
-                    Text(text = "Valid", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
+                    Text(text = stringResource(R.string.asl_api_key_valid), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
                 }
                 AslApiKeyStatus.Invalid -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     AslIcon(name = "x", size = 14.dp, tint = colors.error)
-                    Text(text = "Invalid", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.error)
+                    Text(text = stringResource(R.string.asl_api_key_invalid), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.error)
                 }
                 AslApiKeyStatus.None -> Unit
             }
             if (onCollapse != null) {
                 AslIconButton(
                     icon = "chevron-up",
-                    contentDescription = "Collapse",
+                    contentDescription = stringResource(R.string.asl_api_key_collapse),
                     size = 32.dp,
                     iconSize = 18.dp,
                     onClick = onCollapse,
@@ -121,7 +123,7 @@ fun AslApiKeyCard(
                 value = draft,
                 onValueChange = { draft = it },
                 modifier = Modifier.weight(1f),
-                label = "API key",
+                label = stringResource(R.string.asl_api_key_label),
                 placeholder = placeholder,
                 type = if (reveal) AslTextFieldType.Text else AslTextFieldType.Password,
                 trailingIcon = if (reveal) "eye-off" else "eye",
@@ -132,7 +134,7 @@ fun AslApiKeyCard(
                 },
             )
             AslButton(
-                label = "Test",
+                label = stringResource(R.string.asl_api_key_test),
                 onClick = {
                     val trimmed = draft.trim()
                     if (trimmed != draft) draft = trimmed
