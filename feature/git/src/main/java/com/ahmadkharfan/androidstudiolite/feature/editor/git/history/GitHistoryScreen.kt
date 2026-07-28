@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ahmadkharfan.androidstudiolite.core.format.formatRelativeTime
 import com.ahmadkharfan.androidstudiolite.core.format.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
@@ -248,7 +250,7 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
             )
         }
         Text(
-            "${commit.authorName} · ${relativeTime(commit.authorTimeMillis)}",
+            "${commit.authorName} · ${formatRelativeTime(LocalContext.current, commit.authorTimeMillis)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -361,17 +363,5 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
             }
             HorizontalDivider()
         }
-    }
-}
-
-@Composable
-private fun relativeTime(timeMillis: Long): String {
-    val seconds = ((System.currentTimeMillis() - timeMillis).coerceAtLeast(0L) / 1_000L)
-    return when {
-        seconds < 60 -> stringResource(R.string.git_time_just_now)
-        seconds < 3_600 -> stringResource(R.string.git_time_minutes_ago, seconds / 60)
-        seconds < 86_400 -> stringResource(R.string.git_time_hours_ago, seconds / 3_600)
-        seconds < 2_592_000 -> stringResource(R.string.git_time_days_ago, seconds / 86_400)
-        else -> stringResource(R.string.git_time_months_ago, seconds / 2_592_000)
     }
 }
