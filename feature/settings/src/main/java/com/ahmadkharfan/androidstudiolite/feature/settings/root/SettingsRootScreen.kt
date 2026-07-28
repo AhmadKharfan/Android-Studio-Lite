@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
@@ -22,7 +23,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 
 private data class SettingsRow(val title: String, val subtitle: String?, val icon: String, val onClick: () -> Unit = {})
 
@@ -158,7 +158,7 @@ private fun SettingsRootContent(
                 .distinctBy { "${it.title}\n${it.breadcrumb}" }
                 .map { it.toRow() }
             if (results.isEmpty()) {
-                HubSectionHeader(stringResource(CommonR.string.settings_search_no_results))
+                AslSectionHeader(stringResource(CommonR.string.settings_search_no_results))
             } else {
                 SettingsRowGroup(header = stringResource(CommonR.string.settings_search_results), rows = results, colors = colors)
             }
@@ -172,7 +172,7 @@ private fun SettingsRowGroup(
     rows: List<SettingsRow>,
     colors: AslColorScheme,
 ) {
-    HubSectionHeader(header)
+    AslSectionHeader(header)
     Column(
         modifier = Modifier
             .fillMaxWidth()

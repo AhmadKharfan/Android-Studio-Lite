@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.editor.EditorPalette
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
@@ -40,7 +41,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 
 @Composable
@@ -217,7 +217,7 @@ private fun EditorBehaviorSection(
     autoSave: Boolean,
     onToggleAutoSave: (Boolean) -> Unit,
 ) {
-    HubSectionHeader(stringResource(R.string.settings_editor_behavior))
+    AslSectionHeader(stringResource(R.string.settings_editor_behavior))
     Column(
         modifier = Modifier
             .fillMaxWidth()

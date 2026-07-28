@@ -45,6 +45,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfa
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslIconButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslListItem
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslProjectCard
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBanner
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslBannerTone
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
@@ -62,7 +63,6 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.feature.hub.components.HubSectionHeader
 import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoRoute
 
@@ -372,7 +372,7 @@ private fun HubPhoneLayout(
 @Composable
 private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
-    HubSectionHeader(
+    AslSectionHeader(
         text = stringResource(CommonR.string.hub_section_recent),
         modifier = Modifier.padding(horizontal = HubHorizontalPadding),
     )
@@ -413,7 +413,7 @@ private fun RecentProjectsRow(uiState: HubUiState, interactionListener: HubInter
 @Composable
 private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInteractionListener) {
     if (!uiState.isLoadingRecents && uiState.recentProjects.isEmpty()) return
-    HubSectionHeader(stringResource(CommonR.string.hub_section_recent))
+    AslSectionHeader(stringResource(CommonR.string.hub_section_recent))
     AslStateCrossfade(targetState = uiState.isLoadingRecents, label = "hubRecentsList") { loading ->
         if (loading) {
             AslSkeleton(variant = AslSkeletonVariant.List, rows = 2)
@@ -441,7 +441,7 @@ private fun RecentProjectsList(uiState: HubUiState, interactionListener: HubInte
 private fun StartSection(interactionListener: HubInteractionListener) {
     val colors = AslTheme.colors
     Column(modifier = Modifier.padding(horizontal = HubHorizontalPadding)) {
-        HubSectionHeader(stringResource(CommonR.string.hub_section_start))
+        AslSectionHeader(stringResource(CommonR.string.hub_section_start))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
