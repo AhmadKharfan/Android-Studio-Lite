@@ -1,11 +1,9 @@
-plugins { id("asl.android.library.compose") }
+plugins { id("asl.android.feature") }
 
 android { namespace = "com.ahmadkharfan.androidstudiolite.feature.buildrun" }
 
 dependencies {
-    implementation(platform(libs.koin.bom))
     implementation(platform(libs.androidx.compose.bom))
-    implementation(projects.domain)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.compose.material3)
