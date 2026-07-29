@@ -30,6 +30,8 @@ style:
     active: false
   UnusedPrivateMember:
     active: true
+    # @Preview functions are entry points invoked by the IDE and tooling, never by app code.
+    ignoreAnnotated: ['Preview', 'PreviewAslComponent']
   MaxLineLength:
     active: false
   ForbiddenImport:
