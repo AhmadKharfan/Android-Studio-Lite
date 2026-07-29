@@ -55,25 +55,17 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSession
 import com.ahmadkharfan.androidstudiolite.feature.editor.view.AslEditableCodeEditor
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDrawerCallbacks
+import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDrawerState
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorBottomPanelContent
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDockedPanel
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.EditorDrawer
+import com.ahmadkharfan.androidstudiolite.feature.editor.components.GitNavigationCallbacks
 import com.ahmadkharfan.androidstudiolite.feature.editor.components.MarkdownPreviewPane
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import java.io.File
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
-
-private data class GitNavigationCallbacks(
-    val openDiff: (String, GitDiffTarget) -> Unit,
-    val openFileHistory: (String) -> Unit,
-    val openBlame: (String) -> Unit,
-    val openBranches: () -> Unit,
-    val openTags: () -> Unit,
-    val openStashes: () -> Unit,
-    val openHistory: () -> Unit,
-    val openConflicts: () -> Unit,
-)
 
 @Composable
 fun EditorRoute(
@@ -418,35 +410,21 @@ private fun EditorEditingRow(
     Row(modifier = modifier) {
         if (isTablet) {
             EditorDockedPanel(
-                openTool = uiState.openRailTool,
-                projectId = uiState.projectId,
-                gitBadge = uiState.gitBadge,
-                fileTree = uiState.fileTree,
-                expandedFolderIds = uiState.expandedFolderIds,
-                selectedFileId = uiState.selectedFileTreeId,
-                canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
-                onSelectTool = drawerCallbacks.onSelectTool,
-                onFocusFileTreeNode = drawerCallbacks.onFocusFileTreeNode,
-                onToggleFolder = drawerCallbacks.onToggleFolder,
-                onSelectFile = drawerCallbacks.onSelectFile,
-                onRevealFileTreeNode = drawerCallbacks.onRevealFileTreeNode,
-                onCreateFileTreeEntry = drawerCallbacks.onCreateFileTreeEntry,
-                onFileTreeAction = drawerCallbacks.onFileTreeAction,
-                onDismiss = drawerCallbacks.onDismiss,
-                onOpenSettings = drawerCallbacks.onOpenSettings,
-                onOpenAiAgentSettings = drawerCallbacks.onOpenAiAgentSettings,
-                onOpenGitDiff = gitNavigation.openDiff,
-                onOpenGitHistory = gitNavigation.openHistory,
-                onOpenGitBranches = gitNavigation.openBranches,
-                onOpenGitTags = gitNavigation.openTags,
-                onOpenGitStashes = gitNavigation.openStashes,
-                onOpenGitConflicts = gitNavigation.openConflicts,
-                onCloseProject = drawerCallbacks.onCloseProject,
-                selectedVariant = uiState.selectedVariant,
-                onSelectVariant = drawerCallbacks.onSelectVariant,
-                availableVariants = uiState.availableVariants,
-                runModulePath = uiState.runModulePath,
-                isLoadingFileTree = uiState.isLoadingFileTree,
+                state = EditorDrawerState(
+                    openTool = uiState.openRailTool,
+                    projectId = uiState.projectId,
+                    gitBadge = uiState.gitBadge,
+                    fileTree = uiState.fileTree,
+                    expandedFolderIds = uiState.expandedFolderIds,
+                    selectedFileId = uiState.selectedFileTreeId,
+                    canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
+                    selectedVariant = uiState.selectedVariant,
+                    availableVariants = uiState.availableVariants,
+                    runModulePath = uiState.runModulePath,
+                    isLoadingFileTree = uiState.isLoadingFileTree,
+                ),
+                callbacks = drawerCallbacks,
+                gitNavigation = gitNavigation,
             )
         }
         EditorCodeSurface(
@@ -595,53 +573,24 @@ private fun EditorDrawerOverlay(
 ) {
     val drawerCallbacks = rememberEditorDrawerCallbacks(interactionListener, gitNavigation)
     EditorDrawer(
-        openTool = uiState.openRailTool,
-        projectId = uiState.projectId,
-        gitBadge = uiState.gitBadge,
-        fileTree = uiState.fileTree,
-        expandedFolderIds = uiState.expandedFolderIds,
-        selectedFileId = uiState.selectedFileTreeId,
-        canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
-        onSelectTool = drawerCallbacks.onSelectTool,
-        onFocusFileTreeNode = drawerCallbacks.onFocusFileTreeNode,
-        onToggleFolder = drawerCallbacks.onToggleFolder,
-        onSelectFile = drawerCallbacks.onSelectFile,
-        onRevealFileTreeNode = drawerCallbacks.onRevealFileTreeNode,
-        onCreateFileTreeEntry = drawerCallbacks.onCreateFileTreeEntry,
-        onFileTreeAction = drawerCallbacks.onFileTreeAction,
-        onDismiss = drawerCallbacks.onDismiss,
-        onOpenSettings = drawerCallbacks.onOpenSettings,
-        onOpenAiAgentSettings = drawerCallbacks.onOpenAiAgentSettings,
-        onOpenGitDiff = gitNavigation.openDiff,
-        onOpenGitHistory = gitNavigation.openHistory,
-        onOpenGitBranches = gitNavigation.openBranches,
-        onOpenGitTags = gitNavigation.openTags,
-        onOpenGitStashes = gitNavigation.openStashes,
-        onOpenGitConflicts = gitNavigation.openConflicts,
-        onCloseProject = drawerCallbacks.onCloseProject,
-        selectedVariant = uiState.selectedVariant,
-        onSelectVariant = drawerCallbacks.onSelectVariant,
-        availableVariants = uiState.availableVariants,
-        runModulePath = uiState.runModulePath,
-        isLoadingFileTree = uiState.isLoadingFileTree,
+        state = EditorDrawerState(
+            openTool = uiState.openRailTool,
+            projectId = uiState.projectId,
+            gitBadge = uiState.gitBadge,
+            fileTree = uiState.fileTree,
+            expandedFolderIds = uiState.expandedFolderIds,
+            selectedFileId = uiState.selectedFileTreeId,
+            canPasteFileTreeEntry = uiState.copiedFileTreeEntry != null,
+            selectedVariant = uiState.selectedVariant,
+            availableVariants = uiState.availableVariants,
+            runModulePath = uiState.runModulePath,
+            isLoadingFileTree = uiState.isLoadingFileTree,
+        ),
+        callbacks = drawerCallbacks,
+        gitNavigation = gitNavigation,
         modifier = Modifier.fillMaxSize(),
     )
 }
-
-private data class EditorDrawerCallbacks(
-    val onSelectTool: (EditorRailTool) -> Unit,
-    val onFocusFileTreeNode: (String) -> Unit,
-    val onToggleFolder: (String) -> Unit,
-    val onSelectFile: (String, String) -> Unit,
-    val onRevealFileTreeNode: (String) -> Unit,
-    val onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
-    val onFileTreeAction: (EditorFileTreeAction, String, String, Boolean) -> Unit,
-    val onDismiss: () -> Unit,
-    val onOpenSettings: () -> Unit,
-    val onOpenAiAgentSettings: () -> Unit,
-    val onCloseProject: () -> Unit,
-    val onSelectVariant: (String) -> Unit,
-)
 
 @Composable
 private fun rememberEditorDrawerCallbacks(

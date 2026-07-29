@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,39 +86,56 @@ private fun String.toRailTool(): EditorRailTool? = when (this) {
     else -> null
 }
 
+@Immutable
+internal data class EditorDrawerState(
+    val openTool: EditorRailTool?,
+    val projectId: String,
+    val gitBadge: String?,
+    val fileTree: List<EditorFileNodeUiModel>,
+    val expandedFolderIds: Set<String>,
+    val selectedFileId: String?,
+    val canPasteFileTreeEntry: Boolean,
+    val selectedVariant: String,
+    val availableVariants: List<String> = listOf("debug", "release"),
+    val runModulePath: String = ":app",
+    val isLoadingFileTree: Boolean = false,
+)
+
+internal data class EditorDrawerCallbacks(
+    val onSelectTool: (EditorRailTool) -> Unit,
+    val onFocusFileTreeNode: (String) -> Unit,
+    val onToggleFolder: (String) -> Unit,
+    val onSelectFile: (String, String) -> Unit,
+    val onRevealFileTreeNode: (String) -> Unit,
+    val onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
+    val onFileTreeAction: (EditorFileTreeAction, String, String, Boolean) -> Unit,
+    val onDismiss: () -> Unit,
+    val onOpenSettings: () -> Unit,
+    val onOpenAiAgentSettings: () -> Unit,
+    val onCloseProject: () -> Unit,
+    val onSelectVariant: (String) -> Unit,
+)
+
+internal data class GitNavigationCallbacks(
+    val openDiff: (String, GitDiffTarget) -> Unit,
+    val openFileHistory: (String) -> Unit,
+    val openBlame: (String) -> Unit,
+    val openBranches: () -> Unit,
+    val openTags: () -> Unit,
+    val openStashes: () -> Unit,
+    val openHistory: () -> Unit,
+    val openConflicts: () -> Unit,
+)
+
 @Composable
-fun EditorDrawer(
-    openTool: EditorRailTool?,
-    projectId: String,
-    gitBadge: String?,
-    fileTree: List<EditorFileNodeUiModel>,
-    expandedFolderIds: Set<String>,
-    selectedFileId: String?,
-    canPasteFileTreeEntry: Boolean,
-    onSelectTool: (EditorRailTool) -> Unit,
-    onFocusFileTreeNode: (String) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onSelectFile: (id: String, name: String) -> Unit,
-    onRevealFileTreeNode: (String) -> Unit,
-    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
-    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenAiAgentSettings: () -> Unit,
-    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
-    onOpenGitHistory: () -> Unit,
-    onOpenGitBranches: () -> Unit,
-    onOpenGitTags: () -> Unit,
-    onOpenGitStashes: () -> Unit,
-    onOpenGitConflicts: () -> Unit,
-    onCloseProject: () -> Unit,
-    selectedVariant: String,
-    onSelectVariant: (String) -> Unit,
-    availableVariants: List<String> = listOf("debug", "release"),
-    runModulePath: String = ":app",
+internal fun EditorDrawer(
+    state: EditorDrawerState,
+    callbacks: EditorDrawerCallbacks,
+    gitNavigation: GitNavigationCallbacks,
     modifier: Modifier = Modifier,
-    isLoadingFileTree: Boolean = false,
 ) {
+    val openTool = state.openTool
+    val onDismiss = callbacks.onDismiss
     val visible = openTool != null
 
     var lastTool by remember { mutableStateOf<EditorRailTool?>(null) }
@@ -161,39 +179,12 @@ fun EditorDrawer(
                         onClick = {},
                     ),
             ) {
-                EditorToolRail(
-                    activeId = tool.toRailId(),
-                    gitBadge = gitBadge,
-                    onSelectTool = onSelectTool,
-                    onOpenSettings = onOpenSettings,
-                    onCloseProject = onCloseProject,
-                )
+                EditorToolRail(activeId = tool.toRailId(), state = state, callbacks = callbacks)
                 EditorToolPanelContent(
                     openTool = tool,
-                    projectId = projectId,
-                    fileTree = fileTree,
-                    expandedFolderIds = expandedFolderIds,
-                    selectedFileId = selectedFileId,
-                    canPasteFileTreeEntry = canPasteFileTreeEntry,
-                    onFocusFileTreeNode = onFocusFileTreeNode,
-                    onToggleFolder = onToggleFolder,
-                    onSelectFile = onSelectFile,
-                    onRevealFileTreeNode = onRevealFileTreeNode,
-                    onCreateFileTreeEntry = onCreateFileTreeEntry,
-                    onFileTreeAction = onFileTreeAction,
-                    onDismiss = onDismiss,
-                    onOpenAiAgentSettings = onOpenAiAgentSettings,
-                    onOpenGitDiff = onOpenGitDiff,
-                    onOpenGitHistory = onOpenGitHistory,
-                    onOpenGitBranches = onOpenGitBranches,
-                    onOpenGitTags = onOpenGitTags,
-                    onOpenGitStashes = onOpenGitStashes,
-                    onOpenGitConflicts = onOpenGitConflicts,
-                    selectedVariant = selectedVariant,
-                    onSelectVariant = onSelectVariant,
-                    availableVariants = availableVariants,
-                    runModulePath = runModulePath,
-                    isLoadingFileTree = isLoadingFileTree,
+                    state = state,
+                    callbacks = callbacks,
+                    gitNavigation = gitNavigation,
                 )
             }
         }
@@ -201,73 +192,20 @@ fun EditorDrawer(
 }
 
 @Composable
-fun EditorDockedPanel(
-    openTool: EditorRailTool?,
-    projectId: String,
-    gitBadge: String?,
-    fileTree: List<EditorFileNodeUiModel>,
-    expandedFolderIds: Set<String>,
-    selectedFileId: String?,
-    canPasteFileTreeEntry: Boolean,
-    onSelectTool: (EditorRailTool) -> Unit,
-    onFocusFileTreeNode: (String) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onSelectFile: (id: String, name: String) -> Unit,
-    onRevealFileTreeNode: (String) -> Unit,
-    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
-    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenAiAgentSettings: () -> Unit,
-    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
-    onOpenGitHistory: () -> Unit,
-    onOpenGitBranches: () -> Unit,
-    onOpenGitTags: () -> Unit,
-    onOpenGitStashes: () -> Unit,
-    onOpenGitConflicts: () -> Unit,
-    onCloseProject: () -> Unit,
-    selectedVariant: String,
-    onSelectVariant: (String) -> Unit,
-    availableVariants: List<String> = listOf("debug", "release"),
-    runModulePath: String = ":app",
+internal fun EditorDockedPanel(
+    state: EditorDrawerState,
+    callbacks: EditorDrawerCallbacks,
+    gitNavigation: GitNavigationCallbacks,
     modifier: Modifier = Modifier,
-    isLoadingFileTree: Boolean = false,
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
-        EditorToolRail(
-            activeId = openTool.toRailId(),
-            gitBadge = gitBadge,
-            onSelectTool = onSelectTool,
-            onOpenSettings = onOpenSettings,
-            onCloseProject = onCloseProject,
-        )
-        if (openTool != null) {
+        EditorToolRail(activeId = state.openTool.toRailId(), state = state, callbacks = callbacks)
+        if (state.openTool != null) {
             EditorToolPanelContent(
-                openTool = openTool,
-                projectId = projectId,
-                fileTree = fileTree,
-                expandedFolderIds = expandedFolderIds,
-                selectedFileId = selectedFileId,
-                canPasteFileTreeEntry = canPasteFileTreeEntry,
-                onFocusFileTreeNode = onFocusFileTreeNode,
-                onToggleFolder = onToggleFolder,
-                onSelectFile = onSelectFile,
-                onRevealFileTreeNode = onRevealFileTreeNode,
-                onCreateFileTreeEntry = onCreateFileTreeEntry,
-                onFileTreeAction = onFileTreeAction,
-                onDismiss = onDismiss,
-                onOpenAiAgentSettings = onOpenAiAgentSettings,
-                onOpenGitDiff = onOpenGitDiff,
-                onOpenGitHistory = onOpenGitHistory,
-                onOpenGitBranches = onOpenGitBranches,
-                onOpenGitTags = onOpenGitTags,
-                onOpenGitStashes = onOpenGitStashes,
-                onOpenGitConflicts = onOpenGitConflicts,
-                selectedVariant = selectedVariant,
-                onSelectVariant = onSelectVariant,
-                availableVariants = availableVariants,
-                runModulePath = runModulePath,
-                isLoadingFileTree = isLoadingFileTree,
+                openTool = state.openTool,
+                state = state,
+                callbacks = callbacks,
+                gitNavigation = gitNavigation,
             )
         }
     }
@@ -276,20 +214,18 @@ fun EditorDockedPanel(
 @Composable
 private fun EditorToolRail(
     activeId: String?,
-    gitBadge: String?,
-    onSelectTool: (EditorRailTool) -> Unit,
-    onOpenSettings: () -> Unit,
-    onCloseProject: () -> Unit,
+    state: EditorDrawerState,
+    callbacks: EditorDrawerCallbacks,
 ) {
-    val items = railItems(gitBadge)
+    val items = railItems(state.gitBadge)
     AslToolRail(
         items = items,
         activeId = activeId,
         onSelect = { id ->
             when (id) {
-                "settings" -> onOpenSettings()
-                "close" -> onCloseProject()
-                else -> id.toRailTool()?.let(onSelectTool)
+                "settings" -> callbacks.onOpenSettings()
+                "close" -> callbacks.onCloseProject()
+                else -> id.toRailTool()?.let(callbacks.onSelectTool)
             }
         },
     )
@@ -298,100 +234,59 @@ private fun EditorToolRail(
 @Composable
 private fun EditorToolPanelContent(
     openTool: EditorRailTool,
-    projectId: String,
-    fileTree: List<EditorFileNodeUiModel>,
-    expandedFolderIds: Set<String>,
-    selectedFileId: String?,
-    canPasteFileTreeEntry: Boolean,
-    onFocusFileTreeNode: (String) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onSelectFile: (id: String, name: String) -> Unit,
-    onRevealFileTreeNode: (String) -> Unit,
-    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
-    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-    onOpenAiAgentSettings: () -> Unit,
-    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
-    onOpenGitHistory: () -> Unit,
-    onOpenGitBranches: () -> Unit,
-    onOpenGitTags: () -> Unit,
-    onOpenGitStashes: () -> Unit,
-    onOpenGitConflicts: () -> Unit,
-    selectedVariant: String,
-    onSelectVariant: (String) -> Unit,
-    availableVariants: List<String> = listOf("debug", "release"),
-    runModulePath: String = ":app",
-    isLoadingFileTree: Boolean = false,
+    state: EditorDrawerState,
+    callbacks: EditorDrawerCallbacks,
+    gitNavigation: GitNavigationCallbacks,
 ) {
     val gitPanelApi: GitPanelApi = koinInject()
 
     when (openTool) {
         EditorRailTool.Files -> EditorFilesToolPanel(
-            fileTree = fileTree,
-            expandedFolderIds = expandedFolderIds,
-            selectedFileId = selectedFileId,
-            canPasteFileTreeEntry = canPasteFileTreeEntry,
-            onFocusFileTreeNode = onFocusFileTreeNode,
-            onToggleFolder = onToggleFolder,
-            onSelectFile = onSelectFile,
-            onRevealFileTreeNode = onRevealFileTreeNode,
-            onCreateFileTreeEntry = onCreateFileTreeEntry,
-            onFileTreeAction = onFileTreeAction,
-            onDismiss = onDismiss,
-            isLoadingFileTree = isLoadingFileTree,
+            state = state,
+            callbacks = callbacks,
         )
         EditorRailTool.Git -> gitPanelApi.Panel(
-            projectId = projectId,
-            onClose = onDismiss,
-            onOpenDiff = onOpenGitDiff,
-            onOpenHistory = onOpenGitHistory,
-            onOpenBranches = onOpenGitBranches,
-            onOpenTags = onOpenGitTags,
-            onOpenStashes = onOpenGitStashes,
-            onOpenConflicts = onOpenGitConflicts,
+            projectId = state.projectId,
+            onClose = callbacks.onDismiss,
+            onOpenDiff = gitNavigation.openDiff,
+            onOpenHistory = gitNavigation.openHistory,
+            onOpenBranches = gitNavigation.openBranches,
+            onOpenTags = gitNavigation.openTags,
+            onOpenStashes = gitNavigation.openStashes,
+            onOpenConflicts = gitNavigation.openConflicts,
         )
         EditorRailTool.AiAgent -> AiChatRoute(
-            projectId = projectId,
-            onClose = onDismiss,
-            onOpenAiAgentSettings = onOpenAiAgentSettings,
-            activeFilePath = selectedFileId,
+            projectId = state.projectId,
+            onClose = callbacks.onDismiss,
+            onOpenAiAgentSettings = callbacks.onOpenAiAgentSettings,
+            activeFilePath = state.selectedFileId,
         )
         EditorRailTool.Variants -> VariantsRoute(
-            selectedVariant = selectedVariant,
-            onSelectVariant = onSelectVariant,
-            onClose = onDismiss,
-            module = runModulePath.removePrefix(":").ifBlank { "app" },
-            variants = availableVariants,
+            selectedVariant = state.selectedVariant,
+            onSelectVariant = callbacks.onSelectVariant,
+            onClose = callbacks.onDismiss,
+            module = state.runModulePath.removePrefix(":").ifBlank { "app" },
+            variants = state.availableVariants,
         )
         EditorRailTool.Assets -> AssetsRoute(
-            projectId = projectId,
-            onClose = onDismiss,
-            onOpenFile = onSelectFile,
+            projectId = state.projectId,
+            onClose = callbacks.onDismiss,
+            onOpenFile = callbacks.onSelectFile,
         )
     }
 }
 
 @Composable
 private fun EditorFilesToolPanel(
-    fileTree: List<EditorFileNodeUiModel>,
-    expandedFolderIds: Set<String>,
-    selectedFileId: String?,
-    canPasteFileTreeEntry: Boolean,
-    onFocusFileTreeNode: (String) -> Unit,
-    onToggleFolder: (String) -> Unit,
-    onSelectFile: (id: String, name: String) -> Unit,
-    onRevealFileTreeNode: (String) -> Unit,
-    onCreateFileTreeEntry: (EditorFileCreateKind, String?) -> Unit,
-    onFileTreeAction: (EditorFileTreeAction, id: String, name: String, isDirectory: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-    isLoadingFileTree: Boolean,
+    state: EditorDrawerState,
+    callbacks: EditorDrawerCallbacks,
 ) {
-    val treeItems = remember(fileTree) { fileTree.map { it.toAslNode() } }
-    val latestOnFocus by rememberUpdatedState(onFocusFileTreeNode)
-    val latestOnToggle by rememberUpdatedState(onToggleFolder)
-    val latestOnSelectFile by rememberUpdatedState(onSelectFile)
-    val latestOnFileTreeAction by rememberUpdatedState(onFileTreeAction)
-    val latestOnCreate by rememberUpdatedState(onCreateFileTreeEntry)
+    val treeItems = remember(state.fileTree) { state.fileTree.map { it.toAslNode() } }
+    val latestOnFocus by rememberUpdatedState(callbacks.onFocusFileTreeNode)
+    val latestOnToggle by rememberUpdatedState(callbacks.onToggleFolder)
+    val latestOnSelectFile by rememberUpdatedState(callbacks.onSelectFile)
+    val latestOnFileTreeAction by rememberUpdatedState(callbacks.onFileTreeAction)
+    val latestOnCreate by rememberUpdatedState(callbacks.onCreateFileTreeEntry)
     val onFocus = remember { { node: AslFileTreeNode -> latestOnFocus(node.id) } }
     val onToggle = remember { { id: String -> latestOnToggle(id) } }
     val onSelect = remember { { node: AslFileTreeNode -> latestOnSelectFile(node.id, node.name) } }
@@ -403,44 +298,33 @@ private fun EditorFilesToolPanel(
     val onCreate = remember { { kind: EditorFileCreateKind -> latestOnCreate(kind, null) } }
 
     var fileTreeSearchOpen by remember { mutableStateOf(false) }
+    val onToggleSearch = { fileTreeSearchOpen = !fileTreeSearchOpen }
     val toolWindowWidth = rememberAslToolWindowWidth()
     AslToolWindowPanel(
         title = stringResource(R.string.editor_project),
         width = toolWindowWidth,
-        onClose = onDismiss,
+        onClose = callbacks.onDismiss,
         scrollable = !fileTreeSearchOpen,
-        actions = {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                AslIconButton(
-                    icon = "search",
-                    contentDescription = stringResource(R.string.editor_search_project),
-                    onClick = { fileTreeSearchOpen = !fileTreeSearchOpen },
-                    active = fileTreeSearchOpen,
-                    size = 32.dp,
-                    iconSize = 16.dp,
-                )
-                FileTreeCreateMenu(onCreate = onCreate)
-            }
-        },
+        actions = { EditorFilesToolPanelActions(fileTreeSearchOpen, onToggleSearch, onCreate) },
     ) {
         if (fileTreeSearchOpen) {
             FileTreeSearchPanel(
-                fileTree = fileTree,
-                onOpenFile = onSelectFile,
-                onRevealFolder = onRevealFileTreeNode,
+                fileTree = state.fileTree,
+                onOpenFile = callbacks.onSelectFile,
+                onRevealFolder = callbacks.onRevealFileTreeNode,
                 onClose = { fileTreeSearchOpen = false },
             )
         } else {
-            AslStateCrossfade(targetState = isLoadingFileTree, label = "fileTreeLoading") { loading ->
+            AslStateCrossfade(targetState = state.isLoadingFileTree, label = "fileTreeLoading") { loading ->
                 if (loading) {
                     AslSkeleton(variant = AslSkeletonVariant.List, rows = 5)
                 } else {
                     AslFileTree(
                         items = treeItems,
-                        expandedIds = expandedFolderIds,
-                        selectedId = selectedFileId,
+                        expandedIds = state.expandedFolderIds,
+                        selectedId = state.selectedFileId,
                         actionsEnabled = true,
-                        canPaste = canPasteFileTreeEntry,
+                        canPaste = state.canPasteFileTreeEntry,
                         onFocus = onFocus,
                         onToggle = onToggle,
                         onSelect = onSelect,
@@ -449,6 +333,25 @@ private fun EditorFilesToolPanel(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EditorFilesToolPanelActions(
+    searchOpen: Boolean,
+    onToggleSearch: () -> Unit,
+    onCreate: (EditorFileCreateKind) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        AslIconButton(
+            icon = "search",
+            contentDescription = stringResource(R.string.editor_search_project),
+            onClick = onToggleSearch,
+            active = searchOpen,
+            size = 32.dp,
+            iconSize = 16.dp,
+        )
+        FileTreeCreateMenu(onCreate = onCreate)
     }
 }
 
