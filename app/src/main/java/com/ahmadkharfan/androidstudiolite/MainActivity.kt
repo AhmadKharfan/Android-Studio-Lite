@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite
 
+import com.ahmadkharfan.androidstudiolite.feature.projects.navigation.ProjectsRoutes
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.navigation.OnboardingRoutes
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -56,7 +58,7 @@ class MainActivity : ComponentActivity() {
             val routing = withContext(Dispatchers.IO) {
                 val onboardingComplete = onboardingRepository.observeState().first().onboardingComplete
                 if (!onboardingComplete) {
-                    return@withContext Routes.ONBOARDING_WELCOME to null
+                    return@withContext OnboardingRoutes.WELCOME to null
                 }
 
                 var projectId = openProjectId
@@ -68,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         if (last != null) projectId = last.id
                     }
                 }
-                Routes.HUB to projectId
+                ProjectsRoutes.HUB to projectId
             }
             openProjectId = routing.second
             startDestination = routing.first
