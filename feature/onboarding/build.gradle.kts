@@ -1,9 +1,7 @@
-plugins { id("asl.android.library.compose") }
+plugins { id("asl.android.feature") }
 android { namespace = "com.ahmadkharfan.androidstudiolite.feature.onboarding" }
 dependencies {
-    implementation(platform(libs.koin.bom))
     implementation(platform(libs.androidx.compose.bom))
-    implementation(projects.domain)
     implementation(projects.core.common)
     implementation(projects.designsystem)
     implementation(libs.koin.android)

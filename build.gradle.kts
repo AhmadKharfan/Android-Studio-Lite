@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.detekt) apply false
+    id("asl.module.boundaries")
 }
 
 val composeRulesDetekt = libs.detekt.compose.rules

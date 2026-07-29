@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   static-analysis:
-    name: Detekt
+    name: Static analysis
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -34,6 +34,12 @@ jobs:
 
       - name: Run detekt
         run: ./gradlew detekt --no-daemon --stacktrace
+
+      - name: Verify module boundaries
+        run: ./gradlew verifyModuleBoundaries --no-daemon --stacktrace
+
+      - name: Test the convention plugins
+        run: ./gradlew -p build-logic test --no-daemon --stacktrace
 
       - name: Upload detekt reports
         if: failure()

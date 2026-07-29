@@ -58,3 +58,23 @@ private fun org.gradle.api.plugins.ExtensionContainer.configureAndroidDefaults()
         testOptions.unitTests.isReturnDefaultValues = true
     }
 }
+
+/**
+ * Shared setup for `:feature:*` modules.
+ *
+ * Deliberately limited to things every feature needs by definition — the Android/Compose defaults,
+ * the dependency-version BOMs, and the domain contracts. Capabilities stay in each feature's own
+ * build file: not every feature wants navigation, paging or a datastore, and centralising those
+ * would quietly grant them to modules that never asked. `:feature:buildrun`, for instance, contains
+ * no composables at all.
+ */
+class AslAndroidFeatureConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) = with(target) {
+        pluginManager.apply("asl.android.library.compose")
+        val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
+        dependencies {
+            add("implementation", platform(libs.findLibrary("koin-bom").get()))
+            add("implementation", project(":domain"))
+        }
+    }
+}
