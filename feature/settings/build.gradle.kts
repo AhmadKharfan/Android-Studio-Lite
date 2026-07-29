@@ -17,7 +17,6 @@ dependencies {
     implementation(projects.data.git)
     implementation(projects.data.build)
     implementation(projects.data.ai)
-    implementation(projects.feature.projects)
     implementation(projects.feature.git)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

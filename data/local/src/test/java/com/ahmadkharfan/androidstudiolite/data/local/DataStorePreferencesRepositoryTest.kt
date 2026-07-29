@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -36,7 +37,12 @@ class DataStorePreferencesRepositoryTest {
                 PreferenceDataStoreFactory.create(scope = scope) { file }
             return runBlocking { block(DataStorePreferencesRepository(store)) }
         } finally {
+            // Cancelling is not enough: DataStore only releases its exclusive connection to the file
+            // once the scope's job has actually completed. Without joining, the next withRepository
+            // can open a second DataStore on the same file and fail with "There are multiple
+            // DataStores active for the same file" — a race that only shows up on slower machines.
             scope.cancel()
+            runBlocking { scope.coroutineContext.job.join() }
         }
     }
 
