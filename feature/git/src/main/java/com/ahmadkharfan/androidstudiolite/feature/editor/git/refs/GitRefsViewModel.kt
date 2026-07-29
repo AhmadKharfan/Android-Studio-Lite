@@ -15,7 +15,7 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthControll
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import java.io.File
 import java.net.URI
 

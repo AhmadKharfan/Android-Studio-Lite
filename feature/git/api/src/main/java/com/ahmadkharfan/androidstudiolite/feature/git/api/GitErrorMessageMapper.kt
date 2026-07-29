@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.feature.editor.git
+package com.ahmadkharfan.androidstudiolite.feature.git.api
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 

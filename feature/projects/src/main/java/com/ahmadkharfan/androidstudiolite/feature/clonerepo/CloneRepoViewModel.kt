@@ -3,7 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.clonerepo
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
 import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import kotlinx.coroutines.Job
 
 class CloneRepoViewModel(

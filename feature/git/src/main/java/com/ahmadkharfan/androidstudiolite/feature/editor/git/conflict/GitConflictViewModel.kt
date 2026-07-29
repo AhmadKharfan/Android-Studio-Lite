@@ -4,7 +4,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitConflictEntry
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitIntegrationRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import java.io.File
 
 data class GitConflictUiState(

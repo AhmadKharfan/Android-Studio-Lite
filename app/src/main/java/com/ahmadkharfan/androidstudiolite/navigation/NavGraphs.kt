@@ -20,6 +20,7 @@ import com.ahmadkharfan.androidstudiolite.feature.settings.navigation.settingsGr
 import com.ahmadkharfan.androidstudiolite.feature.terminal.navigation.terminalGraph
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorNavigation
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRoute
+import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict.GitConflictRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameRoute
@@ -106,6 +107,11 @@ private fun NavGraphBuilder.editorDestination(navController: NavHostController) 
             ),
             openConflictPath = conflictPath,
             onConflictPathOpened = { backStackEntry.savedStateHandle["git_conflict_path"] = null },
+            // :app owns which terminal fills the editor's bottom panel, so :feature:editor does
+            // not depend on :feature:terminal.
+            terminalContent = { projectRootPath, modifier ->
+                EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
+            },
         )
     }
 }

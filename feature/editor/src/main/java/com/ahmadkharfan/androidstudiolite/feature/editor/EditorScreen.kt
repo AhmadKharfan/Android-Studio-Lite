@@ -78,6 +78,7 @@ private data class EditorScreenCallbacks(
     val interactionListener: EditorInteractionListener,
     val session: EditorSessionCallbacks,
     val gitNavigation: GitNavigationCallbacks,
+    val terminalContent: @Composable (projectRootPath: String, modifier: Modifier) -> Unit,
 )
 
 private data class EditorContentLayout(
@@ -91,6 +92,7 @@ fun EditorRoute(
     navigation: EditorNavigation,
     openConflictPath: String? = null,
     onConflictPathOpened: () -> Unit = {},
+    terminalContent: @Composable (projectRootPath: String, modifier: Modifier) -> Unit = { _, _ -> },
     viewModel: EditorViewModel = koinViewModel { parametersOf(projectId) },
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -129,6 +131,7 @@ fun EditorRoute(
     EditorScreen(
         uiState = uiState,
         callbacks = EditorScreenCallbacks(
+            terminalContent = terminalContent,
             interactionListener = viewModel,
             session = EditorSessionCallbacks(
                 sessionFor = viewModel::sessionFor,
@@ -382,7 +385,11 @@ private fun EditorContentArea(
         )
 
         if (!layout.keyboardOpen || terminalPanelActive) {
-            EditorBottomToolSection(uiState = uiState, interactionListener = callbacks.interactionListener)
+            EditorBottomToolSection(
+                uiState = uiState,
+                interactionListener = callbacks.interactionListener,
+                terminalContent = callbacks.terminalContent,
+            )
         }
         if (!layout.keyboardOpen) {
             EditorFullStatusBar(uiState = uiState, onOpenBranches = callbacks.gitNavigation.openBranches)
@@ -493,6 +500,7 @@ private fun EditorCodeSurface(
 private fun EditorBottomToolSection(
     uiState: EditorUiState,
     interactionListener: EditorInteractionListener,
+    terminalContent: @Composable (projectRootPath: String, modifier: Modifier) -> Unit,
 ) {
     AslBottomToolPanel(
         tabs = uiState.bottomPanelTabs.map { AslBottomPanelTab(it.id, it.label, it.icon, it.count, it.error) },
@@ -507,6 +515,7 @@ private fun EditorBottomToolSection(
             buildConsole = uiState.buildConsole,
             projectRootPath = uiState.projectRootPath,
             onJumpToBuildProblem = { interactionListener.onJumpToBuildProblem(it) },
+            terminalContent = terminalContent,
         )
     }
 }
