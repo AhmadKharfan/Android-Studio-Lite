@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>LongMethod:AslNavHost.kt$@Composable fun AslNavHost( startDestination: String, openProjectId: String? = null, onOpenProjectConsumed: () -&gt; Unit = {}, navController: NavHostController = rememberNavController(), )</ID>
     <ID>MatchingDeclarationName:BlockingErrorScreen.kt$BlockingErrorType</ID>
     <ID>ParameterNaming:AslNavHost.kt$onOpenProjectConsumed</ID>
   </CurrentIssues>
