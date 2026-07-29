@@ -12,7 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallConfirmActivity
 import java.util.Locale
 
 class BuildNotifier(private val context: Context) {

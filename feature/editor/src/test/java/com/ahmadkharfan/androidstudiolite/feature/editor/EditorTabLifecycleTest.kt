@@ -3,7 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import kotlin.time.Duration.Companion.seconds
 import androidx.lifecycle.viewModelScope
 import android.content.ContextWrapper
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
 import com.ahmadkharfan.androidstudiolite.data.remote.InMemoryActiveBuildStore
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent

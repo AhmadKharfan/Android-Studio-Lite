@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local.pty
+package com.ahmadkharfan.androidstudiolite.feature.terminal.pty
 
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import kotlinx.coroutines.Dispatchers

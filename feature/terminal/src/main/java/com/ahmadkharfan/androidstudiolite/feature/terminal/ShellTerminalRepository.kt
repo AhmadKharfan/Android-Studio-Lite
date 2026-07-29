@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.feature.terminal
 
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalEvent
 import com.ahmadkharfan.androidstudiolite.domain.model.TerminalLineKind

@@ -3,4 +3,27 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
+    <application>
+
+        <!-- Transparent trampoline: notification tap / resume → PackageInstaller confirm UI. -->
+        <activity
+            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallConfirmActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <receiver
+            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusReceiver"
+            android:exported="false" />
+
+        <!-- Elevates process priority while a remote build stream is active so backgrounding the
+             IDE is less likely to kill the client mid-build. specialUse: long-running user-initiated
+             build follow that fits no other FGS category. -->
+        <service
+            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+
 </manifest>

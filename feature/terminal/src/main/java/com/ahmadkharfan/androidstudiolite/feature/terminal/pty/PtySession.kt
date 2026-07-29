@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local.pty
+package com.ahmadkharfan.androidstudiolite.feature.terminal.pty
 
 import java.io.File
 import java.io.InputStream

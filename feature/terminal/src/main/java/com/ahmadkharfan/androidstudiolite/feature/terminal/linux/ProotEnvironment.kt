@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.core.linux
+package com.ahmadkharfan.androidstudiolite.feature.terminal.linux
 
 import android.content.Context
 import android.system.Os

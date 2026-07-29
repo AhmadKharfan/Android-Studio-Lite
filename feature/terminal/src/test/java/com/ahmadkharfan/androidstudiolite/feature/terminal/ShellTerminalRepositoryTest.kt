@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.feature.terminal
 
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Duration.Companion.milliseconds

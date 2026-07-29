@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.buildsystem.install
+package com.ahmadkharfan.androidstudiolite.feature.buildrun.install
 
 import kotlin.time.Duration.Companion.milliseconds
 import android.app.PendingIntent

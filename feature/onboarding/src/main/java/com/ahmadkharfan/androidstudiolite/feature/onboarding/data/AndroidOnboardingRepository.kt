@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.onboarding
+package com.ahmadkharfan.androidstudiolite.feature.onboarding.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey

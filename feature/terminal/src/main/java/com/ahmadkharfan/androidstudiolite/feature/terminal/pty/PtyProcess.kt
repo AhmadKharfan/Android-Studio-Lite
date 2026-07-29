@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local.pty
+package com.ahmadkharfan.androidstudiolite.feature.terminal.pty
 
 import android.os.ParcelFileDescriptor
 import java.io.File

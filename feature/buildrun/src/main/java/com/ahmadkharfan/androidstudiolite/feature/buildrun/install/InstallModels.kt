@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.buildsystem.install
+package com.ahmadkharfan.androidstudiolite.feature.buildrun.install
 
 import android.content.pm.PackageInstaller
 

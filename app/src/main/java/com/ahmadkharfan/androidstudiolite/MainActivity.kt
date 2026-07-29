@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.PendingInstallConfirmation
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.PendingInstallConfirmation
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.domain.model.AppPreferences
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode

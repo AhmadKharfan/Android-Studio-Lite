@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local.pty
+package com.ahmadkharfan.androidstudiolite.feature.terminal.pty
 
 internal object NativePty {
 

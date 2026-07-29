@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.core.linux
+package com.ahmadkharfan.androidstudiolite.feature.terminal.linux
 
 object LinuxBootstrapPackages {
     val packages: List<String> = listOf(
