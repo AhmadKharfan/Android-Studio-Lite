@@ -56,6 +56,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegme
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
@@ -265,10 +267,11 @@ private fun DiffPaneColumn(
 
 @Composable
 private fun DiffPaneCell(line: GitDiffLine?, isLeft: Boolean) {
+    val colors = AslTheme.colors
     val kind = line?.kind
     val bg = when (kind) {
-        GitDiffKind.REMOVED -> MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
-        GitDiffKind.ADDED, GitDiffKind.MODIFIED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        GitDiffKind.REMOVED -> colors.error.copy(alpha = 0.10f)
+        GitDiffKind.ADDED, GitDiffKind.MODIFIED -> colors.accentPrimary.copy(alpha = 0.10f)
         else -> Color.Transparent
     }
     val number = if (isLeft) line?.oldNo else line?.newNo
@@ -280,16 +283,16 @@ private fun DiffPaneCell(line: GitDiffLine?, isLeft: Boolean) {
             number?.toString().orEmpty(),
             modifier = Modifier.width(42.dp).padding(end = 6.dp),
             textAlign = androidx.compose.ui.text.style.TextAlign.End,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.textSecondary,
             fontFamily = FontFamily.Monospace,
-            style = MaterialTheme.typography.labelSmall,
+            style = AslTypography.labelSmall,
         )
         Text(
             line?.text.orEmpty(),
             modifier = Modifier.padding(end = 12.dp),
             fontFamily = FontFamily.Monospace,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = AslTypography.bodySmall,
+            color = colors.textPrimary,
             softWrap = false,
             maxLines = 1,
             overflow = TextOverflow.Clip,
@@ -299,6 +302,7 @@ private fun DiffPaneCell(line: GitDiffLine?, isLeft: Boolean) {
 
 @Composable
 private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
+    val colors = AslTheme.colors
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -306,14 +310,14 @@ private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
     ) {
         Text(
             pluralStringResource(R.plurals.git_diff_hunks, count, count),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AslTypography.labelSmall,
+            color = colors.textSecondary,
             modifier = Modifier.weight(1f),
         )
         AslIconButton(icon = "chevron-up", contentDescription = stringResource(R.string.git_diff_previous_hunk), onClick = onPrevious, size = 32.dp, iconSize = 16.dp)
         AslIconButton(icon = "chevron-down", contentDescription = stringResource(R.string.git_diff_next_hunk), onClick = onNext, size = 32.dp, iconSize = 16.dp)
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(color = colors.borderDefault)
 }
 
 @Composable

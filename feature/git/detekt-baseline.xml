@@ -8,13 +8,8 @@
     <ID>CyclomaticComplexMethod:GitHistoryScreen.kt$@Composable private fun GitHistoryScreen( uiState: GitHistoryUiState, interactionListener: GitHistoryInteractionListener, onBack: () -&gt; Unit, onOpenDiff: (String, String) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:GitPanelScreen.kt$@Composable private fun GitChangesHeader( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, )</ID>
     <ID>CyclomaticComplexMethod:GitPanelScreen.kt$@Composable private fun GitPanelScreen( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
-    <ID>ForbiddenImport:GitAuthPrompt.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:GitBlameScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:GitConflictScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:GitDiffScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:GitHistoryScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:GitPanelScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:GitRefsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>LambdaParameterInRestartableEffect:GitHistoryScreen.kt$onLoadNext</ID>
     <ID>LongMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
     <ID>LongMethod:GitDiffScreen.kt$@Composable private fun GitDiffScreen( uiState: GitDiffUiState, interactionListener: GitDiffInteractionListener, onBack: () -&gt; Unit, )</ID>

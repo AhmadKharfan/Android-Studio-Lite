@@ -51,6 +51,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOver
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
@@ -210,7 +212,7 @@ private fun HistoryList(
         if (state.shallow && state.nextCursor == null) {
             item {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.git_history_shallow), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.git_history_shallow), style = AslTypography.bodyMedium)
                     AslButton(stringResource(R.string.git_history_deepen), onDeepen, variant = AslButtonVariant.Secondary)
                 }
             }
@@ -220,6 +222,7 @@ private fun HistoryList(
 
 @Composable
 private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: () -> Unit, onReset: () -> Unit) {
+    val colors = AslTheme.colors
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         if (graph != null) {
             GitGraphGutter(graph)
@@ -239,18 +242,18 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
             Text(
                 commit.message,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall,
+                style = AslTypography.titleSmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(commit.shortId, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium)
+            Text(commit.shortId, fontFamily = FontFamily.Monospace, style = AslTypography.labelMedium)
             HistoryResetMenu(onReset = onReset)
         }
         Text(
             "${commit.authorName} · ${formatRelativeTime(LocalContext.current, commit.authorTimeMillis)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AslTypography.bodySmall,
+            color = colors.textSecondary,
         )
         if (commit.refs.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -263,8 +266,8 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
                 }
             }
         }
-        if (commit.isShallowBoundary) Text(stringResource(R.string.git_history_shallow_boundary), style = MaterialTheme.typography.labelSmall)
-        commit.path?.let { Text(it.middleEllipsis(), style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace) }
+        if (commit.isShallowBoundary) Text(stringResource(R.string.git_history_shallow_boundary), style = AslTypography.labelSmall)
+        commit.path?.let { Text(it.middleEllipsis(), style = AslTypography.labelSmall, fontFamily = FontFamily.Monospace) }
         }
     }
     HorizontalDivider()
@@ -291,11 +294,12 @@ private val GitGraphRowHeight = 72.dp
 
 @Composable
 private fun GitGraphGutter(row: GitGraphRow) {
+    val colors = AslTheme.colors
     val palette = listOf(
-        MaterialTheme.colorScheme.primary,
+        colors.accentPrimary,
         MaterialTheme.colorScheme.tertiary,
         MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.error,
+        colors.error,
         Color(0xFF43A047),
         Color(0xFFFF8F00),
     )
@@ -347,15 +351,15 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
         item {
             val initialCommit = stringResource(R.string.git_history_initial_commit)
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(details.fullMessage, style = MaterialTheme.typography.titleMedium)
-                Text("${details.author.name} <${details.author.email}>", style = MaterialTheme.typography.bodyMedium)
-                Text(details.id, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                Text(details.fullMessage, style = AslTypography.titleMedium)
+                Text("${details.author.name} <${details.author.email}>", style = AslTypography.bodyMedium)
+                Text(details.id, fontFamily = FontFamily.Monospace, style = AslTypography.bodySmall)
                 Text(
                     stringResource(
                         R.string.git_history_parents,
                         details.parents.joinToString().ifEmpty { initialCommit },
                     ),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                 )
             }
             HorizontalDivider()

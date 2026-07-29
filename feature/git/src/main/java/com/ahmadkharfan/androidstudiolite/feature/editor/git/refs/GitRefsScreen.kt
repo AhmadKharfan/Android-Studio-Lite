@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +43,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslCheck
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
@@ -75,6 +75,7 @@ private fun GitRefsScreen(
     interactionListener: GitRefsInteractionListener,
     onBack: () -> Unit,
 ) {
+    val colors = AslTheme.colors
     val dialogState = remember { GitRefsDialogState() }
     val title = when (uiState.mode) {
         GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_branches)
@@ -115,8 +116,8 @@ private fun GitRefsScreen(
                 Text(
                     uiState.error,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.error,
+                    style = AslTypography.bodySmall,
                 )
             }
             if (uiState.loading) AslLinearProgress(label = stringResource(R.string.git_refs_updating, title), modifier = Modifier.padding(12.dp))
@@ -289,7 +290,7 @@ private fun BranchList(
                 state.ahead?.takeIf { it > 0 }?.let { AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success) }
                 Text(
                     text = state.syncMessage.orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AslTypography.labelSmall,
                     color = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -393,7 +394,7 @@ private fun BranchList(
 private fun SectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = AslTypography.labelSmall,
         color = AslTheme.colors.textTertiary,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
     )
@@ -450,8 +451,8 @@ private fun StashList(
 @Composable
 private fun RefRow(name: String, detail: String?, actions: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Text(name, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.titleSmall)
-        detail?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall) }
+        Text(name, fontFamily = FontFamily.Monospace, style = AslTypography.titleSmall)
+        detail?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = AslTypography.bodySmall) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { actions() }
     }
     HorizontalDivider()
