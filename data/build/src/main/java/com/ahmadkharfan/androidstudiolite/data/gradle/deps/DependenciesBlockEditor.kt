@@ -38,7 +38,7 @@ object DependenciesBlockEditor {
             sb.append("\n\ndependencies {\n    ").append(line).append("\n}\n")
             Result.Changed(sb.toString())
         } else {
-            val insertOffset = insertionOffset(tokens, body, text)
+            val insertOffset = insertionOffset(tokens, body)
             val indent = detectIndent(text, tokens, body)
             val edited = StringBuilder(text)
                 .insert(insertOffset, "\n$indent$line")
@@ -74,7 +74,6 @@ object DependenciesBlockEditor {
     private fun insertionOffset(
         tokens: List<com.ahmadkharfan.androidstudiolite.data.gradle.parse.GToken>,
         body: IntRange,
-        text: String,
     ): Int {
 
         for (i in body.last downTo body.first) {

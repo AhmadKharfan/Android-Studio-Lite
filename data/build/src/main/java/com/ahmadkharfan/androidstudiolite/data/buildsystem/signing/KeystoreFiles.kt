@@ -38,7 +38,7 @@ internal object KeystoreFiles {
         try {
             params.storeFile.outputStream().use { keyStore.store(it, params.storePassword.toCharArray()) }
         } catch (e: java.io.IOException) {
-            throw KeystoreException(KeystoreError.Io(e.message ?: "Could not write keystore"))
+            throw KeystoreException(KeystoreError.Io(e.message ?: "Could not write keystore"), e)
         }
         return SigningConfig(
             storeFile = params.storeFile,
@@ -71,7 +71,7 @@ internal object KeystoreFiles {
                 throw KeystoreException(KeystoreError.InvalidParams("Alias '$keyAlias' is not a private-key entry"))
             }
         } catch (e: UnrecoverableKeyException) {
-            throw KeystoreException(KeystoreError.WrongKeyPassword)
+            throw KeystoreException(KeystoreError.WrongKeyPassword, e)
         }
         return SigningConfig(storeFile, storePassword, keyAlias, keyPassword, isDebug = false)
     }
