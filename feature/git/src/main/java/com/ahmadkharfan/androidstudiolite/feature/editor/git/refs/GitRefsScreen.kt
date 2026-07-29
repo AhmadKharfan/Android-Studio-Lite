@@ -75,16 +75,7 @@ private fun GitRefsScreen(
     interactionListener: GitRefsInteractionListener,
     onBack: () -> Unit,
 ) {
-    var createOpen by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-    var includeUntracked by remember { mutableStateOf(false) }
-    var rename by remember { mutableStateOf<GitBranch?>(null) }
-    var deleteBranch by remember { mutableStateOf<GitBranch?>(null) }
-    var mergeBranch by remember { mutableStateOf<GitBranch?>(null) }
-    var deleteTag by remember { mutableStateOf<GitTag?>(null) }
-    var dropStash by remember { mutableStateOf<GitStash?>(null) }
-    var popStash by remember { mutableStateOf<GitStash?>(null) }
+    val dialogState = remember { GitRefsDialogState() }
     val title = when (uiState.mode) {
         GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_branches)
         GitRefsMode.TAGS -> stringResource(R.string.git_refs_tags)
@@ -111,7 +102,7 @@ private fun GitRefsScreen(
                             GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_new_branch)
                             GitRefsMode.TAGS -> stringResource(R.string.git_refs_new)
                         },
-                        onClick = { name = ""; message = ""; createOpen = true },
+                        onClick = { dialogState.name = ""; dialogState.message = ""; dialogState.createOpen = true },
                         variant = AslButtonVariant.Tertiary,
                         disabled = uiState.loading,
                     )
@@ -133,21 +124,32 @@ private fun GitRefsScreen(
                 GitRefsMode.BRANCHES -> BranchList(
                     state = uiState,
                     interactionListener = interactionListener,
-                    onRename = { branch -> name = branch.name; rename = branch },
-                    onDelete = { deleteBranch = it },
-                    onMerge = { mergeBranch = it },
+                    onRename = { branch -> dialogState.name = branch.name; dialogState.rename = branch },
+                    onDelete = { dialogState.deleteBranch = it },
+                    onMerge = { dialogState.mergeBranch = it },
                 )
-                GitRefsMode.TAGS -> TagList(uiState.tags, interactionListener) { deleteTag = it }
+                GitRefsMode.TAGS -> TagList(uiState.tags, interactionListener) { dialogState.deleteTag = it }
                 GitRefsMode.STASHES -> StashList(
                     uiState.stashes,
                     interactionListener,
-                    onPop = { popStash = it },
-                ) { dropStash = it }
+                    onPop = { dialogState.popStash = it },
+                ) { dialogState.dropStash = it }
             }
         }
     }
 
-    if (createOpen) {
+    GitRefsBranchDialogs(dialogState, uiState, interactionListener)
+    GitHubAuthDialog(uiState.authPrompt, interactionListener)
+    GitRefsRefDialogs(dialogState, interactionListener)
+}
+
+@Composable
+private fun GitRefsCreateDialog(
+    dialogState: GitRefsDialogState,
+    uiState: GitRefsUiState,
+    interactionListener: GitRefsInteractionListener,
+) {
+    if (dialogState.createOpen) {
         AslDialog(
             title = when (uiState.mode) {
                 GitRefsMode.BRANCHES -> stringResource(R.string.git_refs_create_branch)
@@ -157,54 +159,63 @@ private fun GitRefsScreen(
             variant = AslDialogVariant.Input,
             confirmLabel = stringResource(CommonR.string.action_create),
             cancelLabel = stringResource(CommonR.string.action_cancel),
-            onDismiss = { createOpen = false },
+            onDismiss = { dialogState.createOpen = false },
             onConfirm = {
                 when (uiState.mode) {
-                    GitRefsMode.BRANCHES -> interactionListener.createBranch(name)
-                    GitRefsMode.TAGS -> interactionListener.createTag(name, message)
-                    GitRefsMode.STASHES -> interactionListener.createStash(message, includeUntracked)
+                    GitRefsMode.BRANCHES -> interactionListener.createBranch(dialogState.name)
+                    GitRefsMode.TAGS -> interactionListener.createTag(dialogState.name, dialogState.message)
+                    GitRefsMode.STASHES -> interactionListener.createStash(dialogState.message, dialogState.includeUntracked)
                 }
-                createOpen = false
+                dialogState.createOpen = false
             },
             inputContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (uiState.mode != GitRefsMode.STASHES) AslTextField(name, { name = it }, label = stringResource(R.string.git_refs_name))
-                    if (uiState.mode != GitRefsMode.BRANCHES) AslTextField(message, { message = it }, label = stringResource(R.string.git_refs_message))
+                    if (uiState.mode != GitRefsMode.STASHES) AslTextField(dialogState.name, { dialogState.name = it }, label = stringResource(R.string.git_refs_name))
+                    if (uiState.mode != GitRefsMode.BRANCHES) AslTextField(dialogState.message, { dialogState.message = it }, label = stringResource(R.string.git_refs_message))
                     if (uiState.mode == GitRefsMode.STASHES) {
-                        AslCheckbox(includeUntracked, { includeUntracked = it }, label = stringResource(R.string.git_refs_include_untracked))
+                        AslCheckbox(dialogState.includeUntracked, { dialogState.includeUntracked = it }, label = stringResource(R.string.git_refs_include_untracked))
                     }
                 }
             },
         )
     }
-    rename?.let { branch ->
+}
+
+@Composable
+private fun GitRefsBranchDialogs(
+    dialogState: GitRefsDialogState,
+    uiState: GitRefsUiState,
+    interactionListener: GitRefsInteractionListener,
+) {
+    GitRefsCreateDialog(dialogState, uiState, interactionListener)
+    dialogState.rename?.let { branch ->
         AslDialog(
             title = stringResource(R.string.git_refs_rename_title, branch.name),
             variant = AslDialogVariant.Input,
             confirmLabel = stringResource(CommonR.string.action_rename),
             cancelLabel = stringResource(CommonR.string.action_cancel),
-            onDismiss = { rename = null },
-            onConfirm = { interactionListener.renameBranch(branch.name, name); rename = null },
-            inputContent = { AslTextField(name, { name = it }, label = stringResource(R.string.git_refs_new_name)) },
+            onDismiss = { dialogState.rename = null },
+            onConfirm = { interactionListener.renameBranch(branch.name, dialogState.name); dialogState.rename = null },
+            inputContent = { AslTextField(dialogState.name, { dialogState.name = it }, label = stringResource(R.string.git_refs_new_name)) },
         )
     }
-    deleteBranch?.let { branch ->
+    dialogState.deleteBranch?.let { branch ->
         ConfirmDelete(
             title = stringResource(R.string.git_refs_delete_branch_title, branch.name),
             body = stringResource(R.string.git_refs_delete_branch_body),
-            confirm = { interactionListener.deleteBranch(branch.name); deleteBranch = null },
-            dismiss = { deleteBranch = null },
+            confirm = { interactionListener.deleteBranch(branch.name); dialogState.deleteBranch = null },
+            dismiss = { dialogState.deleteBranch = null },
         )
     }
-    mergeBranch?.let { branch ->
+    dialogState.mergeBranch?.let { branch ->
         AslDialog(
             title = stringResource(R.string.git_refs_merge_title, branch.name),
             body = stringResource(R.string.git_refs_merge_body, branch.name),
             variant = AslDialogVariant.Confirm,
             confirmLabel = stringResource(R.string.git_refs_merge),
             cancelLabel = stringResource(CommonR.string.action_cancel),
-            onDismiss = { mergeBranch = null },
-            onConfirm = { interactionListener.merge(branch.name); mergeBranch = null },
+            onDismiss = { dialogState.mergeBranch = null },
+            onConfirm = { interactionListener.merge(branch.name); dialogState.mergeBranch = null },
         )
     }
     uiState.forceDeleteCandidate?.let { branch ->
@@ -215,32 +226,38 @@ private fun GitRefsScreen(
             dismiss = interactionListener::dismissForceDelete,
         )
     }
-    GitHubAuthDialog(uiState.authPrompt, interactionListener)
-    deleteTag?.let { tag ->
+}
+
+@Composable
+private fun GitRefsRefDialogs(
+    dialogState: GitRefsDialogState,
+    interactionListener: GitRefsInteractionListener,
+) {
+    dialogState.deleteTag?.let { tag ->
         ConfirmDelete(
             title = stringResource(R.string.git_refs_delete_tag_title, tag.name),
             body = stringResource(R.string.git_refs_delete_tag_body),
-            confirm = { interactionListener.deleteTag(tag.name); deleteTag = null },
-            dismiss = { deleteTag = null },
+            confirm = { interactionListener.deleteTag(tag.name); dialogState.deleteTag = null },
+            dismiss = { dialogState.deleteTag = null },
         )
     }
-    popStash?.let { stash ->
+    dialogState.popStash?.let { stash ->
         AslDialog(
             title = stringResource(R.string.git_refs_pop_stash_title, stash.index),
             body = stringResource(R.string.git_refs_pop_stash_body),
             variant = AslDialogVariant.Confirm,
             confirmLabel = stringResource(R.string.git_refs_pop),
             cancelLabel = stringResource(CommonR.string.action_cancel),
-            onDismiss = { popStash = null },
-            onConfirm = { interactionListener.popStash(stash.index); popStash = null },
+            onDismiss = { dialogState.popStash = null },
+            onConfirm = { interactionListener.popStash(stash.index); dialogState.popStash = null },
         )
     }
-    dropStash?.let { stash ->
+    dialogState.dropStash?.let { stash ->
         ConfirmDelete(
             title = stringResource(R.string.git_refs_drop_stash_title, stash.index),
             body = stringResource(R.string.git_refs_drop_stash_body),
-            confirm = { interactionListener.dropStash(stash.index); dropStash = null },
-            dismiss = { dropStash = null },
+            confirm = { interactionListener.dropStash(stash.index); dialogState.dropStash = null },
+            dismiss = { dialogState.dropStash = null },
         )
     }
 }
