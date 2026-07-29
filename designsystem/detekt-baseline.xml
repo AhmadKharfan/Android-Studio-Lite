@@ -2,8 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComposableParamOrder:Appear.kt$AslStaggeredAppear</ID>
-    <ID>ComposableParamOrder:StatusChip.kt$AslStatusChip</ID>
     <ID>CyclomaticComplexMethod:ApiKeyCard.kt$@Composable fun AslApiKeyCard( provider: String, value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, providerIcon: String = "sparkles", description: String? = null, placeholder: String = "sk-…", status: AslApiKeyStatus = AslApiKeyStatus.None, errorMessage: String? = null, onTest: (String) -&gt; Unit = {}, testing: Boolean = false, onCollapse: (() -&gt; Unit)? = null, )</ID>
     <ID>CyclomaticComplexMethod:AslMarkdownText.kt$@Composable fun AslMarkdownText( markdown: String, modifier: Modifier = Modifier, onCopyCode: (String) -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:BottomToolPanel.kt$@Composable fun AslBottomToolPanel( tabs: List&lt;AslBottomPanelTab&gt;, activeId: String?, modifier: Modifier = Modifier, contentHeight: Dp = 0.dp, defaultContentHeight: Dp = 260.dp, onContentHeightChange: (Dp) -&gt; Unit = {}, onSelect: (String) -&gt; Unit = {}, onToggle: () -&gt; Unit = {}, content: @Composable () -&gt; Unit = {}, )</ID>

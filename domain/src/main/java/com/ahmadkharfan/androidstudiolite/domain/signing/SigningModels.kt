@@ -45,4 +45,7 @@ sealed interface KeystoreError {
     data class Io(val message: String) : KeystoreError
 }
 
-class KeystoreException(val error: KeystoreError) : Exception(error.toString())
+class KeystoreException(
+    val error: KeystoreError,
+    cause: Throwable? = null,
+) : Exception(error.toString(), cause)

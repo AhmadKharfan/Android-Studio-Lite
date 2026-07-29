@@ -5,12 +5,6 @@
     <ID>ComplexCondition:GradleScriptScanner.kt$GToken$s.length &gt;= 2 &amp;&amp; (s[0] == '"' || s[0] == '\'') &amp;&amp; s.last() == s[0]</ID>
     <ID>ComplexCondition:GradleScriptScanner.kt$GradleScriptScanner.GradleTokenizer$end &lt; text.length &amp;&amp; (text[end].isLetterOrDigit() || text[end] == '.' || text[end] == '_')</ID>
     <ID>ComplexCondition:VersionCatalogParser.kt$VersionCatalogParser$t.length &gt;= 2 &amp;&amp; (t.first() == '"' || t.first() == '\'') &amp;&amp; t.last() == t.first()</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.AccessTokenResponse$val access_token: String? = null</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.AccessTokenResponse$val error_description: String? = null</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.DeviceCodeResponse$val device_code: String? = null</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.DeviceCodeResponse$val expires_in: Int? = null</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.DeviceCodeResponse$val user_code: String? = null</ID>
-    <ID>ConstructorParameterNaming:GitHubDeviceFlowAuthenticator.kt$GitHubDeviceFlowAuthenticator.DeviceCodeResponse$val verification_uri: String? = null</ID>
     <ID>CyclomaticComplexMethod:BuildGradleParser.kt$BuildGradleParser$private fun parseAndroid(tokens: List&lt;GToken&gt;): ParsedAndroidBlock?</ID>
     <ID>CyclomaticComplexMethod:GradleProjectReader.kt$GradleProjectReader$private fun moduleType(script: ParsedBuildScript, catalog: VersionCatalog?): ModuleType</ID>
     <ID>CyclomaticComplexMethod:MiniJson.kt$MiniJson.Parser$private fun parseString(): String</ID>
@@ -23,8 +17,6 @@
     <ID>LoopWithTooManyJumpStatements:MiniJson.kt$MiniJson.Parser$while</ID>
     <ID>LoopWithTooManyJumpStatements:SelfSignedCertGenerator.kt$SelfSignedCertGenerator$while</ID>
     <ID>LoopWithTooManyJumpStatements:VersionCatalogParser.kt$VersionCatalogParser$for</ID>
-    <ID>SwallowedException:KeystoreFiles.kt$KeystoreFiles$e: UnrecoverableKeyException</ID>
-    <ID>SwallowedException:KeystoreFiles.kt$KeystoreFiles$e: java.io.IOException</ID>
     <ID>ThrowsCount:ArtifactDownloader.kt$ArtifactDownloader$private fun validateArtifact(file: File, expectation: ArtifactExpectation)</ID>
     <ID>ThrowsCount:KeystoreFiles.kt$KeystoreFiles$fun import(storeFile: File, storePassword: String, keyAlias: String, keyPassword: String): SigningConfig</ID>
     <ID>ThrowsCount:RemoteClient.kt$RemoteClient$private suspend fun executeWithRetry(request: Request, allowUnauthorizedThrow: Boolean): ResponseSnapshot</ID>
@@ -33,11 +25,5 @@
     <ID>TooGenericExceptionCaught:PlayIntegrityTokenProvider.kt$PlayIntegrityTokenProvider$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:RemoteBuildSystem.kt$RemoteBuildSystem$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:RemoteClient.kt$RemoteClient$t: Throwable</ID>
-    <ID>UnusedParameter:DependenciesBlockEditor.kt$DependenciesBlockEditor$text: String</ID>
-    <ID>UseCheckOrError:RemoteBuildSystem.kt$RemoteBuildSystem$throw IllegalStateException("Configure a release keystore in Settings before building a release artifact.")</ID>
-    <ID>UseCheckOrError:RemoteBuildSystem.kt$RemoteBuildSystem$throw IllegalStateException("The configured release keystore is missing or unreadable.")</ID>
-    <ID>UseRequire:MiniJson.kt$MiniJson.Parser$throw IllegalArgumentException("Expected '$c' at $i")</ID>
-    <ID>UseRequire:MiniJson.kt$MiniJson.Parser$throw IllegalArgumentException("Invalid literal at $i")</ID>
-    <ID>UseRequire:MiniJson.kt$MiniJson.Parser$throw IllegalArgumentException("Unexpected end of JSON")</ID>
   </CurrentIssues>
 </SmellBaseline>

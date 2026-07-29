@@ -25,8 +25,6 @@
     <ID>ForbiddenImport:AssetsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:FileTreeSearchPanel.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:VariantsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>LambdaParameterInRestartableEffect:AslEditableCodeEditor.kt$onVolumeKey</ID>
-    <ID>LambdaParameterInRestartableEffect:EditorScreen.kt$onConflictPathOpened</ID>
     <ID>LongMethod:AiChatScreen.kt$@Composable private fun AiChatScreen( uiState: AiChatUiState, interactionListener: AiChatInteractionListener, onClose: () -&gt; Unit, onOpenAiAgentSettings: () -&gt; Unit, )</ID>
     <ID>LongMethod:AiChatScreen.kt$@Composable private fun ChatControlsSheet( uiState: AiChatUiState, interactionListener: AiChatInteractionListener, )</ID>
     <ID>LongMethod:AslEditableCodeEditor.kt$@Composable fun AslEditableCodeEditor( session: EditorSession, fontSizeSp: Int, tabSize: Int, onEdited: () -&gt; Unit, onCaretMoved: (line: Int, column: Int) -&gt; Unit, modifier: Modifier = Modifier, colorSchemeId: String = "darcula", fontFamilyId: String = "jetbrains", gitLineStatus: Map&lt;Int, AslLineGit&gt; = emptyMap(), breakpoints: Set&lt;Int&gt; = emptySet(), findQuery: String = "", findCurrentMatch: Int = 0, revealNonce: Int = 0, revealOffset: Int = 0, enableVolumeKeys: Boolean = true, projectIndex: ProjectSymbolIndex = ProjectSymbolIndex.EMPTY, )</ID>
