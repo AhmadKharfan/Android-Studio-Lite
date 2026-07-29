@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.ai.llm
 
 import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmException
-import com.ahmadkharfan.androidstudiolite.data.ai.AiProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 
 internal class LlmProviderRegistry(http: LlmHttpClient) {
 

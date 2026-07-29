@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.data.ai
 
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 import com.ahmadkharfan.androidstudiolite.domain.model.AiAgentSettings
 import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderConfig
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus

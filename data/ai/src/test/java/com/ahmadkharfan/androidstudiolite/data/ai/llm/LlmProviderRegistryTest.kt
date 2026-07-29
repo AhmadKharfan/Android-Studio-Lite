@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.data.ai.llm
 
 import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmException
 import com.ahmadkharfan.androidstudiolite.data.ai.AiLlmGateway
-import com.ahmadkharfan.androidstudiolite.data.ai.AiProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 import com.ahmadkharfan.androidstudiolite.data.ai.LlmChatTurn
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatRole
 import okhttp3.Request

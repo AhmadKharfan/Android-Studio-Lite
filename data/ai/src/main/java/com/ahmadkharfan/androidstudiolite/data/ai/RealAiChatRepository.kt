@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.data.ai
 
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentProtocol
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AgentToolExecutor
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AiAgentLog

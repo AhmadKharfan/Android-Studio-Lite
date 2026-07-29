@@ -13,7 +13,6 @@ dependencies {
     implementation(projects.domain)
     implementation(projects.core.common)
     implementation(projects.designsystem)
-    implementation(projects.data.ai)
     implementation(projects.feature.git)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

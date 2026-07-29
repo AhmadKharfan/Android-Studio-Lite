@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.ai
+package com.ahmadkharfan.androidstudiolite.domain.model
 
 data class AiProviderDefinition(
     val id: String,
