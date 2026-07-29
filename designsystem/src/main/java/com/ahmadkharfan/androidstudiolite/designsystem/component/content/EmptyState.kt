@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
 @Composable
@@ -77,6 +79,24 @@ fun AslEmptyState(
                     AslButton(label = secondaryLabel, variant = AslButtonVariant.Secondary, onClick = onSecondary)
                 }
             }
+        }
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslEmptyStatePreview() {
+    AslPreview {
+        Column {
+            AslEmptyState(
+                title = "No recent projects",
+                subtitle = "Projects you open will appear here.",
+            )
+            AslEmptyState(
+                title = "No repositories found",
+                subtitle = "Clone a repository to start working.",
+                actionLabel = "Clone repository",
+            )
         }
     }
 }

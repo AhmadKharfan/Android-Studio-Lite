@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.designsystem.component.inputs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -143,6 +146,35 @@ fun AslTextField(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (error != null) colors.error else colors.textTertiary,
+            )
+        }
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslTextFieldPreview() {
+    AslPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            AslTextField(
+                value = "AndroidStudioLite",
+                onValueChange = {},
+                label = "Project name",
+            )
+            AslTextField(
+                value = "com.example.app",
+                onValueChange = {},
+                label = "Package name",
+                helper = "Use a unique reverse-domain identifier.",
+            )
+            AslTextField(
+                value = "invalid package",
+                onValueChange = {},
+                label = "Package name",
+                error = "Package names cannot contain spaces.",
             )
         }
     }

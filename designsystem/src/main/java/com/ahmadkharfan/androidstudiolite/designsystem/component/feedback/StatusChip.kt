@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.designsystem.component.feedback
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -68,5 +71,22 @@ fun AslStatusChip(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslStatusChipPreview() {
+    AslPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AslStatusChip(status = AslStatus.Building)
+            AslStatusChip(status = AslStatus.Syncing)
+            AslStatusChip(status = AslStatus.Indexing)
+            AslStatusChip(status = AslStatus.Success)
+            AslStatusChip(status = AslStatus.Failed)
+        }
     }
 }

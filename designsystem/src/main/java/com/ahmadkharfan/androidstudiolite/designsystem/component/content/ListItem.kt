@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -112,6 +114,35 @@ fun AslListItem(
         }
         if (divider) {
             HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        }
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslListItemPreview() {
+    AslPreview {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            AslListItem(
+                title = "MainActivity.kt",
+                subtitle = "Modified 2 minutes ago",
+                icon = "file-code",
+                onClick = {},
+            )
+            AslListItem(
+                title = "Theme.kt",
+                subtitle = "Currently open",
+                icon = "file-code",
+                selected = true,
+                onClick = {},
+            )
+            AslListItem(
+                title = "Generated sources",
+                subtitle = "Read-only",
+                icon = "folder-lock",
+                disabled = true,
+                onClick = {},
+            )
         }
     }
 }

@@ -3,10 +3,12 @@ package com.ahmadkharfan.androidstudiolite.designsystem.component.buttons
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ButtonDefaults
@@ -26,6 +28,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -139,4 +143,22 @@ private fun ButtonRow(content: @Composable () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         content = { content() },
     )
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslButtonPreview() {
+    AslPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AslButton(label = "Create project", variant = AslButtonVariant.Primary, onClick = {})
+            AslButton(label = "Open folder", variant = AslButtonVariant.Secondary, onClick = {})
+            AslButton(label = "View details", variant = AslButtonVariant.Tertiary, onClick = {})
+            AslButton(label = "Delete project", variant = AslButtonVariant.Destructive, onClick = {})
+            AslButton(label = "Unavailable", disabled = true, onClick = {})
+            AslButton(label = "Building project", loading = true, onClick = {})
+        }
+    }
 }
