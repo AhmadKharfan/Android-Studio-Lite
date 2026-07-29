@@ -11,7 +11,13 @@ import com.ahmadkharfan.androidstudiolite.feature.acsmissing.AcsMissingRoute
 import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorRoute
 import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorType
 import com.ahmadkharfan.androidstudiolite.feature.crashreport.CrashReportRoute
-import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectRoute
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.navigation.OnboardingRoutes
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.navigation.onboardingGraph
+import com.ahmadkharfan.androidstudiolite.feature.projects.navigation.ProjectsRoutes
+import com.ahmadkharfan.androidstudiolite.feature.projects.navigation.projectsGraph
+import com.ahmadkharfan.androidstudiolite.feature.settings.navigation.SettingsRoutes
+import com.ahmadkharfan.androidstudiolite.feature.settings.navigation.settingsGraph
+import com.ahmadkharfan.androidstudiolite.feature.terminal.navigation.terminalGraph
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorNavigation
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict.GitConflictRoute
@@ -20,87 +26,36 @@ import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameRou
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitHistoryRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsMode
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsRoute
-import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerRoute
-import com.ahmadkharfan.androidstudiolite.feature.hub.HubRoute
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteRoute
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.howitworks.HowItWorksRoute
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsRoute
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.welcome.WelcomeRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.about.AboutRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentSettingsRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.buildrun.BuildRunSettingsRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsRoute
-import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootRoute
-import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalRoute
 
 internal fun NavGraphBuilder.onboardingGraph(navController: NavHostController) {
-    composable(Routes.ONBOARDING_WELCOME) {
-        WelcomeRoute(onGetStarted = { navController.navigate(Routes.ONBOARDING_HOW_IT_WORKS) })
-    }
-
-    composable(Routes.ONBOARDING_HOW_IT_WORKS) {
-        HowItWorksRoute(onContinue = { navController.navigate(Routes.ONBOARDING_PERMISSIONS) })
-    }
-
-    composable(Routes.ONBOARDING_PERMISSIONS) {
-        PermissionsRoute(onContinue = { navController.navigate(Routes.ONBOARDING_COMPLETE) })
-    }
-    composable(Routes.ONBOARDING_COMPLETE) {
-        CompleteRoute(
-            onOpenHub = {
-                navController.navigate(Routes.HUB) { popUpTo(Routes.ONBOARDING_WELCOME) { inclusive = true } }
-            },
-        )
-    }
+    onboardingGraph(
+        navigateTo = { route -> navController.navigate(route) },
+        onFinished = {
+            navController.navigate(ProjectsRoutes.HUB) {
+                popUpTo(OnboardingRoutes.WELCOME) { inclusive = true }
+            }
+        },
+    )
 }
 
 internal fun NavGraphBuilder.projectsGraph(navController: NavHostController) {
-    composable(Routes.HUB) { backStackEntry ->
-        val pickedFolder by backStackEntry.savedStateHandle
-            .getStateFlow<String?>("picked_folder", null)
-            .collectAsState()
-        HubRoute(
-            onOpenProject = { id -> navController.navigate(Routes.editor(id)) },
-            onCreateProject = { navController.navigate(Routes.CREATE_PROJECT) },
-            onOpenPreferences = { navController.navigate(Routes.SETTINGS_ROOT) },
-            onBrowseFolder = { navController.navigate(Routes.FOLDER_PICKER) },
-            pickedFolder = pickedFolder,
-            onPickedFolderConsumed = { backStackEntry.savedStateHandle["picked_folder"] = null },
-        )
-    }
-
-    composable(Routes.CREATE_PROJECT) { backStackEntry ->
-        val pickedFolder by backStackEntry.savedStateHandle
-            .getStateFlow<String?>("picked_folder", null)
-            .collectAsState()
-        CreateProjectRoute(
-            onBack = { navController.popBackStack(Routes.CREATE_PROJECT, inclusive = true) },
-            onCreated = { id ->
-                navController.navigate(Routes.editor(id)) { popUpTo(Routes.HUB) }
-            },
-            onBrowseLocation = { navController.navigate(Routes.FOLDER_PICKER) },
-            pickedFolder = pickedFolder,
-            onPickedFolderConsumed = { backStackEntry.savedStateHandle["picked_folder"] = null },
-        )
-    }
-
-    composable(Routes.FOLDER_PICKER) {
-        FolderPickerRoute(
-            onCancel = { navController.popBackStack() },
-            onFolderSelected = { path ->
-                navController.previousBackStackEntry?.savedStateHandle?.set("picked_folder", path)
-                navController.popBackStack()
-            },
-        )
-    }
+    projectsGraph(
+        navigateTo = { route -> navController.navigate(route) },
+        onOpenProject = { id -> navController.navigate(Routes.editor(id)) },
+        onOpenPreferences = { navController.navigate(SettingsRoutes.ROOT) },
+        onCreated = { id ->
+            navController.navigate(Routes.editor(id)) { popUpTo(ProjectsRoutes.HUB) }
+        },
+        popBackTo = { route -> navController.popBackStack(route, inclusive = true) },
+        popBack = { navController.popBackStack() },
+        setPreviousResult = { key, value ->
+            navController.previousBackStackEntry?.savedStateHandle?.set(key, value)
+        },
+    )
 }
 
 internal fun NavGraphBuilder.utilityGraph(navController: NavHostController) {
-    composable(Routes.TERMINAL) {
-        TerminalRoute(onBack = { navController.popBackStack() })
-    }
+    terminalGraph(onBack = { navController.popBackStack() })
 
     composable(Routes.CRASH_REPORT) {
         CrashReportRoute(
@@ -131,15 +86,15 @@ private fun NavGraphBuilder.editorDestination(navController: NavHostController) 
             projectId = projectId,
             navigation = EditorNavigation(
                 onCloseProject = {
-                    if (!navController.popBackStack(Routes.HUB, inclusive = false)) {
-                        navController.navigate(Routes.HUB) {
+                    if (!navController.popBackStack(ProjectsRoutes.HUB, inclusive = false)) {
+                        navController.navigate(ProjectsRoutes.HUB) {
                             popUpTo(navController.graph.id) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
                 },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS_ROOT) },
-                onOpenAiAgentSettings = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
+                onOpenSettings = { navController.navigate(SettingsRoutes.ROOT) },
+                onOpenAiAgentSettings = { navController.navigate(SettingsRoutes.AI_AGENT) },
                 onOpenGitDiff = { path, target -> navController.navigate(Routes.gitDiff(projectId, path, target)) },
                 onOpenGitHistory = { path -> navController.navigate(Routes.gitHistory(projectId, path)) },
                 onOpenGitBlame = { path -> navController.navigate(Routes.gitBlame(projectId, path)) },
@@ -248,35 +203,10 @@ private fun NavGraphBuilder.gitConflictsDestination(navController: NavHostContro
 }
 
 internal fun NavGraphBuilder.settingsGraph(navController: NavHostController) {
-    composable(Routes.SETTINGS_ROOT) {
-        SettingsRootRoute(
-            onBack = { navController.popBackStack() },
-            onOpenGeneral = { navController.navigate(Routes.SETTINGS_GENERAL) },
-            onOpenEditor = { navController.navigate(Routes.SETTINGS_EDITOR) },
-            onOpenAiAgent = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
-            onOpenBuildRun = { navController.navigate(Routes.SETTINGS_BUILD_RUN) },
-            onOpenGitAuth = { navController.navigate(Routes.SETTINGS_GIT_AUTH) },
-            onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
-        )
-    }
-    composable(Routes.SETTINGS_GENERAL) {
-        GeneralRoute(onBack = { navController.popBackStack() })
-    }
-    composable(Routes.SETTINGS_EDITOR) {
-        EditorSettingsRoute(onBack = { navController.popBackStack() })
-    }
-    composable(Routes.SETTINGS_AI_AGENT) {
-        AiAgentSettingsRoute(onBack = { navController.popBackStack() })
-    }
-    composable(Routes.SETTINGS_BUILD_RUN) {
-        BuildRunSettingsRoute(onBack = { navController.popBackStack() })
-    }
-    composable(Routes.SETTINGS_GIT_AUTH) {
-        GitAuthSettingsRoute(onBack = { navController.popBackStack() })
-    }
-    composable(Routes.SETTINGS_ABOUT) {
-        AboutRoute(onBack = { navController.popBackStack() })
-    }
+    settingsGraph(
+        navigateTo = { route -> navController.navigate(route) },
+        onBack = { navController.popBackStack() },
+    )
 }
 
 internal fun NavGraphBuilder.deviceSupportGraph() {
