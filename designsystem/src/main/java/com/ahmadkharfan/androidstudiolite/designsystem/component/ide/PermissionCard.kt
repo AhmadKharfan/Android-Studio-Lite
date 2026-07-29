@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +31,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslPermissionCard(
@@ -69,10 +69,10 @@ fun AslPermissionCard(
             AslIcon(name = "check", size = 22.dp, tint = colors.success, modifier = Modifier.alpha(g))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+            Text(text = title, style = AslTypography.titleMedium, color = colors.textPrimary)
             Text(
                 text = reason,
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
@@ -81,7 +81,7 @@ fun AslPermissionCard(
             Box(modifier = Modifier.animateContentSize(AslMotion.standardSpec())) {
                 AslStateCrossfade(targetState = granted, label = "permCta") { isGranted ->
                     if (isGranted) {
-                        Text(text = stringResource(R.string.asl_permission_granted), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
+                        Text(text = stringResource(R.string.asl_permission_granted), style = AslTypography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
                     } else {
                         AslButton(label = stringResource(R.string.asl_permission_grant_access), onClick = onGrant)
                     }

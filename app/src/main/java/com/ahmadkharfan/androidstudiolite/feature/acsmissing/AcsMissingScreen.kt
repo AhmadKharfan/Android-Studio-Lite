@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AcsMissingRoute() {
@@ -33,7 +33,7 @@ private fun AcsMissingScreen(onExit: () -> Unit) {
                 .alpha(0.5f)
                 .padding(horizontal = 20.dp, vertical = 24.dp),
         ) {
-            Text(text = "Good morning, Alex", style = MaterialTheme.typography.headlineLarge, color = colors.textPrimary)
+            Text(text = "Good morning, Alex", style = AslTypography.headlineLarge, color = colors.textPrimary)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
@@ -60,14 +60,14 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                 }
                 Text(
                     text = stringResource(R.string.onboarding_complete_title),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = AslTypography.headlineLarge,
                     color = colors.textPrimary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 18.dp),
                 )
                 Text(
                     text = stringResource(R.string.onboarding_complete_body),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AslTypography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp),

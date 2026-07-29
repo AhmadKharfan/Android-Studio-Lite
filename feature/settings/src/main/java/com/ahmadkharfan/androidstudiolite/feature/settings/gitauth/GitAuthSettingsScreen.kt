@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
@@ -73,7 +73,7 @@ private fun GitAuthSettingsScreen(
                 AslSectionHeader(stringResource(R.string.settings_git_author))
                 Text(
                     text = stringResource(R.string.settings_git_author_hint),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textTertiary,
                 )
                 Spacer(Modifier.height(8.dp))
@@ -101,7 +101,7 @@ private fun GitAuthSettingsScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = uiState.statusMessage,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AslTypography.bodySmall,
                         color = if (uiState.isError) colors.error else colors.success,
                     )
                 }
@@ -126,7 +126,7 @@ private fun GitHubAccountCard(
     ) {
         Text(
             text = stringResource(if (uiState.gitHubConnected) R.string.settings_git_connected else R.string.settings_git_not_connected),
-            style = MaterialTheme.typography.titleSmall,
+            style = AslTypography.titleSmall,
             color = if (uiState.gitHubConnected) colors.success else colors.textSecondary,
         )
         Spacer(Modifier.height(4.dp))
@@ -138,7 +138,7 @@ private fun GitHubAccountCard(
             } else {
                 stringResource(R.string.settings_git_token_hint)
             },
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = colors.textTertiary,
         )
         Spacer(Modifier.height(12.dp))

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslDropdownOption(val label: String, val value: String)
 
@@ -48,7 +48,7 @@ fun AslDropdown(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = if (disabled) colors.textDisabled else colors.textSecondary,
             )
             Spacer(Modifier.height(6.dp))
@@ -67,7 +67,7 @@ fun AslDropdown(
             ) {
                 Text(
                     text = current?.label ?: placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AslTypography.bodyMedium,
                     color = when {
                         disabled -> colors.textDisabled
                         current != null -> colors.textPrimary

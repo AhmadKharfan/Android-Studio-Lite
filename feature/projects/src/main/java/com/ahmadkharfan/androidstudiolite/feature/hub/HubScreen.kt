@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +63,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.openproject.OpenProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoRoute
 
@@ -282,11 +282,11 @@ private fun HubTopBar(
                 .background(colors.bgBase, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "{ }", color = colors.accentPrimary, fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+            Text(text = "{ }", color = colors.accentPrimary, fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = AslTypography.labelSmall)
         }
         Text(
             text = stringResource(CommonR.string.app_name),
-            style = MaterialTheme.typography.titleMedium,
+            style = AslTypography.titleMedium,
             color = colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
@@ -306,7 +306,7 @@ private fun HubGreeting(
 ) {
     Text(
         text = uiState.greeting,
-        style = if (isTablet) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineLarge,
+        style = if (isTablet) AslTypography.displayMedium else AslTypography.headlineLarge,
         color = colors.textPrimary,
         modifier = Modifier
             .padding(horizontal = HubHorizontalPadding)

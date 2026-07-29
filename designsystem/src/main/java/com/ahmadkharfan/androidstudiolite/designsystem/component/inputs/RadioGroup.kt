@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslRadioOption(
     val label: String,
@@ -55,7 +55,7 @@ fun AslRadioGroup(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
@@ -87,13 +87,13 @@ fun AslRadioGroup(
                 Column {
                     Text(
                         text = option.label,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AslTypography.bodyMedium,
                         color = if (rowDisabled) colors.textDisabled else colors.textPrimary,
                     )
                     if (option.description != null) {
                         Text(
                             text = option.description,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = AslTypography.bodySmall,
                             color = if (rowDisabled) colors.textDisabled else colors.textTertiary,
                         )
                     }

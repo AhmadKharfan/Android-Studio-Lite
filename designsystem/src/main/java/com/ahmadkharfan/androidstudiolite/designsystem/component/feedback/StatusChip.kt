@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslCompone
 import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslStatus { Building, Syncing, Indexing, Success, Failed }
 
@@ -65,7 +65,7 @@ fun AslStatusChip(
         }
         Text(
             text = label ?: stringResource(s.labelRes),
-            style = MaterialTheme.typography.labelMedium,
+            style = AslTypography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = fg,
             maxLines = 2,

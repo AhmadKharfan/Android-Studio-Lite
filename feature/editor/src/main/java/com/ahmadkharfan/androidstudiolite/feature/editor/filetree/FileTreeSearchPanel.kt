@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +20,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslList
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.fileIconFor
@@ -60,7 +60,7 @@ fun FileTreeSearchPanel(
                 ) {
                     Text(
                         text = stringResource(R.string.editor_search_files_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AslTypography.bodySmall,
                         color = colors.textTertiary,
                     )
                 }
@@ -73,7 +73,7 @@ fun FileTreeSearchPanel(
                 ) {
                     Text(
                         text = stringResource(R.string.editor_search_no_matches, query),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AslTypography.bodySmall,
                         color = colors.textTertiary,
                     )
                 }

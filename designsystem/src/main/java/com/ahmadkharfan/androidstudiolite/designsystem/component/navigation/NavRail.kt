@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslNavRailItem(val id: String, val icon: String, val label: String)
 
@@ -59,7 +59,7 @@ fun AslNavRail(
                     }
                     Text(
                         text = item.label,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = AslTypography.labelSmall,
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                         color = if (active) colors.textPrimary else colors.textSecondary,
                         modifier = Modifier.padding(top = 4.dp),

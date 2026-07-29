@@ -2,9 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ForbiddenImport:CloneRepoScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ConfigureStep.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:HubScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>LongMethod:FolderPickerScreen.kt$@Composable private fun FolderPickerScreen( uiState: FolderPickerUiState, interactionListener: FolderPickerInteractionListener, onCancel: () -&gt; Unit, onSelect: () -&gt; Unit, )</ID>
     <ID>LongParameterList:ConfigureStep.kt$( projectName: String, packageName: String, location: String, minSdk: String, language: String, supportsJava: Boolean, nameError: String?, packageError: String?, onNameChanged: (String) -&gt; Unit, onPackageChanged: (String) -&gt; Unit, onLocationChanged: (String) -&gt; Unit, onMinSdkChanged: (String) -&gt; Unit, onLanguageChanged: (String) -&gt; Unit, onBrowseLocation: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>ModifierMissing:HubScreen.kt$HubRoute</ID>

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslChatCodeBlock(
@@ -86,6 +86,6 @@ private fun ChatCodeButton(icon: String, label: String, tint: Color, onClick: ()
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         AslIcon(name = icon, size = 14.dp, tint = tint)
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = tint)
+        Text(text = label, style = AslTypography.labelSmall, color = tint)
     }
 }

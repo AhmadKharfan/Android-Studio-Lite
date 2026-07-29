@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +32,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslApiKeyStatus { None, Valid, Invalid }
 
@@ -92,19 +92,19 @@ fun AslApiKeyCard(
                 AslIcon(name = providerIcon, size = 18.dp, tint = colors.textSecondary)
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = provider, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+                Text(text = provider, style = AslTypography.titleMedium, color = colors.textPrimary)
                 if (description != null) {
-                    Text(text = description, style = MaterialTheme.typography.bodySmall, color = colors.textTertiary)
+                    Text(text = description, style = AslTypography.bodySmall, color = colors.textTertiary)
                 }
             }
             when (status) {
                 AslApiKeyStatus.Valid -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     AslIcon(name = "check", size = 14.dp, tint = colors.success)
-                    Text(text = stringResource(R.string.asl_api_key_valid), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
+                    Text(text = stringResource(R.string.asl_api_key_valid), style = AslTypography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.success)
                 }
                 AslApiKeyStatus.Invalid -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     AslIcon(name = "x", size = 14.dp, tint = colors.error)
-                    Text(text = stringResource(R.string.asl_api_key_invalid), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.error)
+                    Text(text = stringResource(R.string.asl_api_key_invalid), style = AslTypography.labelMedium, fontWeight = FontWeight.SemiBold, color = colors.error)
                 }
                 AslApiKeyStatus.None -> Unit
             }
@@ -148,7 +148,7 @@ fun AslApiKeyCard(
         if (status == AslApiKeyStatus.Invalid && !errorMessage.isNullOrBlank()) {
             Text(
                 text = errorMessage,
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.error,
             )
         }

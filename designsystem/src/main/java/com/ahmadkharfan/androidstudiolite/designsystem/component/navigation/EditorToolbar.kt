@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,6 +27,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslOver
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslEditorToolbar(
@@ -59,7 +59,7 @@ fun AslEditorToolbar(
                 AslIcon(name = "smartphone", size = 16.dp, tint = colors.textTertiary)
                 Text(
                     text = projectName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AslTypography.titleMedium,
                     color = colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -84,7 +84,7 @@ fun AslEditorToolbar(
                 )
                 Text(
                     text = stringResource(if (running) R.string.asl_action_stop else R.string.asl_action_run),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AslTypography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (running) Color.White else colors.accentOnPrimary,
                 )

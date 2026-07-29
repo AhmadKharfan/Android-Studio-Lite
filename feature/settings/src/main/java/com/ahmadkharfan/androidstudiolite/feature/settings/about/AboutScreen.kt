@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 private const val REPO_URL = "https://github.com/AhmadKharfan/Android-Studio-Lite"
 
@@ -75,7 +75,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                 AboutHeader(colors = colors)
                 Text(
                     text = stringResource(CommonR.string.about_description),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AslTypography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -117,13 +117,13 @@ private fun AboutHeader(colors: AslColorScheme) {
         }
         Text(
             text = stringResource(CommonR.string.app_name),
-            style = MaterialTheme.typography.headlineMedium,
+            style = AslTypography.headlineMedium,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
             text = stringResource(CommonR.string.app_tagline),
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = colors.textTertiary,
         )
         AslChip(
@@ -149,13 +149,13 @@ private fun OpenSourceCard(colors: AslColorScheme, onContribute: () -> Unit) {
             AslIcon(name = "heart-handshake", size = 18.dp, tint = colors.accentPrimary)
             Text(
                 text = stringResource(CommonR.string.about_open_source_title),
-                style = MaterialTheme.typography.titleSmall,
+                style = AslTypography.titleSmall,
                 color = colors.textPrimary,
             )
         }
         Text(
             text = stringResource(CommonR.string.about_open_source_body),
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),
         )

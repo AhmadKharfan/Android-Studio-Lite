@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 
@@ -106,7 +106,7 @@ private fun EditorFontFamilySection(
 ) {
     Text(
         text = stringResource(R.string.settings_editor_font_family),
-        style = MaterialTheme.typography.labelMedium,
+        style = AslTypography.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(bottom = 8.dp),
     )
@@ -182,7 +182,7 @@ private fun EditorColorSchemeSection(
     if (!EditorPalette.isDarkScheme(colorSchemeId)) {
         Text(
             text = stringResource(R.string.settings_editor_light_scheme_hint),
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = colors.textTertiary,
             modifier = Modifier.padding(top = 8.dp),
         )
@@ -197,7 +197,7 @@ private fun EditorTabSizeSection(
 ) {
     Text(
         text = stringResource(R.string.settings_editor_tab_size),
-        style = MaterialTheme.typography.labelMedium,
+        style = AslTypography.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
     )

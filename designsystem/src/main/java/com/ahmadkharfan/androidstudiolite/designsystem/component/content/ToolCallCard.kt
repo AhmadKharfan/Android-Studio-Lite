@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -33,6 +32,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslToolCallState { Pending, Running, Done, Failed, Rejected }
 
@@ -64,7 +64,7 @@ fun AslToolCallCard(
             AslIcon(name = icon, size = 16.dp, tint = colors.textSecondary)
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
+                style = AslTypography.labelLarge,
                 color = colors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
@@ -118,7 +118,7 @@ private fun ToolStatusChip(state: AslToolCallState) {
     val statusSpec = toolStatusSpec(state, colors)
     Text(
         text = stringResource(statusSpec.labelRes),
-        style = MaterialTheme.typography.labelSmall,
+        style = AslTypography.labelSmall,
         fontWeight = FontWeight.SemiBold,
         color = statusSpec.foreground,
         modifier = Modifier

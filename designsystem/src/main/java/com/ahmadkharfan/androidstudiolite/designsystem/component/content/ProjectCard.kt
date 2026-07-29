@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -32,6 +31,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.modifier.pressScale
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 private val languageColors = mapOf(
     "Kotlin" to Color(0xFF7F52FF),
@@ -85,7 +85,7 @@ fun AslProjectCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AslTypography.titleMedium,
                     color = colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -104,7 +104,7 @@ fun AslProjectCard(
                             .size(7.dp)
                             .background(languageColors[language] ?: colors.textTertiary, CircleShape),
                     )
-                    Text(text = language, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                    Text(text = language, style = AslTypography.labelSmall, color = colors.textSecondary)
                 }
             }
             Text(
@@ -118,7 +118,7 @@ fun AslProjectCard(
             if (lastOpened != null) {
                 Text(
                     text = stringResource(R.string.asl_project_opened, lastOpened),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textTertiary,
                     modifier = Modifier.padding(top = 2.dp),
                 )

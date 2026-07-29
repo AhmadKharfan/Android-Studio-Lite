@@ -18,7 +18,6 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import kotlinx.coroutines.launch
 
 enum class AslTextFieldType { Text, Password, Email, Url, Number }
@@ -70,13 +70,13 @@ fun AslTextField(
         focused -> colors.accentPrimary
         else -> colors.borderStrong
     }
-    val fieldTextStyle = if (type == AslTextFieldType.Password) AslTheme.code.codeBody else MaterialTheme.typography.bodyMedium
+    val fieldTextStyle = if (type == AslTextFieldType.Password) AslTheme.code.codeBody else AslTypography.bodyMedium
 
     Column(modifier = modifier) {
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = if (disabled) colors.textDisabled else colors.textSecondary,
             )
             Spacer(Modifier.height(6.dp))
@@ -144,7 +144,7 @@ fun AslTextField(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = if (error != null) colors.error else colors.textTertiary,
             )
         }

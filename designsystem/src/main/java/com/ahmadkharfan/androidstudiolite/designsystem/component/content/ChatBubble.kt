@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslChatRole { User, Ai }
 
@@ -46,7 +46,7 @@ fun AslChatBubble(
         if (timestamp != null) {
             Text(
                 text = timestamp,
-                style = MaterialTheme.typography.labelSmall,
+                style = AslTypography.labelSmall,
                 color = colors.textTertiary,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
             )

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +34,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslPermissi
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
@@ -118,12 +118,12 @@ private fun PermissionsHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
         Text(
             text = stringResource(R.string.onboarding_permissions_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = AslTypography.headlineMedium,
             color = colors.textPrimary,
         )
         Text(
             text = stringResource(R.string.onboarding_permissions_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
+            style = AslTypography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
         )
@@ -171,7 +171,7 @@ private fun PermissionsContinueSection(
         if (!uiState.canContinue) {
             Text(
                 text = stringResource(R.string.onboarding_permissions_required),
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier

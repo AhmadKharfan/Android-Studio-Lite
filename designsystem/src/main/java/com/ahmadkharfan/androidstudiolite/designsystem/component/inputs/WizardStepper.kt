@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import kotlin.math.abs
 
 @Composable
@@ -78,7 +78,7 @@ fun AslWizardStepper(
 
                     Text(
                         text = "${index + 1}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AslTypography.labelMedium,
                         color = lerp(colors.textTertiary, colors.accentOnPrimary, filled),
                         modifier = Modifier.alpha(1f - done),
                     )
@@ -92,7 +92,7 @@ fun AslWizardStepper(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = step,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AslTypography.labelSmall,
                     fontWeight = if (halo > 0.5f) FontWeight.SemiBold else FontWeight.Medium,
                     color = lerp(lerp(colors.textTertiary, colors.textSecondary, filled), colors.textPrimary, halo),
                     textAlign = TextAlign.Center,

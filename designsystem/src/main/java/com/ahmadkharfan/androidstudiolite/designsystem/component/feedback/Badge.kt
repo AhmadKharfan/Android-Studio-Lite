@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslBadgeTone { Error, Accent, Neutral }
 
@@ -44,7 +44,7 @@ fun AslBadge(
                 text = count,
                 color = Color.White,
                 fontSize = 10.sp,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = AslTypography.labelSmall.copy(fontSize = 10.sp),
             )
         }
     }
