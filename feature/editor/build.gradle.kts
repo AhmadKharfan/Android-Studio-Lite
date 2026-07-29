@@ -7,10 +7,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.domain)
     implementation(projects.core.common)
-    implementation(projects.data.local)
     implementation(projects.data.build)
-    implementation(projects.data.ai)
-    implementation(projects.data.git)
     implementation(projects.designsystem)
     implementation(projects.feature.buildrun)
     implementation(projects.feature.git)
@@ -25,6 +22,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)
+    testImplementation(projects.data.local)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
