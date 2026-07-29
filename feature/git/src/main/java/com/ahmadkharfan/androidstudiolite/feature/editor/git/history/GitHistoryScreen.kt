@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +32,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -299,14 +297,7 @@ private val GitGraphRowHeight = 72.dp
 @Composable
 private fun GitGraphGutter(row: GitGraphRow) {
     val colors = AslTheme.colors
-    val palette = listOf(
-        colors.accentPrimary,
-        MaterialTheme.colorScheme.tertiary,
-        MaterialTheme.colorScheme.secondary,
-        colors.error,
-        Color(0xFF43A047),
-        Color(0xFFFF8F00),
-    )
+    val palette = colors.graphLanes
     Box(
         modifier = Modifier
             .width(GitGraphGutterWidth)

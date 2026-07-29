@@ -54,6 +54,8 @@ data class AslColorScheme(
     val terminalStdout: Color,
     val terminalStderr: Color,
     val terminalPrompt: Color,
+
+    val graphLanes: List<Color>,
 )
 
 val AslLightColors = AslColorScheme(
@@ -107,6 +109,15 @@ val AslLightColors = AslColorScheme(
     terminalStdout = Color(0xFF1E1E2E),
     terminalStderr = Color(0xFFDC2626),
     terminalPrompt = Color(0xFF059669),
+
+    graphLanes = listOf(
+        Color(0xFF8250DF),
+        Color(0xFF1F883D),
+        Color(0xFF9A6700),
+        Color(0xFF0A3069),
+        Color(0xFF6E7781),
+        Color(0xFFA40E26),
+    ),
 )
 
 val AslDarkColors = AslColorScheme(
@@ -160,6 +171,15 @@ val AslDarkColors = AslColorScheme(
     terminalStdout = Color(0xFFD4D4D4),
     terminalStderr = Color(0xFFF87171),
     terminalPrompt = Color(0xFF34D399),
+
+    graphLanes = listOf(
+        Color(0xFF6897BB),
+        Color(0xFF4EC9B0),
+        Color(0xFFCC7832),
+        Color(0xFFE8A5C4),
+        Color(0xFFDCDCAA),
+        Color(0xFFBD93F9),
+    ),
 )
 
 val LocalAslColors = staticCompositionLocalOf { AslDarkColors }
