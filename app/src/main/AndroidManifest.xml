@@ -69,25 +69,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Transparent trampoline: notification tap / resume → PackageInstaller confirm UI. -->
-        <activity
-            android:name="com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallConfirmActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
-        <receiver
-            android:name="com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallStatusReceiver"
-            android:exported="false" />
-
-        <!-- Elevates process priority while a remote build stream is active so backgrounding the
-             IDE is less likely to kill the client mid-build. specialUse: long-running user-initiated
-             build follow that fits no other FGS category. -->
-        <service
-            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>

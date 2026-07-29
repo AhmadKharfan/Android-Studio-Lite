@@ -1,8 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
 import android.content.Context
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.ApkInstaller
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.UninstallEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuild
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository

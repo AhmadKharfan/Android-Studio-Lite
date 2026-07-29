@@ -11,7 +11,7 @@
 }
 
 # --- JNI / native PTY ---
--keepclasseswithmembernames class com.ahmadkharfan.androidstudiolite.data.local.pty.NativePty {
+-keepclasseswithmembernames class com.ahmadkharfan.androidstudiolite.feature.terminal.pty.NativePty {
     native <methods>;
 }
 

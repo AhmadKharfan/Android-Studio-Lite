@@ -2,9 +2,9 @@ package com.ahmadkharfan.androidstudiolite.feature.terminal
 
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.core.linux.LinuxBootstrapInstaller
-import com.ahmadkharfan.androidstudiolite.core.linux.LinuxInstallState
-import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.LinuxBootstrapInstaller
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.LinuxInstallState
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.ProotEnvironment
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

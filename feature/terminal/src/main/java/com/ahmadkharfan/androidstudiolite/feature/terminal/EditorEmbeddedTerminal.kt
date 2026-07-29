@@ -23,9 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ahmadkharfan.androidstudiolite.core.linux.LinuxBootstrapInstaller
-import com.ahmadkharfan.androidstudiolite.core.linux.LinuxInstallState
-import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.LinuxBootstrapInstaller
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.LinuxInstallState
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.ProotEnvironment
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme

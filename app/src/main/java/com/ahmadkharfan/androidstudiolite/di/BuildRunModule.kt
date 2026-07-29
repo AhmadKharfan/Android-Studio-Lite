@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildStore
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository

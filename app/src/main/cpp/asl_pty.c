@@ -46,7 +46,7 @@ static void free_cstr_array(char **array) {
  * given environment. Returns a two-element int[] { masterFd, pid }, or null on failure.
  */
 JNIEXPORT jintArray JNICALL
-Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeForkPty(
+Java_com_ahmadkharfan_androidstudiolite_feature_terminal_pty_NativePty_nativeForkPty(
         JNIEnv *env, jclass clazz,
         jobjectArray jargv, jobjectArray jenvp, jstring jcwd, jint rows, jint cols) {
     (void) clazz;
@@ -104,7 +104,7 @@ Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeForkPty(
 
 /* Tell the kernel the terminal was resized so the child receives SIGWINCH and reflows. */
 JNIEXPORT void JNICALL
-Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeSetWinSize(
+Java_com_ahmadkharfan_androidstudiolite_feature_terminal_pty_NativePty_nativeSetWinSize(
         JNIEnv *env, jclass clazz, jint fd, jint rows, jint cols) {
     (void) env;
     (void) clazz;
@@ -117,7 +117,7 @@ Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeSetWinSiz
 
 /* Reap the child; returns its exit code (or 128+signal), or -1 if it isn't our child / already reaped. */
 JNIEXPORT jint JNICALL
-Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeWaitFor(
+Java_com_ahmadkharfan_androidstudiolite_feature_terminal_pty_NativePty_nativeWaitFor(
         JNIEnv *env, jclass clazz, jint pid) {
     (void) env;
     (void) clazz;
@@ -134,7 +134,7 @@ Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeWaitFor(
 
 /* Send SIGHUP then close the master, ending the session. */
 JNIEXPORT void JNICALL
-Java_com_ahmadkharfan_androidstudiolite_data_local_pty_NativePty_nativeDestroy(
+Java_com_ahmadkharfan_androidstudiolite_feature_terminal_pty_NativePty_nativeDestroy(
         JNIEnv *env, jclass clazz, jint fd, jint pid) {
     (void) env;
     (void) clazz;

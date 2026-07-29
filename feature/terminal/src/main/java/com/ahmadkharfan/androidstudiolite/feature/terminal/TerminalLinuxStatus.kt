@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.terminal
 
-import com.ahmadkharfan.androidstudiolite.core.linux.LinuxInstallState
-import com.ahmadkharfan.androidstudiolite.core.linux.ProotEnvironment
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.LinuxInstallState
+import com.ahmadkharfan.androidstudiolite.feature.terminal.linux.ProotEnvironment
 
 fun LinuxInstallState.toLinuxStatus(proot: ProotEnvironment): LinuxStatus {
     val onDisk = proot.isInstalled()

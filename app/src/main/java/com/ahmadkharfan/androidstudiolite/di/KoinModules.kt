@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.di
 import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
-import com.ahmadkharfan.androidstudiolite.data.onboarding.AndroidOnboardingRepository
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.data.AndroidOnboardingRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
