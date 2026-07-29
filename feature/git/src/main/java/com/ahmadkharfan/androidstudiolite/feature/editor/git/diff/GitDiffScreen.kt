@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import android.app.Activity
@@ -322,7 +321,7 @@ private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
 
 @Composable
 private fun HunkHeader(hunk: GitDiffHunk, target: GitDiffTarget, onStage: (GitDiffHunk) -> Unit, onUnstage: (GitDiffHunk) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp)) {
+    Row(modifier.fillMaxWidth().background(AslTheme.colors.surfaceContainerHigh).padding(8.dp)) {
         Text(hunkHeader(hunk), modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
         if (target != GitDiffTarget.COMMIT_TO_PARENT) {
             AslButton(

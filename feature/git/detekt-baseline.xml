@@ -6,7 +6,6 @@
     <ID>CyclomaticComplexMethod:GitErrorMessageMapper.kt$fun gitErrorMessage(error: Throwable): String</ID>
     <ID>CyclomaticComplexMethod:GitHistoryScreen.kt$@Composable private fun GitHistoryScreen( uiState: GitHistoryUiState, interactionListener: GitHistoryInteractionListener, onBack: () -&gt; Unit, onOpenDiff: (String, String) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:GitPanelScreen.kt$@Composable private fun GitPanelScreen( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
-    <ID>ForbiddenImport:GitDiffScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:GitHistoryScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>LongMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
     <ID>LongMethod:GitDiffScreen.kt$@Composable private fun GitDiffScreen( uiState: GitDiffUiState, interactionListener: GitDiffInteractionListener, onBack: () -&gt; Unit, )</ID>
