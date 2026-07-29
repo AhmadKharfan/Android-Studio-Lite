@@ -7,7 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildStore
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteBuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository

@@ -3,9 +3,9 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
-import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuild
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuild
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -51,7 +51,7 @@ class BuildRunCoordinator internal constructor(
     private val buildSystem: BuildSystem,
     private val keystoreManager: KeystoreManager,
     private val installOperations: BuildInstallOperations,
-    private val gradleReader: GradleProjectReader,
+    private val gradleReader: GradleProjectInspector,
     private val notifier: BuildNotifier,
     private val activeBuildStore: ActiveBuildRepository,
     private val clock: AslClock,
@@ -65,7 +65,7 @@ class BuildRunCoordinator internal constructor(
         buildSystem: BuildSystem,
         keystoreManager: KeystoreManager,
         apkInstaller: ApkInstaller,
-        gradleReader: GradleProjectReader,
+        gradleReader: GradleProjectInspector,
         notifier: BuildNotifier,
         activeBuildStore: ActiveBuildRepository,
         clock: AslClock = SystemAslClock,
@@ -447,7 +447,7 @@ class BuildRunCoordinator internal constructor(
 
     override suspend fun preflight(projectRoot: File): BuildPreflightResult = withContext(Dispatchers.IO) {
         val versions = runCatching {
-            val read = gradleReader.read(projectRoot)
+            val read = gradleReader.inspect(projectRoot)
             ToolchainVersions(
                 gradle = read.gradleVersion,
                 agp = read.agpVersion,

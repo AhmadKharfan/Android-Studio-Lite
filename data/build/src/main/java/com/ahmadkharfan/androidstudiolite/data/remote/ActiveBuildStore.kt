@@ -1,5 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.remote
 
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuild
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -10,29 +12,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-
-data class ActiveBuild(
-    val buildId: String,
-    val operationId: String = buildId,
-    val projectId: String,
-    val projectRootPath: String,
-    val projectName: String,
-    val installAfterSuccess: Boolean,
-    val autoLaunchAfterInstall: Boolean = true,
-    val startedAtEpochMs: Long,
-    val modulePath: String = "",
-    val variantName: String = "",
-    val kind: String = "ASSEMBLE",
-    val taskPath: String? = null,
-    val buildType: String? = null,
-)
-
-interface ActiveBuildRepository {
-    fun observe(): Flow<ActiveBuild?>
-    suspend fun get(): ActiveBuild?
-    suspend fun save(build: ActiveBuild)
-    suspend fun clear(buildId: String? = null)
-}
 
 class ActiveBuildStore(
     private val dataStore: DataStore<Preferences>,

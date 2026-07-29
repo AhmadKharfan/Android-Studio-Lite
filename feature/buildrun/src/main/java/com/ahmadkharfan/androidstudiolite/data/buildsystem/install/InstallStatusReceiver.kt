@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope

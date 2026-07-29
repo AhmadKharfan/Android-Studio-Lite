@@ -3,8 +3,8 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun
 import android.content.ContextWrapper
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
 import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuild
-import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildRepository
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuild
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
