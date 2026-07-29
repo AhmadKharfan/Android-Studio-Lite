@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +57,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
@@ -293,7 +293,7 @@ private fun GitChangesHeader(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = statusText,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = AslTypography.labelSmall,
                         color = colors.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -472,7 +472,7 @@ private fun SubmodulesView(
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.git_submodules_hint),
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = AslTheme.colors.textSecondary,
             modifier = Modifier.padding(12.dp),
         )
@@ -551,6 +551,7 @@ private fun BootstrapDialog(uiState: GitPanelUiState, interactionListener: GitPa
 
 @Composable
 private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
+    val colors = AslTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -562,8 +563,8 @@ private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPa
                 repositoryStateLabel(uiState.repositoryState),
             ),
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.error,
+            style = AslTypography.labelMedium,
+            color = colors.error,
         )
         if (uiState.repositoryState == GitRepositoryState.REBASING) {
             AslButton(stringResource(R.string.git_operation_continue), interactionListener::onContinueOperation, variant = AslButtonVariant.Tertiary, disabled = uiState.isBusy)
@@ -738,12 +739,12 @@ private fun SectionHeader(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
+            style = AslTypography.labelMedium,
             color = colors.textSecondary,
         )
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.labelSmall,
+            style = AslTypography.labelSmall,
             color = colors.textTertiary,
             modifier = Modifier
                 .background(colors.surfaceContainerLow, AslShape.xs)
@@ -832,7 +833,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
         ) {
             Text(
                 text = stringResource(R.string.git_remotes_configured),
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = AslTheme.colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
@@ -933,7 +934,7 @@ private fun DiffView(
             AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = { interactionListener.onCloseDiff() })
             Text(
                 text = uiState.selectedPath.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

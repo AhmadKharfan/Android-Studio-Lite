@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDia
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import java.io.File
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -76,8 +76,8 @@ private fun GitConflictScreen(
             else -> LazyColumn(Modifier.padding(padding).fillMaxSize()) {
                 items(uiState.entries, key = { it.path }) { entry ->
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(entry.path.middleEllipsis(), style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
-                        Text(entry.worktree.orEmpty().lineSequence().take(8).joinToString("\n"), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                        Text(entry.path.middleEllipsis(), style = AslTypography.titleSmall, fontFamily = FontFamily.Monospace)
+                        Text(entry.worktree.orEmpty().lineSequence().take(8).joinToString("\n"), fontFamily = FontFamily.Monospace, style = AslTypography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AslButton(stringResource(R.string.git_conflict_accept_ours), { interactionListener.acceptOurs(entry.path) }, variant = AslButtonVariant.Secondary)
                             AslButton(stringResource(R.string.git_conflict_accept_theirs), { interactionListener.acceptTheirs(entry.path) }, variant = AslButtonVariant.Secondary)

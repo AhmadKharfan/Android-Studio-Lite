@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
@@ -33,6 +32,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
@@ -214,12 +214,12 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                 if (state.succeeded) {
                     Text(
                         text = stringResource(R.string.git_auth_connected_github),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = AslTypography.titleSmall,
                         color = colors.success,
                     )
                     Text(
                         text = stringResource(R.string.git_auth_connected_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AslTypography.bodySmall,
                         color = colors.textSecondary,
                     )
                     return@Column
@@ -246,18 +246,18 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                     if (device == null) {
                         Text(
                             stringResource(R.string.git_auth_device_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = AslTypography.bodySmall,
                             color = colors.textSecondary,
                         )
                     } else {
                         Text(
                             stringResource(R.string.git_auth_copy_code_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = AslTypography.bodySmall,
                             color = colors.textSecondary,
                         )
                         Text(
                             text = device.userCode,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = AslTypography.headlineSmall,
                             color = colors.textPrimary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
@@ -271,7 +271,7 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                         )
                         Text(
                             text = stringResource(if (codeCopied) R.string.git_auth_copied else R.string.git_auth_tap_copy),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = AslTypography.labelSmall,
                             color = if (codeCopied) colors.success else colors.textTertiary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
@@ -285,14 +285,14 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                         )
                         Text(
                             stringResource(R.string.git_auth_waiting_github),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = AslTypography.bodySmall,
                             color = colors.textTertiary,
                         )
                     }
                 } else {
                     Text(
                         stringResource(R.string.git_auth_token_hint, host),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AslTypography.bodySmall,
                         color = colors.textSecondary,
                     )
                     AslTextField(
@@ -315,7 +315,7 @@ fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions) {
                 }
 
                 state.error?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.error)
+                    Text(text = it, style = AslTypography.bodySmall, color = colors.error)
                 }
             }
         },
