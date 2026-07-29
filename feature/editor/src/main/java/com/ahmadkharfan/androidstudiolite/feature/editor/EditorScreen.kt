@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,20 +68,28 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import java.io.File
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 
+
+private data class EditorSessionCallbacks(
+    val sessionFor: (String?) -> EditorSession?,
+    val onEdited: (String) -> Unit,
+    val onCaretMoved: (Int, Int) -> Unit,
+)
+
+private data class EditorScreenCallbacks(
+    val interactionListener: EditorInteractionListener,
+    val session: EditorSessionCallbacks,
+    val gitNavigation: GitNavigationCallbacks,
+)
+
+private data class EditorContentLayout(
+    val isTablet: Boolean,
+    val keyboardOpen: Boolean,
+)
+
 @Composable
 fun EditorRoute(
     projectId: String,
-    onCloseProject: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenAiAgentSettings: () -> Unit,
-    onOpenGitDiff: (String, GitDiffTarget) -> Unit,
-    onOpenGitHistory: (String) -> Unit,
-    onOpenGitBlame: (String) -> Unit,
-    onOpenBranches: () -> Unit,
-    onOpenTags: () -> Unit,
-    onOpenStashes: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenConflicts: () -> Unit,
+    navigation: EditorNavigation,
     openConflictPath: String? = null,
     onConflictPathOpened: () -> Unit = {},
     viewModel: EditorViewModel = koinViewModel { parametersOf(projectId) },
@@ -101,9 +110,9 @@ fun EditorRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                EditorEffect.CloseProject -> onCloseProject()
-                EditorEffect.OpenSettings -> onOpenSettings()
-                EditorEffect.OpenAiAgentSettings -> onOpenAiAgentSettings()
+                EditorEffect.CloseProject -> navigation.onCloseProject()
+                EditorEffect.OpenSettings -> navigation.onOpenSettings()
+                EditorEffect.OpenAiAgentSettings -> navigation.onOpenAiAgentSettings()
                 EditorEffect.RequestNotificationsPermission -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -129,19 +138,23 @@ fun EditorRoute(
 
     EditorScreen(
         uiState = uiState,
-        interactionListener = viewModel,
-        sessionFor = viewModel::sessionFor,
-        onEdited = viewModel::onSessionEdited,
-        onCaretMoved = viewModel::onCaretMoved,
-        gitNavigation = GitNavigationCallbacks(
-            openDiff = onOpenGitDiff,
-            openFileHistory = onOpenGitHistory,
-            openBlame = onOpenGitBlame,
-            openBranches = onOpenBranches,
-            openTags = onOpenTags,
-            openStashes = onOpenStashes,
-            openHistory = onOpenHistory,
-            openConflicts = onOpenConflicts,
+        callbacks = EditorScreenCallbacks(
+            interactionListener = viewModel,
+            session = EditorSessionCallbacks(
+                sessionFor = viewModel::sessionFor,
+                onEdited = viewModel::onSessionEdited,
+                onCaretMoved = viewModel::onCaretMoved,
+            ),
+            gitNavigation = GitNavigationCallbacks(
+                openDiff = navigation.onOpenGitDiff,
+                openFileHistory = navigation.onOpenGitHistory,
+                openBlame = navigation.onOpenGitBlame,
+                openBranches = navigation.onOpenBranches,
+                openTags = navigation.onOpenTags,
+                openStashes = navigation.onOpenStashes,
+                openHistory = navigation.onOpenHistory,
+                openConflicts = navigation.onOpenConflicts,
+            ),
         ),
     )
 }
@@ -149,12 +162,9 @@ fun EditorRoute(
 @Composable
 private fun EditorScreen(
     uiState: EditorUiState,
-    interactionListener: EditorInteractionListener,
-    sessionFor: (String?) -> EditorSession?,
-    onEdited: (String) -> Unit,
-    onCaretMoved: (Int, Int) -> Unit,
-    gitNavigation: GitNavigationCallbacks,
+    callbacks: EditorScreenCallbacks,
 ) {
+    val interactionListener = callbacks.interactionListener
     val colors = AslTheme.colors
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(uiState.snackbarMessage) {
@@ -181,13 +191,11 @@ private fun EditorScreen(
                 EditorTopBar(uiState = uiState, interactionListener = interactionListener, isTablet = isTablet)
                 EditorContentArea(
                     uiState = uiState,
-                    interactionListener = interactionListener,
-                    sessionFor = sessionFor,
-                    onEdited = onEdited,
-                    onCaretMoved = onCaretMoved,
-                    gitNavigation = gitNavigation,
-                    isTablet = isTablet,
-                    keyboardOpen = keyboardOpen,
+                    callbacks = callbacks,
+                    layout = EditorContentLayout(
+                        isTablet = isTablet,
+                        keyboardOpen = keyboardOpen,
+                    ),
                     modifier = Modifier.weight(1f).fillMaxWidth().imePadding(),
                 )
             }
@@ -195,24 +203,32 @@ private fun EditorScreen(
                 EditorDrawerOverlay(
                     uiState = uiState,
                     interactionListener = interactionListener,
-                    gitNavigation = gitNavigation,
+                    gitNavigation = callbacks.gitNavigation,
                 )
             }
-            uiState.installConflict?.let { conflict ->
-                AslDialog(
-                    title = stringResource(R.string.editor_uninstall_title),
-                    body = stringResource(R.string.editor_uninstall_body, conflict.applicationId),
-                    variant = AslDialogVariant.Confirm,
-                    destructive = true,
-                    confirmLabel = stringResource(R.string.editor_uninstall_reinstall),
-                    cancelLabel = stringResource(CommonR.string.action_cancel),
-                    onConfirm = interactionListener::onConfirmInstallConflictUninstall,
-                    onDismiss = interactionListener::onDismissInstallConflict,
-                )
-            }
-            EditorFileOperationDialog(uiState.fileOperationDialog, interactionListener)
+            EditorDialogs(uiState = uiState, interactionListener = interactionListener)
         }
     }
+}
+
+@Composable
+private fun EditorDialogs(
+    uiState: EditorUiState,
+    interactionListener: EditorInteractionListener,
+) {
+    uiState.installConflict?.let { conflict ->
+        AslDialog(
+            title = stringResource(R.string.editor_uninstall_title),
+            body = stringResource(R.string.editor_uninstall_body, conflict.applicationId),
+            variant = AslDialogVariant.Confirm,
+            destructive = true,
+            confirmLabel = stringResource(R.string.editor_uninstall_reinstall),
+            cancelLabel = stringResource(CommonR.string.action_cancel),
+            onConfirm = interactionListener::onConfirmInstallConflictUninstall,
+            onDismiss = interactionListener::onDismissInstallConflict,
+        )
+    }
+    EditorFileOperationDialog(uiState.fileOperationDialog, interactionListener)
 }
 
 @Composable
@@ -362,33 +378,24 @@ private fun EditorToolbarEditActions(
 @Composable
 private fun EditorContentArea(
     uiState: EditorUiState,
-    interactionListener: EditorInteractionListener,
-    sessionFor: (String?) -> EditorSession?,
-    onEdited: (String) -> Unit,
-    onCaretMoved: (Int, Int) -> Unit,
-    gitNavigation: GitNavigationCallbacks,
-    isTablet: Boolean,
-    keyboardOpen: Boolean,
+    callbacks: EditorScreenCallbacks,
+    layout: EditorContentLayout,
     modifier: Modifier = Modifier,
 ) {
     val terminalPanelActive = uiState.activeBottomTabId == "term" && uiState.bottomPanelHeightDp > 0f
     Column(modifier = modifier) {
         EditorEditingRow(
             uiState = uiState,
-            interactionListener = interactionListener,
-            sessionFor = sessionFor,
-            onEdited = onEdited,
-            onCaretMoved = onCaretMoved,
-            gitNavigation = gitNavigation,
-            isTablet = isTablet,
+            callbacks = callbacks,
+            isTablet = layout.isTablet,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
 
-        if (!keyboardOpen || terminalPanelActive) {
-            EditorBottomToolSection(uiState = uiState, interactionListener = interactionListener)
+        if (!layout.keyboardOpen || terminalPanelActive) {
+            EditorBottomToolSection(uiState = uiState, interactionListener = callbacks.interactionListener)
         }
-        if (!keyboardOpen) {
-            EditorFullStatusBar(uiState = uiState, onOpenBranches = gitNavigation.openBranches)
+        if (!layout.keyboardOpen) {
+            EditorFullStatusBar(uiState = uiState, onOpenBranches = callbacks.gitNavigation.openBranches)
         } else {
             EditorCompactStatusBar(uiState = uiState)
         }
@@ -398,15 +405,11 @@ private fun EditorContentArea(
 @Composable
 private fun EditorEditingRow(
     uiState: EditorUiState,
-    interactionListener: EditorInteractionListener,
-    sessionFor: (String?) -> EditorSession?,
-    onEdited: (String) -> Unit,
-    onCaretMoved: (Int, Int) -> Unit,
-    gitNavigation: GitNavigationCallbacks,
+    callbacks: EditorScreenCallbacks,
     isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val drawerCallbacks = rememberEditorDrawerCallbacks(interactionListener, gitNavigation)
+    val drawerCallbacks = rememberEditorDrawerCallbacks(callbacks.interactionListener, callbacks.gitNavigation)
     Row(modifier = modifier) {
         if (isTablet) {
             EditorDockedPanel(
@@ -424,15 +427,12 @@ private fun EditorEditingRow(
                     isLoadingFileTree = uiState.isLoadingFileTree,
                 ),
                 callbacks = drawerCallbacks,
-                gitNavigation = gitNavigation,
+                gitNavigation = callbacks.gitNavigation,
             )
         }
         EditorCodeSurface(
             uiState = uiState,
-            interactionListener = interactionListener,
-            sessionFor = sessionFor,
-            onEdited = onEdited,
-            onCaretMoved = onCaretMoved,
+            callbacks = callbacks,
             isTablet = isTablet,
             modifier = Modifier.weight(1f).fillMaxSize(),
         )
@@ -442,10 +442,7 @@ private fun EditorEditingRow(
 @Composable
 private fun EditorCodeSurface(
     uiState: EditorUiState,
-    interactionListener: EditorInteractionListener,
-    sessionFor: (String?) -> EditorSession?,
-    onEdited: (String) -> Unit,
-    onCaretMoved: (Int, Int) -> Unit,
+    callbacks: EditorScreenCallbacks,
     isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -455,7 +452,7 @@ private fun EditorCodeSurface(
             if (activeTab != null && isTablet) {
                 AslBreadcrumbBar(segments = activeTab.breadcrumb)
             }
-            val activeSession = sessionFor(activeTab?.id)
+            val activeSession = callbacks.session.sessionFor(activeTab?.id)
             if (activeTab != null && activeSession != null) {
                 val showMarkdownPreview = activeTab.language == EditorLanguage.Markdown &&
                     uiState.markdownPreview
@@ -471,8 +468,8 @@ private fun EditorCodeSurface(
                         tabSize = uiState.editorTabSize,
                         colorSchemeId = uiState.editorThemeId,
                         fontFamilyId = uiState.editorFontFamily,
-                        onEdited = { onEdited(activeTab.id) },
-                        onCaretMoved = onCaretMoved,
+                        onEdited = { callbacks.session.onEdited(activeTab.id) },
+                        onCaretMoved = callbacks.session.onCaretMoved,
                         gitLineStatus = activeTab.gitLineStatus,
                         breakpoints = activeTab.breakpoints,
                         findQuery = if (uiState.findBarOpen) uiState.findQuery else "",
@@ -490,12 +487,12 @@ private fun EditorCodeSurface(
         if (uiState.findBarOpen) {
             AslFindBar(
                 query = uiState.findQuery,
-                onChange = { interactionListener.onFindQueryChanged(it) },
+                onChange = { callbacks.interactionListener.onFindQueryChanged(it) },
                 matchCount = uiState.findMatchCount,
                 currentMatch = uiState.findCurrentMatch,
-                onNext = { interactionListener.onFindNext() },
-                onPrev = { interactionListener.onFindPrevious() },
-                onClose = { interactionListener.onToggleFindBar() },
+                onNext = { callbacks.interactionListener.onFindNext() },
+                onPrev = { callbacks.interactionListener.onFindPrevious() },
+                onClose = { callbacks.interactionListener.onToggleFindBar() },
                 modifier = Modifier.padding(8.dp),
             )
         }
