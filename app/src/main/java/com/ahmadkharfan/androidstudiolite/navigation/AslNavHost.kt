@@ -14,6 +14,7 @@ import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorRou
 import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorType
 import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.crashreport.CrashReportRoute
+import com.ahmadkharfan.androidstudiolite.feature.editor.EditorNavigation
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameRoute
@@ -139,24 +140,26 @@ fun AslNavHost(
                 .getStateFlow<String?>("git_conflict_path", null).collectAsState()
             EditorRoute(
                 projectId = projectId,
-                onCloseProject = {
-                    if (!navController.popBackStack(Routes.HUB, inclusive = false)) {
-                        navController.navigate(Routes.HUB) {
-                            popUpTo(navController.graph.id) { inclusive = true }
-                            launchSingleTop = true
+                navigation = EditorNavigation(
+                    onCloseProject = {
+                        if (!navController.popBackStack(Routes.HUB, inclusive = false)) {
+                            navController.navigate(Routes.HUB) {
+                                popUpTo(navController.graph.id) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
-                    }
-                },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS_ROOT) },
-                onOpenAiAgentSettings = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
-                onOpenGitDiff = { path, target -> navController.navigate(Routes.gitDiff(projectId, path, target)) },
-                onOpenGitHistory = { path -> navController.navigate(Routes.gitHistory(projectId, path)) },
-                onOpenGitBlame = { path -> navController.navigate(Routes.gitBlame(projectId, path)) },
-                onOpenBranches = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.BRANCHES.name)) },
-                onOpenTags = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.TAGS.name)) },
-                onOpenStashes = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.STASHES.name)) },
-                onOpenHistory = { navController.navigate(Routes.gitHistory(projectId)) },
-                onOpenConflicts = { navController.navigate(Routes.gitConflicts(projectId)) },
+                    },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS_ROOT) },
+                    onOpenAiAgentSettings = { navController.navigate(Routes.SETTINGS_AI_AGENT) },
+                    onOpenGitDiff = { path, target -> navController.navigate(Routes.gitDiff(projectId, path, target)) },
+                    onOpenGitHistory = { path -> navController.navigate(Routes.gitHistory(projectId, path)) },
+                    onOpenGitBlame = { path -> navController.navigate(Routes.gitBlame(projectId, path)) },
+                    onOpenBranches = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.BRANCHES.name)) },
+                    onOpenTags = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.TAGS.name)) },
+                    onOpenStashes = { navController.navigate(Routes.gitRefs(projectId, GitRefsMode.STASHES.name)) },
+                    onOpenHistory = { navController.navigate(Routes.gitHistory(projectId)) },
+                    onOpenConflicts = { navController.navigate(Routes.gitConflicts(projectId)) },
+                ),
                 openConflictPath = conflictPath,
                 onConflictPathOpened = { backStackEntry.savedStateHandle["git_conflict_path"] = null },
             )
