@@ -27,6 +27,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.animation.AslStateCrossfade
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -85,6 +87,27 @@ fun AslPermissionCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslPermissionCardPreview() {
+    AslPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AslPermissionCard(
+                title = "Project files",
+                reason = "Allow access to open and save files in this project.",
+            )
+            AslPermissionCard(
+                title = "Project files",
+                reason = "Access is available for this project.",
+                granted = true,
+            )
         }
     }
 }

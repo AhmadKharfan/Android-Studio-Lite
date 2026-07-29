@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.designsystem.component.content
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 
@@ -87,5 +90,30 @@ fun AslDiffLine(
 
             modifier = if (noWrap) Modifier.padding(end = 12.dp) else Modifier.weight(1f),
         )
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslDiffLinePreview() {
+    AslPreview {
+        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            AslDiffLine(
+                kind = AslDiffKind.Context,
+                text = "fun buildProject() {",
+                oldNo = 42,
+                newNo = 42,
+            )
+            AslDiffLine(
+                kind = AslDiffKind.Removed,
+                text = "    runLegacyBuild()",
+                oldNo = 43,
+            )
+            AslDiffLine(
+                kind = AslDiffKind.Added,
+                text = "    runIncrementalBuild()",
+                newNo = 43,
+            )
+        }
     }
 }

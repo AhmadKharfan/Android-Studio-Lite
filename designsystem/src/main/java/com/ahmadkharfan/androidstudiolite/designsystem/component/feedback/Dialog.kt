@@ -29,7 +29,10 @@ import androidx.compose.ui.window.Dialog
 import com.ahmadkharfan.androidstudiolite.designsystem.R
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -111,5 +114,70 @@ fun AslDialog(
             }
         }
         }
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslDialogAlertPreview() {
+    AslPreview {
+        AslDialog(
+            title = "Build finished",
+            variant = AslDialogVariant.Alert,
+            body = "The debug build completed successfully.",
+            onDismiss = {},
+        )
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslDialogConfirmPreview() {
+    AslPreview {
+        AslDialog(
+            title = "Replace existing file?",
+            variant = AslDialogVariant.Confirm,
+            body = "The destination already contains a file with this name.",
+            confirmLabel = "Replace",
+            cancelLabel = "Cancel",
+            onDismiss = {},
+        )
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslDialogInputPreview() {
+    AslPreview {
+        AslDialog(
+            title = "Create new file",
+            variant = AslDialogVariant.Input,
+            confirmLabel = "Create",
+            cancelLabel = "Cancel",
+            inputContent = {
+                AslTextField(
+                    value = "MainScreen.kt",
+                    onValueChange = {},
+                    label = "File name",
+                )
+            },
+            onDismiss = {},
+        )
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslDialogDestructivePreview() {
+    AslPreview {
+        AslDialog(
+            title = "Delete project?",
+            variant = AslDialogVariant.Confirm,
+            body = "This removes the project and its local files.",
+            confirmLabel = "Delete",
+            cancelLabel = "Cancel",
+            destructive = true,
+            onDismiss = {},
+        )
     }
 }

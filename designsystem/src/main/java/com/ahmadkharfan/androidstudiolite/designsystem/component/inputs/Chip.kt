@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
+import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
@@ -90,5 +93,34 @@ private fun statusColors(
         AslChipStatus.Error -> Triple(colors.errorContainer, colors.error, Color.Transparent)
         AslChipStatus.Warning -> Triple(colors.warningContainer, colors.warning, Color.Transparent)
         AslChipStatus.Info -> Triple(colors.infoContainer, colors.info, Color.Transparent)
+    }
+}
+
+@PreviewAslComponent
+@Composable
+private fun AslChipPreview() {
+    AslPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AslChip(label = "Kotlin", kind = AslChipKind.Filter, selected = true, onClick = {})
+                AslChip(label = "Java", kind = AslChipKind.Filter, onClick = {})
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AslChip(label = "app", kind = AslChipKind.Input, onRemove = {})
+                AslChip(label = "Generate code", kind = AslChipKind.Assist, icon = "sparkles", onClick = {})
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AslChip(label = "Neutral", kind = AslChipKind.Status)
+                AslChip(label = "Success", kind = AslChipKind.Status, status = AslChipStatus.Success)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AslChip(label = "Error", kind = AslChipKind.Status, status = AslChipStatus.Error)
+                AslChip(label = "Warning", kind = AslChipKind.Status, status = AslChipStatus.Warning)
+                AslChip(label = "Info", kind = AslChipKind.Status, status = AslChipStatus.Info)
+            }
+        }
     }
 }
