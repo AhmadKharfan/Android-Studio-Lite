@@ -10,7 +10,7 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.FileTreeRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
-import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
@@ -47,7 +47,7 @@ class EditorViewModel(
     private val fileTreeRepository: FileTreeRepository,
     private val fileContentRepository: FileContentRepository,
     private val preferencesRepository: PreferencesRepository,
-    private val gradleProjectReader: GradleProjectReader,
+    private val gradleProjectReader: GradleProjectInspector,
     private val buildRunCoordinator: BuildRunApi,
     private val networkMonitor: NetworkMonitor? = null,
     private val gitRepository: GitRepository? = null,
@@ -259,7 +259,7 @@ class EditorViewModel(
                 selectedVariant = "",
             )
         }
-        val model = gradleProjectReader.read(root).model
+        val model = gradleProjectReader.inspect(root).model
         buildController.cacheProjectModel(root.absolutePath to model)
         val app = RunTargetResolver.resolveAppModule(model)
         val remembered = preferencesRepository.getSelectedVariant(projectId)?.takeIf { it.isNotBlank() }

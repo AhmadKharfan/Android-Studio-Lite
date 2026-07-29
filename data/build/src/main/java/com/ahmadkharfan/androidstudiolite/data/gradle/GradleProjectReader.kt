@@ -15,6 +15,8 @@ import com.ahmadkharfan.androidstudiolite.data.gradle.parse.GradlePropertiesPars
 import com.ahmadkharfan.androidstudiolite.data.gradle.parse.SettingsGradleParser
 import com.ahmadkharfan.androidstudiolite.data.gradle.parse.VersionCatalogParser
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.DependencyModel
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectSummary
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.DependencyScope
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
@@ -32,10 +34,13 @@ data class GradleProjectReadResult(
     val agpVersion: String? = null,
 )
 
-class GradleProjectReader {
+class GradleProjectReader : GradleProjectInspector {
 
-    fun isGradleProject(dir: File): Boolean =
+    override fun isGradleProject(dir: File): Boolean =
         File(dir, "settings.gradle.kts").isFile || File(dir, "settings.gradle").isFile
+
+    override fun inspect(projectRoot: File): GradleProjectSummary =
+        read(projectRoot).let { GradleProjectSummary(it.model, it.gradleVersion, it.agpVersion) }
 
     fun read(projectRoot: File): GradleProjectReadResult {
         val diagnostics = ArrayList<GradleDiagnostic>()

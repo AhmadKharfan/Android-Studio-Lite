@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
-import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
@@ -27,7 +27,7 @@ class EditorBuildController(
     private val projectId: String,
     private val scope: CoroutineScope,
     private val buildRunCoordinator: BuildRunApi,
-    private val gradleProjectReader: GradleProjectReader,
+    private val gradleProjectReader: GradleProjectInspector,
     private val networkMonitor: NetworkMonitor?,
     private val projectRootPath: () -> String?,
     private val state: () -> EditorUiState,
@@ -243,7 +243,7 @@ class EditorBuildController(
     private fun projectModelFor(root: File): ProjectModel? = cachedProjectModel
         ?.takeIf { it.first == root.absolutePath }
         ?.second
-        ?: runCatching { gradleProjectReader.read(root).model }
+        ?: runCatching { gradleProjectReader.inspect(root).model }
             .getOrNull()
             ?.also { cachedProjectModel = root.absolutePath to it }
 

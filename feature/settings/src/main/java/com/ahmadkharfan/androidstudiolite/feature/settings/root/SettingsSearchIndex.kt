@@ -3,7 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.settings.root
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
-import com.ahmadkharfan.androidstudiolite.data.ai.AiProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 
 data class SettingsSearchEntry(

@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.data.ai
 
+import com.ahmadkharfan.androidstudiolite.domain.model.AiProviderCatalog
 import com.ahmadkharfan.androidstudiolite.data.ai.agent.AiAgentLog
 import com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmChatRequest
 import com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmProviderRegistry
