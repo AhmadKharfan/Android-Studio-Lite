@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.data.git
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore

@@ -6,11 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.ahmadkharfan.androidstudiolite.BuildConfig
 import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
-import com.ahmadkharfan.androidstudiolite.data.local.EncryptedGitCredentialStore
-import com.ahmadkharfan.androidstudiolite.data.local.JGitGitRepository
+import com.ahmadkharfan.androidstudiolite.data.git.EncryptedGitCredentialStore
+import com.ahmadkharfan.androidstudiolite.data.git.JGitGitRepository
 import com.ahmadkharfan.androidstudiolite.data.remote.github.GitHubDeviceFlowAuthenticator
-import com.ahmadkharfan.androidstudiolite.data.local.GitOperationCoordinator
-import com.ahmadkharfan.androidstudiolite.data.local.DataStoreGitAuthorStore
+import com.ahmadkharfan.androidstudiolite.data.git.GitOperationCoordinator
+import com.ahmadkharfan.androidstudiolite.data.git.DataStoreGitAuthorStore
 import com.ahmadkharfan.androidstudiolite.data.local.DefaultWorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore

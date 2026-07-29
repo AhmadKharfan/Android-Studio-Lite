@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.data.git
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind

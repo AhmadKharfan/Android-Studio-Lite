@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.ahmadkharfan.androidstudiolite.data.local.AndroidProjectRepository
 import com.ahmadkharfan.androidstudiolite.data.local.FileChangeBus
-import com.ahmadkharfan.androidstudiolite.data.local.JGitGitRepository
+import com.ahmadkharfan.androidstudiolite.data.git.JGitGitRepository
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.model.Project

@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.data.git
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences

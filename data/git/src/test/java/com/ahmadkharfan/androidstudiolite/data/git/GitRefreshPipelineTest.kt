@@ -1,4 +1,4 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.data.git
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlin.time.Duration.Companion.milliseconds

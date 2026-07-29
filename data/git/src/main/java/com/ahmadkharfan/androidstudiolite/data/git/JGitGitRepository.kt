@@ -1,4 +1,7 @@
-package com.ahmadkharfan.androidstudiolite.data.local
+package com.ahmadkharfan.androidstudiolite.data.git
+
+import com.ahmadkharfan.androidstudiolite.data.local.DefaultWorkspaceWriteGate
+import com.ahmadkharfan.androidstudiolite.data.local.FileChangeBus
 
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneProgress
 import com.ahmadkharfan.androidstudiolite.domain.model.CloneOptions
