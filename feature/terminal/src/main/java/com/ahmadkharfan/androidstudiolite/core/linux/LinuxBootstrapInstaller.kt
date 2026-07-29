@@ -96,9 +96,7 @@ class LinuxBootstrapInstaller(
                 extract(archive, staging)
 
                 proot.rootfsDir.deleteRecursively()
-                if (!staging.renameTo(proot.rootfsDir)) {
-                    throw IllegalStateException("could not move rootfs into place")
-                }
+                check(staging.renameTo(proot.rootfsDir)) { "could not move rootfs into place" }
                 proot.prepareRuntime()
                 File(proot.ensureRootfsParent(), ".linux-installed").writeText("ok")
                 bootstrapPackages()
@@ -156,8 +154,8 @@ class LinuxBootstrapInstaller(
     private fun downloadWithChecksum(url: String, expectedSha256: String, dest: File) {
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IllegalStateException("download failed: HTTP ${response.code}")
-            val body = response.body ?: throw IllegalStateException("empty response body")
+            check(response.isSuccessful) { "download failed: HTTP ${response.code}" }
+            val body = response.body ?: error("empty response body")
             val total = body.contentLength()
             val digest = MessageDigest.getInstance("SHA-256")
             body.byteStream().use { input ->
@@ -176,9 +174,7 @@ class LinuxBootstrapInstaller(
                 }
             }
             val actual = digest.digest().joinToString("") { "%02x".format(it) }
-            if (!actual.equals(expectedSha256, ignoreCase = true)) {
-                throw IllegalStateException("checksum mismatch")
-            }
+            check(actual.equals(expectedSha256, ignoreCase = true)) { "checksum mismatch" }
         }
     }
 
@@ -194,9 +190,10 @@ class LinuxBootstrapInstaller(
                 }
                 val out = File(into, relative)
 
-                if (!out.canonicalPath.startsWith(canonicalInto + File.separator) && out.canonicalPath != canonicalInto) {
-                    throw IllegalStateException("unsafe path in archive: ${entry.name}")
-                }
+                check(
+                    out.canonicalPath.startsWith(canonicalInto + File.separator) ||
+                        out.canonicalPath == canonicalInto,
+                ) { "unsafe path in archive: ${entry.name}" }
                 when {
                     entry.isDirectory -> out.mkdirs()
                     entry.isSymbolicLink -> {

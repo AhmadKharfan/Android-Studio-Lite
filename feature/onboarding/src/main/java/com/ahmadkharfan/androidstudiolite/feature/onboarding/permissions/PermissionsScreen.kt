@@ -140,7 +140,7 @@ private fun PermissionsList(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        itemsIndexed(uiState.permissions, key = { _, it -> it.id }) { index, permission ->
+        itemsIndexed(uiState.permissions, key = { _, permission -> permission.id }) { index, permission ->
             AslStaggeredAppear(index = index) {
                 AslPermissionCard(
                     title = permission.title,
