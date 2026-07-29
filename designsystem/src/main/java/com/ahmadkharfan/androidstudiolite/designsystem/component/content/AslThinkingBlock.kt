@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslThinkingBlock(
@@ -73,7 +73,7 @@ fun AslThinkingBlock(
             )
             Text(
                 text = if (streaming) thinkingLabel else thoughtLabel,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = colors.textTertiary,
             )
         }
@@ -85,7 +85,7 @@ fun AslThinkingBlock(
             SelectionContainer {
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textSecondary,
                     modifier = Modifier
                         .fillMaxWidth()

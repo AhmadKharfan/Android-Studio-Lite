@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +27,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslIconButtonVariant { Ghost, Filled, Outlined }
 
@@ -94,7 +94,7 @@ fun AslIconButton(
             ) {
                 Text(
                     text = badge,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    style = AslTypography.labelSmall.copy(fontSize = 9.sp),
                     color = Color.White,
                 )
             }

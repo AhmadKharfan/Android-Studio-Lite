@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslThemeSwatch(val id: String, val name: String, val colors: List<Color>)
 
@@ -42,7 +42,7 @@ fun AslThemeSwatchPicker(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(bottom = 10.dp),
             )

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslChipKind { Filter, Input, Assist, Status }
 enum class AslChipStatus { Neutral, Success, Error, Warning, Info }
@@ -70,7 +70,7 @@ fun AslChip(
         } else if (icon != null) {
             AslIcon(name = icon, size = 14.dp, tint = fg)
         }
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = fg)
+        Text(text = label, style = AslTypography.labelMedium, color = fg)
         if (kind == AslChipKind.Input && onRemove != null) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier

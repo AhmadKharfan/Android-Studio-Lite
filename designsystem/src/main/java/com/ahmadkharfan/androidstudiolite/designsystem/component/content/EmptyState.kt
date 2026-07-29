@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +23,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslComponent
 import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslEmptyState(
@@ -53,7 +53,7 @@ fun AslEmptyState(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
+            style = AslTypography.titleLarge,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp),
@@ -61,7 +61,7 @@ fun AslEmptyState(
         if (subtitle != null) {
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
+                style = AslTypography.bodyMedium,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = 320.dp),

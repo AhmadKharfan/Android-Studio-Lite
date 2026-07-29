@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -13,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslBottomSheetSize { Peek, Half, Full }
 
@@ -45,7 +45,7 @@ fun AslBottomSheet(
                 if (title != null) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = AslTypography.titleLarge,
                         color = colors.textPrimary,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     )

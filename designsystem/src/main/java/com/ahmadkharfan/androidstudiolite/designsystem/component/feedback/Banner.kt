@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslBannerTone { Info, Warning, Error, Success }
 
@@ -57,14 +57,14 @@ fun AslBanner(
         AslIcon(name = toneIcon(tone), size = 17.dp, tint = fg)
         Text(
             text = message,
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             color = colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
         if (actionLabel != null) {
             Text(
                 text = actionLabel,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = fg,
                 modifier = Modifier

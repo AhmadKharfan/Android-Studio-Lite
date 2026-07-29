@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +28,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslSegmentedOption(
     val label: String,
@@ -103,7 +103,7 @@ fun AslSegmentedButton(
                     AslIcon(name = option.icon, size = 16.dp, tint = fg)
                     Spacer(Modifier.width(6.dp))
                 }
-                Text(text = option.label, style = MaterialTheme.typography.labelLarge, color = fg)
+                Text(text = option.label, style = AslTypography.labelLarge, color = fg)
             }
         }
     }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun WelcomeRoute(onGetStarted: () -> Unit) {
@@ -87,13 +87,13 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = stringResource(CommonR.string.onboarding_welcome_title),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = AslTypography.displaySmall,
                     textAlign = TextAlign.Center,
                     color = colors.textPrimary,
                 )
                 Text(
                     text = stringResource(CommonR.string.onboarding_welcome_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AslTypography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 10.dp),
@@ -140,10 +140,10 @@ private fun WelcomeBullet(icon: String, title: String, text: String) {
             AslIcon(name = icon, size = 20.dp, tint = colors.accentPrimary)
         }
         Column {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+            Text(text = title, style = AslTypography.titleMedium, color = colors.textPrimary)
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 2.dp),
             )

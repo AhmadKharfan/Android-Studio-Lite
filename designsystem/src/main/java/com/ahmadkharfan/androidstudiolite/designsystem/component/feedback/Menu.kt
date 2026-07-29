@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +15,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslDropdownMenu(
@@ -66,13 +66,13 @@ fun AslDropdownMenuItem(
     DropdownMenuItem(
         modifier = modifier,
         text = {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = textColor)
+            Text(label, style = AslTypography.bodyMedium, color = textColor)
         },
         leadingIcon = icon?.let { iconName ->
             { AslIcon(name = iconName, size = 16.dp, tint = iconTint) }
         },
         trailingIcon = shortcut?.let { sc ->
-            { Text(text = sc, style = MaterialTheme.typography.labelSmall, color = colors.textTertiary) }
+            { Text(text = sc, style = AslTypography.labelSmall, color = colors.textTertiary) }
         } ?: trailingIcon,
         enabled = enabled,
         onClick = onClick,

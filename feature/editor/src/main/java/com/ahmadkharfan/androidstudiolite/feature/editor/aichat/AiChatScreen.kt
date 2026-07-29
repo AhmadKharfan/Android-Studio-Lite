@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +59,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.reme
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.ChatMode
 
 @Composable
@@ -167,7 +167,7 @@ private fun PlanReviewSheet(
         ) {
             Text(
                 text = stringResource(CommonR.string.ai_plan_review_sheet_subtitle),
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textSecondary,
             )
             AslTextField(
@@ -177,7 +177,7 @@ private fun PlanReviewSheet(
             )
             Text(
                 text = stringResource(CommonR.string.ai_plan_review_sheet_hint),
-                style = MaterialTheme.typography.labelSmall,
+                style = AslTypography.labelSmall,
                 color = colors.textTertiary,
             )
             AslButton(
@@ -210,7 +210,7 @@ private fun ChatControlsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = stringResource(CommonR.string.ai_chat_mode),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AslTypography.labelMedium,
                     color = colors.textSecondary,
                 )
                 AslSegmentedButton(
@@ -225,7 +225,7 @@ private fun ChatControlsSheet(
                 )
                 Text(
                     text = stringResource(uiState.mode.descriptionRes()),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textTertiary,
                 )
             }
@@ -243,7 +243,7 @@ private fun ChatControlsSheet(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = stringResource(CommonR.string.ai_chat_model),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AslTypography.labelMedium,
                         color = colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
@@ -353,14 +353,14 @@ private fun ChatHistoryRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = thread.title,
-                style = MaterialTheme.typography.bodyMedium,
+                style = AslTypography.bodyMedium,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = thread.subtitle,
-                style = MaterialTheme.typography.labelSmall,
+                style = AslTypography.labelSmall,
                 color = colors.textTertiary,
             )
         }
@@ -428,7 +428,7 @@ private fun ChatMessageList(
         if (uiState.sending && !hasLiveContent) {
             Text(
                 text = stringResource(CommonR.string.ai_chat_typing),
-                style = MaterialTheme.typography.labelSmall,
+                style = AslTypography.labelSmall,
                 color = colors.textTertiary,
             )
         }
@@ -523,7 +523,7 @@ private fun ChatMessageBubble(message: ChatMessageUiModel, interactionListener: 
             SelectionContainer {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (message.isUser) {
-                        Text(text = message.text, style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
+                        Text(text = message.text, style = AslTypography.bodyMedium, color = colors.textPrimary)
                     } else {
                         AslMarkdownText(
                             markdown = message.text,

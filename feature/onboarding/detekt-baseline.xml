@@ -2,10 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ForbiddenImport:CompleteScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:HowItWorksScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:PermissionsScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:WelcomeScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>LongMethod:HowItWorksScreen.kt$@Composable private fun HowItWorksScreen(onContinue: () -&gt; Unit)</ID>
     <ID>ParameterNaming:WelcomeScreen.kt$onGetStarted</ID>
   </CurrentIssues>

@@ -12,49 +12,7 @@
     <ID>CyclomaticComplexMethod:ListItem.kt$@Composable fun AslListItem( title: String, modifier: Modifier = Modifier, subtitle: String? = null, icon: String? = null, iconColor: Color? = null, leading: (@Composable () -&gt; Unit)? = null, trailing: (@Composable () -&gt; Unit)? = null, divider: Boolean = true, selected: Boolean = false, disabled: Boolean = false, onClick: (() -&gt; Unit)? = null, )</ID>
     <ID>CyclomaticComplexMethod:TextField.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun AslTextField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, helper: String? = null, error: String? = null, disabled: Boolean = false, type: AslTextFieldType = AslTextFieldType.Text, leadingIcon: String? = null, trailingIcon: String? = null, onTrailingClick: (() -&gt; Unit)? = null, onFocusChanged: ((Boolean) -&gt; Unit)? = null, )</ID>
     <ID>CyclomaticComplexMethod:ToolCallCard.kt$private fun computeLineDiff(old: String?, new: String): List&lt;DiffLine&gt;</ID>
-    <ID>ForbiddenImport:ApiKeyCard.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:AslMarkdownText.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:AslThinkingBlock.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Badge.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Banner.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:BottomSheet.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:BottomToolPanel.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Button.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ChatBubble.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ChatCodeBlock.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Checkbox.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Chip.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Dialog.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Dropdown.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:EditorToolbar.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:EmptyState.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ErrorState.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Fab.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:FileTabBar.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:FileTree.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:IconButton.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:LinearProgress.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ListItem.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:MemoryChartMini.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Menu.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:NavRail.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:PermissionCard.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ProjectCard.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:RadioGroup.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:SegmentedButton.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Slider.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Snackbar.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:SplitButton.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:StatusChip.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:Switch.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:TemplateCard.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:TextField.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:Theme.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ThemeSwatchPicker.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ToolCallCard.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:ToolWindowPanel.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:TopAppBar.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:WizardStepper.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>LongMethod:ApiKeyCard.kt$@Composable fun AslApiKeyCard( provider: String, value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, providerIcon: String = "sparkles", description: String? = null, placeholder: String = "sk-…", status: AslApiKeyStatus = AslApiKeyStatus.None, errorMessage: String? = null, onTest: (String) -&gt; Unit = {}, testing: Boolean = false, onCollapse: (() -&gt; Unit)? = null, )</ID>
     <ID>LongMethod:AslMarkdownText.kt$@Composable fun AslMarkdownText( markdown: String, modifier: Modifier = Modifier, onCopyCode: (String) -&gt; Unit = {}, )</ID>
     <ID>LongMethod:AutocompletePopup.kt$@Composable fun AslAutocompletePopup( suggestions: List&lt;AslSuggestion&gt;, modifier: Modifier = Modifier, activeIndex: Int = 0, onSelect: (AslSuggestion, Int) -&gt; Unit = { _, _ -&gt; }, )</ID>

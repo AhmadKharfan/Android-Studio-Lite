@@ -17,7 +17,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import androidx.compose.material3.MaterialTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +41,7 @@ fun TerminalSettingsSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = stringResource(R.string.terminal_settings_title), style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+            Text(text = stringResource(R.string.terminal_settings_title), style = AslTypography.titleMedium, color = colors.textPrimary)
             Text(
                 text = stringResource(R.string.terminal_settings_volume_hint),
                 style = AslCode.codeSmall,

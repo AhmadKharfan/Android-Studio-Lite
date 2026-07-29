@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipK
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
@@ -137,7 +137,7 @@ private fun CloneRepoOptions(
     Column {
         Text(
             text = stringResource(R.string.projects_options),
-            style = MaterialTheme.typography.labelMedium,
+            style = AslTypography.labelMedium,
             color = colors.textSecondary,
         )
         FlowRow(

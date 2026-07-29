@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +37,7 @@ import kotlinx.coroutines.delay
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 private const val STACK_TRACE = """java.lang.OutOfMemoryError:
   Failed to allocate 48MB
@@ -114,12 +114,12 @@ private fun CrashReportMessage(colors: AslColorScheme) {
     Column {
         Text(
             text = "Something went wrong",
-            style = MaterialTheme.typography.headlineMedium,
+            style = AslTypography.headlineMedium,
             color = colors.textPrimary,
         )
         Text(
             text = "Android Studio Lite encountered an error and needs to restart. Your files are saved.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = AslTypography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
         )

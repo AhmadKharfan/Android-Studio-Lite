@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 
 @Composable
@@ -80,7 +80,7 @@ private fun GeneralUiModeSection(
     interactionListener: GeneralInteractionListener,
     colors: AslColorScheme,
 ) {
-    Text(text = stringResource(CommonR.string.general_ui_mode), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
+    Text(text = stringResource(CommonR.string.general_ui_mode), style = AslTypography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
     AslSegmentedButton(
         options = listOf(
             AslSegmentedOption(stringResource(CommonR.string.general_theme_light), "light", "sun"),

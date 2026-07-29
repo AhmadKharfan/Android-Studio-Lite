@@ -24,7 +24,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +58,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.domain.model.ApiKeyStatus
 
 @Composable
@@ -233,14 +233,14 @@ private fun AiAgentCollapsedProviderRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = provider.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = AslTypography.bodyMedium,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = provider.description,
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textTertiary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -269,7 +269,7 @@ private fun AiAgentModelPicker(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(CommonR.string.ai_chat_model),
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 color = colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )

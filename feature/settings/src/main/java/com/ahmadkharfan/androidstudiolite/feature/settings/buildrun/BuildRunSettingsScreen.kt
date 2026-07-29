@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,6 +38,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -120,7 +120,7 @@ private fun BuildRunOutputSection(
     }
     Text(
         text = stringResource(R.string.settings_build_aab_hint),
-        style = MaterialTheme.typography.bodySmall,
+        style = AslTypography.bodySmall,
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
     )
@@ -136,18 +136,18 @@ private fun BuildRunSigningSection(
     AslSectionHeader(stringResource(R.string.settings_build_signing))
     SectionCard {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            Text(stringResource(R.string.settings_build_debug_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+            Text(stringResource(R.string.settings_build_debug_keystore), style = AslTypography.labelMedium, color = colors.textSecondary)
             Text(
                 text = uiState.debugKeystorePath.ifBlank { stringResource(R.string.settings_build_debug_keystore_auto) },
-                style = MaterialTheme.typography.bodySmall,
+                style = AslTypography.bodySmall,
                 color = colors.textTertiary,
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(stringResource(R.string.settings_build_release_keystore), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+            Text(stringResource(R.string.settings_build_release_keystore), style = AslTypography.labelMedium, color = colors.textSecondary)
             if (uiState.hasReleaseKeystore) {
                 Text(
                     text = uiState.releaseKeystoreSummary.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textPrimary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -159,7 +159,7 @@ private fun BuildRunSigningSection(
             } else {
                 Text(
                     text = stringResource(R.string.settings_build_release_blocked),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AslTypography.bodySmall,
                     color = colors.textTertiary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -273,7 +273,7 @@ private fun ReleaseKeystoreDialog(
                     AslTextField(value = validity, onValueChange = { validity = it }, label = stringResource(R.string.settings_build_validity_years), type = AslTextFieldType.Number)
                 }
                 if (error != null) {
-                    Text(text = error, style = MaterialTheme.typography.bodySmall, color = AslTheme.colors.error)
+                    Text(text = error, style = AslTypography.bodySmall, color = AslTheme.colors.error)
                 }
             }
         },

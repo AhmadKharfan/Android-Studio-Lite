@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +35,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslDialogVariant { Alert, Confirm, Input }
 
@@ -73,7 +73,7 @@ fun AslDialog(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = title, style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
+                Text(text = title, style = AslTypography.headlineSmall, color = colors.textPrimary)
 
 
                 Column(
@@ -85,7 +85,7 @@ fun AslDialog(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (body != null) {
-                        Text(text = body, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                        Text(text = body, style = AslTypography.bodyMedium, color = colors.textSecondary)
                     }
                     if (variant == AslDialogVariant.Input && inputContent != null) {
                         inputContent()

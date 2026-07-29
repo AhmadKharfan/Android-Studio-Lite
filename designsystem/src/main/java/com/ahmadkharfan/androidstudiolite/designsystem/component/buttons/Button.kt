@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +31,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.preview.PreviewAslCompone
 import com.ahmadkharfan.androidstudiolite.designsystem.preview.AslPreview
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslButtonVariant { Primary, Secondary, Tertiary, Destructive }
 
@@ -68,7 +68,7 @@ fun AslButton(
             )
             icon != null -> AslIcon(name = icon, size = 18.dp)
         }
-        Text(text = label, style = MaterialTheme.typography.labelLarge)
+        Text(text = label, style = AslTypography.labelLarge)
         if (trailingIcon != null) {
             AslIcon(name = trailingIcon, size = 18.dp)
         }

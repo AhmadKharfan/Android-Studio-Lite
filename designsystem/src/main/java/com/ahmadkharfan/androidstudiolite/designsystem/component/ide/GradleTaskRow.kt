@@ -18,6 +18,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslCheck
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslGradleTaskRow(
@@ -51,7 +52,7 @@ fun AslGradleTaskRow(
             if (group != null) {
                 Text(
                     text = group,
-                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    style = AslTypography.labelSmall,
                     color = colors.textTertiary,
                     modifier = Modifier.padding(top = 1.dp),
                 )

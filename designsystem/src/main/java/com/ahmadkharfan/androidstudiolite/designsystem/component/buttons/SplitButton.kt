@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDro
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDropdownMenuItem
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 data class AslSplitButtonItem(val label: String, val icon: String? = null)
 
@@ -53,7 +53,7 @@ fun AslSplitButton(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AslIcon(name = icon, size = 18.dp, tint = contentColor)
-                Text(text = label, style = MaterialTheme.typography.labelLarge, color = contentColor)
+                Text(text = label, style = AslTypography.labelLarge, color = contentColor)
             }
             Row(
                 modifier = Modifier

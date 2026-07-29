@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +45,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 import kotlin.math.min
 
 data class AslBottomPanelTab(
@@ -204,7 +204,7 @@ fun AslBottomToolPanel(
                     }
                     Text(
                         text = tab.label,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AslTypography.labelMedium,
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                         color = tabFg,
                     )
@@ -220,7 +220,7 @@ fun AslBottomToolPanel(
                         ) {
                             Text(
                                 text = "${tab.count}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                style = AslTypography.labelSmall.copy(fontSize = 10.sp),
                                 color = if (tab.error) Color.White else colors.textSecondary,
                             )
                         }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslSnackbarTone { Neutral, Success, Error }
 
@@ -49,14 +49,14 @@ fun AslSnackbar(
         }
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
+            style = AslTypography.bodyMedium,
             color = colors.bgBase,
             modifier = Modifier.weight(1f),
         )
         if (actionLabel != null) {
             Text(
                 text = actionLabel,
-                style = MaterialTheme.typography.labelLarge,
+                style = AslTypography.labelLarge,
                 color = colors.accentPrimary,
                 modifier = Modifier
                     .clickable(onClick = onAction)

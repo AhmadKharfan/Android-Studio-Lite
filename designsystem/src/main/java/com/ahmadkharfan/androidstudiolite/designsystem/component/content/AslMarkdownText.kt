@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Composable
 fun AslMarkdownText(
@@ -47,17 +47,17 @@ fun AslMarkdownText(
             when (block) {
                 is MdBlock.Heading -> {
                     val style = when (block.level) {
-                        1 -> MaterialTheme.typography.titleLarge
-                        2 -> MaterialTheme.typography.titleMedium
-                        3 -> MaterialTheme.typography.titleSmall
-                        else -> MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        1 -> AslTypography.titleLarge
+                        2 -> AslTypography.titleMedium
+                        3 -> AslTypography.titleSmall
+                        else -> AslTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                     }
                     InlineMarkdown(text = block.text, color = colors.textPrimary, style = style)
                 }
                 is MdBlock.Paragraph -> InlineMarkdown(
                     text = block.text,
                     color = colors.textPrimary,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AslTypography.bodyMedium,
                 )
                 is MdBlock.Quote -> {
                     Row(
@@ -76,7 +76,7 @@ fun AslMarkdownText(
                         InlineMarkdown(
                             text = block.text,
                             color = colors.textSecondary,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                            style = AslTypography.bodyMedium.copy(fontStyle = FontStyle.Italic),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -102,19 +102,19 @@ fun AslMarkdownText(
                                 )
                                 block.ordered -> Text(
                                     text = "${index + 1}.",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = AslTypography.bodyMedium,
                                     color = colors.textSecondary,
                                 )
                                 else -> Text(
                                     text = "•",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = AslTypography.bodyMedium,
                                     color = colors.textSecondary,
                                 )
                             }
                             InlineMarkdown(
                                 text = item.text,
                                 color = colors.textPrimary,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AslTypography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                             )
                         }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -36,6 +35,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslFileIcons
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMetrics
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 @Immutable
 data class AslFileTab(val id: String, val name: String, val icon: String? = null, val modified: Boolean = false)
@@ -108,7 +108,7 @@ private fun AslFileTabItem(
             }
             Text(
                 text = tab.name,
-                style = MaterialTheme.typography.labelMedium,
+                style = AslTypography.labelMedium,
                 fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (active) colors.textPrimary else colors.textSecondary,
             )

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -52,6 +51,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
 
 enum class AslGitStatus(val letter: String) { Modified("M"), Added("A"), Deleted("D"), Untracked("?"), Conflicted("!") }
 
@@ -321,7 +321,7 @@ private fun RowScope.FileTreeRowLabel(
         Spacer(Modifier.width(6.dp))
         Text(
             text = node.name,
-            style = MaterialTheme.typography.bodySmall,
+            style = AslTypography.bodySmall,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             color = node.git?.let { gitTint(it, colors) } ?: colors.textPrimary,
             maxLines = 1,
