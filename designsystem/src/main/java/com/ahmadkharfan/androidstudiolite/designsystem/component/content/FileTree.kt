@@ -5,9 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -191,108 +193,173 @@ private fun AslFileTreeRow(
                 },
             ),
     ) {
-        Row(
+        FileTreeRowContent(
+            node = node,
+            expanded = expanded,
+            selected = selected,
+            selectDirectories = selectDirectories,
+            callbacks = FileTreeRowCallbacks(onToggle, onSelect, onFocus),
             modifier = Modifier
                 .width(rowWidth)
                 .height(AslMetrics.treeRow)
                 .padding(start = (8 + depth * 16).dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isDir) {
-                val rotation by animateFloatAsState(
-                    targetValue = if (expanded) 90f else 0f,
-                    animationSpec = AslMotion.standardSpec(),
-                    label = "chevronRotation",
-                )
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .then(
-                            if (selectDirectories) {
-                                Modifier.pointerInput(node.id) {
-                                    detectTapGestures(onTap = { onToggle(node.id) })
-                                }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    AslIcon(
-                        name = "chevron-right",
-                        size = 14.dp,
-                        tint = colors.textTertiary,
-                        modifier = Modifier.rotate(rotation),
-                    )
-                }
-            } else {
-                Box(modifier = Modifier.width(14.dp))
-            }
-            Spacer(Modifier.width(6.dp))
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .then(
-                        if (selectDirectories) {
-                            Modifier.pointerInput(node.id) {
-                                detectTapGestures(onTap = {
-                                    onFocus(node)
-                                    onSelect(node)
-                                })
-                            }
-                        } else {
-                            Modifier
-                        },
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AslIcon(
-                    name = node.icon ?: if (isDir) (if (expanded) "folder-open" else "folder") else "file",
-                    size = 16.dp,
-                    tint = when {
-                        isDir -> colors.textSecondary
-                        else -> AslFileIcons.tintFor(node.name, colors)
-                    },
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = node.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                    color = node.git?.let { gitTint(it, colors) } ?: colors.textPrimary,
-                    maxLines = 1,
-                    softWrap = false,
-                )
-                if (node.git != null) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = node.git.letter,
-                        style = AslCode.codeTiny,
-                        color = gitTint(node.git, colors),
-                    )
-                }
-            }
-        }
+        )
         if (actionsEnabled && menuOpen) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset(x = menuAnchor.x, y = menuAnchor.y)
-                    .size(1.dp),
-            ) {
-                AslFileTreeActionMenu(
-                    isDirectory = isDir,
-                    canPaste = canPaste,
-                    openUpward = openMenuUpward,
-                    onDismiss = { menuOpen = false },
-                    onSelect = { action ->
-                        menuOpen = false
-                        onAction(node, action)
-                    },
-                )
+            FileTreeRowMenu(menuAnchor, isDir, canPaste, openMenuUpward, onDismiss = { menuOpen = false }) { action ->
+                menuOpen = false
+                onAction(node, action)
             }
         }
+    }
+}
+
+@Immutable
+private data class FileTreeRowCallbacks(
+    val onToggle: (String) -> Unit,
+    val onSelect: (AslFileTreeNode) -> Unit,
+    val onFocus: (AslFileTreeNode) -> Unit,
+)
+
+@Composable
+private fun FileTreeRowContent(
+    node: AslFileTreeNode,
+    expanded: Boolean,
+    selected: Boolean,
+    selectDirectories: Boolean,
+    callbacks: FileTreeRowCallbacks,
+    modifier: Modifier = Modifier,
+) {
+    val isDirectory = node.children != null
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FileTreeRowChevron(node, isDirectory, expanded, selectDirectories, callbacks.onToggle)
+        Spacer(Modifier.width(6.dp))
+        FileTreeRowLabel(node, isDirectory, expanded, selected, selectDirectories, callbacks.onSelect, callbacks.onFocus)
+    }
+}
+
+@Composable
+private fun FileTreeRowChevron(
+    node: AslFileTreeNode,
+    isDirectory: Boolean,
+    expanded: Boolean,
+    selectDirectories: Boolean,
+    onToggle: (String) -> Unit,
+) {
+    if (isDirectory) {
+        val colors = AslTheme.colors
+        val rotation by animateFloatAsState(
+            targetValue = if (expanded) 90f else 0f,
+            animationSpec = AslMotion.standardSpec(),
+            label = "chevronRotation",
+        )
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .then(
+                    if (selectDirectories) {
+                        Modifier.pointerInput(node.id) {
+                            detectTapGestures(onTap = { onToggle(node.id) })
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            AslIcon(
+                name = "chevron-right",
+                size = 14.dp,
+                tint = colors.textTertiary,
+                modifier = Modifier.rotate(rotation),
+            )
+        }
+    } else {
+        Box(modifier = Modifier.width(14.dp))
+    }
+}
+
+@Composable
+private fun RowScope.FileTreeRowLabel(
+    node: AslFileTreeNode,
+    isDirectory: Boolean,
+    expanded: Boolean,
+    selected: Boolean,
+    selectDirectories: Boolean,
+    onSelect: (AslFileTreeNode) -> Unit,
+    onFocus: (AslFileTreeNode) -> Unit,
+) {
+    val colors = AslTheme.colors
+    Row(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .then(
+                if (selectDirectories) {
+                    Modifier.pointerInput(node.id) {
+                        detectTapGestures(onTap = {
+                            onFocus(node)
+                            onSelect(node)
+                        })
+                    }
+                } else {
+                    Modifier
+                },
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AslIcon(
+            name = node.icon ?: if (isDirectory) (if (expanded) "folder-open" else "folder") else "file",
+            size = 16.dp,
+            tint = when {
+                isDirectory -> colors.textSecondary
+                else -> AslFileIcons.tintFor(node.name, colors)
+            },
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = node.name,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            color = node.git?.let { gitTint(it, colors) } ?: colors.textPrimary,
+            maxLines = 1,
+            softWrap = false,
+        )
+        if (node.git != null) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = node.git.letter,
+                style = AslCode.codeTiny,
+                color = gitTint(node.git, colors),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.FileTreeRowMenu(
+    menuAnchor: DpOffset,
+    isDirectory: Boolean,
+    canPaste: Boolean,
+    openUpward: Boolean,
+    onDismiss: () -> Unit,
+    onSelect: (AslFileTreeAction) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .offset(x = menuAnchor.x, y = menuAnchor.y)
+            .size(1.dp),
+    ) {
+        AslFileTreeActionMenu(
+            isDirectory = isDirectory,
+            canPaste = canPaste,
+            openUpward = openUpward,
+            onDismiss = onDismiss,
+            onSelect = onSelect,
+        )
     }
 }
 
