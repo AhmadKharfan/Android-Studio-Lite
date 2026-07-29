@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,6 +45,7 @@ fun AslNavHost(
     onOpenProjectConsumed: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
+    val currentOnOpenProjectConsumed by rememberUpdatedState(onOpenProjectConsumed)
     LaunchedEffect(openProjectId) {
         val id = openProjectId ?: return@LaunchedEffect
 
@@ -52,7 +54,7 @@ fun AslNavHost(
                 launchSingleTop = true
             }
         }
-        onOpenProjectConsumed()
+        currentOnOpenProjectConsumed()
     }
     NavHost(
         navController = navController,
@@ -180,7 +182,13 @@ fun AslNavHost(
             val target = runCatching {
                 GitDiffTarget.valueOf(backStackEntry.arguments?.getString("target").orEmpty())
             }.getOrDefault(GitDiffTarget.INDEX_TO_WORKTREE)
-            GitDiffRoute(projectId, path, target, commitId, onBack = { navController.popBackStack() })
+            GitDiffRoute(
+                projectId = projectId,
+                path = path,
+                target = target,
+                onBack = { navController.popBackStack() },
+                commitId = commitId,
+            )
         }
 
         composable(

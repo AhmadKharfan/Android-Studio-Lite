@@ -23,15 +23,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
@@ -95,6 +94,7 @@ fun EditorRoute(
     viewModel: EditorViewModel = koinViewModel { parametersOf(projectId) },
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnConflictPathOpened by rememberUpdatedState(onConflictPathOpened)
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -103,7 +103,7 @@ fun EditorRoute(
     LaunchedEffect(openConflictPath) {
         openConflictPath?.let {
             viewModel.onOpenFile(it, File(it).name)
-            onConflictPathOpened()
+            currentOnConflictPathOpened()
         }
     }
 
@@ -123,18 +123,8 @@ fun EditorRoute(
     }
 
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> viewModel.onAppForegrounded()
-                Lifecycle.Event.ON_STOP -> viewModel.flushPendingSaves()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAppForegrounded() }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flushPendingSaves() }
 
     EditorScreen(
         uiState = uiState,

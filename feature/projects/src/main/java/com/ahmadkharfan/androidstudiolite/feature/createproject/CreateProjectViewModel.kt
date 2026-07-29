@@ -148,7 +148,7 @@ class CreateProjectViewModel(
             onStart = { updateState { copy(creating = true) } },
             block = {
                 val templateId = state.value.selectedTemplateId
-                    ?: throw IllegalStateException("No template selected")
+                    ?: error("No template selected")
                 projectRepository.createProject(
                     NewProjectSpec(
                         name = s.projectName,

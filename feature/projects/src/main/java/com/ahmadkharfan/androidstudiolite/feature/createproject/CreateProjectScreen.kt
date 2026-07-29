@@ -7,6 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -34,14 +35,16 @@ fun CreateProjectRoute(
     viewModel: CreateProjectViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnCreated by rememberUpdatedState(onCreated)
+    val currentOnPickedFolderConsumed by rememberUpdatedState(onPickedFolderConsumed)
 
     LaunchedEffect(uiState.createdProjectId) {
-        uiState.createdProjectId?.let(onCreated)
+        uiState.createdProjectId?.let(currentOnCreated)
     }
     LaunchedEffect(pickedFolder) {
         pickedFolder?.let {
             viewModel.onLocationChanged(it)
-            onPickedFolderConsumed()
+            currentOnPickedFolderConsumed()
         }
     }
 

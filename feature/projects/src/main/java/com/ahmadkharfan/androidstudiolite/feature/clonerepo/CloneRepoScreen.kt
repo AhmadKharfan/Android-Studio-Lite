@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,10 +36,11 @@ fun CloneRepoRoute(
     viewModel: CloneRepoViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnCloned by rememberUpdatedState(onCloned)
 
     LaunchedEffect(uiState.clonedProjectId) {
         val clonedProjectId = uiState.clonedProjectId ?: return@LaunchedEffect
-        onCloned(clonedProjectId)
+        currentOnCloned(clonedProjectId)
         viewModel.onClonedProjectOpened()
     }
 
