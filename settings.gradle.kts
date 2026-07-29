@@ -44,5 +44,6 @@ include(":feature:projects")
 include(":feature:terminal")
 include(":feature:buildrun")
 include(":feature:git")
+include(":feature:git:api")
 include(":feature:editor")
  

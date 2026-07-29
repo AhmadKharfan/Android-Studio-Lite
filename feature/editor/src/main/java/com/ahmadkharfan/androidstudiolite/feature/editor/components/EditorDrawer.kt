@@ -45,7 +45,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsRoute
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelApi
+import com.ahmadkharfan.androidstudiolite.feature.git.api.GitPanelApi
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileCreateKind
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreeAction

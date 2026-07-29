@@ -10,7 +10,7 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions

@@ -4,7 +4,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.core.common)
     implementation(projects.designsystem)
-    implementation(projects.feature.git)
+    implementation(projects.feature.git.api)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.activity.compose)

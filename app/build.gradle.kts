@@ -132,6 +132,7 @@ dependencies {
     implementation(projects.feature.terminal)
     implementation(projects.feature.buildrun)
     implementation(projects.feature.git)
+    implementation(projects.feature.git.api)
     implementation(projects.feature.editor)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

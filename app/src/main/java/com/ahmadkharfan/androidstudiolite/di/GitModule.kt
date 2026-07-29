@@ -24,7 +24,7 @@ import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelApi
+import com.ahmadkharfan.androidstudiolite.feature.git.api.GitPanelApi
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelApiImpl
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitPanelViewModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffViewModel

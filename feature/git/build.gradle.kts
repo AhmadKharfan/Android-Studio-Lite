@@ -3,6 +3,7 @@ plugins { id("asl.android.feature") }
 android { namespace = "com.ahmadkharfan.androidstudiolite.feature.git" }
 
 dependencies {
+    implementation(projects.feature.git.api)
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.core.common)
     implementation(projects.designsystem)

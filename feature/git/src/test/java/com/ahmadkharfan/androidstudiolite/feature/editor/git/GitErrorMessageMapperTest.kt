@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 import org.junit.Assert.assertEquals
 import org.junit.Test

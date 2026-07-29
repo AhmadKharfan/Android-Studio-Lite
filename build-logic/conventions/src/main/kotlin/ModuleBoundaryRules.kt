@@ -86,7 +86,5 @@ private fun violationFor(edge: ModuleEdge): BoundaryViolation? = when {
 /** Edges that are allowed for now and expected to be removed. Nothing may be added to this list. */
 val MODULE_BOUNDARY_BASELINE: Set<String> = setOf(
     ":feature:editor -> :feature:buildrun",
-    ":feature:editor -> :feature:git",
-    ":feature:projects -> :feature:git",
     ":feature:settings -> :feature:git",
 )

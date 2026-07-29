@@ -5,7 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.git.GitViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.gitErrorMessage
+import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
 import java.io.File
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 

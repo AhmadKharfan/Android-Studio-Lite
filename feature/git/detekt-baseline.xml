@@ -3,7 +3,6 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>CyclomaticComplexMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
-    <ID>CyclomaticComplexMethod:GitErrorMessageMapper.kt$fun gitErrorMessage(error: Throwable): String</ID>
     <ID>CyclomaticComplexMethod:GitHistoryScreen.kt$@Composable private fun GitHistoryScreen( uiState: GitHistoryUiState, interactionListener: GitHistoryInteractionListener, onBack: () -&gt; Unit, onOpenDiff: (String, String) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:GitPanelScreen.kt$@Composable private fun GitPanelScreen( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
     <ID>LongMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
@@ -12,7 +11,6 @@
     <ID>LongMethod:GitPanelScreen.kt$@Composable private fun GitPanelScreen( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
     <ID>LongMethod:GitRefsScreen.kt$@Composable private fun BranchList( state: GitRefsUiState, interactionListener: GitRefsInteractionListener, onRename: (GitBranch) -&gt; Unit, onDelete: (GitBranch) -&gt; Unit, onMerge: (GitBranch) -&gt; Unit, )</ID>
     <ID>LongMethod:GitRefsScreen.kt$@Composable private fun GitRefsScreen( uiState: GitRefsUiState, interactionListener: GitRefsInteractionListener, onBack: () -&gt; Unit, )</ID>
-    <ID>LongParameterList:GitPanelApi.kt$GitPanelApi$( projectId: String, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit = { _, _ -&gt; }, onOpenHistory: () -&gt; Unit = {}, onOpenBranches: () -&gt; Unit = {}, onOpenTags: () -&gt; Unit = {}, onOpenStashes: () -&gt; Unit = {}, onOpenConflicts: () -&gt; Unit = {}, )</ID>
     <ID>LongParameterList:GitPanelScreen.kt$( projectId: String, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit = { _, _ -&gt; }, onOpenHistory: () -&gt; Unit = {}, onOpenBranches: () -&gt; Unit = {}, onOpenTags: () -&gt; Unit = {}, onOpenStashes: () -&gt; Unit = {}, onOpenConflicts: () -&gt; Unit = {}, viewModel: GitPanelViewModel = koinViewModel { parametersOf(projectId) }, )</ID>
     <ID>LongParameterList:GitPanelScreen.kt$( uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
     <ID>ModifierMissing:GitAuthPrompt.kt$GitHubAuthDialog</ID>

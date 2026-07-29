@@ -1,21 +1,8 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor.git
 
 import androidx.compose.runtime.Composable
+import com.ahmadkharfan.androidstudiolite.feature.git.api.GitPanelApi
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
-
-interface GitPanelApi {
-    @Composable
-    fun Panel(
-        projectId: String,
-        onClose: () -> Unit,
-        onOpenDiff: (String, GitDiffTarget) -> Unit = { _, _ -> },
-        onOpenHistory: () -> Unit = {},
-        onOpenBranches: () -> Unit = {},
-        onOpenTags: () -> Unit = {},
-        onOpenStashes: () -> Unit = {},
-        onOpenConflicts: () -> Unit = {},
-    )
-}
 
 class GitPanelApiImpl : GitPanelApi {
     @Composable
