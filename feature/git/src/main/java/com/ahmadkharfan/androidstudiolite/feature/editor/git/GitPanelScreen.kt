@@ -22,6 +22,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -288,113 +289,130 @@ private fun GitChangesHeader(
     }
     val statusText = uiState.operationLabel ?: uiState.statusMessage
     if (statusText != null || uiState.isBusy) {
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp)) {
-            if (statusText != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = statusText,
-                        style = AslTypography.labelSmall,
-                        color = colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (uiState.operationCancellable) {
-                        AslIconButton(
-                            icon = "x",
-                            contentDescription = stringResource(R.string.git_panel_cancel_operation),
-                            onClick = interactionListener::onCancelOperation,
-                            size = 32.dp,
-                            iconSize = 16.dp,
-                        )
-                    }
-                }
-            }
-            if (uiState.isBusy) {
-                AslLinearProgress(value = uiState.operationProgress, modifier = Modifier.padding(top = 4.dp, end = 4.dp))
-            }
-        }
+        GitChangesStatus(
+            uiState = uiState,
+            statusText = statusText,
+            interactionListener = interactionListener,
+            textColor = colors.textSecondary,
+        )
     }
     if (uiState.hasChipRow) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (uiState.hasSelection) {
-                AslChip(
-                    label = pluralStringResource(R.plurals.git_panel_selected, uiState.selectionCount, uiState.selectionCount),
-                    kind = AslChipKind.Filter,
-                    selected = true,
+        GitChangesChipRow(uiState, interactionListener)
+    }
+    HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+}
+
+@Composable
+private fun GitChangesStatus(
+    uiState: GitPanelUiState,
+    statusText: String?,
+    interactionListener: GitPanelInteractionListener,
+    textColor: Color,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp)) {
+        if (statusText != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = statusText,
+                    style = AslTypography.labelSmall,
+                    color = textColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                if (uiState.canStageSelection) {
-                    AslChip(
-                        label = stringResource(R.string.git_panel_stage),
-                        icon = "plus",
-                        kind = AslChipKind.Filter,
-                        disabled = uiState.isBusy,
-                        onClick = interactionListener::onStageSelected,
-                    )
-                }
-                if (uiState.canUnstageSelection) {
-                    AslChip(
-                        label = stringResource(R.string.git_panel_unstage),
-                        icon = "minus",
-                        kind = AslChipKind.Filter,
-                        disabled = uiState.isBusy,
-                        onClick = interactionListener::onUnstageSelected,
-                    )
-                }
-                if (uiState.canRevertSelection) {
-                    AslChip(
-                        label = stringResource(R.string.git_panel_revert),
-                        icon = "rotate-ccw",
-                        kind = AslChipKind.Filter,
-                        disabled = uiState.isBusy,
-                        onClick = interactionListener::onRevertSelected,
-                    )
-                }
-                AslChip(
-                    label = stringResource(R.string.git_panel_clear),
-                    icon = "x",
-                    kind = AslChipKind.Assist,
-                    disabled = uiState.isBusy,
-                    onClick = interactionListener::onClearSelection,
-                )
-            } else {
-                if (uiState.changeCount > 0) {
-                    AslChip(
-                        label = pluralStringResource(
-                            R.plurals.git_panel_changes,
-                            uiState.changeCount,
-                            uiState.changeCount,
-                        ),
-                        kind = AslChipKind.Status,
-                        status = AslChipStatus.Neutral,
-                    )
-                }
-                uiState.behind?.takeIf { it > 0 }?.let {
-                    AslChip(label = behindLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Info)
-                }
-                uiState.ahead?.takeIf { it > 0 }?.let {
-                    AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success)
-                }
-                if (uiState.changeCount > 0) {
-                    AslChip(
-                        label = stringResource(R.string.git_panel_select),
-                        icon = "circle-check",
-                        kind = AslChipKind.Filter,
-                        disabled = uiState.isBusy,
-                        onClick = interactionListener::onSelectAllChanges,
+                if (uiState.operationCancellable) {
+                    AslIconButton(
+                        icon = "x",
+                        contentDescription = stringResource(R.string.git_panel_cancel_operation),
+                        onClick = interactionListener::onCancelOperation,
+                        size = 32.dp,
+                        iconSize = 16.dp,
                     )
                 }
             }
         }
+        if (uiState.isBusy) {
+            AslLinearProgress(value = uiState.operationProgress, modifier = Modifier.padding(top = 4.dp, end = 4.dp))
+        }
     }
-    HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+}
+
+@Composable
+private fun GitChangesChipRow(
+    uiState: GitPanelUiState,
+    interactionListener: GitPanelInteractionListener,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (uiState.hasSelection) {
+            AslChip(label = pluralStringResource(R.plurals.git_panel_selected, uiState.selectionCount, uiState.selectionCount), kind = AslChipKind.Filter, selected = true)
+            if (uiState.canStageSelection) {
+                GitSelectionActionChip(stringResource(R.string.git_panel_stage), "plus", uiState.isBusy, interactionListener::onStageSelected)
+            }
+            if (uiState.canUnstageSelection) {
+                GitSelectionActionChip(stringResource(R.string.git_panel_unstage), "minus", uiState.isBusy, interactionListener::onUnstageSelected)
+            }
+            if (uiState.canRevertSelection) {
+                GitSelectionActionChip(stringResource(R.string.git_panel_revert), "rotate-ccw", uiState.isBusy, interactionListener::onRevertSelected)
+            }
+            AslChip(
+                label = stringResource(R.string.git_panel_clear),
+                icon = "x",
+                kind = AslChipKind.Assist,
+                disabled = uiState.isBusy,
+                onClick = interactionListener::onClearSelection,
+            )
+        } else {
+            if (uiState.changeCount > 0) {
+                AslChip(
+                    label = pluralStringResource(
+                        R.plurals.git_panel_changes,
+                        uiState.changeCount,
+                        uiState.changeCount,
+                    ),
+                    kind = AslChipKind.Status,
+                    status = AslChipStatus.Neutral,
+                )
+            }
+            uiState.behind?.takeIf { it > 0 }?.let {
+                AslChip(label = behindLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Info)
+            }
+            uiState.ahead?.takeIf { it > 0 }?.let {
+                AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success)
+            }
+            if (uiState.changeCount > 0) {
+                AslChip(
+                    label = stringResource(R.string.git_panel_select),
+                    icon = "circle-check",
+                    kind = AslChipKind.Filter,
+                    disabled = uiState.isBusy,
+                    onClick = interactionListener::onSelectAllChanges,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GitSelectionActionChip(
+    label: String,
+    icon: String,
+    disabled: Boolean,
+    onClick: () -> Unit,
+) {
+    AslChip(
+        label = label,
+        icon = icon,
+        kind = AslChipKind.Filter,
+        disabled = disabled,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -846,45 +864,50 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
             )
         }
         HorizontalDivider(color = AslTheme.colors.borderSubtle)
-        when {
-            uiState.remotesLoading -> AslLinearProgress(
-                label = stringResource(R.string.git_remotes_loading),
-                modifier = Modifier.padding(16.dp),
-            )
-            uiState.remotes.isEmpty() -> AslEmptyState(
-                icon = "globe",
-                title = stringResource(R.string.git_remotes_none),
-                subtitle = stringResource(R.string.git_remotes_none_hint),
-                modifier = Modifier.fillMaxSize(),
-            )
-            else -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                uiState.remotes.forEach { remote ->
-                    AslListItem(
-                        title = remote.name,
-                        subtitle = remote.url.middleEllipsis(),
-                        icon = "globe",
-                        trailing = {
-                            Row {
-                                AslIconButton(
-                                    icon = "edit-2",
-                                    contentDescription = stringResource(R.string.git_remotes_edit_description, remote.name),
-                                    onClick = { interactionListener.onEditRemote(remote.name) },
-                                    size = 28.dp,
-                                    iconSize = 14.dp,
-                                    disabled = uiState.isBusy,
-                                )
-                                AslIconButton(
-                                    icon = "trash-2",
-                                    contentDescription = stringResource(R.string.git_remotes_remove_description, remote.name),
-                                    onClick = { interactionListener.onRequestRemoveRemote(remote.name) },
-                                    size = 28.dp,
-                                    iconSize = 14.dp,
-                                    disabled = uiState.isBusy,
-                                )
-                            }
-                        },
-                    )
-                }
+        RemotesContent(uiState, interactionListener)
+    }
+}
+
+@Composable
+private fun RemotesContent(uiState: GitPanelUiState, interactionListener: GitPanelInteractionListener) {
+    when {
+        uiState.remotesLoading -> AslLinearProgress(
+            label = stringResource(R.string.git_remotes_loading),
+            modifier = Modifier.padding(16.dp),
+        )
+        uiState.remotes.isEmpty() -> AslEmptyState(
+            icon = "globe",
+            title = stringResource(R.string.git_remotes_none),
+            subtitle = stringResource(R.string.git_remotes_none_hint),
+            modifier = Modifier.fillMaxSize(),
+        )
+        else -> Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            uiState.remotes.forEach { remote ->
+                AslListItem(
+                    title = remote.name,
+                    subtitle = remote.url.middleEllipsis(),
+                    icon = "globe",
+                    trailing = {
+                        Row {
+                            AslIconButton(
+                                icon = "edit-2",
+                                contentDescription = stringResource(R.string.git_remotes_edit_description, remote.name),
+                                onClick = { interactionListener.onEditRemote(remote.name) },
+                                size = 28.dp,
+                                iconSize = 14.dp,
+                                disabled = uiState.isBusy,
+                            )
+                            AslIconButton(
+                                icon = "trash-2",
+                                contentDescription = stringResource(R.string.git_remotes_remove_description, remote.name),
+                                onClick = { interactionListener.onRequestRemoveRemote(remote.name) },
+                                size = 28.dp,
+                                iconSize = 14.dp,
+                                disabled = uiState.isBusy,
+                            )
+                        }
+                    },
+                )
             }
         }
     }
