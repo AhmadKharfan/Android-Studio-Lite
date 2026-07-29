@@ -8,8 +8,6 @@ dependencies {
     implementation(projects.domain)
     implementation(projects.core.common)
     implementation(projects.data.build)
-    implementation(projects.data.local)
-    implementation(projects.data.git)
     implementation(projects.designsystem)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

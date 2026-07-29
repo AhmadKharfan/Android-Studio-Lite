@@ -6,7 +6,6 @@ dependencies {
     implementation(projects.domain)
     implementation(projects.core.common)
     implementation(projects.designsystem)
-    implementation(projects.data.local)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
