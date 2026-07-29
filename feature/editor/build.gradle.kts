@@ -8,7 +8,6 @@ dependencies {
     implementation(projects.designsystem)
     implementation(projects.feature.buildrun)
     implementation(projects.feature.git)
-    implementation(projects.feature.terminal)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.compose.material3)

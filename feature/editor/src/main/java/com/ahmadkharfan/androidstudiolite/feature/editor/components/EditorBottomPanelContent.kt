@@ -41,7 +41,6 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildTaskGroup
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.toClipboardText
-import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
 
 @Composable
 fun EditorBottomPanelContent(
@@ -50,10 +49,13 @@ fun EditorBottomPanelContent(
     modifier: Modifier = Modifier,
     projectRootPath: String = "",
     onJumpToBuildProblem: (BuildProblem) -> Unit = {},
+    // The terminal is supplied by the host rather than imported: the editor describes where a
+    // terminal goes, and :app decides which implementation fills it.
+    terminalContent: @Composable (projectRootPath: String, modifier: Modifier) -> Unit = { _, _ -> },
 ) {
     when (activeTabId) {
         "build" -> BuildTab(buildConsole, onJumpToBuildProblem, modifier)
-        "term" -> EditorEmbeddedTerminal(projectRootPath = projectRootPath, modifier = modifier)
+        "term" -> terminalContent(projectRootPath, modifier)
         else -> AslEmptyState(
             icon = "terminal",
             title = stringResource(R.string.editor_bottom_empty),

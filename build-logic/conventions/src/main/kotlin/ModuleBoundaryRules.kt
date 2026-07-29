@@ -87,7 +87,6 @@ private fun violationFor(edge: ModuleEdge): BoundaryViolation? = when {
 val MODULE_BOUNDARY_BASELINE: Set<String> = setOf(
     ":feature:editor -> :feature:buildrun",
     ":feature:editor -> :feature:git",
-    ":feature:editor -> :feature:terminal",
     ":feature:projects -> :feature:git",
     ":feature:settings -> :feature:git",
 )
