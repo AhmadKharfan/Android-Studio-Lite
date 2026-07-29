@@ -107,6 +107,7 @@ fun TerminalEmulatorView(
     val context = LocalContext.current
     val density = LocalDensity.current
     val colors = AslTheme.colors
+    val currentOnResize by rememberUpdatedState(onResize)
     val lightTerminal = remember(background) {
         val r = background.red
         val g = background.green
@@ -382,7 +383,7 @@ fun TerminalEmulatorView(
             if (rows != lastEmittedRows || cols != lastEmittedCols) {
                 lastEmittedRows = rows
                 lastEmittedCols = cols
-                onResize(rows, cols)
+                currentOnResize(rows, cols)
             }
         }
 

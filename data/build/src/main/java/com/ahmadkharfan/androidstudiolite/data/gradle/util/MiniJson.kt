@@ -9,7 +9,7 @@ object MiniJson {
 
         fun parseValue(): Any? {
             skipWs()
-            if (i >= s.length) throw IllegalArgumentException("Unexpected end of JSON")
+            require(i < s.length) { "Unexpected end of JSON" }
             return when (s[i]) {
                 '{' -> parseObject()
                 '[' -> parseArray()
@@ -85,19 +85,26 @@ object MiniJson {
             return s.substring(start, i).toDouble()
         }
 
-        private fun parseBoolean(): Boolean =
-            if (s.startsWith("true", i)) { i += 4; true }
-            else if (s.startsWith("false", i)) { i += 5; false }
-            else throw IllegalArgumentException("Invalid literal at $i")
+        private fun parseBoolean(): Boolean {
+            if (s.startsWith("true", i)) {
+                i += 4
+                return true
+            }
+            require(s.startsWith("false", i)) { "Invalid literal at $i" }
+            i += 5
+            return false
+        }
 
-        private fun parseNull(): Any? =
-            if (s.startsWith("null", i)) { i += 4; null }
-            else throw IllegalArgumentException("Invalid literal at $i")
+        private fun parseNull(): Any? {
+            require(s.startsWith("null", i)) { "Invalid literal at $i" }
+            i += 4
+            return null
+        }
 
         private fun skipWs() { while (i < s.length && s[i].isWhitespace()) i++ }
         private fun peek(): Char = if (i < s.length) s[i] else '\u0000'
         private fun expect(c: Char) {
-            if (peek() != c) throw IllegalArgumentException("Expected '$c' at $i")
+            require(peek() == c) { "Expected '$c' at $i" }
             i++
         }
     }

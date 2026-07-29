@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,11 +30,12 @@ fun OpenProjectRoute(
     viewModel: OpenProjectViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnProjectSelected by rememberUpdatedState(onProjectSelected)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                is OpenProjectEffect.NavigateToProject -> onProjectSelected(effect.id)
+                is OpenProjectEffect.NavigateToProject -> currentOnProjectSelected(effect.id)
             }
         }
     }

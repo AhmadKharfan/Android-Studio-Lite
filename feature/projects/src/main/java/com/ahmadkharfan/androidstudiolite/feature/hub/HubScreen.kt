@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,20 +78,24 @@ fun HubRoute(
     viewModel: HubViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val currentOnOpenProject by rememberUpdatedState(onOpenProject)
+    val currentOnCreateProject by rememberUpdatedState(onCreateProject)
+    val currentOnOpenPreferences by rememberUpdatedState(onOpenPreferences)
+    val currentOnPickedFolderConsumed by rememberUpdatedState(onPickedFolderConsumed)
 
     LaunchedEffect(pickedFolder) {
         pickedFolder?.let { path ->
             viewModel.onFolderPicked(path)
-            onPickedFolderConsumed()
+            currentOnPickedFolderConsumed()
         }
     }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collectLatest { effect ->
             when (effect) {
-                is HubEffect.NavigateToProject -> onOpenProject(effect.id)
-                HubEffect.NavigateToCreateProject -> onCreateProject()
-                HubEffect.NavigateToPreferences -> onOpenPreferences()
+                is HubEffect.NavigateToProject -> currentOnOpenProject(effect.id)
+                HubEffect.NavigateToCreateProject -> currentOnCreateProject()
+                HubEffect.NavigateToPreferences -> currentOnOpenPreferences()
             }
         }
     }

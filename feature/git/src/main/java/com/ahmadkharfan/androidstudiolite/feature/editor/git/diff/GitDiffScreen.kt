@@ -74,8 +74,8 @@ fun GitDiffRoute(
     projectId: String,
     path: String,
     target: GitDiffTarget,
-    commitId: String? = null,
     onBack: () -> Unit,
+    commitId: String? = null,
     viewModel: GitDiffViewModel = koinViewModel { parametersOf(projectId, path, target, commitId.orEmpty()) },
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()

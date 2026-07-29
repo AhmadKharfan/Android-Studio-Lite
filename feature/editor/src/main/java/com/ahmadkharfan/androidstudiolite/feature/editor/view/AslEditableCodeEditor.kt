@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -168,16 +169,17 @@ fun EditorVolumeScrollEffect(
     enabled: Boolean,
     onVolumeKey: (volumeUp: Boolean) -> Unit,
 ) {
+    val currentOnVolumeKey by rememberUpdatedState(onVolumeKey)
     DisposableEffect(enabled) {
         if (!enabled) return@DisposableEffect onDispose {}
         EditorVolumeKeyDispatcher.handler = { event ->
             when (event.keyCode) {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    onVolumeKey(false)
+                    currentOnVolumeKey(false)
                     true
                 }
                 KeyEvent.KEYCODE_VOLUME_UP -> {
-                    onVolumeKey(true)
+                    currentOnVolumeKey(true)
                     true
                 }
                 else -> false

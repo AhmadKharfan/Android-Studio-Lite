@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.FormBody
@@ -184,27 +185,19 @@ class GitHubDeviceFlowAuthenticator(
 
     @Serializable
     private data class DeviceCodeResponse(
-        val device_code: String? = null,
-        val user_code: String? = null,
-        val verification_uri: String? = null,
-        val expires_in: Int? = null,
+        @SerialName("device_code") val deviceCode: String? = null,
+        @SerialName("user_code") val userCode: String? = null,
+        @SerialName("verification_uri") val verificationUri: String? = null,
+        @SerialName("expires_in") val expiresIn: Int? = null,
         val interval: Int? = null,
-    ) {
-        val deviceCode get() = device_code
-        val userCode get() = user_code
-        val verificationUri get() = verification_uri
-        val expiresIn get() = expires_in
-    }
+    )
 
     @Serializable
     private data class AccessTokenResponse(
-        val access_token: String? = null,
+        @SerialName("access_token") val accessToken: String? = null,
         val error: String? = null,
-        val error_description: String? = null,
-    ) {
-        val accessToken get() = access_token
-        val errorDescription get() = error_description
-    }
+        @SerialName("error_description") val errorDescription: String? = null,
+    )
 
     @Serializable
     private data class GitHubUser(val login: String? = null)

@@ -37,8 +37,8 @@ private fun spec(status: AslStatus): StatusSpec = when (status) {
 
 @Composable
 fun AslStatusChip(
-    status: AslStatus = AslStatus.Success,
     modifier: Modifier = Modifier,
+    status: AslStatus = AslStatus.Success,
     label: String? = null,
 ) {
     val colors = AslTheme.colors

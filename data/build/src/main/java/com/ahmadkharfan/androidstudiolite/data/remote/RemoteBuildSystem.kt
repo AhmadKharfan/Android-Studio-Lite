@@ -239,9 +239,9 @@ class RemoteBuildSystem internal constructor(
         if (request.buildType.equals("release", ignoreCase = true) ||
             (request.buildType == null && RemoteBuildRequestFactory.isReleaseVariant(request.variantName))) {
             val config = releaseSigningResolver()
-                ?: throw IllegalStateException("Configure a release keystore in Settings before building a release artifact.")
+                ?: error("Configure a release keystore in Settings before building a release artifact.")
             RemoteBuildRequestFactory.releaseSigningMaterial(config, encodeBase64 = encodeBase64)
-                ?: throw IllegalStateException("The configured release keystore is missing or unreadable.")
+                ?: error("The configured release keystore is missing or unreadable.")
         } else {
             null
         }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -195,10 +196,13 @@ private fun HistoryList(
     onReset: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
+    val currentOnLoadNext by rememberUpdatedState(onLoadNext)
     LaunchedEffect(listState, state.nextCursor) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .distinctUntilChanged()
-            .collect { index -> if (state.nextCursor != null && index >= state.commits.lastIndex - 4) onLoadNext() }
+            .collect { index ->
+                if (state.nextCursor != null && index >= state.commits.lastIndex - 4) currentOnLoadNext()
+            }
     }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
         items(state.commits, key = { it.id }) { commit ->

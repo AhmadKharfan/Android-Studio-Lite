@@ -9,13 +9,6 @@
     <ID>CyclomaticComplexMethod:AgentReplyParser.kt$AgentReplyParser$fun toActionOrNull(element: JsonElement): AgentAction?</ID>
     <ID>InstanceOfCheckForException:AiLlmGateway.kt$AiLlmGateway$e is AiLlmException</ID>
     <ID>LoopWithTooManyJumpStatements:AgentReplySalvage.kt$AgentReplySalvage$while</ID>
-    <ID>NewLineAtEndOfFile:AnthropicProvider.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.AnthropicProvider.kt</ID>
-    <ID>NewLineAtEndOfFile:GeminiProvider.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.GeminiProvider.kt</ID>
-    <ID>NewLineAtEndOfFile:LlmHttp.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmHttp.kt</ID>
-    <ID>NewLineAtEndOfFile:LlmProvider.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmProvider.kt</ID>
-    <ID>NewLineAtEndOfFile:LlmProviderRegistry.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmProviderRegistry.kt</ID>
-    <ID>NewLineAtEndOfFile:LlmProviderRegistryTest.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.LlmProviderRegistryTest.kt</ID>
-    <ID>NewLineAtEndOfFile:OpenAiCompatProvider.kt$com.ahmadkharfan.androidstudiolite.data.ai.llm.OpenAiCompatProvider.kt</ID>
     <ID>TooGenericExceptionCaught:AiLlmGateway.kt$AiLlmGateway$e: Exception</ID>
   </CurrentIssues>
 </SmellBaseline>

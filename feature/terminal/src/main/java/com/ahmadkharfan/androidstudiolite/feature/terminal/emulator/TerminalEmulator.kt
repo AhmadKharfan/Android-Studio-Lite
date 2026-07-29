@@ -128,7 +128,10 @@ class TerminalEmulator(rows: Int, cols: Int) {
             '\u001B' -> { state = State.ESC; paramBuf.setLength(0) }
             '\n', '\u000B', '\u000C' -> lineFeed()
             '\r' -> { cursorCol = 0; wrapPending = false }
-            '\b' -> { if (cursorCol > 0) cursorCol--; wrapPending = false }
+            '\b' -> {
+                if (cursorCol > 0) cursorCol--
+                wrapPending = false
+            }
             '\t' -> tab()
             '\u0007' -> Unit
             else -> if (c >= ' ') putChar(c)

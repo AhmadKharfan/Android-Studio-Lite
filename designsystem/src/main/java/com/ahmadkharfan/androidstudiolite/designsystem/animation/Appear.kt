@@ -12,8 +12,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 
 @Composable
 fun AslStaggeredAppear(
-    index: Int = 0,
     modifier: Modifier = Modifier,
+    index: Int = 0,
     staggerMillis: Int = 45,
     content: @Composable () -> Unit,
 ) {

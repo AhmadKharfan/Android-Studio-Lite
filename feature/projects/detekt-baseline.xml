@@ -5,15 +5,6 @@
     <ID>ForbiddenImport:CloneRepoScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:ConfigureStep.kt$import androidx.compose.material3.MaterialTheme</ID>
     <ID>ForbiddenImport:HubScreen.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>ForbiddenImport:HubSectionHeader.kt$import androidx.compose.material3.MaterialTheme</ID>
-    <ID>LambdaParameterInRestartableEffect:CloneRepoScreen.kt$onCloned</ID>
-    <ID>LambdaParameterInRestartableEffect:CreateProjectScreen.kt$onCreated</ID>
-    <ID>LambdaParameterInRestartableEffect:CreateProjectScreen.kt$onPickedFolderConsumed</ID>
-    <ID>LambdaParameterInRestartableEffect:HubScreen.kt$onCreateProject</ID>
-    <ID>LambdaParameterInRestartableEffect:HubScreen.kt$onOpenPreferences</ID>
-    <ID>LambdaParameterInRestartableEffect:HubScreen.kt$onOpenProject</ID>
-    <ID>LambdaParameterInRestartableEffect:HubScreen.kt$onPickedFolderConsumed</ID>
-    <ID>LambdaParameterInRestartableEffect:OpenProjectScreen.kt$onProjectSelected</ID>
     <ID>LongMethod:FolderPickerScreen.kt$@Composable private fun FolderPickerScreen( uiState: FolderPickerUiState, interactionListener: FolderPickerInteractionListener, onCancel: () -&gt; Unit, onSelect: () -&gt; Unit, )</ID>
     <ID>LongParameterList:ConfigureStep.kt$( projectName: String, packageName: String, location: String, minSdk: String, language: String, supportsJava: Boolean, nameError: String?, packageError: String?, onNameChanged: (String) -&gt; Unit, onPackageChanged: (String) -&gt; Unit, onLocationChanged: (String) -&gt; Unit, onMinSdkChanged: (String) -&gt; Unit, onLanguageChanged: (String) -&gt; Unit, onBrowseLocation: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>ModifierMissing:HubScreen.kt$HubRoute</ID>
@@ -30,6 +21,5 @@
     <ID>ParameterNaming:FolderPickerScreen.kt$onFolderSelected</ID>
     <ID>ParameterNaming:HubScreen.kt$onPickedFolderConsumed</ID>
     <ID>ParameterNaming:OpenProjectScreen.kt$onProjectSelected</ID>
-    <ID>UseCheckOrError:CreateProjectViewModel.kt$CreateProjectViewModel$throw IllegalStateException("No template selected")</ID>
   </CurrentIssues>
 </SmellBaseline>
