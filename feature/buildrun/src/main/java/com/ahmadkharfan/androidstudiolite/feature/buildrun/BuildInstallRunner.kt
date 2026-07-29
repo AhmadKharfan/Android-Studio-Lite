@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.InstallEvent
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.install.UninstallEvent
-import com.ahmadkharfan.androidstudiolite.data.gradle.GradleProjectReader
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
@@ -27,7 +27,7 @@ internal class BuildInstallOperations(
 
 internal class BuildInstallRunner(
     private val operations: BuildInstallOperations,
-    private val gradleReader: GradleProjectReader,
+    private val gradleReader: GradleProjectInspector,
     private val ids: IdGenerator,
 ) {
     suspend fun install(
@@ -55,7 +55,7 @@ internal class BuildInstallRunner(
     private suspend fun resolveApplicationId(projectRoot: File, modulePath: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val modules = gradleReader.read(projectRoot).model.modules
+                val modules = gradleReader.inspect(projectRoot).model.modules
                 val module = modules.firstOrNull { it.path == modulePath }
                     ?: modules.firstOrNull { it.type == ModuleType.ANDROID_APP }
                 module?.applicationId

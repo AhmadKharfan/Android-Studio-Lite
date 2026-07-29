@@ -6,7 +6,6 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.domain)
-    implementation(projects.data.build)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.compose.material3)
@@ -15,5 +14,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(projects.data.build)
     testImplementation(libs.junit)
 }
