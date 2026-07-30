@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.di
 
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
 import com.ahmadkharfan.androidstudiolite.feature.editor.di.editorModule
+import com.ahmadkharfan.androidstudiolite.feature.git.di.gitPresentationModule
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.di.onboardingModule
 import com.ahmadkharfan.androidstudiolite.feature.projects.di.projectsModule
 import com.ahmadkharfan.androidstudiolite.feature.settings.di.settingsModule
@@ -20,6 +21,7 @@ private val featureModules = listOf(
     projectsModule,
     terminalFeatureModule,
     editorModule,
+    gitPresentationModule,
 )
 
 val appModules = listOf(dataModule, gradleModule)
