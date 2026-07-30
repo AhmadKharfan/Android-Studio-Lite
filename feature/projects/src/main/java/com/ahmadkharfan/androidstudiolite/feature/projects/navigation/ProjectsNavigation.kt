@@ -4,9 +4,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.ahmadkharfan.androidstudiolite.feature.createproject.CreateProjectRoute
-import com.ahmadkharfan.androidstudiolite.feature.folderpicker.FolderPickerRoute
-import com.ahmadkharfan.androidstudiolite.feature.hub.HubRoute
+import com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectRoute
+import com.ahmadkharfan.androidstudiolite.feature.projects.folderpicker.FolderPickerRoute
+import com.ahmadkharfan.androidstudiolite.feature.projects.hub.HubRoute
 
 /**
  * @param onOpenProject leaving for the editor is the host's decision; this feature does not know

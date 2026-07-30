@@ -5,15 +5,15 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ModuleType
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.VariantModel
 
-object RunTargetResolver {
+public object RunTargetResolver {
 
     private val PREFERRED_FLAVORS = listOf(
         "development", "dev", "local", "debug", "staging", "qa", "demo", "alpha", "beta", "free",
     )
 
-    fun resolveAppModule(project: ProjectModel): ModuleModel? = resolveAppModule(project.modules)
+    public fun resolveAppModule(project: ProjectModel): ModuleModel? = resolveAppModule(project.modules)
 
-    fun resolveAppModule(modules: List<ModuleModel>): ModuleModel? {
+    public fun resolveAppModule(modules: List<ModuleModel>): ModuleModel? {
         modules.firstOrNull { it.path == ":app" && it.type == ModuleType.ANDROID_APP }
             ?.let { return it }
         modules.firstOrNull { it.type == ModuleType.ANDROID_APP }?.let { return it }
@@ -26,9 +26,9 @@ object RunTargetResolver {
         }
     }
 
-    fun preferredRunVariant(module: ModuleModel?): String = resolveVariant(module, "debug")
+    public fun preferredRunVariant(module: ModuleModel?): String = resolveVariant(module, "debug")
 
-    fun resolveReleaseVariant(module: ModuleModel?, currentlySelected: String): String {
+    public fun resolveReleaseVariant(module: ModuleModel?, currentlySelected: String): String {
         val variants = module?.variants.orEmpty()
         if (variants.isEmpty()) return "release"
         val current = variants.firstOrNull { it.name.equals(currentlySelected, ignoreCase = true) }
@@ -43,7 +43,7 @@ object RunTargetResolver {
         return resolveVariant(module, "release")
     }
 
-    fun resolveVariant(module: ModuleModel?, requested: String): String {
+    public fun resolveVariant(module: ModuleModel?, requested: String): String {
         if (module == null) return requested
         val variants = module.variants
         if (variants.isEmpty()) return requested
@@ -60,7 +60,7 @@ object RunTargetResolver {
         return (debugVariants.ifEmpty { variants }).minWith(variantComparator).name
     }
 
-    fun resolveSelectedVariant(module: ModuleModel?, currentlySelected: String): String {
+    public fun resolveSelectedVariant(module: ModuleModel?, currentlySelected: String): String {
         val available = module?.variants.orEmpty()
         if (available.isEmpty()) return currentlySelected.ifBlank { "debug" }
         if (available.any { it.name.equals(currentlySelected, ignoreCase = true) }) {
@@ -69,20 +69,20 @@ object RunTargetResolver {
         return resolveVariant(module, currentlySelected.ifBlank { "debug" })
     }
 
-    fun availableVariantNames(module: ModuleModel?): List<String> {
+    public fun availableVariantNames(module: ModuleModel?): List<String> {
         val variants = module?.variants.orEmpty()
         if (variants.isEmpty()) return emptyList()
         return variants.sortedWith(variantComparator).map { it.name }
     }
 
-    fun isDebugVariant(variantName: String): Boolean {
+    public fun isDebugVariant(variantName: String): Boolean {
         val n = variantName.trim()
         if (n.equals("debug", ignoreCase = true)) return true
         if (n.contains("release", ignoreCase = true)) return false
         return n.endsWith("Debug", ignoreCase = true)
     }
 
-    fun isReleaseVariant(variantName: String): Boolean {
+    public fun isReleaseVariant(variantName: String): Boolean {
         val n = variantName.trim()
         if (n.equals("release", ignoreCase = true)) return true
         if (n.contains("debug", ignoreCase = true)) return false

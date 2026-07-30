@@ -21,12 +21,12 @@ import com.ahmadkharfan.androidstudiolite.feature.terminal.navigation.terminalGr
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorNavigation
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorRoute
 import com.ahmadkharfan.androidstudiolite.feature.terminal.EditorEmbeddedTerminal
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.conflict.GitConflictRoute
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.diff.GitDiffRoute
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitBlameRoute
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitHistoryRoute
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.refs.GitRefsRoute
+import com.ahmadkharfan.androidstudiolite.feature.git.conflict.GitConflictRoute
+import com.ahmadkharfan.androidstudiolite.feature.git.diff.GitDiffRoute
+import com.ahmadkharfan.androidstudiolite.feature.git.history.GitBlameRoute
+import com.ahmadkharfan.androidstudiolite.feature.git.history.GitHistoryRoute
+import com.ahmadkharfan.androidstudiolite.feature.git.refs.GitRefsMode
+import com.ahmadkharfan.androidstudiolite.feature.git.refs.GitRefsRoute
 
 internal fun NavGraphBuilder.onboardingGraph(navController: NavHostController) {
     onboardingGraph(

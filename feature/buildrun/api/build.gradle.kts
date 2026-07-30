@@ -11,3 +11,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.kotlinx.coroutines.android)
 }
+
+// A contract module's surface is its whole reason to exist: every declaration must state its
+// visibility rather than inherit `public` by default.
+kotlin { explicitApi() }

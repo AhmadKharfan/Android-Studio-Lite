@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.git.api
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitException
 
-fun gitErrorMessage(error: Throwable): String = when (error) {
+public fun gitErrorMessage(error: Throwable): String = when (error) {
     is GitException.Auth -> "Authentication failed. Check your token in settings."
     is GitException.NonFastForward -> "Remote has new commits. Pull first."
     is GitException.StaleLease -> "Force push lease is stale. Fetch first."
