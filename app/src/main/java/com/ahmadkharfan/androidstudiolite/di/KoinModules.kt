@@ -1,69 +1,28 @@
 package com.ahmadkharfan.androidstudiolite.di
-import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.data.AndroidOnboardingRepository
-import com.ahmadkharfan.androidstudiolite.domain.repository.OnboardingRepository
-import com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.aichat.AiChatViewModel
-import com.ahmadkharfan.androidstudiolite.feature.projects.folderpicker.FolderPickerViewModel
-import com.ahmadkharfan.androidstudiolite.feature.projects.hub.HubViewModel
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.complete.CompleteViewModel
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.permissions.PermissionsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.projects.openproject.OpenProjectViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.aiagent.AiAgentViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.buildrun.BuildRunViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.editor.EditorSettingsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.general.GeneralViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.root.SettingsRootViewModel
-import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalViewModel
+
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
+import com.ahmadkharfan.androidstudiolite.feature.editor.di.editorModule
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.di.onboardingModule
+import com.ahmadkharfan.androidstudiolite.feature.projects.di.projectsModule
+import com.ahmadkharfan.androidstudiolite.feature.settings.di.settingsModule
+import com.ahmadkharfan.androidstudiolite.feature.terminal.di.terminalFeatureModule
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-
+/** Only genuinely app-scoped bindings live here; each feature declares its own. */
 val dataModule = module {
-    single<OnboardingRepository> { AndroidOnboardingRepository(androidContext()) }
     single { NetworkMonitor(androidContext()) }
 }
-val viewModelModule = module {
-    viewModelOf(::PermissionsViewModel)
-    viewModelOf(::CompleteViewModel)
-    viewModelOf(::HubViewModel)
-    viewModelOf(::OpenProjectViewModel)
 
+private val featureModules = listOf(
+    onboardingModule,
+    settingsModule,
+    projectsModule,
+    terminalFeatureModule,
+    editorModule,
+)
 
-    viewModel {
-        CreateProjectViewModel(
-            templateRepository = get(),
-            projectRepository = get(),
-            defaultLocation = IdeEnvironmentPaths.projectsDir(androidContext()).absolutePath,
-        )
-    }
+val appModules = listOf(dataModule, gradleModule)
 
-    viewModel { params -> AiChatViewModel(get(), get(), get(), projectId = params.get()) }
-    viewModelOf(::TerminalViewModel)
-    viewModelOf(::FolderPickerViewModel)
-    viewModelOf(::SettingsRootViewModel)
-    viewModelOf(::GeneralViewModel)
-    viewModelOf(::EditorSettingsViewModel)
-    viewModelOf(::AiAgentViewModel)
-    viewModelOf(::BuildRunViewModel)
-    viewModel { params ->
-        EditorViewModel(
-            projectId = params.get(),
-            projectRepository = get(),
-            fileTreeRepository = get(),
-            fileContentRepository = get(),
-            preferencesRepository = get(),
-            gradleProjectReader = get(),
-            buildRunCoordinator = get(),
-            networkMonitor = get(),
-        )
-    }
-}
-val appModules = listOf(dataModule, viewModelModule, gradleModule)
-
-val allModules = appModules + localDataModule + templatesModule + preferencesModule +
-    terminalModule + gitModule + remoteModule + buildRunModule + aiModule
+val allModules = appModules + featureModules + localDataModule + templatesModule +
+    preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule + aiModule
