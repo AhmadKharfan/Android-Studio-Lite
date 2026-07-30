@@ -6,7 +6,7 @@ import java.io.File
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import kotlinx.coroutines.flow.StateFlow
 
-data class BuildExecutionSnapshot(
+public data class BuildExecutionSnapshot(
     val operationId: String? = null,
     val projectId: String? = null,
     val projectName: String = "",
@@ -21,34 +21,34 @@ data class BuildExecutionSnapshot(
     val isActive: Boolean get() = active
 }
 
-enum class InstallExecutionState { None, Preparing, AwaitingConfirmation, Installed, Failed }
+public enum class InstallExecutionState { None, Preparing, AwaitingConfirmation, Installed, Failed }
 
-enum class BuildExecutionPhase {
+public enum class BuildExecutionPhase {
     Idle, Preparing, Running, Reconnecting, DownloadingArtifact, Installing,
     AwaitingInstallConfirmation, Succeeded, Failed, Cancelling, Cancelled, TimedOut,
 }
 
-sealed interface StartBuildResult {
-    data class Accepted(val operationId: String) : StartBuildResult
-    data class AlreadyRunning(val operationId: String, val projectId: String?) : StartBuildResult
-    data class Failed(val reason: String) : StartBuildResult
+public sealed interface StartBuildResult {
+    public data class Accepted(val operationId: String) : StartBuildResult
+    public data class AlreadyRunning(val operationId: String, val projectId: String?) : StartBuildResult
+    public data class Failed(val reason: String) : StartBuildResult
 }
 
-data class BuildClientMeta(
+public data class BuildClientMeta(
     val projectId: String,
     val projectName: String,
     val installAfterSuccess: Boolean,
     val autoLaunchAfterInstall: Boolean = true,
 )
 
-interface BuildRunApi {
-    val execution: StateFlow<BuildExecutionSnapshot>
-    suspend fun preflight(projectRoot: File): BuildPreflightResult
-    suspend fun syncProject(projectRoot: File): ProjectModel
-    suspend fun ensureDebugKeystore()
-    suspend fun start(request: BuildRequest, meta: BuildClientMeta): StartBuildResult
-    suspend fun recover(projectId: String): Boolean
-    fun cancel()
-    fun uninstallConflict(packageName: String)
-    fun canPostNotifications(): Boolean
+public interface BuildRunApi {
+    public val execution: StateFlow<BuildExecutionSnapshot>
+    public suspend fun preflight(projectRoot: File): BuildPreflightResult
+    public suspend fun syncProject(projectRoot: File): ProjectModel
+    public suspend fun ensureDebugKeystore()
+    public suspend fun start(request: BuildRequest, meta: BuildClientMeta): StartBuildResult
+    public suspend fun recover(projectId: String): Boolean
+    public fun cancel()
+    public fun uninstallConflict(packageName: String)
+    public fun canPostNotifications(): Boolean
 }

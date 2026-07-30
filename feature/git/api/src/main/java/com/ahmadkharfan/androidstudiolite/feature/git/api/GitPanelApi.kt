@@ -8,7 +8,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
  * it wants opened. The host decides where those destinations live, so no consumer needs to know how
  * git is implemented.
  */
-interface GitPanelApi {
+public interface GitPanelApi {
 
     /**
      * No default argument values here, deliberately. A `@Composable` interface member with defaults
@@ -18,7 +18,7 @@ interface GitPanelApi {
      * Callers pass every destination explicitly instead.
      */
     @Composable
-    fun Panel(
+    public fun Panel(
         projectId: String,
         onClose: () -> Unit,
         onOpenDiff: (String, GitDiffTarget) -> Unit,

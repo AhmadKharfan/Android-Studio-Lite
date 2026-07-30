@@ -5,7 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 
 @Immutable
-data class BuildConsoleState(
+public data class BuildConsoleState(
     val status: BuildStatus = BuildStatus.Idle,
     val request: BuildRequest? = null,
     val taskGroups: List<BuildTaskGroup> = emptyList(),
@@ -23,29 +23,29 @@ data class BuildConsoleState(
     val finishedTaskCount: Int get() = taskGroups.sumOf { g -> g.tasks.count { it.result != null } }
 }
 
-enum class BuildStatus { Idle, Running, Succeeded, Failed, Cancelled }
+public enum class BuildStatus { Idle, Running, Succeeded, Failed, Cancelled }
 
 @Immutable
-data class BuildTaskGroup(
+public data class BuildTaskGroup(
     val module: String,
     val tasks: List<BuildTaskLine>,
 )
 
 @Immutable
-data class BuildTaskLine(
+public data class BuildTaskLine(
     val path: String,
     val name: String,
     val result: BuildEvent.TaskResult? = null,
 )
 
 @Immutable
-data class BuildLogLine(
+public data class BuildLogLine(
     val text: String,
     val isError: Boolean,
 )
 
 @Immutable
-data class BuildProblem(
+public data class BuildProblem(
     val severity: BuildEvent.ProblemSeverity,
     val message: String,
     val filePath: String? = null,
@@ -66,7 +66,7 @@ data class BuildProblem(
 }
 
 @Immutable
-data class BuildArtifact(
+public data class BuildArtifact(
     val path: String,
     val name: String,
     val kind: BuildEvent.ArtifactKind,
@@ -76,7 +76,7 @@ data class BuildArtifact(
     val certificateSha256: String? = null,
 )
 
-fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState =
+public fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState =
     when (event) {
         is BuildEvent.Started -> startBuild(event)
         is BuildEvent.RemoteBuildBound -> this

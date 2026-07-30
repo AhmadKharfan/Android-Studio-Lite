@@ -5,7 +5,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.Project
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.history.GitHistoryViewModel
+import com.ahmadkharfan.androidstudiolite.feature.git.history.GitHistoryViewModel
 import java.io.File
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.Dispatchers

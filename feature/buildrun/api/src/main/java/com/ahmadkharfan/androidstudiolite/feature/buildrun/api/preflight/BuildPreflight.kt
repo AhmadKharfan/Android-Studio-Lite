@@ -1,29 +1,29 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight
 
 
-enum class PreflightSeverity { INFO, WARNING, BLOCKER }
+public enum class PreflightSeverity { INFO, WARNING, BLOCKER }
 
-data class PreflightWarning(
+public data class PreflightWarning(
     val severity: PreflightSeverity,
     val title: String,
     val detail: String,
 )
 
-data class BuildPreflightResult(val warnings: List<PreflightWarning>) {
+public data class BuildPreflightResult(val warnings: List<PreflightWarning>) {
     val hasBlocker: Boolean get() = warnings.any { it.severity == PreflightSeverity.BLOCKER }
 
     val canProceed: Boolean get() = !hasBlocker
 }
 
-data class ToolchainVersions(
+public data class ToolchainVersions(
     val gradle: String? = null,
     val agp: String? = null,
     val jdkMajor: Int? = null,
 )
 
-object CompatibilityChecker {
+public object CompatibilityChecker {
 
-    fun check(versions: ToolchainVersions): List<PreflightWarning> = buildList {
+    public fun check(versions: ToolchainVersions): List<PreflightWarning> = buildList {
         when (val agpMajor = versions.agp?.majorVersion()) {
             null -> add(missingAgpWarning())
             in 8..Int.MAX_VALUE -> {
@@ -87,11 +87,11 @@ object CompatibilityChecker {
     )
 }
 
-object StorageChecker {
+public object StorageChecker {
 
-    const val LOW_SPACE_BYTES: Long = 250L * 1024 * 1024
+    public const val LOW_SPACE_BYTES: Long = 250L * 1024 * 1024
 
-    fun check(availableBytes: Long): PreflightWarning? = when {
+    public fun check(availableBytes: Long): PreflightWarning? = when {
         availableBytes < LOW_SPACE_BYTES -> PreflightWarning(
             PreflightSeverity.WARNING,
             "Low storage",
@@ -104,9 +104,9 @@ object StorageChecker {
     private fun Long.toMb(): Long = this / (1024 * 1024)
 }
 
-object BuildPreflight {
+public object BuildPreflight {
 
-    fun run(versions: ToolchainVersions, availableBytes: Long): BuildPreflightResult {
+    public fun run(versions: ToolchainVersions, availableBytes: Long): BuildPreflightResult {
         val warnings = buildList {
             StorageChecker.check(availableBytes)?.let { add(it) }
             addAll(CompatibilityChecker.check(versions))
@@ -117,7 +117,7 @@ object BuildPreflight {
 
 private fun String.majorVersion(): Int? = trim().substringBefore('.').toIntOrNull()
 
-fun compareVersions(a: String, b: String): Int {
+public fun compareVersions(a: String, b: String): Int {
     val pa = a.split('.', '-')
     val pb = b.split('.', '-')
     val n = maxOf(pa.size, pb.size)

@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-07-30T01:56:29.663Z" hostname="pop-os" time="0.818">
+<testsuite name="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-07-30T02:12:25.821Z" hostname="pop-os" time="0.214">
   <properties/>
-  <testcase name="submitting a token saves it trimmed with an empty username then retries and resets" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.615"/>
-  <testcase name="hasCredentials is false for a null host and otherwise delegates to the store" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.006"/>
-  <testcase name="device flow surfaces the user code and verification uri while awaiting authorization" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.014"/>
-  <testcase name="submitting a token with a null host still retries but saves nothing" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.012"/>
-  <testcase name="open shows prompt in SignIn mode when github is configured" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.007"/>
-  <testcase name="changing the token clears a previous error" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.007"/>
-  <testcase name="dismissing after success runs the retry instead of discarding it" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.013"/>
-  <testcase name="starting sign in twice before the authenticator emits starts a second device flow" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.024"/>
-  <testcase name="successful authorization marks success immediately but defers the retry by 1100ms" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.007"/>
-  <testcase name="starting sign in when github is unconfigured switches to Token mode with an explanation" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.003"/>
-  <testcase name="reopening during the post-success delay cancels the scheduled close" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.007"/>
-  <testcase name="reopening replaces the pending retry without invoking the old one" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.008"/>
-  <testcase name="open falls back to Token mode when github is not configured" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.011"/>
-  <testcase name="dismissing before success resets state and drops the pending retry" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.008"/>
-  <testcase name="starting sign in again after the code request is emitted is ignored" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.017"/>
-  <testcase name="submitting a blank token reports an error and does not save or retry" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.011"/>
-  <testcase name="device flow error clears busy and device state and surfaces the message" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.011"/>
-  <testcase name="switching to Token mode cancels the in-flight device flow and ignores late emissions" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.015"/>
+  <testcase name="submitting a token saves it trimmed with an empty username then retries and resets" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.122"/>
+  <testcase name="hasCredentials is false for a null host and otherwise delegates to the store" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.001"/>
+  <testcase name="device flow surfaces the user code and verification uri while awaiting authorization" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.005"/>
+  <testcase name="submitting a token with a null host still retries but saves nothing" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="open shows prompt in SignIn mode when github is configured" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="changing the token clears a previous error" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.003"/>
+  <testcase name="dismissing after success runs the retry instead of discarding it" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.004"/>
+  <testcase name="starting sign in twice before the authenticator emits starts a second device flow" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.047"/>
+  <testcase name="successful authorization marks success immediately but defers the retry by 1100ms" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.003"/>
+  <testcase name="starting sign in when github is unconfigured switches to Token mode with an explanation" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="reopening during the post-success delay cancels the scheduled close" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="reopening replaces the pending retry without invoking the old one" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="open falls back to Token mode when github is not configured" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="dismissing before success resets state and drops the pending retry" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.003"/>
+  <testcase name="starting sign in again after the code request is emitted is ignored" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="submitting a blank token reports an error and does not save or retry" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="device flow error clears busy and device state and surfaces the message" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
+  <testcase name="switching to Token mode cancels the in-flight device flow and ignores late emissions" classname="com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthControllerCharacterizationTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
