@@ -32,6 +32,7 @@ rootProject.name = "AndroidStudioLite"
 include(":app")
 include(":domain")
 include(":core:common")
+include(":core:gitauth")
 include(":data:templates")
 include(":designsystem")
 include(":data:local")

@@ -11,10 +11,10 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
 import com.ahmadkharfan.androidstudiolite.feature.git.api.gitErrorMessage
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthController
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
 import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.net.URI

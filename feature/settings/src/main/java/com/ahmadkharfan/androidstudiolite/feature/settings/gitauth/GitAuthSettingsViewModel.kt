@@ -6,8 +6,8 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitAuthorConfig
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitAuthorStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthController
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthController
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthMode
 import kotlinx.coroutines.launch
 
 class GitAuthSettingsViewModel(

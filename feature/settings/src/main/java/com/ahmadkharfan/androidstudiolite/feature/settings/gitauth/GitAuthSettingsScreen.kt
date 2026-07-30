@@ -27,7 +27,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel

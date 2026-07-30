@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.git.refs
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptActions
 
 interface GitRefsInteractionListener : GitAuthPromptActions {
     fun checkout(branch: GitBranch)
