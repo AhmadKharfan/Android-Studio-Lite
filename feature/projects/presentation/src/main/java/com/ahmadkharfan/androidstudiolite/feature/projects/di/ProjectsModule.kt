@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.feature.projects.di
 import com.ahmadkharfan.androidstudiolite.core.environment.IdeEnvironmentPaths
 import com.ahmadkharfan.androidstudiolite.feature.projects.ProjectsFeatureApiImpl
 import com.ahmadkharfan.androidstudiolite.feature.projects.api.ProjectsFeatureApi
+import com.ahmadkharfan.androidstudiolite.feature.projects.clonerepo.CloneRepoViewModel
 import com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModel
 import com.ahmadkharfan.androidstudiolite.feature.projects.folderpicker.FolderPickerViewModel
 import com.ahmadkharfan.androidstudiolite.feature.projects.hub.HubViewModel
@@ -15,6 +16,7 @@ import org.koin.dsl.module
 val projectsModule = module {
     single<ProjectsFeatureApi> { ProjectsFeatureApiImpl() }
     viewModelOf(::HubViewModel)
+    viewModelOf(::CloneRepoViewModel)
     viewModelOf(::OpenProjectViewModel)
     viewModelOf(::FolderPickerViewModel)
     viewModel {

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.666Z" hostname="pop-os" time="0.08">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.790Z" hostname="pop-os" time="0.154">
   <properties/>
-  <testcase name="completion_offers_project_and_dependency_symbols_after_sync" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.058"/>
-  <testcase name="empty_index_is_a_noop" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.002"/>
-  <testcase name="memberAccess_offers_subpackages_and_classes_under_qualifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.008"/>
-  <testcase name="indexes_topLevel_declarations_from_project_sources" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.006"/>
-  <testcase name="indexes_public_classes_from_dependency_jars" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.005"/>
+  <testcase name="completion_offers_project_and_dependency_symbols_after_sync" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.107"/>
+  <testcase name="empty_index_is_a_noop" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.007"/>
+  <testcase name="memberAccess_offers_subpackages_and_classes_under_qualifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.018"/>
+  <testcase name="indexes_topLevel_declarations_from_project_sources" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.01"/>
+  <testcase name="indexes_public_classes_from_dependency_jars" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexTest" time="0.008"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

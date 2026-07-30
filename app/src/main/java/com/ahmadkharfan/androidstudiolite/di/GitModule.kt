@@ -22,26 +22,12 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.GitOperationMonitor
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
 import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.domain.usecase.ProjectPathResolver
-import com.ahmadkharfan.androidstudiolite.feature.projects.clonerepo.CloneRepoViewModel
-import com.ahmadkharfan.androidstudiolite.feature.editor.assets.AssetsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.api.GitPanelApi
-import com.ahmadkharfan.androidstudiolite.feature.git.GitPanelApiImpl
-import com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.diff.GitDiffViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.history.GitBlameViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.history.GitHistoryViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.refs.GitRefsViewModel
-import com.ahmadkharfan.androidstudiolite.feature.git.conflict.GitConflictViewModel
-import com.ahmadkharfan.androidstudiolite.feature.settings.gitauth.GitAuthSettingsViewModel
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 private val Context.gitAuthorDataStore: DataStore<Preferences> by preferencesDataStore(name = "git_author")
 
 val gitModule = module {
-    single<GitPanelApi> { GitPanelApiImpl() }
     single<GitCredentialStore> { EncryptedGitCredentialStore(androidContext()) }
     single<GitHubDeviceAuthenticator> {
         GitHubDeviceFlowAuthenticator(
@@ -75,75 +61,7 @@ val gitModule = module {
     }
 
 
-    viewModelOf(::CloneRepoViewModel)
 
 
-    viewModel { params ->
-        GitPanelViewModel(
-            projectId = params.get(),
-            projectPathResolver = get(),
-            gitRepository = get(),
-            operationMonitor = get(),
-            credentialStore = get(),
-            authenticator = get(),
-        )
-    }
-    viewModel { params ->
-        GitDiffViewModel(
-            projectId = params[0],
-            path = params[1],
-            target = params[2],
-            commitId = params.get<String>(3).takeIf { it.isNotBlank() },
-            projectPathResolver = get(),
-            gitRepository = get(),
-        )
-    }
-    viewModel { params ->
-        GitHistoryViewModel(
-            projectId = params[0],
 
-            requestedPath = params.get<String>(1).takeIf { it.isNotBlank() },
-            projectPathResolver = get(),
-            gitRepository = get(),
-        )
-    }
-    viewModel { params ->
-        GitBlameViewModel(
-            projectId = params[0],
-            requestedPath = params[1],
-            projectPathResolver = get(),
-            gitRepository = get(),
-        )
-    }
-    viewModel { params ->
-        GitRefsViewModel(
-            projectId = params[0],
-            mode = params[1],
-            projectPathResolver = get(),
-            gitRepository = get(),
-            credentialStore = get(),
-            authenticator = get(),
-        )
-    }
-    viewModel { params ->
-        GitConflictViewModel(
-            projectId = params.get(),
-            projectPathResolver = get(),
-            gitRepository = get(),
-        )
-    }
-
-    viewModel { params ->
-        AssetsViewModel(
-            projectId = params.get(),
-            projectPathResolver = get(),
-        )
-    }
-    viewModel {
-        GitAuthSettingsViewModel(
-            credentialStore = get(),
-            authenticator = get(),
-            gitAuthorStore = get(),
-        )
-    }
 }

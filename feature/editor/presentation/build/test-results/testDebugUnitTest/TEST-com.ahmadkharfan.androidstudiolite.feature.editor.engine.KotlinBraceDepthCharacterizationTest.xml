@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinBraceDepthCharacterizationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.581Z" hostname="pop-os" time="0.004">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinBraceDepthCharacterizationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.574Z" hostname="pop-os" time="0.004">
   <properties/>
   <testcase name="brace depth retains negative and unterminated construct behavior" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinBraceDepthCharacterizationTest" time="0.002"/>
-  <testcase name="brace depth ignores braces in every quoted and commented form" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinBraceDepthCharacterizationTest" time="0.002"/>
+  <testcase name="brace depth ignores braces in every quoted and commented form" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinBraceDepthCharacterizationTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

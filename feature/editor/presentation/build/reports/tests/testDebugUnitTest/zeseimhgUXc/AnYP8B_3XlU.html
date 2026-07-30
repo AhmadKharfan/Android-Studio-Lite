@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - closingActiveTabRemovesItAndActivatesRemaining</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<div class="breadcrumbs">
+<a class="breadcrumb" href="../index.html">all</a> &gt; 
+<a class="breadcrumb" href="index.html">com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest</a> &gt; 
+<span class="breadcrumb">closingActiveTabRemovesItAndActivatesRemaining</span>
+</div>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a class="successGroup" href="#">Gradle Test Run :feature:editor:presentation:testDebugUnitTest</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Gradle Test Run :feature:editor:presentation:testDebugUnitTest</h2>
+<h1>closingActiveTabRemovesItAndActivatesRemaining</h1>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a class="" href="#">summary</a>
+</li>
+<li>
+<a class="" href="#">error output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>summary</h2>
+<div>
+<div class="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox">
+<div class="counter">1</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox">
+<div class="counter">0</div>
+<p>skipped</p>
+</div>
+</td>
+<td>
+<div class="infoBox duration">
+<div class="counter">0.129s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="tab">
+<h2>error output</h2>
+<span class="code">
+<pre id="root-0-test-stderr-closingActiveTabRemovesItAndActivatesRemaining">Exception in thread &quot;DefaultDispatcher-worker-3 @coroutine#23&quot; kotlinx.coroutines.CompletionHandlerException: Exception in completion handler ChildCompletion@6ffbbbdf[job@1712b8c3] for &quot;coroutine#23&quot;:StandaloneCoroutine{Cancelled}@1712b8c3
+	at kotlinx.coroutines.JobSupport.notifyCompletion(JobSupport.kt:1628)
+	at kotlinx.coroutines.JobSupport.completeStateFinalization(JobSupport.kt:316)
+	at kotlinx.coroutines.JobSupport.finalizeFinishingState(JobSupport.kt:233)
+	at kotlinx.coroutines.JobSupport.tryMakeCompletingSlowPath(JobSupport.kt:946)
+	at kotlinx.coroutines.JobSupport.tryMakeCompleting(JobSupport.kt:894)
+	at kotlinx.coroutines.JobSupport.makeCompletingOnce$kotlinx_coroutines_core(JobSupport.kt:859)
+	at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:99)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:47)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:98)
+	at kotlinx.coroutines.EventLoop.processUnconfinedEvent(EventLoop.common.kt:65)
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWithInternal(DispatchedContinuation.kt:392)
+	at kotlinx.coroutines.DispatchedCoroutine.afterResume(Builders.common.kt:588)
+	at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:101)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:47)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:798)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [CoroutineId(23), &quot;coroutine#23&quot;:StandaloneCoroutine{Cancelled}@1712b8c3, Dispatchers.Main]
+Caused by: kotlinx.coroutines.DispatchException: Coroutine dispatcher Dispatchers.Main threw an exception, context = [CoroutineId(3), &quot;coroutine#3&quot;:ProducerCoroutine{Cancelling}@54deb599, Dispatchers.Main]
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.safeIsDispatchNeeded(DispatchedContinuation.kt:264)
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWithInternal(DispatchedContinuation.kt:324)
+	at kotlinx.coroutines.internal.ScopeCoroutine.afterCompletion(Scopes.kt:23)
+	at kotlinx.coroutines.JobSupport.continueCompleting(JobSupport.kt:987)
+	at kotlinx.coroutines.JobSupport.access$continueCompleting(JobSupport.kt:22)
+	at kotlinx.coroutines.JobSupport$ChildCompletion.invoke(JobSupport.kt:1268)
+	at kotlinx.coroutines.JobSupport.notifyCompletion(JobSupport.kt:1624)
+	... 20 more
+Caused by: java.lang.IllegalStateException: Dispatchers.Main was accessed when the platform dispatcher was absent and the test dispatcher was unset. Please make sure that Dispatchers.setMain() is called before accessing Dispatchers.Main and that Dispatchers.Main is not accessed after Dispatchers.resetMain().
+	at kotlinx.coroutines.test.internal.TestMainDispatcherJvmKt.reportMissingMainCoroutineDispatcher(TestMainDispatcherJvm.kt:45)
+	at kotlinx.coroutines.test.internal.TestMainDispatcherJvmKt.access$reportMissingMainCoroutineDispatcher(TestMainDispatcherJvm.kt:1)
+	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:20)
+	at kotlin.SynchronizedLazyImpl.getValue(LazyJVM.kt:86)
+	at kotlinx.coroutines.test.internal.TestMainDispatcher.getMainDispatcher(TestMainDispatcher.kt:18)
+	at kotlinx.coroutines.test.internal.TestMainDispatcher.getDispatcher(TestMainDispatcher.kt:22)
+	at kotlinx.coroutines.test.internal.TestMainDispatcher.isDispatchNeeded(TestMainDispatcher.kt:32)
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.safeIsDispatchNeeded(DispatchedContinuation.kt:262)
+	... 26 more
+Caused by: java.lang.IllegalStateException: Module with the Main dispatcher had failed to initialize. For tests Dispatchers.setMain from kotlinx-coroutines-test module can be used
+	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.missing(MainDispatchers.kt:111)
+	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.dispatch(MainDispatchers.kt:101)
+	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.dispatch(MainDispatchers.kt:84)
+	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:22)
+	... 31 more
+Caused by: java.lang.IllegalStateException: The main looper is not available
+	at kotlinx.coroutines.android.AndroidDispatcherFactory.createDispatcher(HandlerDispatcher.kt:51)
+	at kotlinx.coroutines.internal.MainDispatchersKt.tryCreateDispatcher(MainDispatchers.kt:53)
+	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:15)
+	... 31 more
+</pre>
+<button class="clipboard-copy-btn" aria-label="Copy to clipboard" data-copy-element-id="root-0-test-stderr-closingActiveTabRemovesItAndActivatesRemaining">Copy</button>
+</span>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.4.1</a> at Jul 30, 2026, 11:49:52 AM</p>
+</div>
+</div>
+</body>
+</html>
