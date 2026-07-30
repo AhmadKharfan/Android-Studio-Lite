@@ -9,15 +9,23 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
  * git is implemented.
  */
 interface GitPanelApi {
+
+    /**
+     * No default argument values here, deliberately. A `@Composable` interface member with defaults
+     * makes the Compose compiler emit a `ComposeDefaultImpls.Panel$default` bridge whose expected
+     * abstract signature does not line up with an implementation compiled in a *different* module —
+     * it builds cleanly and then throws `AbstractMethodError` the first time the panel is shown.
+     * Callers pass every destination explicitly instead.
+     */
     @Composable
     fun Panel(
         projectId: String,
         onClose: () -> Unit,
-        onOpenDiff: (String, GitDiffTarget) -> Unit = { _, _ -> },
-        onOpenHistory: () -> Unit = {},
-        onOpenBranches: () -> Unit = {},
-        onOpenTags: () -> Unit = {},
-        onOpenStashes: () -> Unit = {},
-        onOpenConflicts: () -> Unit = {},
+        onOpenDiff: (String, GitDiffTarget) -> Unit,
+        onOpenHistory: () -> Unit,
+        onOpenBranches: () -> Unit,
+        onOpenTags: () -> Unit,
+        onOpenStashes: () -> Unit,
+        onOpenConflicts: () -> Unit,
     )
 }

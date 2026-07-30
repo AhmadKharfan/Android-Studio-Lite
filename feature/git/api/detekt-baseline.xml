@@ -3,6 +3,6 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>CyclomaticComplexMethod:GitErrorMessageMapper.kt$fun gitErrorMessage(error: Throwable): String</ID>
-    <ID>LongParameterList:GitPanelApi.kt$GitPanelApi$( projectId: String, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit = { _, _ -&gt; }, onOpenHistory: () -&gt; Unit = {}, onOpenBranches: () -&gt; Unit = {}, onOpenTags: () -&gt; Unit = {}, onOpenStashes: () -&gt; Unit = {}, onOpenConflicts: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:GitPanelApi.kt$GitPanelApi$( projectId: String, onClose: () -&gt; Unit, onOpenDiff: (String, GitDiffTarget) -&gt; Unit, onOpenHistory: () -&gt; Unit, onOpenBranches: () -&gt; Unit, onOpenTags: () -&gt; Unit, onOpenStashes: () -&gt; Unit, onOpenConflicts: () -&gt; Unit, )</ID>
   </CurrentIssues>
 </SmellBaseline>
