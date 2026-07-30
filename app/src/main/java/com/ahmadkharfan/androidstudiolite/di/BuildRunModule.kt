@@ -13,7 +13,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildNotifier
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildRunApi
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunCoordinator
 import java.io.File
 import org.koin.android.ext.koin.androidContext

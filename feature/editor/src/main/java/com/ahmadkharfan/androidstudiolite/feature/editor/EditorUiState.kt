@@ -8,7 +8,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitIndexStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildConsoleState
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguage
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
 @Immutable

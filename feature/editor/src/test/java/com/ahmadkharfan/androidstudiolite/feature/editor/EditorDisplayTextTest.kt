@@ -1,11 +1,11 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildTaskGroup
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildTaskLine
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildLogLine
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildTaskGroup
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildTaskLine
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

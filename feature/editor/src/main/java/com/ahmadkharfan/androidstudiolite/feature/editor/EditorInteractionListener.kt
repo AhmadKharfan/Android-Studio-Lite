@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildProblem
 
 interface EditorInteractionListener {
     fun onSelectTab(id: String)

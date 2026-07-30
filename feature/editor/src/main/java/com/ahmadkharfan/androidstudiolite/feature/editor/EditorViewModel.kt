@@ -12,11 +12,11 @@ import com.ahmadkharfan.androidstudiolite.domain.repository.ProjectRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.repository.WorkspaceWriteGate
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildRunApi
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.InstallExecutionState
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolver
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildRunApi
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.InstallExecutionState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.RunTargetResolver
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndex
 import com.ahmadkharfan.androidstudiolite.feature.editor.engine.project.ProjectSymbolIndexer
 import com.ahmadkharfan.androidstudiolite.feature.editor.filetree.ancestorFolderIds

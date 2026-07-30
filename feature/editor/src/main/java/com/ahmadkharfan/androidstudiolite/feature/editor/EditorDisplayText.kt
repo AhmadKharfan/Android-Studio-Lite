@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildConsoleState
 
 private val WHITESPACE_AFTER_DOT = Regex("\\.\\s+")
 
