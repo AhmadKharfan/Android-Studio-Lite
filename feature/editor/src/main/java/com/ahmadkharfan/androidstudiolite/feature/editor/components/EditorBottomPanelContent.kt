@@ -33,12 +33,12 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildArtifact
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleState
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildLogLine
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildProblem
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStatus
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildTaskGroup
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildArtifact
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildLogLine
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildTaskGroup
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.toClipboardText
 

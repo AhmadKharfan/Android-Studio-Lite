@@ -1,5 +1,17 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun
 
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.reduce
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildClientMeta
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildConsoleState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildExecutionPhase
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildExecutionSnapshot
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildProblem
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildRunApi
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildStatus
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.InstallExecutionState
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.RunTargetResolver
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.StartBuildResult
+
 import android.content.Context
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.UninstallEvent
@@ -15,10 +27,10 @@ import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.domain.time.AslClock
 import com.ahmadkharfan.androidstudiolite.domain.time.SystemAslClock
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflight
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightResult
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.BuildPreflight
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.BuildPreflightResult
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.DeviceStorage
-import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.ToolchainVersions
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.ToolchainVersions
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
@@ -35,13 +47,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-
-data class BuildClientMeta(
-    val projectId: String,
-    val projectName: String,
-    val installAfterSuccess: Boolean,
-    val autoLaunchAfterInstall: Boolean = true,
-)
 
 internal fun isActiveBuildFresh(nowMillis: Long, startedAtEpochMs: Long, maxAgeMs: Long): Boolean =
     nowMillis - startedAtEpochMs <= maxAgeMs

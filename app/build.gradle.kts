@@ -131,6 +131,7 @@ dependencies {
     implementation(projects.feature.projects)
     implementation(projects.feature.terminal)
     implementation(projects.feature.buildrun)
+    implementation(projects.feature.buildrun.api)
     implementation(projects.feature.git)
     implementation(projects.feature.git.api)
     implementation(projects.feature.editor)
