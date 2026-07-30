@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.652Z" hostname="pop-os" time="0.001">
+  <properties/>
+  <testcase name="identifierFollowedByParen_isFunction_capitalizedIsType" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.001"/>
+  <testcase name="blockComment_carriesStateAcrossLines" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
+  <testcase name="kotlinSample_classifiesKeywordsFunctionsAndStrings" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
+  <testcase name="lineComment_coversRestOfLine" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
+  <testcase name="xmlLexer_classifiesTagAttributesAndValues" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
+  <testcase name="kotlinRawString_carriesStateAcrossLines" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

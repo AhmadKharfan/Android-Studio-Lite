@@ -1,0 +1,9 @@
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-pngs-0 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/generated/res/pngs/debug
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-updated_navigation_xml-1 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/generated/updated_navigation_xml/debug
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-mergeDebugResources-2 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-mergeDebugResources-3 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-debug-4 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/intermediates/merged_res/debug/mergeDebugResources
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-debug-5 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/build/intermediates/packaged_res/debug/packageDebugResources
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-debug-6 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/src/debug/res
+com.ahmadkharfan.androidstudiolite.feature.terminal.api-main-7 /home/null/AndroidStudioProjects/AndroidStudioLite/feature/terminal/api/src/main/res
+gradleHome-0 /home/null/.gradle

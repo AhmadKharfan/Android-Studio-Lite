@@ -1,0 +1,56 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.ahmadkharfan.androidstudiolite.feature.buildrun" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+7-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:3:5-77
+7-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:3:22-74
+8    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+8-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:4:5-83
+8-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:4:22-80
+9    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+9-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:5:5-82
+9-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:5:22-79
+10
+11    <application>
+11-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:7:5-27:19
+12
+13        <!-- Transparent trampoline: notification tap / resume → PackageInstaller confirm UI. -->
+14        <activity
+14-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:10:9-14:75
+15            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallConfirmActivity"
+15-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:11:13-110
+16            android:excludeFromRecents="true"
+16-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:12:13-46
+17            android:exported="false"
+17-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:13:13-37
+18            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+18-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:14:13-72
+19
+20        <receiver
+20-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:16:9-18:40
+21            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusReceiver"
+21-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:17:13-109
+22            android:exported="false" />
+22-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:18:13-37
+23
+24        <!--
+25             Elevates process priority while a remote build stream is active so backgrounding the
+26             IDE is less likely to kill the client mid-build. specialUse: long-running user-initiated
+27             build follow that fits no other FGS category.
+28        -->
+29        <service
+29-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:23:9-26:56
+30            android:name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService"
+30-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:24:13-107
+31            android:exported="false"
+31-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:25:13-37
+32            android:foregroundServiceType="dataSync" />
+32-->/home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:26:13-53
+33    </application>
+34
+35</manifest>

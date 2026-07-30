@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:33:39.936Z" hostname="pop-os" time="0.11">
+  <properties/>
+  <testcase name="a duplicate package blocks create even under a different name" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.088"/>
+  <testcase name="create is refused while a field is invalid" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <testcase name="Kotlin-only template cannot retain or accept Java" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <testcase name="an invalid package blocks create" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.002"/>
+  <testcase name="defaults to the empty activity compose template, not the first one loaded" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.0"/>
+  <testcase name="create falls back to the default projects root" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.004"/>
+  <testcase name="package auto-derives from the name until the user edits it" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.002"/>
+  <testcase name="starts with MyApplication and derived package" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <testcase name="create passes the chosen save location through to the spec" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.002"/>
+  <testcase name="a failed create releases the button instead of spinning forever" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <testcase name="suggests MyApplication2 when MyApplication already exists" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.004"/>
+  <testcase name="create passes Java through for a supported template" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <testcase name="a duplicate name blocks create" classname="com.ahmadkharfan.androidstudiolite.feature.projects.createproject.CreateProjectViewModelTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

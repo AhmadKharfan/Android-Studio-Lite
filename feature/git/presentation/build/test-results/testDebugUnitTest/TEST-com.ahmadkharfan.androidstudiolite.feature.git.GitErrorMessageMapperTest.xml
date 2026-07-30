@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:52.990Z" hostname="pop-os" time="0.005">
+  <properties/>
+  <testcase name="mergeConflictPointsToConflictSection" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" time="0.003"/>
+  <testcase name="staleLeaseSuggestsFetch" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" time="0.0"/>
+  <testcase name="authErrorIsActionable" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" time="0.0"/>
+  <testcase name="nonFastForwardSuggestsPull" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" time="0.001"/>
+  <testcase name="repositoryLockSuggestsRetry" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitErrorMessageMapperTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

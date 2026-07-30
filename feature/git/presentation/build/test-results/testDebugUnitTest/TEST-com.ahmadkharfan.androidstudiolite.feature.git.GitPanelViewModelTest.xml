@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.546Z" hostname="pop-os" time="0.101">
+  <properties/>
+  <testcase name="push failure after commit is reported as partial success" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.037"/>
+  <testcase name="remote editor validates URL then adds origin and updates it on re-add" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.025"/>
+  <testcase name="layered files are bucketed and a dual dimension file appears twice" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.009"/>
+  <testcase name="staged rename displays old to new while retaining new path for actions" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.007"/>
+  <testcase name="commit and push reports success after both operations" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.008"/>
+  <testcase name="selected pull mode is passed to repository" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelViewModelTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

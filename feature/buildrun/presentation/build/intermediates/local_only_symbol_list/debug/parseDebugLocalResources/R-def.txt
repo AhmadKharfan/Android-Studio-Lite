@@ -1,0 +1,16 @@
+R_DEF: Internal format may change without notice
+local
+string build_notification_building
+string build_notification_cancel
+string build_notification_channel_progress
+string build_notification_channel_progress_description
+string build_notification_channel_results
+string build_notification_channel_results_description
+string build_notification_failed
+string build_notification_preparing
+string build_notification_project
+string build_notification_success
+string build_notification_success_install
+string install_notification_body
+string install_notification_channel
+string install_notification_channel_description
