@@ -5,6 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
@@ -41,8 +42,20 @@ class AslModuleBoundariesConventionPlugin : Plugin<Project> {
             // regardless of what is declared. The provider is realised once every project is
             // evaluated, and only Strings are stored, which keeps it configuration-cache safe.
             edges.set(target.provider { target.collectProjectEdges() })
+            contractSources.set(target.provider { target.collectContractSources() })
         }
     }
+
+    /** Kotlin sources of every contract module, keyed by a repo-relative path. */
+    private fun Project.collectContractSources(): Map<String, String> = allprojects
+        .filter { it.path.endsWith(":api") }
+        .flatMap { project ->
+            project.file("src/main").walkTopDown()
+                .filter { it.isFile && it.extension == "kt" }
+                .map { it.relativeTo(rootDir).path to it.readText() }
+                .toList()
+        }
+        .toMap()
 
     private fun Project.collectProjectEdges(): List<String> = allprojects
         .flatMap { project ->
@@ -68,6 +81,9 @@ abstract class VerifyModuleBoundariesTask : DefaultTask() {
 
     @get:Input
     abstract val baseline: SetProperty<String>
+
+    @get:Input
+    abstract val contractSources: MapProperty<String, String>
 
     @get:OutputFile
     abstract val report: RegularFileProperty
@@ -100,6 +116,17 @@ abstract class VerifyModuleBoundariesTask : DefaultTask() {
                     "${if (staleBaseline.size == 1) "y" else "ies"} that can now be deleted:",
             )
             staleBaseline.sorted().forEach { logger.lifecycle("  $it") }
+        }
+
+        val contractViolations = findApiContractViolations(contractSources.get())
+        if (contractViolations.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    appendLine("Contract module violations (${contractViolations.size}):")
+                    appendLine()
+                    contractViolations.forEach { appendLine(it.render()) }
+                },
+            )
         }
 
         if (violations.isNotEmpty()) {
