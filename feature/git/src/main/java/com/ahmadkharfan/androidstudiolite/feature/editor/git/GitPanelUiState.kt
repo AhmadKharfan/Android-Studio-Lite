@@ -12,7 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.GitWorktreeStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.domain.model.GitSubmodule
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
 
 @Immutable
 data class GitChangeUiModel(

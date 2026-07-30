@@ -63,7 +63,7 @@ import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitRepositoryState
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.feature.git.R
 
 @Composable

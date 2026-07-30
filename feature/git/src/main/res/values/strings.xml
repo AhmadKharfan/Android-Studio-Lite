@@ -1,24 +1,4 @@
 <resources>
-    <string name="git_auth_remote">the remote</string>
-    <string name="git_auth_done">Done</string>
-    <string name="git_auth_save_retry">Save &amp; retry</string>
-    <string name="git_auth_waiting">Waiting…</string>
-    <string name="git_auth_sign_in">Sign in</string>
-    <string name="git_auth_sign_in_to">Sign in to %1$s</string>
-    <string name="git_auth_connected">Connected</string>
-    <string name="git_auth_connected_github">Connected to GitHub</string>
-    <string name="git_auth_connected_hint">You\'re signed in. This credential is saved and reused across all your projects.</string>
-    <string name="git_auth_github_account">GitHub account</string>
-    <string name="git_auth_access_token">Access token</string>
-    <string name="git_auth_device_hint">Sign in with your GitHub account. We\'ll show you a short code to enter on github.com; the resulting access is stored securely and reused for every project.</string>
-    <string name="git_auth_copy_code_hint">Tap the code to copy it, then open GitHub and paste it:</string>
-    <string name="git_auth_copied">Copied to clipboard</string>
-    <string name="git_auth_tap_copy">Tap to copy</string>
-    <string name="git_auth_open_github">Open GitHub</string>
-    <string name="git_auth_waiting_github">Waiting for you to authorize on GitHub…</string>
-    <string name="git_auth_token_hint">Pushing to %1$s needs a GitHub personal access token (classic or fine-grained) with repository write access. It\'s stored securely and reused for future push/pull.</string>
-    <string name="git_auth_token_placeholder" translatable="false">ghp_…</string>
-    <string name="git_auth_create_token">Create a token on GitHub</string>
 
     <string name="git_diff_rotate_portrait">Rotate to portrait</string>
     <string name="git_diff_rotate_landscape">Rotate to landscape</string>

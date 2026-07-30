@@ -11,7 +11,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.core.common)
     implementation(projects.designsystem)
-    implementation(projects.feature.git)
+    implementation(projects.core.gitauth)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

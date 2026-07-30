@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
+    <ID>LongMethod:GitAuthPrompt.kt$@Composable fun GitHubAuthDialog(state: GitAuthPromptState, actions: GitAuthPromptActions)</ID>
+    <ID>ModifierMissing:GitAuthPrompt.kt$GitHubAuthDialog</ID>
+  </CurrentIssues>
+</SmellBaseline>

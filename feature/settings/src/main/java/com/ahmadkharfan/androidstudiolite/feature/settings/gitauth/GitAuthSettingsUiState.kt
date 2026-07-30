@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.gitauth
 
 import androidx.compose.runtime.Immutable
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
 
 @Immutable
 data class GitAuthSettingsUiState(

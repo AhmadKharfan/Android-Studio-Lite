@@ -44,7 +44,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextF
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
-import com.ahmadkharfan.androidstudiolite.feature.editor.git.git.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
 import com.ahmadkharfan.androidstudiolite.domain.model.GitTag

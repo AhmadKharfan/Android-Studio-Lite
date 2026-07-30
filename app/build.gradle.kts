@@ -120,6 +120,7 @@ android {
 dependencies {
     implementation(projects.domain)
     implementation(projects.core.common)
+    implementation(projects.core.gitauth)
     implementation(projects.data.templates)
     implementation(projects.designsystem)
     implementation(projects.data.local)
