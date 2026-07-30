@@ -1,7 +1,7 @@
 package com.ahmadkharfan.androidstudiolite
 
-import com.ahmadkharfan.androidstudiolite.feature.projects.navigation.ProjectsRoutes
-import com.ahmadkharfan.androidstudiolite.feature.onboarding.navigation.OnboardingRoutes
+import com.ahmadkharfan.androidstudiolite.feature.projects.api.ProjectsRoutes
+import com.ahmadkharfan.androidstudiolite.feature.onboarding.api.OnboardingRoutes
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent

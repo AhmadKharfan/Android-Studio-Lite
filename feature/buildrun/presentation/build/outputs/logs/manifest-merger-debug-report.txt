@@ -1,0 +1,54 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:2:1-29:12
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:2:1-29:12
+	package
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:3:5-77
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:3:22-74
+uses-permission#android.permission.REQUEST_INSTALL_PACKAGES
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:4:5-83
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:4:22-80
+uses-permission#android.permission.REQUEST_DELETE_PACKAGES
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:5:5-82
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:5:22-79
+application
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:7:5-27:19
+activity#com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallConfirmActivity
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:10:9-14:75
+	android:excludeFromRecents
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:12:13-46
+	android:exported
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:13:13-37
+	android:theme
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:14:13-72
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:11:13-110
+receiver#com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusReceiver
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:16:9-18:40
+	android:exported
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:18:13-37
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:17:13-109
+service#com.ahmadkharfan.androidstudiolite.feature.buildrun.RemoteBuildKeepAliveService
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:23:9-26:56
+	android:exported
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:25:13-37
+	android:foregroundServiceType
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:26:13-53
+	android:name
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml:24:13-107
+uses-sdk
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/buildrun/presentation/src/main/AndroidManifest.xml

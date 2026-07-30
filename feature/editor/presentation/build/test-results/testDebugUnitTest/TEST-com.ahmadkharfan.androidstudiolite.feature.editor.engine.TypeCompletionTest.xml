@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.TypeCompletionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.655Z" hostname="pop-os" time="0.007">
+  <properties/>
+  <testcase name="functionDeclarationParen_doesNotOfferCallParams" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.TypeCompletionTest" time="0.003"/>
+  <testcase name="parameterTypePosition_offersStringType" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.TypeCompletionTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

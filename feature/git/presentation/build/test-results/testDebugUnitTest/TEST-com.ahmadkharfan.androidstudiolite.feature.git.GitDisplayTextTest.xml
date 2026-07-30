@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:52.890Z" hostname="pop-os" time="0.094">
+  <properties/>
+  <testcase name="stash label includes zero index" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.009"/>
+  <testcase name="behind label uses down arrow" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.001"/>
+  <testcase name="blame gutter truncates long author and preserves fixed widths" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.041"/>
+  <testcase name="ahead label uses up arrow" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.001"/>
+  <testcase name="submodule status replaces underscores with spaces" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.005"/>
+  <testcase name="change type label uses enum initial" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.001"/>
+  <testcase name="repository state label capitalizes only the first character" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.001"/>
+  <testcase name="repository state sentence label remains lowercase" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.0"/>
+  <testcase name="hunk header preserves unified diff syntax" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitDisplayTextTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

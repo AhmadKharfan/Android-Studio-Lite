@@ -32,6 +32,8 @@ fun isProductionConfiguration(name: String): Boolean {
 }
 
 private fun isFeature(path: String) = path.startsWith(":feature:")
+
+/** Contract module. Its sibling `:presentation` module holds the implementation. */
 private fun isApiModule(path: String) = path.endsWith(":api")
 private fun isData(path: String) = path.startsWith(":data:")
 
@@ -61,8 +63,8 @@ private fun violationFor(edge: ModuleEdge): BoundaryViolation? = when {
         BoundaryViolation(
             edge,
             "no-feature-to-feature",
-            "Features must not depend on each other's implementations. Depend on ${edge.to}:api, or " +
-                "have :app pass the collaboration in.",
+            "Features must not depend on each other's implementations. Depend on the sibling api " +
+                "module instead, or have :app pass the collaboration in.",
         )
 
     isFeature(edge.from) && isData(edge.to) ->

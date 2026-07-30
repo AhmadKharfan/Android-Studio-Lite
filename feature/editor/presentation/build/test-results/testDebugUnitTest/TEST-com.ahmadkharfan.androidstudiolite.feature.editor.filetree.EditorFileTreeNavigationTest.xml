@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.762Z" hostname="pop-os" time="0.003">
+  <properties/>
+  <testcase name="defaultExpandedIdsIncludeTopLevelDirsAndTrailToDefaultFile" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.001"/>
+  <testcase name="isCodeFileMatchesKnownExtensionsCaseInsensitively" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <testcase name="isValidFileTreeNameRejectsSeparatorsAndDotEntries" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <testcase name="isSameOrChildDistinguishesSiblingsFromDescendants" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.001"/>
+  <testcase name="renamedPathForRewritesTheEntryAndNestedChildren" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <testcase name="pathToDefaultFileFallsBackToAnyCodeFileThenAnyFile" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <testcase name="breadcrumbForIsProjectRelativeWithNameFallback" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <testcase name="findFileTreeNodeSearchesNestedChildren" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.001"/>
+  <testcase name="pathToDefaultFilePrefersMainActivity" classname="com.ahmadkharfan.androidstudiolite.feature.editor.filetree.EditorFileTreeNavigationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

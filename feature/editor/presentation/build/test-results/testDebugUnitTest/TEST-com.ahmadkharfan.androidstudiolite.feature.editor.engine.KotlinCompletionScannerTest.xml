@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.595Z" hostname="pop-os" time="0.014">
+  <properties/>
+  <testcase name="importLine_isImportContext" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.001"/>
+  <testcase name="nestedTemplate_restoresEnclosingTemplateDepth" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="identifierTemplate_allowsCompletionInsideIdentifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.001"/>
+  <testcase name="shouldAutoPopup_acceptsOpenParenInsideCall" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="shouldAutoPopup_rejectsInsideString" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="shouldAutoPopup_acceptsDot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="templateExpression_resumesAfterRawStringCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.003"/>
+  <testcase name="typePosition_afterColon" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="blockComment_suppressesUntilClosed" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.001"/>
+  <testcase name="insideTemplateExpression_isAllowed" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="completedTemplate_doesNotSuppressFollowingCode" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="escapedQuote_doesNotCloseNormalString" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="templateExpression_resumesAfterCharCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="templateExpression_resumesAfterInnerStringCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="rawString_suppressesUntilTripleQuoteCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="charLiteral_suppressesUntilClosingQuote" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="insideLineComment_isSuppressed" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="templateExpression_resumesAfterLineCommentCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="expressionTemplate_preservesNestedBraceDepth" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="templateExpression_resumesAfterBlockCommentCloses" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.0"/>
+  <testcase name="memberAccess_classifiesCorrectly" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.004"/>
+  <testcase name="callArgument_insideTextParens" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.002"/>
+  <testcase name="insideStringLiteral_isSuppressed" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.KotlinCompletionScannerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

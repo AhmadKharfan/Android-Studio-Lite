@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="build_notification_building">Building…</string>
+    <string name="build_notification_cancel">Cancel</string>
+    <string name="build_notification_channel_progress">Build progress</string>
+    <string name="build_notification_channel_progress_description">Ongoing remote builds</string>
+    <string name="build_notification_channel_results">Build results</string>
+    <string name="build_notification_channel_results_description">Build completion alerts</string>
+    <string name="build_notification_failed">Build failed</string>
+    <string name="build_notification_preparing">Preparing…</string>
+    <string name="build_notification_project">Project</string>
+    <string name="build_notification_success">Build successful</string>
+    <string name="build_notification_success_install">Build successful. Tap to install</string>
+    <string name="install_notification_body">Tap to open the install prompt for %1$s.</string>
+    <string name="install_notification_channel">Install prompts</string>
+    <string name="install_notification_channel_description">Shows when a built APK is ready to install</string>
+</resources>

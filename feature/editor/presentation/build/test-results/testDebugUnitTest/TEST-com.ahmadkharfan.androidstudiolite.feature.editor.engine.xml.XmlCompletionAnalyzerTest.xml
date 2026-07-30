@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:54.749Z" hostname="pop-os" time="0.01">
+  <properties/>
+  <testcase name="singleQuotedValue_isClassifiedAsAttributeValue" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="contributor_attributeValuePosition_returnsValuesForAttribute" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="contributor_tagNamePosition_returnsLayoutTagsInCatalogOrder" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.002"/>
+  <testcase name="attributeNamePositions_replaceOnlyTheCurrentAttribute" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="lessThanInsideQuotedValue_isCurrentlyTreatedAsTagBoundary" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="attributeValuePositions_reportAttributeAndValueReplacementRange" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="contributor_attributeNamePosition_excludesExistingAttributes" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.0"/>
+  <testcase name="textBetweenElements_isClassifiedAsText" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="completedAttributes_areReportedWhileTypingANewAttribute" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.0"/>
+  <testcase name="closingTagCommentAndProcessingInstruction_areUnknown" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.0"/>
+  <testcase name="tagNamePositions_replaceOnlyTheTypedName" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <testcase name="greaterThanInsideQuotedValue_doesNotEndTheTag" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.0"/>
+  <testcase name="unterminatedAttributeValue_atEndOfTag_remainsCompletable" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.xml.XmlCompletionAnalyzerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorRootInvalidationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:32:53.957Z" hostname="pop-os" time="0.354">
+  <properties/>
+  <testcase name="root invalidation reloads clean tabs and preserves dirty buffers" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorRootInvalidationTest" time="0.353"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

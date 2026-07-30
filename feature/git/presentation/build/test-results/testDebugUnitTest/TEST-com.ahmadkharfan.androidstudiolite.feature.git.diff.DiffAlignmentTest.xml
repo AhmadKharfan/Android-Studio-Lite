@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.650Z" hostname="pop-os" time="0.01">
+  <properties/>
+  <testcase name="context lines pair with themselves" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.002"/>
+  <testcase name="modified lines are treated as added" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.001"/>
+  <testcase name="empty hunk yields no rows" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.0"/>
+  <testcase name="context line flushes a pending run before pairing with itself" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.0"/>
+  <testcase name="unequal runs pad the shorter side with null" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.004"/>
+  <testcase name="removed lines pair with added lines positionally" classname="com.ahmadkharfan.androidstudiolite.feature.git.diff.DiffAlignmentTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
