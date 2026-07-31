@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,7 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslChipK
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.projects.R
 
 @Composable
@@ -135,9 +135,9 @@ private fun CloneRepoOptions(
 ) {
     val colors = AslTheme.colors
     Column {
-        Text(
+        AslText(
             text = stringResource(R.string.projects_options),
-            style = AslTypography.labelMedium,
+            style = AslTextStyles.labelMedium,
             color = colors.textSecondary,
         )
         FlowRow(

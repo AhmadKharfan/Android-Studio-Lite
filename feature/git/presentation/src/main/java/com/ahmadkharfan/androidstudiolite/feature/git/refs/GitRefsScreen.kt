@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +43,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslCheck
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.domain.model.GitBranch
 import com.ahmadkharfan.androidstudiolite.domain.model.GitStash
@@ -82,7 +82,7 @@ private fun GitRefsScreen(
         GitRefsMode.TAGS -> stringResource(R.string.git_refs_tags)
         GitRefsMode.STASHES -> stringResource(R.string.git_refs_stashes)
     }
-    Scaffold(
+    AslScaffold(
         topBar = {
             AslTopAppBar(
                 title = title,
@@ -113,11 +113,11 @@ private fun GitRefsScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (uiState.error != null) {
-                Text(
+                AslText(
                     uiState.error,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                     color = colors.error,
-                    style = AslTypography.bodySmall,
+                    style = AslTextStyles.bodySmall,
                 )
             }
             if (uiState.loading) AslLinearProgress(label = stringResource(R.string.git_refs_updating, title), modifier = Modifier.padding(12.dp))
@@ -288,9 +288,9 @@ private fun BranchList(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 state.behind?.takeIf { it > 0 }?.let { AslChip(label = behindLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Info) }
                 state.ahead?.takeIf { it > 0 }?.let { AslChip(label = aheadLabel(it), kind = AslChipKind.Status, status = AslChipStatus.Success) }
-                Text(
+                AslText(
                     text = state.syncMessage.orEmpty(),
-                    style = AslTypography.labelSmall,
+                    style = AslTextStyles.labelSmall,
                     color = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -311,7 +311,7 @@ private fun BranchList(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
         }
-        HorizontalDivider(color = colors.borderSubtle)
+        AslHorizontalDivider(color = colors.borderSubtle)
 
         val filtered = state.branches.filter { it.name.contains(query, ignoreCase = true) }
         if (filtered.isEmpty()) {
@@ -392,9 +392,9 @@ private fun BranchList(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
+    AslText(
         text = text.uppercase(),
-        style = AslTypography.labelSmall,
+        style = AslTextStyles.labelSmall,
         color = AslTheme.colors.textTertiary,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
     )
@@ -451,11 +451,11 @@ private fun StashList(
 @Composable
 private fun RefRow(name: String, detail: String?, actions: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Text(name, fontFamily = FontFamily.Monospace, style = AslTypography.titleSmall)
-        detail?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = AslTypography.bodySmall) }
+        AslText(name, fontFamily = FontFamily.Monospace, style = AslTextStyles.titleSmall)
+        detail?.let { AslText(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = AslTextStyles.bodySmall) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { actions() }
     }
-    HorizontalDivider()
+    AslHorizontalDivider()
 }
 
 @Composable

@@ -43,6 +43,7 @@ class AslModuleBoundariesConventionPlugin : Plugin<Project> {
             // evaluated, and only Strings are stored, which keeps it configuration-cache safe.
             edges.set(target.provider { target.collectProjectEdges() })
             contractSources.set(target.provider { target.collectContractSources() })
+            externalEdges.set(target.provider { target.collectExternalEdges() })
         }
     }
 
@@ -56,6 +57,18 @@ class AslModuleBoundariesConventionPlugin : Plugin<Project> {
                 .toList()
         }
         .toMap()
+
+    /** External dependencies as `owner|configuration|group|name`, Strings only for the cache. */
+    private fun Project.collectExternalEdges(): List<String> = allprojects
+        .flatMap { project ->
+            project.configurations.flatMap { configuration ->
+                configuration.dependencies
+                    .filter { it !is ProjectDependency && it.group != null }
+                    .map { "${project.path}|${configuration.name}|${it.group}|${it.name}" }
+            }
+        }
+        .distinct()
+        .sorted()
 
     private fun Project.collectProjectEdges(): List<String> = allprojects
         .flatMap { project ->
@@ -84,6 +97,9 @@ abstract class VerifyModuleBoundariesTask : DefaultTask() {
 
     @get:Input
     abstract val contractSources: MapProperty<String, String>
+
+    @get:Input
+    abstract val externalEdges: ListProperty<String>
 
     @get:OutputFile
     abstract val report: RegularFileProperty
@@ -116,6 +132,22 @@ abstract class VerifyModuleBoundariesTask : DefaultTask() {
                     "${if (staleBaseline.size == 1) "y" else "ies"} that can now be deleted:",
             )
             staleBaseline.sorted().forEach { logger.lifecycle("  $it") }
+        }
+
+        val materialViolations = findMaterialViolations(
+            externalEdges.get().map { encoded ->
+                val (from, configuration, group, name) = encoded.split("|", limit = 4)
+                ExternalEdge(from = from, configuration = configuration, group = group, name = name)
+            },
+        )
+        if (materialViolations.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    appendLine("Material used directly by a feature (${materialViolations.size}):")
+                    appendLine()
+                    materialViolations.forEach { appendLine(it.render()) }
+                },
+            )
         }
 
         val contractViolations = findApiContractViolations(contractSources.get())

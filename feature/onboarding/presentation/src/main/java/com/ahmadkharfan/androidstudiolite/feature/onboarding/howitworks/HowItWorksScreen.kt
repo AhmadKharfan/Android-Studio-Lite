@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +30,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizar
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
 
@@ -61,7 +61,7 @@ private fun HowItWorksScreen(onContinue: () -> Unit) {
             text = stringResource(R.string.onboarding_how_run_text),
         ),
     )
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -106,14 +106,14 @@ private fun HowItWorksScreen(onContinue: () -> Unit) {
 @Composable
 private fun HowItWorksHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 22.dp)) {
-        Text(
+        AslText(
             text = stringResource(R.string.onboarding_how_title),
-            style = AslTypography.headlineMedium,
+            style = AslTextStyles.headlineMedium,
             color = colors.textPrimary,
         )
-        Text(
+        AslText(
             text = stringResource(R.string.onboarding_how_subtitle),
-            style = AslTypography.bodyMedium,
+            style = AslTextStyles.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
         )
@@ -152,21 +152,21 @@ private fun HowStepRow(
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.padding(bottom = if (isLast) 0.dp else 22.dp)) {
-            Text(
+            AslText(
                 text = stringResource(R.string.onboarding_how_step_label, number).uppercase(),
-                style = AslTypography.labelSmall,
+                style = AslTextStyles.labelSmall,
                 color = colors.textTertiary,
                 letterSpacing = 1.sp,
             )
-            Text(
+            AslText(
                 text = step.title,
-                style = AslTypography.titleMedium,
+                style = AslTextStyles.titleMedium,
                 color = colors.textPrimary,
                 modifier = Modifier.padding(top = 2.dp),
             )
-            Text(
+            AslText(
                 text = step.text,
-                style = AslTypography.bodyMedium,
+                style = AslTextStyles.bodyMedium,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 3.dp),
             )

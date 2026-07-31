@@ -6,7 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -93,9 +93,9 @@ private fun FontThumbnail(path: String) {
     LaunchedEffect(path) {
         typeface = withContext(Dispatchers.IO) { AssetPreview.loadTypeface(path) }
     }
-    Text(
+    AslText(
         text = "Aa",
-        style = AslTypography.titleMedium,
+        style = AslTextStyles.titleMedium,
         fontFamily = typeface?.let { FontFamily(it) },
         color = AslTheme.colors.textPrimary,
     )

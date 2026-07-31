@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,7 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
@@ -48,7 +48,7 @@ private fun GitAuthSettingsScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -71,9 +71,9 @@ private fun GitAuthSettingsScreen(
 
                 Spacer(Modifier.height(20.dp))
                 AslSectionHeader(stringResource(R.string.settings_git_author))
-                Text(
+                AslText(
                     text = stringResource(R.string.settings_git_author_hint),
-                    style = AslTypography.bodySmall,
+                    style = AslTextStyles.bodySmall,
                     color = colors.textTertiary,
                 )
                 Spacer(Modifier.height(8.dp))
@@ -99,9 +99,9 @@ private fun GitAuthSettingsScreen(
 
                 if (uiState.statusMessage != null) {
                     Spacer(Modifier.height(12.dp))
-                    Text(
+                    AslText(
                         text = uiState.statusMessage,
-                        style = AslTypography.bodySmall,
+                        style = AslTextStyles.bodySmall,
                         color = if (uiState.isError) colors.error else colors.success,
                     )
                 }
@@ -124,13 +124,13 @@ private fun GitHubAccountCard(
             .aslCard()
             .padding(16.dp),
     ) {
-        Text(
+        AslText(
             text = stringResource(if (uiState.gitHubConnected) R.string.settings_git_connected else R.string.settings_git_not_connected),
-            style = AslTypography.titleSmall,
+            style = AslTextStyles.titleSmall,
             color = if (uiState.gitHubConnected) colors.success else colors.textSecondary,
         )
         Spacer(Modifier.height(4.dp))
-        Text(
+        AslText(
             text = if (uiState.gitHubConnected) {
                 stringResource(R.string.settings_git_connected_hint)
             } else if (uiState.gitHubAvailable) {
@@ -138,7 +138,7 @@ private fun GitHubAccountCard(
             } else {
                 stringResource(R.string.settings_git_token_hint)
             },
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textTertiary,
         )
         Spacer(Modifier.height(12.dp))

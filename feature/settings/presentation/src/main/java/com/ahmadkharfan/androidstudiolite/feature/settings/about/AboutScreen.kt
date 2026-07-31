@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 
 private const val REPO_URL = "https://github.com/AhmadKharfan/Android-Studio-Lite"
 
@@ -61,7 +61,7 @@ fun AboutRoute(onBack: () -> Unit) {
 private fun AboutScreen(onBack: () -> Unit) {
     val colors = AslTheme.colors
     val context = LocalContext.current
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = stringResource(CommonR.string.about_title), onBack = onBack)
             Column(
@@ -73,9 +73,9 @@ private fun AboutScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 AboutHeader(colors = colors)
-                Text(
+                AslText(
                     text = stringResource(CommonR.string.about_description),
-                    style = AslTypography.bodyMedium,
+                    style = AslTextStyles.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -107,7 +107,7 @@ private fun AboutHeader(colors: AslColorScheme) {
                 .border(1.dp, colors.borderDefault, RoundedCornerShape(19.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
+            AslText(
                 text = "{ }",
                 color = colors.accentPrimary,
                 fontFamily = AslCode.codeBody.fontFamily,
@@ -115,15 +115,15 @@ private fun AboutHeader(colors: AslColorScheme) {
                 fontSize = 30.sp,
             )
         }
-        Text(
+        AslText(
             text = stringResource(CommonR.string.app_name),
-            style = AslTypography.headlineMedium,
+            style = AslTextStyles.headlineMedium,
             color = colors.textPrimary,
             textAlign = TextAlign.Center,
         )
-        Text(
+        AslText(
             text = stringResource(CommonR.string.app_tagline),
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textTertiary,
         )
         AslChip(
@@ -147,15 +147,15 @@ private fun OpenSourceCard(colors: AslColorScheme, onContribute: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AslIcon(name = "heart-handshake", size = 18.dp, tint = colors.accentPrimary)
-            Text(
+            AslText(
                 text = stringResource(CommonR.string.about_open_source_title),
-                style = AslTypography.titleSmall,
+                style = AslTextStyles.titleSmall,
                 color = colors.textPrimary,
             )
         }
-        Text(
+        AslText(
             text = stringResource(CommonR.string.about_open_source_body),
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),
         )

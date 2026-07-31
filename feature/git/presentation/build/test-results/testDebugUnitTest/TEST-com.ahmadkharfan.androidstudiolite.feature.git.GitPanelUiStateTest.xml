@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:54.984Z" hostname="pop-os" time="0.031">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:04.562Z" hostname="pop-os" time="0.008">
   <properties/>
-  <testcase name="change count sums all change lists and is zero when empty" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.002"/>
+  <testcase name="change count sums all change lists and is zero when empty" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.003"/>
   <testcase name="section selection distinguishes none some and all selected paths" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.002"/>
-  <testcase name="chip row appears for each independent trigger and stays hidden without one" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.004"/>
-  <testcase name="empty section paths remain all selected and not indeterminate" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.015"/>
+  <testcase name="chip row appears for each independent trigger and stays hidden without one" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.002"/>
+  <testcase name="empty section paths remain all selected and not indeterminate" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelUiStateTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

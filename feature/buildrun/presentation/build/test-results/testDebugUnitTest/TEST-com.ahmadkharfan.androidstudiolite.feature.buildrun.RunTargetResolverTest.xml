@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:29:07.923Z" hostname="pop-os" time="0.011">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:54.377Z" hostname="pop-os" time="0.004">
   <properties/>
-  <testcase name="resolveReleaseVariant keeps the selected flavor" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.005"/>
-  <testcase name="resolves arbitrarily named android application module by type" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
-  <testcase name="maps bare debug onto preferred development flavored variant" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
+  <testcase name="resolveReleaseVariant keeps the selected flavor" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
+  <testcase name="resolves arbitrarily named android application module by type" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
+  <testcase name="maps bare debug onto preferred development flavored variant" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
   <testcase name="prefers colon-app android application module" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
-  <testcase name="available variants list debug before release and preferred flavors first" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
-  <testcase name="returns null when no app module exists" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.003"/>
-  <testcase name="falls back to composeApp when no colon-app" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
+  <testcase name="available variants list debug before release and preferred flavors first" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
+  <testcase name="returns null when no app module exists" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
+  <testcase name="falls back to composeApp when no colon-app" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
   <testcase name="release detection covers flavored release names" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.0"/>
   <testcase name="resolveSelectedVariant keeps explicit concrete choice" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.RunTargetResolverTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>

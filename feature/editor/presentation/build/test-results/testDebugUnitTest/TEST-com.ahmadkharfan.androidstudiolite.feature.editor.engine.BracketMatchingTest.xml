@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.082Z" hostname="pop-os" time="0.028">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.323Z" hostname="pop-os" time="0.003">
   <properties/>
-  <testcase name="respectsNesting" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.002"/>
-  <testcase name="mixedBracketTypes" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.003"/>
-  <testcase name="matchesForwardFromOpener" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.001"/>
-  <testcase name="nullForUnmatchedBracket" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.008"/>
-  <testcase name="nullWhenNotAdjacentToBracket" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.0"/>
-  <testcase name="matchesBackwardFromCloser" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.012"/>
+  <testcase name="respectsNesting" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.001"/>
+  <testcase name="mixedBracketTypes" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.001"/>
+  <testcase name="matchesForwardFromOpener" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.0"/>
+  <testcase name="nullForUnmatchedBracket" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.0"/>
+  <testcase name="nullWhenNotAdjacentToBracket" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.001"/>
+  <testcase name="matchesBackwardFromCloser" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.BracketMatchingTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

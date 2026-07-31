@@ -7,7 +7,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
-    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)

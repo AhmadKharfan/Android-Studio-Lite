@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +22,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
@@ -37,7 +37,7 @@ fun CompleteRoute(
 @Composable
 private fun CompleteScreen(onOpen: () -> Unit) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -58,16 +58,16 @@ private fun CompleteScreen(onOpen: () -> Unit) {
                 ) {
                     AslIcon(name = "check", size = 40.dp, tint = colors.success)
                 }
-                Text(
+                AslText(
                     text = stringResource(R.string.onboarding_complete_title),
-                    style = AslTypography.headlineLarge,
+                    style = AslTextStyles.headlineLarge,
                     color = colors.textPrimary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 18.dp),
                 )
-                Text(
+                AslText(
                     text = stringResource(R.string.onboarding_complete_body),
-                    style = AslTypography.bodyMedium,
+                    style = AslTextStyles.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp),

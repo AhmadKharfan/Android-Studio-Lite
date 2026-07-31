@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.695Z" hostname="pop-os" time="0.049">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.549Z" hostname="pop-os" time="0.01">
   <properties/>
   <testcase name="smartEnter_insideKotlinString_insertsLiteralNewline" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
-  <testcase name="typingClosingBracket_skipsOverExistingCloser" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.004"/>
-  <testcase name="typingOpenBracket_autoClosesAndKeepsCaretInside" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
-  <testcase name="typingQuote_autoClosesInCode_butNotInPlainText" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.011"/>
-  <testcase name="quoteNotAutoClosedAfterIdentifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
-  <testcase name="backspace_deletesEmptyPair" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
-  <testcase name="xmlTagAutoClosesOnGreaterThan" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.005"/>
-  <testcase name="smartEnter_continuesLineComment" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.002"/>
-  <testcase name="smartEnter_composableStringExit_insertsNewlineAfterCall" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.004"/>
-  <testcase name="backspace_dedentsToPreviousTabStop" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.004"/>
-  <testcase name="smartEnter_expandsEmptyBracePair" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.006"/>
-  <testcase name="smartEnter_preservesIndent" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.002"/>
+  <testcase name="typingClosingBracket_skipsOverExistingCloser" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="typingOpenBracket_autoClosesAndKeepsCaretInside" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
+  <testcase name="typingQuote_autoClosesInCode_butNotInPlainText" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.003"/>
+  <testcase name="quoteNotAutoClosedAfterIdentifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="backspace_deletesEmptyPair" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="xmlTagAutoClosesOnGreaterThan" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="smartEnter_continuesLineComment" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
+  <testcase name="smartEnter_composableStringExit_insertsNewlineAfterCall" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="backspace_dedentsToPreviousTabStop" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.0"/>
+  <testcase name="smartEnter_expandsEmptyBracePair" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
+  <testcase name="smartEnter_preservesIndent" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SmartEditTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

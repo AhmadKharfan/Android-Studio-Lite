@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:29:07.967Z" hostname="pop-os" time="0.08">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:54.400Z" hostname="pop-os" time="0.022">
   <properties/>
-  <testcase name="version compare handles qualifiers and different lengths" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.013"/>
-  <testcase name="agp 8 with jdk 11 warns about jdk 17" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.045"/>
-  <testcase name="missing agp is info not warning" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.004"/>
-  <testcase name="storage too small for the source zip warns" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.011"/>
+  <testcase name="version compare handles qualifiers and different lengths" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.007"/>
+  <testcase name="agp 8 with jdk 11 warns about jdk 17" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.007"/>
+  <testcase name="missing agp is info not warning" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.0"/>
+  <testcase name="storage too small for the source zip warns" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.004"/>
   <testcase name="an almost full device warns but never blocks" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.001"/>
-  <testcase name="agp 8 with gradle 7 warns" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.001"/>
-  <testcase name="a gigabyte free is no longer worth warning about" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.002"/>
-  <testcase name="ample storage produces no warning" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.001"/>
+  <testcase name="agp 8 with gradle 7 warns" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.0"/>
+  <testcase name="a gigabyte free is no longer worth warning about" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.0"/>
+  <testcase name="ample storage produces no warning" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.0"/>
   <testcase name="agp 8 with jdk 17 and gradle 8 is clean" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.BuildPreflightTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

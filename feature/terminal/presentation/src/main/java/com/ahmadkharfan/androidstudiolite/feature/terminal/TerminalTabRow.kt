@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +69,7 @@ fun TerminalTabRow(
             onClick = onNewTab,
         )
     }
-    HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+    AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
 }
 
 @Composable
@@ -92,7 +92,7 @@ internal fun TerminalTabChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
+        AslText(
             text = if (tab.running) tab.title else stringResource(R.string.terminal_tab_exited, tab.title),
             style = if (compact) AslCode.codeTiny else AslCode.codeSmall,
             color = if (active) colors.textPrimary else colors.textSecondary,
@@ -104,7 +104,7 @@ internal fun TerminalTabChip(
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = "×", style = AslCode.codeSmall, color = colors.textTertiary)
+                AslText(text = "×", style = AslCode.codeSmall, color = colors.textTertiary)
             }
         }
     }

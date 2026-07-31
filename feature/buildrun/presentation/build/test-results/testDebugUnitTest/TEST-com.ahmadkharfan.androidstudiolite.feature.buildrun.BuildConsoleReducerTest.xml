@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:29:07.374Z" hostname="pop-os" time="0.211">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:54.003Z" hostname="pop-os" time="0.185">
   <properties/>
-  <testcase name="finished result is not clobbered by a later running update" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.03"/>
-  <testcase name="verbose builds retain only the bounded log tail" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.145"/>
-  <testcase name="output separates stdout and stderr" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.001"/>
+  <testcase name="finished result is not clobbered by a later running update" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.024"/>
+  <testcase name="verbose builds retain only the bounded log tail" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.13"/>
+  <testcase name="output separates stdout and stderr" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.0"/>
   <testcase name="task result upserts onto the running line, not a duplicate" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.001"/>
-  <testcase name="finished success records duration and clears progress" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.005"/>
+  <testcase name="finished success records duration and clears progress" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.004"/>
   <testcase name="finished failure marks failed" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.001"/>
-  <testcase name="started resets state and marks running" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.0"/>
-  <testcase name="problems carry file location and counts" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.002"/>
+  <testcase name="started resets state and marks running" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.001"/>
+  <testcase name="problems carry file location and counts" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.001"/>
   <testcase name="tasks are grouped by module in first-seen order" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.016"/>
-  <testcase name="problem with no file has no location" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.005"/>
+  <testcase name="problem with no file has no location" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.0"/>
   <testcase name="module-less task path degrades gracefully" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildConsoleReducerTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

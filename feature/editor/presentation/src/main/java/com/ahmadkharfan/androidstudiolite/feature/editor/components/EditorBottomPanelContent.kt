@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -123,9 +123,9 @@ private fun LazyListScope.buildArtifactSection(
                 artifact.sha256?.let { add("SHA-256 ${it.take(12)}…") }
             }.joinToString(" · ")
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-                Text(artifact.name, style = AslCode.codeSmall, color = colors.textPrimary)
+                AslText(artifact.name, style = AslCode.codeSmall, color = colors.textPrimary)
                 if (details.isNotBlank()) {
-                    Text(details, style = AslCode.codeTiny, color = colors.textTertiary)
+                    AslText(details, style = AslCode.codeTiny, color = colors.textTertiary)
                 }
             }
         }
@@ -175,7 +175,7 @@ private fun LazyListScope.buildOutputSection(
             SelectionContainer {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     logs.forEach { line ->
-                        Text(
+                        AslText(
                             text = line.text,
                             style = AslCode.codeTiny,
                             color = if (line.isError) colors.error else colors.textSecondary,
@@ -209,7 +209,7 @@ private fun BuildStatusHeader(
                 BuildStatus.Cancelled -> console.statusLabel() to colors.textTertiary
                 BuildStatus.Idle -> console.statusLabel() to colors.textTertiary
             }
-            Text(
+            AslText(
                 text = label,
                 style = AslCode.codeSmall,
                 color = tint,
@@ -218,7 +218,7 @@ private fun BuildStatusHeader(
                 overflow = TextOverflow.Ellipsis,
             )
             console.durationMillis?.let {
-                Text(text = formatSeconds(it), style = AslCode.codeTiny, color = colors.textTertiary)
+                AslText(text = formatSeconds(it), style = AslCode.codeTiny, color = colors.textTertiary)
             }
             val hasContent = console.problems.isNotEmpty() || console.taskGroups.isNotEmpty() || console.logs.isNotEmpty()
             if (hasContent) {
@@ -275,16 +275,16 @@ private fun ProblemRow(problem: BuildProblem, onJump: (BuildProblem) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AslIcon(name = icon, size = 14.dp, tint = tint, modifier = Modifier.padding(top = 1.dp))
-        Text(text = problem.message, style = AslCode.codeTiny, color = colors.textPrimary, modifier = Modifier.weight(1f))
+        AslText(text = problem.message, style = AslCode.codeTiny, color = colors.textPrimary, modifier = Modifier.weight(1f))
         problem.location?.let {
-            Text(text = it, style = AslCode.codeTiny, color = colors.info)
+            AslText(text = it, style = AslCode.codeTiny, color = colors.info)
         }
     }
 }
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
+    AslText(
         text = text,
         style = AslCode.codeTiny,
         color = AslTheme.colors.textTertiary,

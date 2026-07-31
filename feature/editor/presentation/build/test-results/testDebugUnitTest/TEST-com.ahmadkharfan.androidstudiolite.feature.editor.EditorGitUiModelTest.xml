@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:41.001Z" hostname="pop-os" time="0.091">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:05.861Z" hostname="pop-os" time="0.028">
   <properties/>
-  <testcase name="branch status includes dirty marker and badge count" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.072"/>
-  <testcase name="detached and repository operation labels are derived from git state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.016"/>
-  <testcase name="non repository hides git chrome" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.001"/>
-  <testcase name="conflict is the strongest file tree signal" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.001"/>
+  <testcase name="branch status includes dirty marker and badge count" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.021"/>
+  <testcase name="detached and repository operation labels are derived from git state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.006"/>
+  <testcase name="non repository hides git chrome" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.0"/>
+  <testcase name="conflict is the strongest file tree signal" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorGitUiModelTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

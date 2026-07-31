@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.341Z" hostname="pop-os" time="0.005">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:57.859Z" hostname="pop-os" time="0.002">
   <properties/>
-  <testcase name="arrows_map_to_csi_sequences" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" time="0.003"/>
+  <testcase name="arrows_map_to_csi_sequences" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" time="0.001"/>
   <testcase name="extra_keys_route_to_special_or_text" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" time="0.0"/>
-  <testcase name="control_keys_map_to_control_bytes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" time="0.001"/>
+  <testcase name="control_keys_map_to_control_bytes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalKeysTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

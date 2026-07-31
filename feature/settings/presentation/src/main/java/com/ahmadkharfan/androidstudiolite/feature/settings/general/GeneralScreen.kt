@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,7 +26,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.model.AppThemeMode
 
 @Composable
@@ -45,7 +45,7 @@ private fun GeneralScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = stringResource(CommonR.string.general_title), onBack = onBack)
             Column(
@@ -80,7 +80,7 @@ private fun GeneralUiModeSection(
     interactionListener: GeneralInteractionListener,
     colors: AslColorScheme,
 ) {
-    Text(text = stringResource(CommonR.string.general_ui_mode), style = AslTypography.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
+    AslText(text = stringResource(CommonR.string.general_ui_mode), style = AslTextStyles.labelMedium, color = colors.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
     AslSegmentedButton(
         options = listOf(
             AslSegmentedOption(stringResource(CommonR.string.general_theme_light), "light", "sun"),

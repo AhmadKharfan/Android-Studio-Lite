@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -153,7 +153,7 @@ private fun EmbeddedLinuxBanner(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
+            AslText(
                 text = when {
                     linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing)
                     linux.error != null -> linux.error
@@ -164,7 +164,7 @@ private fun EmbeddedLinuxBanner(
                 modifier = Modifier.weight(1f),
             )
             if (!linux.isBusy) {
-                Text(
+                AslText(
                     text = stringResource(if (linux.error != null) R.string.terminal_retry else R.string.terminal_install),
                     style = AslCode.codeSmall,
                     color = colors.terminalPrompt,
@@ -175,6 +175,6 @@ private fun EmbeddedLinuxBanner(
                 )
             }
         }
-        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
 }

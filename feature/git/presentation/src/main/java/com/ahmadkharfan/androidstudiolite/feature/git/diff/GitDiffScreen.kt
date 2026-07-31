@@ -15,14 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
-import androidx.compose.material3.VerticalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslVerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +56,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmpt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileDiff
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffHunk
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffKind
@@ -99,7 +99,7 @@ private fun GitDiffScreen(
     DisposableEffect(Unit) {
         onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
     }
-    Scaffold(
+    AslScaffold(
         topBar = {
             AslTopAppBar(
                 title = uiState.path.substringAfterLast('/'),
@@ -133,7 +133,7 @@ private fun GitDiffScreen(
                     onValueChange = { interactionListener.setSideBySide(it == "split") },
                 )
             }
-            HorizontalDivider()
+            AslHorizontalDivider()
             when {
                 uiState.loading -> AslLinearProgress(label = stringResource(R.string.git_diff_computing), modifier = Modifier.padding(16.dp))
                 uiState.error != null -> AslEmptyState(
@@ -243,7 +243,7 @@ private fun ColumnScope.SideBySideDiff(
             val paired = hunk.alignedRows()
             Row(Modifier.fillMaxWidth()) {
                 DiffPaneColumn(paired.map { it.left }, isLeft = true, hScroll = leftScroll, modifier = Modifier.weight(1f))
-                VerticalDivider()
+                AslVerticalDivider()
                 DiffPaneColumn(paired.map { it.right }, isLeft = false, hScroll = rightScroll, modifier = Modifier.weight(1f))
             }
         }
@@ -278,19 +278,19 @@ private fun DiffPaneCell(line: GitDiffLine?, isLeft: Boolean) {
         Modifier.defaultMinSize(minHeight = 22.dp).background(bg),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(
+        AslText(
             number?.toString().orEmpty(),
             modifier = Modifier.width(42.dp).padding(end = 6.dp),
             textAlign = androidx.compose.ui.text.style.TextAlign.End,
             color = colors.textSecondary,
             fontFamily = FontFamily.Monospace,
-            style = AslTypography.labelSmall,
+            style = AslTextStyles.labelSmall,
         )
-        Text(
+        AslText(
             line?.text.orEmpty(),
             modifier = Modifier.padding(end = 12.dp),
             fontFamily = FontFamily.Monospace,
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textPrimary,
             softWrap = false,
             maxLines = 1,
@@ -307,22 +307,22 @@ private fun HunkNavBar(count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(
+        AslText(
             pluralStringResource(R.plurals.git_diff_hunks, count, count),
-            style = AslTypography.labelSmall,
+            style = AslTextStyles.labelSmall,
             color = colors.textSecondary,
             modifier = Modifier.weight(1f),
         )
         AslIconButton(icon = "chevron-up", contentDescription = stringResource(R.string.git_diff_previous_hunk), onClick = onPrevious, size = 32.dp, iconSize = 16.dp)
         AslIconButton(icon = "chevron-down", contentDescription = stringResource(R.string.git_diff_next_hunk), onClick = onNext, size = 32.dp, iconSize = 16.dp)
     }
-    HorizontalDivider(color = colors.borderDefault)
+    AslHorizontalDivider(color = colors.borderDefault)
 }
 
 @Composable
 private fun HunkHeader(hunk: GitDiffHunk, target: GitDiffTarget, onStage: (GitDiffHunk) -> Unit, onUnstage: (GitDiffHunk) -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().background(AslTheme.colors.surfaceContainerHigh).padding(8.dp)) {
-        Text(hunkHeader(hunk), modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
+        AslText(hunkHeader(hunk), modifier = Modifier.weight(1f), fontFamily = FontFamily.Monospace)
         if (target != GitDiffTarget.COMMIT_TO_PARENT) {
             AslButton(
                 stringResource(if (target == GitDiffTarget.HEAD_TO_INDEX) R.string.git_diff_unstage_hunk else R.string.git_diff_stage_hunk),

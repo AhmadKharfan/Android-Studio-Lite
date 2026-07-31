@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.454Z" hostname="pop-os" time="0.035">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.469Z" hostname="pop-os" time="0.012">
   <properties/>
-  <testcase name="newlineBreaksCoalescing" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.026"/>
+  <testcase name="newlineBreaksCoalescing" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.005"/>
   <testcase name="undoRestoresCaret" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.001"/>
   <testcase name="typingRun_coalescesIntoSingleUndo" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.001"/>
-  <testcase name="incrementalHighlight_propagatesBlockCommentToLaterLine" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.003"/>
-  <testcase name="revisionIncrementsPerEdit" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.003"/>
-  <testcase name="backspaceRun_coalesces" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.0"/>
+  <testcase name="incrementalHighlight_propagatesBlockCommentToLaterLine" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.001"/>
+  <testcase name="revisionIncrementsPerEdit" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.001"/>
+  <testcase name="backspaceRun_coalesces" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorSessionTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

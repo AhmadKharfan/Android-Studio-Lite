@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -732,7 +732,7 @@ fun TerminalEmulatorView(
 
 @Composable
 private fun ToolbarButton(label: String, color: Color, onClick: () -> Unit) {
-    Text(
+    AslText(
         text = label,
         color = color,
         fontWeight = FontWeight.Medium,

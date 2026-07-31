@@ -107,3 +107,56 @@ class ModuleBoundaryRulesTest {
         )
     }
 }
+
+class MaterialAndConfigurationRulesTest {
+
+    @Test
+    fun `a feature depending on material is a violation`() {
+        val found = findMaterialViolations(
+            listOf(ExternalEdge(":feature:a:presentation", "implementation", "androidx.compose.material3", "material3")),
+        )
+        assertEquals(1, found.size)
+        assertEquals("no-material-in-features", found.single().rule)
+    }
+
+    @Test
+    fun `the design system may depend on material`() {
+        // Wrapping Material is precisely its job.
+        assertTrue(
+            findMaterialViolations(
+                listOf(ExternalEdge(":designsystem", "implementation", "androidx.compose.material3", "material3")),
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `a feature may depend on non-material libraries`() {
+        assertTrue(
+            findMaterialViolations(
+                listOf(ExternalEdge(":feature:a:presentation", "implementation", "androidx.compose.ui", "ui")),
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `a feature may use material from a test configuration`() {
+        assertTrue(
+            findMaterialViolations(
+                listOf(ExternalEdge(":feature:a:presentation", "testImplementation", "androidx.compose.material3", "m3")),
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `real gradle test configuration names are exempt`() {
+        for (name in listOf("testImplementation", "androidTestApi", "debugUnitTestRuntimeOnly", "testDebugImplementation")) {
+            assertFalse(isProductionConfiguration(name), "$name should be exempt")
+        }
+    }
+
+    @Test
+    fun `a configuration merely containing the letters test is not exempt`() {
+        // `contest...` must not read as a test configuration and slip past every rule.
+        assertTrue(isProductionConfiguration("contestImplementation"))
+    }
+}

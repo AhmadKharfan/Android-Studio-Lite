@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +20,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslList
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSearchField
 import com.ahmadkharfan.androidstudiolite.designsystem.icon.AslIcon
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileNodeUiModel
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 import com.ahmadkharfan.androidstudiolite.feature.editor.fileIconFor
@@ -58,9 +58,9 @@ fun FileTreeSearchPanel(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 24.dp),
                 ) {
-                    Text(
+                    AslText(
                         text = stringResource(R.string.editor_search_files_hint),
-                        style = AslTypography.bodySmall,
+                        style = AslTextStyles.bodySmall,
                         color = colors.textTertiary,
                     )
                 }
@@ -71,9 +71,9 @@ fun FileTreeSearchPanel(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 24.dp),
                 ) {
-                    Text(
+                    AslText(
                         text = stringResource(R.string.editor_search_no_matches, query),
-                        style = AslTypography.bodySmall,
+                        style = AslTextStyles.bodySmall,
                         color = colors.textTertiary,
                     )
                 }

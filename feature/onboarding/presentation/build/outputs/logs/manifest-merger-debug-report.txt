@@ -1,16 +1,16 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml:2:13-83
-INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml:2:13-83
+ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml:2:13-83
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml:2:13-83
 	package
-		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml
 	xmlns:android
-		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml:2:23-81
+		ADDED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml:2:23-81
 uses-sdk
-INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml reason: use-sdk injection requested
-INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml
-INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml reason: use-sdk injection requested
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml
+INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml
 	android:targetSdkVersion
-		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml
 	android:minSdkVersion
-		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest12451962837560069436.xml
+		INJECTED from /home/null/AndroidStudioProjects/AndroidStudioLite/feature/onboarding/presentation/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest7157461697698412827.xml

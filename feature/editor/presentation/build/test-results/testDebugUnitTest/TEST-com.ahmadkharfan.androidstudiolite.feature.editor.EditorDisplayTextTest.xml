@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:40.658Z" hostname="pop-os" time="0.126">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:05.768Z" hostname="pop-os" time="0.042">
   <properties/>
-  <testcase name="empty variant label remains empty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.012"/>
-  <testcase name="variant label capitalizes lowercase initial" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
-  <testcase name="clipboard text serializes populated console state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.059"/>
+  <testcase name="empty variant label remains empty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.004"/>
+  <testcase name="variant label capitalizes lowercase initial" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
+  <testcase name="clipboard text serializes populated console state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.023"/>
   <testcase name="file entry name without dot whitespace is unchanged" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
-  <testcase name="variant label preserves capitalized input" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
-  <testcase name="bare dot is unchanged" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
+  <testcase name="variant label preserves capitalized input" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
+  <testcase name="bare dot is unchanged" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
   <testcase name="gradle task name capitalizes flavored variant" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
-  <testcase name="empty file entry name is unchanged" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
+  <testcase name="empty file entry name is unchanged" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
   <testcase name="gradle task name capitalizes debug variant" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
-  <testcase name="file entry name sanitizes multiple dot whitespace occurrences" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.002"/>
-  <testcase name="file entry name collapses several spaces and tabs after dot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
-  <testcase name="clipboard text serializes empty console state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.002"/>
-  <testcase name="file entry name collapses space after dot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.003"/>
+  <testcase name="file entry name sanitizes multiple dot whitespace occurrences" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
+  <testcase name="file entry name collapses several spaces and tabs after dot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.0"/>
+  <testcase name="clipboard text serializes empty console state" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
+  <testcase name="file entry name collapses space after dot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorDisplayTextTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

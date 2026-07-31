@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdown
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropdownOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSegmentedButton
@@ -77,9 +77,9 @@ fun ConfigureStep(
             ),
         )
         if (!supportsJava) {
-            Text(
+            AslText(
                 text = stringResource(R.string.projects_kotlin_required),
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = AslTheme.colors.textSecondary,
             )
         }
@@ -100,9 +100,9 @@ private fun LabeledSegmented(
     options: List<AslSegmentedOption>,
 ) {
     Column {
-        Text(
+        AslText(
             text = label,
-            style = AslTypography.labelMedium,
+            style = AslTextStyles.labelMedium,
             color = AslTheme.colors.textSecondary,
             modifier = Modifier.padding(bottom = 6.dp),
         )

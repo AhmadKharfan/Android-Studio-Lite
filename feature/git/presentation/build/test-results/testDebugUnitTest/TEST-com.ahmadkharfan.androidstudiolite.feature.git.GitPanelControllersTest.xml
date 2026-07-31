@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:53.630Z" hostname="pop-os" time="1.34">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:04.132Z" hostname="pop-os" time="0.424">
   <properties/>
-  <testcase name="bulk staging and restore use exactly the eligible selected paths then clear selection" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.779"/>
-  <testcase name="operation dialogs confirm or dismiss abort and restore while continue resumes rebase" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.073"/>
-  <testcase name="selection actions toggle paths sections and the complete change set" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.04"/>
-  <testcase name="submodule actions load close initialise and update with visible outcomes" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.087"/>
-  <testcase name="clean preview follows ignored choice confirm cleans and dismiss clears preview" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.057"/>
-  <testcase name="author actions prefill edit persist clear and dismiss without saving" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.065"/>
-  <testcase name="bootstrap actions edit confirm and dismiss the dialog" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.063"/>
-  <testcase name="single stage and unstage move only the requested path" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.075"/>
-  <testcase name="selecting a change loads its diff and closing clears it" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.047"/>
-  <testcase name="stage all and unstage all move every change" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.043"/>
+  <testcase name="bulk staging and restore use exactly the eligible selected paths then clear selection" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.201"/>
+  <testcase name="operation dialogs confirm or dismiss abort and restore while continue resumes rebase" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.013"/>
+  <testcase name="selection actions toggle paths sections and the complete change set" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.017"/>
+  <testcase name="submodule actions load close initialise and update with visible outcomes" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.031"/>
+  <testcase name="clean preview follows ignored choice confirm cleans and dismiss clears preview" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.033"/>
+  <testcase name="author actions prefill edit persist clear and dismiss without saving" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.031"/>
+  <testcase name="bootstrap actions edit confirm and dismiss the dialog" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.02"/>
+  <testcase name="single stage and unstage move only the requested path" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.021"/>
+  <testcase name="selecting a change loads its diff and closing clears it" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.034"/>
+  <testcase name="stage all and unstage all move every change" classname="com.ahmadkharfan.androidstudiolite.feature.git.GitPanelControllersTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

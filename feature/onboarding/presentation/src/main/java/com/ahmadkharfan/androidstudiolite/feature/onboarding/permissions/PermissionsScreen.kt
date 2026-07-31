@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +34,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslPermissi
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslWizardStepper
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.common.ONBOARDING_STEPS
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.R
 
@@ -94,7 +94,7 @@ private fun PermissionsScreen(
     onContinue: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,14 +116,14 @@ private fun PermissionsScreen(
 @Composable
 private fun PermissionsHeader(colors: AslColorScheme) {
     Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 18.dp)) {
-        Text(
+        AslText(
             text = stringResource(R.string.onboarding_permissions_title),
-            style = AslTypography.headlineMedium,
+            style = AslTextStyles.headlineMedium,
             color = colors.textPrimary,
         )
-        Text(
+        AslText(
             text = stringResource(R.string.onboarding_permissions_subtitle),
-            style = AslTypography.bodyMedium,
+            style = AslTextStyles.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 6.dp),
         )
@@ -169,9 +169,9 @@ private fun PermissionsContinueSection(
             disabled = !uiState.canContinue,
         )
         if (!uiState.canContinue) {
-            Text(
+            AslText(
                 text = stringResource(R.string.onboarding_permissions_required),
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = colors.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
