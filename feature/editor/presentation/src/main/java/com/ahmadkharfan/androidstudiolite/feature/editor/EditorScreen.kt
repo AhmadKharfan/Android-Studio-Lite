@@ -15,9 +15,10 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslSnackbarHost
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslSnackbarState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.rememberAslSnackbarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -160,16 +161,16 @@ private fun EditorScreen(
 ) {
     val interactionListener = callbacks.interactionListener
     val colors = AslTheme.colors
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = rememberAslSnackbarState()
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let {
             snackbarHostState.showSnackbar(it)
             interactionListener.onSnackbarShown()
         }
     }
-    Scaffold(
+    AslScaffold(
         containerColor = colors.editorCanvas,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AslSnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         val density = LocalDensity.current

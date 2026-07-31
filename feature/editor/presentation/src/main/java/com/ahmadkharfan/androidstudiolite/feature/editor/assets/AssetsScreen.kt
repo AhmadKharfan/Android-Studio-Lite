@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.reme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
@@ -122,8 +122,8 @@ private fun AssetDetailView(
         Row(verticalAlignment = Alignment.CenterVertically) {
             AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = onBack, size = 32.dp, iconSize = 16.dp)
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(text = asset.name, style = AslTypography.titleSmall, color = colors.textPrimary)
-                Text(text = asset.subtitle, style = AslTypography.bodySmall, color = colors.textTertiary)
+                AslText(text = asset.name, style = AslTextStyles.titleSmall, color = colors.textPrimary)
+                AslText(text = asset.subtitle, style = AslTextStyles.bodySmall, color = colors.textTertiary)
             }
         }
         AssetDetailPreview(asset = asset)
@@ -185,15 +185,15 @@ private fun AssetDetailFont(path: String) {
         typeface = withContext(Dispatchers.IO) { AssetPreview.loadTypeface(path) }
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
+        AslText(
             text = stringResource(R.string.editor_assets_font_sample),
-            style = AslTypography.headlineSmall,
+            style = AslTextStyles.headlineSmall,
             fontFamily = typeface?.let { FontFamily(it) },
             color = AslTheme.colors.textPrimary,
         )
-        Text(
+        AslText(
             text = stringResource(R.string.editor_assets_font_characters),
-            style = AslTypography.bodyMedium,
+            style = AslTextStyles.bodyMedium,
             fontFamily = typeface?.let { FontFamily(it) },
             color = AslTheme.colors.textSecondary,
         )
@@ -224,7 +224,7 @@ private fun AssetDetailText(path: String) {
     LaunchedEffect(path) {
         text = withContext(Dispatchers.IO) { AssetPreview.readText(path) }
     }
-    Text(
+    AslText(
         text = text ?: stringResource(R.string.editor_loading),
         style = AslCode.codeBody.copy(fontSize = 11.sp, lineHeight = 15.sp),
         color = AslTheme.colors.textSecondary,
@@ -235,9 +235,9 @@ private fun AssetDetailText(path: String) {
 @Composable
 private fun EmptyAssets() {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(
+        AslText(
             text = stringResource(R.string.editor_assets_empty),
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = AslTheme.colors.textTertiary,
         )
     }

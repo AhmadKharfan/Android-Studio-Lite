@@ -4,6 +4,14 @@
  * A [ModuleEdge] is one declared project-to-project dependency. The Gradle plugin collects the edges
  * and hands them here; everything about *whether an edge is allowed* lives in this file.
  */
+/** An external (non-project) dependency declared by a module. */
+data class ExternalEdge(
+    val from: String,
+    val configuration: String,
+    val group: String,
+    val name: String,
+)
+
 data class ModuleEdge(
     val from: String,
     val configuration: String,
@@ -25,8 +33,12 @@ data class BoundaryViolation(
  * feature may legitimately exercise a real data implementation from its own tests.
  */
 fun isProductionConfiguration(name: String): Boolean {
+    // Matched on the camelCase name, not lowercased: Gradle/AGP name test configurations either
+    // `test...` or `...Test...` (testImplementation, androidTestApi, debugUnitTestRuntimeOnly).
+    // Lowercasing first would also exempt a configuration that merely contains the letters "test",
+    // such as `contestImplementation`, leaving an unguarded production configuration.
+    if (name.startsWith("test") || name.contains("Test")) return false
     val lower = name.lowercase()
-    if ("test" in lower) return false
     val toolingPrefixes = listOf("ksp", "kapt", "detekt", "lint", "annotationprocessor", "compiler")
     return toolingPrefixes.none { lower.startsWith(it) }
 }
@@ -88,3 +100,23 @@ private fun violationFor(edge: ModuleEdge): BoundaryViolation? = when {
 /** Edges that are allowed for now and expected to be removed. Nothing may be added to this list. */
 val MODULE_BOUNDARY_BASELINE: Set<String> = setOf(
 )
+
+/**
+ * Features must render through the design system, never Material directly.
+ *
+ * The design system owns the Material dependency so the app's look is defined in one module: a
+ * feature reaching for `material3.Text` or `Scaffold` bypasses every token and quietly reintroduces
+ * Material defaults. `:designsystem` itself is exempt — wrapping Material is its job.
+ */
+fun findMaterialViolations(edges: List<ExternalEdge>): List<BoundaryViolation> = edges
+    .filter { isProductionConfiguration(it.configuration) }
+    .filter { isFeature(it.from) }
+    .filter { it.group == "androidx.compose.material3" || it.group == "androidx.compose.material" }
+    .map {
+        BoundaryViolation(
+            ModuleEdge(it.from, it.configuration, "${it.group}:${it.name}"),
+            "no-material-in-features",
+            "Features must depend on :designsystem instead. If a component is missing, add it there " +
+                "so every feature gets the same tokens.",
+        )
+    }

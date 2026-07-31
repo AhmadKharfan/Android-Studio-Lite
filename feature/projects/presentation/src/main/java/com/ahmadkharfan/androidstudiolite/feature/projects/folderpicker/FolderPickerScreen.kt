@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -49,7 +49,7 @@ private fun FolderPickerScreen(
     onSelect: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = stringResource(R.string.projects_choose_folder), onBack = onCancel)
             AslBreadcrumbBar(segments = uiState.breadcrumb)
@@ -68,7 +68,7 @@ private fun FolderPickerScreen(
                     onSelect = { interactionListener.onSelectFolder(it.id) },
                 )
             }
-            HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+            AslHorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

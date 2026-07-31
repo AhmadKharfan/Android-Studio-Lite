@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.476Z" hostname="pop-os" time="0.274">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.811Z" hostname="pop-os" time="0.297">
   <properties/>
-  <testcase name="session_end_emitted_when_child_output_closes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.142"/>
-  <testcase name="streams_raw_child_output_as_byte_events" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.12"/>
-  <testcase name="resize_is_forwarded_to_the_pty" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.005"/>
-  <testcase name="writeInput_reaches_the_child_verbatim" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.006"/>
+  <testcase name="session_end_emitted_when_child_output_closes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.137"/>
+  <testcase name="streams_raw_child_output_as_byte_events" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.13"/>
+  <testcase name="resize_is_forwarded_to_the_pty" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.014"/>
+  <testcase name="writeInput_reaches_the_child_verbatim" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.pty.PtyTerminalRepositoryTest" time="0.011"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

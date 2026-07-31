@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.660Z" hostname="pop-os" time="0.014">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.827Z" hostname="pop-os" time="0.004">
   <properties/>
-  <testcase name="secondArgument_highlightsModifierParam" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" time="0.013"/>
-  <testcase name="textCall_showsSignatureWithActiveParameter" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" time="0.001"/>
+  <testcase name="secondArgument_highlightsModifierParam" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" time="0.004"/>
+  <testcase name="textCall_showsSignatureWithActiveParameter" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SignatureHelpTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

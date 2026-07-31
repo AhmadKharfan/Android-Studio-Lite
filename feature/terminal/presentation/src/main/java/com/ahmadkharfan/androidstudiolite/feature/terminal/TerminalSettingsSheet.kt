@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -17,23 +15,18 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalSettingsSheet(
     linux: LinuxStatus,
     onDismiss: () -> Unit,
     onInstallLinux: () -> Unit,
     onReinstallLinux: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AslTheme.colors
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = colors.bgElevated,
-    ) {
+    AslBottomSheet(onDismiss = onDismiss, modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -41,14 +34,14 @@ fun TerminalSettingsSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = stringResource(R.string.terminal_settings_title), style = AslTypography.titleMedium, color = colors.textPrimary)
-            Text(
+            AslText(text = stringResource(R.string.terminal_settings_title), style = AslTextStyles.titleMedium, color = colors.textPrimary)
+            AslText(
                 text = stringResource(R.string.terminal_settings_volume_hint),
                 style = AslCode.codeSmall,
                 color = colors.textSecondary,
             )
             if (linux.supported) {
-                Text(
+                AslText(
                     text = when {
                         linux.installed -> stringResource(R.string.terminal_linux_installed)
                         linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing_userland)
@@ -58,7 +51,7 @@ fun TerminalSettingsSheet(
                     color = colors.textPrimary,
                 )
                 linux.error?.let {
-                    Text(text = stringResource(R.string.terminal_last_install_error, it), style = AslCode.codeTiny, color = colors.error)
+                    AslText(text = stringResource(R.string.terminal_last_install_error, it), style = AslCode.codeTiny, color = colors.error)
                 }
                 if (!linux.installed && !linux.isBusy) {
                     AslButton(
@@ -71,7 +64,7 @@ fun TerminalSettingsSheet(
                     )
                 }
                 if (linux.installed && !linux.isBusy) {
-                    Text(
+                    AslText(
                         text = stringResource(R.string.terminal_linux_tools_hint),
                         style = AslCode.codeTiny,
                         color = colors.textSecondary,
@@ -86,7 +79,7 @@ fun TerminalSettingsSheet(
                     )
                 }
             } else {
-                Text(
+                AslText(
                     text = stringResource(R.string.terminal_linux_unsupported),
                     style = AslCode.codeSmall,
                     color = colors.textSecondary,

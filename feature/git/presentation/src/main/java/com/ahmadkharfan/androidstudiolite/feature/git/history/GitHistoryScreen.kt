@@ -15,9 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +51,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDia
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.model.GitResetMode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitDetails
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCommitSummary
@@ -91,7 +91,7 @@ private fun GitHistoryScreen(
     var resetCommit by remember { mutableStateOf<String?>(null) }
     var resetMode by remember { mutableStateOf(GitResetMode.MIXED) }
     var resetConfirmation by remember { mutableStateOf("") }
-    Scaffold(
+    AslScaffold(
         topBar = {
             AslTopAppBar(
                 title = stringResource(if (uiState.path == null) R.string.git_history_title else R.string.git_history_file_title),
@@ -214,7 +214,7 @@ private fun HistoryList(
         if (state.shallow && state.nextCursor == null) {
             item {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.git_history_shallow), style = AslTypography.bodyMedium)
+                    AslText(stringResource(R.string.git_history_shallow), style = AslTextStyles.bodyMedium)
                     AslButton(stringResource(R.string.git_history_deepen), onDeepen, variant = AslButtonVariant.Secondary)
                 }
             }
@@ -241,20 +241,20 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
+            AslText(
                 commit.message,
                 modifier = Modifier.weight(1f),
-                style = AslTypography.titleSmall,
+                style = AslTextStyles.titleSmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(commit.shortId, fontFamily = FontFamily.Monospace, style = AslTypography.labelMedium)
+            AslText(commit.shortId, fontFamily = FontFamily.Monospace, style = AslTextStyles.labelMedium)
             HistoryResetMenu(onReset = onReset)
         }
-        Text(
+        AslText(
             "${commit.authorName} · ${formatRelativeTime(LocalContext.current, commit.authorTimeMillis)}",
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textSecondary,
         )
         if (commit.refs.isNotEmpty()) {
@@ -268,11 +268,11 @@ private fun HistoryRow(commit: GitCommitSummary, graph: GitGraphRow?, onClick: (
                 }
             }
         }
-        if (commit.isShallowBoundary) Text(stringResource(R.string.git_history_shallow_boundary), style = AslTypography.labelSmall)
-        commit.path?.let { Text(it.middleEllipsis(), style = AslTypography.labelSmall, fontFamily = FontFamily.Monospace) }
+        if (commit.isShallowBoundary) AslText(stringResource(R.string.git_history_shallow_boundary), style = AslTextStyles.labelSmall)
+        commit.path?.let { AslText(it.middleEllipsis(), style = AslTextStyles.labelSmall, fontFamily = FontFamily.Monospace) }
         }
     }
-    HorizontalDivider()
+    AslHorizontalDivider()
 }
 
 @Composable
@@ -346,26 +346,26 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
         item {
             val initialCommit = stringResource(R.string.git_history_initial_commit)
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(details.fullMessage, style = AslTypography.titleMedium)
-                Text("${details.author.name} <${details.author.email}>", style = AslTypography.bodyMedium)
-                Text(details.id, fontFamily = FontFamily.Monospace, style = AslTypography.bodySmall)
-                Text(
+                AslText(details.fullMessage, style = AslTextStyles.titleMedium)
+                AslText("${details.author.name} <${details.author.email}>", style = AslTextStyles.bodyMedium)
+                AslText(details.id, fontFamily = FontFamily.Monospace, style = AslTextStyles.bodySmall)
+                AslText(
                     stringResource(
                         R.string.git_history_parents,
                         details.parents.joinToString().ifEmpty { initialCommit },
                     ),
-                    style = AslTypography.bodySmall,
+                    style = AslTextStyles.bodySmall,
                 )
             }
-            HorizontalDivider()
+            AslHorizontalDivider()
         }
         items(details.changedFiles, key = { "${it.oldPath}:${it.path}" }) { change ->
             Row(
                 Modifier.fillMaxWidth().clickable { onOpenDiff(change.path, details.id) }.padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(changeTypeLabel(change.type), fontFamily = FontFamily.Monospace)
-                Text(
+                AslText(changeTypeLabel(change.type), fontFamily = FontFamily.Monospace)
+                AslText(
                     (change.oldPath?.let { "$it → ${change.path}" } ?: change.path).middleEllipsis(),
                     modifier = Modifier.weight(1f),
                     fontFamily = FontFamily.Monospace,
@@ -373,7 +373,7 @@ private fun CommitDetails(details: GitCommitDetails, onOpenDiff: (String, String
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            HorizontalDivider()
+            AslHorizontalDivider()
         }
     }
 }

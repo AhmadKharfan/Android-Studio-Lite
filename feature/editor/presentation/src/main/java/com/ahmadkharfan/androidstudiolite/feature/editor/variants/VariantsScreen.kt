@@ -2,7 +2,7 @@ package com.ahmadkharfan.androidstudiolite.feature.editor.variants
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -12,7 +12,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslDropd
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslToolWindowPanel
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.editor.R
 
 @Composable
@@ -35,13 +35,13 @@ fun VariantsRoute(
                 options = options,
                 onValueChange = onSelectVariant,
             )
-            Text(
+            AslText(
                 text = if (isDebugish) {
                     stringResource(R.string.editor_variants_debug_hint)
                 } else {
                     stringResource(R.string.editor_variants_release_hint)
                 },
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = colors.textTertiary,
                 modifier = Modifier.padding(top = 10.dp),
             )

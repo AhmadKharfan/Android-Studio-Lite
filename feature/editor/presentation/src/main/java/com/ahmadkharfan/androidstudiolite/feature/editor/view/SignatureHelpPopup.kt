@@ -4,7 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -45,7 +45,7 @@ fun AslSignatureHelpPopup(
             .aslBordered(AslShape.md)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        Text(
+        AslText(
             text = signature,
             style = AslCode.codeSmall,
             color = colors.textPrimary,

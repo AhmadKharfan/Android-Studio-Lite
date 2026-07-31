@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.762Z" hostname="pop-os" time="0.008">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.850Z" hostname="pop-os" time="0.001">
   <properties/>
-  <testcase name="identifierFollowedByParen_isFunction_capitalizedIsType" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.003"/>
-  <testcase name="blockComment_carriesStateAcrossLines" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.001"/>
+  <testcase name="identifierFollowedByParen_isFunction_capitalizedIsType" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.001"/>
+  <testcase name="blockComment_carriesStateAcrossLines" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
   <testcase name="kotlinSample_classifiesKeywordsFunctionsAndStrings" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
   <testcase name="lineComment_coversRestOfLine" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
-  <testcase name="xmlLexer_classifiesTagAttributesAndValues" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.001"/>
+  <testcase name="xmlLexer_classifiesTagAttributesAndValues" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
   <testcase name="kotlinRawString_carriesStateAcrossLines" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.SyntaxLexerTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

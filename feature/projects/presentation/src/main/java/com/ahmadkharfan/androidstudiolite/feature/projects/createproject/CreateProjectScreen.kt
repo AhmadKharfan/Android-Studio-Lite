@@ -3,7 +3,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,7 +73,7 @@ private fun CreateProjectScreen(
         if (uiState.step == 0) onBack() else interactionListener.onBackStep()
     }
     BackHandler(onBack = navigateBack)
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).aslImePadding()) {
             AslTopAppBar(
                 title = stringResource(R.string.projects_create_title),

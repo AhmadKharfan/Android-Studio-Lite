@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,7 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 
@@ -59,7 +59,7 @@ private fun EditorSettingsScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = stringResource(CommonR.string.settings_editor), onBack = onBack)
             Column(
@@ -104,9 +104,9 @@ private fun EditorFontFamilySection(
     onFontFamilyChanged: (String) -> Unit,
     colors: AslColorScheme,
 ) {
-    Text(
+    AslText(
         text = stringResource(R.string.settings_editor_font_family),
-        style = AslTypography.labelMedium,
+        style = AslTextStyles.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(bottom = 8.dp),
     )
@@ -152,7 +152,7 @@ private fun EditorFontSizeSlider(
             valueRange = 10f..24f,
             unit = stringResource(R.string.settings_editor_font_unit),
         )
-        Text(
+        AslText(
             text = stringResource(R.string.settings_editor_preview),
             style = AslCode.codeBody.copy(fontSize = localFontSize.sp),
             color = Color(previewPalette.defaultText),
@@ -180,9 +180,9 @@ private fun EditorColorSchemeSection(
         modifier = Modifier.padding(top = 18.dp),
     )
     if (!EditorPalette.isDarkScheme(colorSchemeId)) {
-        Text(
+        AslText(
             text = stringResource(R.string.settings_editor_light_scheme_hint),
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = colors.textTertiary,
             modifier = Modifier.padding(top = 8.dp),
         )
@@ -195,9 +195,9 @@ private fun EditorTabSizeSection(
     onTabSizeChanged: (Int) -> Unit,
     colors: AslColorScheme,
 ) {
-    Text(
+    AslText(
         text = stringResource(R.string.settings_editor_tab_size),
-        style = AslTypography.labelMedium,
+        style = AslTextStyles.labelMedium,
         color = colors.textSecondary,
         modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
     )

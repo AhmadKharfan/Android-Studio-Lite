@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +29,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslAppTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 
 @Composable
 fun WelcomeRoute(onGetStarted: () -> Unit) {
@@ -39,7 +39,7 @@ fun WelcomeRoute(onGetStarted: () -> Unit) {
 @Composable
 private fun WelcomeScreen(onGetStarted: () -> Unit) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -76,7 +76,7 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
                     .border(1.dp, colors.borderDefault, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
+                AslText(
                     text = "{ }",
                     color = colors.accentPrimary,
                     fontFamily = AslCode.codeBody.fontFamily,
@@ -85,15 +85,15 @@ private fun WelcomeHero(colors: AslColorScheme, modifier: Modifier = Modifier) {
                 )
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                AslText(
                     text = stringResource(CommonR.string.onboarding_welcome_title),
-                    style = AslTypography.displaySmall,
+                    style = AslTextStyles.displaySmall,
                     textAlign = TextAlign.Center,
                     color = colors.textPrimary,
                 )
-                Text(
+                AslText(
                     text = stringResource(CommonR.string.onboarding_welcome_subtitle),
-                    style = AslTypography.bodyMedium,
+                    style = AslTextStyles.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 10.dp),
@@ -140,10 +140,10 @@ private fun WelcomeBullet(icon: String, title: String, text: String) {
             AslIcon(name = icon, size = 20.dp, tint = colors.accentPrimary)
         }
         Column {
-            Text(text = title, style = AslTypography.titleMedium, color = colors.textPrimary)
-            Text(
+            AslText(text = title, style = AslTextStyles.titleMedium, color = colors.textPrimary)
+            AslText(
                 text = text,
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 2.dp),
             )

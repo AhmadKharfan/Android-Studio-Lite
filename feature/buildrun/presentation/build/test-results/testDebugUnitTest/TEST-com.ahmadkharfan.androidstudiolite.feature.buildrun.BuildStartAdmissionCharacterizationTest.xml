@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:29:07.875Z" hostname="pop-os" time="0.034">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.255Z" hostname="pop-os" time="0.026">
   <properties/>
-  <testcase name="fresh persisted build is adopted as a reconnecting admission" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.01"/>
+  <testcase name="fresh persisted build is adopted as a reconnecting admission" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.008"/>
   <testcase name="service start failure rolls back persisted and in memory admission" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.003"/>
-  <testcase name="debug build is admitted persisted and started once" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.003"/>
-  <testcase name="release build without signing configuration is rejected before admission" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.017"/>
+  <testcase name="debug build is admitted persisted and started once" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.004"/>
+  <testcase name="release build without signing configuration is rejected before admission" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildStartAdmissionCharacterizationTest" time="0.011"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,63 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:41.696Z" hostname="pop-os" time="0.346">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.579Z" hostname="pop-os" time="0.094">
   <properties/>
-  <testcase name="closingActiveTabRemovesItAndActivatesRemaining" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.129"/>
-  <testcase name="opensDefaultFileOnLoad" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.035"/>
-  <testcase name="openingASecondFileAddsAnActiveTabAndReopeningActivatesWithoutDuplicating" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.097"/>
-  <testcase name="editingASessionMarksItsTabModified" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.082"/>
+  <testcase name="closingActiveTabRemovesItAndActivatesRemaining" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.032"/>
+  <testcase name="opensDefaultFileOnLoad" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.015"/>
+  <testcase name="openingASecondFileAddsAnActiveTabAndReopeningActivatesWithoutDuplicating" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.029"/>
+  <testcase name="editingASessionMarksItsTabModified" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[Exception in thread "DefaultDispatcher-worker-3 @coroutine#23" kotlinx.coroutines.CompletionHandlerException: Exception in completion handler ChildCompletion@6ffbbbdf[job@1712b8c3] for "coroutine#23":StandaloneCoroutine{Cancelled}@1712b8c3
-	at kotlinx.coroutines.JobSupport.notifyCompletion(JobSupport.kt:1628)
-	at kotlinx.coroutines.JobSupport.completeStateFinalization(JobSupport.kt:316)
-	at kotlinx.coroutines.JobSupport.finalizeFinishingState(JobSupport.kt:233)
-	at kotlinx.coroutines.JobSupport.tryMakeCompletingSlowPath(JobSupport.kt:946)
-	at kotlinx.coroutines.JobSupport.tryMakeCompleting(JobSupport.kt:894)
-	at kotlinx.coroutines.JobSupport.makeCompletingOnce$kotlinx_coroutines_core(JobSupport.kt:859)
-	at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:99)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:47)
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:98)
-	at kotlinx.coroutines.EventLoop.processUnconfinedEvent(EventLoop.common.kt:65)
-	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWithInternal(DispatchedContinuation.kt:392)
-	at kotlinx.coroutines.DispatchedCoroutine.afterResume(Builders.common.kt:588)
-	at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:101)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:47)
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
-	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
-	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:798)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
-	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [CoroutineId(23), "coroutine#23":StandaloneCoroutine{Cancelled}@1712b8c3, Dispatchers.Main]
-Caused by: kotlinx.coroutines.DispatchException: Coroutine dispatcher Dispatchers.Main threw an exception, context = [CoroutineId(3), "coroutine#3":ProducerCoroutine{Cancelling}@54deb599, Dispatchers.Main]
-	at kotlinx.coroutines.internal.DispatchedContinuationKt.safeIsDispatchNeeded(DispatchedContinuation.kt:264)
-	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWithInternal(DispatchedContinuation.kt:324)
-	at kotlinx.coroutines.internal.ScopeCoroutine.afterCompletion(Scopes.kt:23)
-	at kotlinx.coroutines.JobSupport.continueCompleting(JobSupport.kt:987)
-	at kotlinx.coroutines.JobSupport.access$continueCompleting(JobSupport.kt:22)
-	at kotlinx.coroutines.JobSupport$ChildCompletion.invoke(JobSupport.kt:1268)
-	at kotlinx.coroutines.JobSupport.notifyCompletion(JobSupport.kt:1624)
-	... 20 more
-Caused by: java.lang.IllegalStateException: Dispatchers.Main was accessed when the platform dispatcher was absent and the test dispatcher was unset. Please make sure that Dispatchers.setMain() is called before accessing Dispatchers.Main and that Dispatchers.Main is not accessed after Dispatchers.resetMain().
-	at kotlinx.coroutines.test.internal.TestMainDispatcherJvmKt.reportMissingMainCoroutineDispatcher(TestMainDispatcherJvm.kt:45)
-	at kotlinx.coroutines.test.internal.TestMainDispatcherJvmKt.access$reportMissingMainCoroutineDispatcher(TestMainDispatcherJvm.kt:1)
-	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:20)
-	at kotlin.SynchronizedLazyImpl.getValue(LazyJVM.kt:86)
-	at kotlinx.coroutines.test.internal.TestMainDispatcher.getMainDispatcher(TestMainDispatcher.kt:18)
-	at kotlinx.coroutines.test.internal.TestMainDispatcher.getDispatcher(TestMainDispatcher.kt:22)
-	at kotlinx.coroutines.test.internal.TestMainDispatcher.isDispatchNeeded(TestMainDispatcher.kt:32)
-	at kotlinx.coroutines.internal.DispatchedContinuationKt.safeIsDispatchNeeded(DispatchedContinuation.kt:262)
-	... 26 more
-Caused by: java.lang.IllegalStateException: Module with the Main dispatcher had failed to initialize. For tests Dispatchers.setMain from kotlinx-coroutines-test module can be used
-	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.missing(MainDispatchers.kt:111)
-	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.dispatch(MainDispatchers.kt:101)
-	at kotlinx.coroutines.internal.MissingMainCoroutineDispatcher.dispatch(MainDispatchers.kt:84)
-	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:22)
-	... 31 more
-Caused by: java.lang.IllegalStateException: The main looper is not available
-	at kotlinx.coroutines.android.AndroidDispatcherFactory.createDispatcher(HandlerDispatcher.kt:51)
-	at kotlinx.coroutines.internal.MainDispatchersKt.tryCreateDispatcher(MainDispatchers.kt:53)
-	at kotlinx.coroutines.test.internal.TestMainDispatcherFactory.createDispatcher$lambda$2(TestMainDispatcherJvm.kt:15)
-	... 31 more
-]]></system-err>
+  <system-err><![CDATA[]]></system-err>
 </testsuite>

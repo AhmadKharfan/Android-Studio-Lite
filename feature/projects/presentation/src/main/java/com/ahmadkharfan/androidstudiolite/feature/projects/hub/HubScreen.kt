@@ -21,8 +21,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,7 +63,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslMotion
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.projects.openproject.OpenProjectRoute
 import com.ahmadkharfan.androidstudiolite.feature.projects.clonerepo.CloneRepoRoute
 
@@ -242,7 +242,7 @@ private fun HubScreen(
     interactionListener: HubInteractionListener,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
             val isTablet = maxWidth >= AslBreakpoints.tablet
             Column(
@@ -282,11 +282,11 @@ private fun HubTopBar(
                 .background(colors.bgBase, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "{ }", color = colors.accentPrimary, fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = AslTypography.labelSmall)
+            AslText(text = "{ }", color = colors.accentPrimary, fontFamily = AslCode.codeBody.fontFamily, fontWeight = FontWeight.Bold, style = AslTextStyles.labelSmall)
         }
-        Text(
+        AslText(
             text = stringResource(CommonR.string.app_name),
-            style = AslTypography.titleMedium,
+            style = AslTextStyles.titleMedium,
             color = colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
@@ -304,9 +304,9 @@ private fun HubGreeting(
     isTablet: Boolean,
     colors: AslColorScheme,
 ) {
-    Text(
+    AslText(
         text = uiState.greeting,
-        style = if (isTablet) AslTypography.displayMedium else AslTypography.headlineLarge,
+        style = if (isTablet) AslTextStyles.displayMedium else AslTextStyles.headlineLarge,
         color = colors.textPrimary,
         modifier = Modifier
             .padding(horizontal = HubHorizontalPadding)

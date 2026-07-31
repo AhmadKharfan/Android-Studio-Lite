@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.311Z" hostname="pop-os" time="0.025">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.670Z" hostname="pop-os" time="0.031">
   <properties/>
-  <testcase name="default color index preserves supplied color" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.023"/>
-  <testcase name="color cube and grayscale indices use current channel mapping" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.001"/>
-  <testcase name="direct rgb index preserves low twenty four bits" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.001"/>
-  <testcase name="standard ansi colors preserve current dark and light background variants" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.0"/>
+  <testcase name="default color index preserves supplied color" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.022"/>
+  <testcase name="color cube and grayscale indices use current channel mapping" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.002"/>
+  <testcase name="direct rgb index preserves low twenty four bits" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.003"/>
+  <testcase name="standard ansi colors preserve current dark and light background variants" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalColorsTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

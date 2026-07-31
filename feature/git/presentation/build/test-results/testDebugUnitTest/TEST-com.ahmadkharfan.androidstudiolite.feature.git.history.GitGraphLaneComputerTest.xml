@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:55.310Z" hostname="pop-os" time="0.031">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.641Z" hostname="pop-os" time="0.015">
   <properties/>
-  <testcase name="linear history remains in one lane" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.021"/>
+  <testcase name="linear history remains in one lane" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.01"/>
   <testcase name="two concurrent branches keep separate active lanes" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.001"/>
-  <testcase name="branch and merge produce fork and join edges" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.005"/>
-  <testcase name="overflow branches collapse into the bounded final lane" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.002"/>
-  <testcase name="cursor preserves lane continuity across pages" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.002"/>
+  <testcase name="branch and merge produce fork and join edges" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.002"/>
+  <testcase name="overflow branches collapse into the bounded final lane" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.001"/>
+  <testcase name="cursor preserves lane continuity across pages" classname="com.ahmadkharfan.androidstudiolite.feature.git.history.GitGraphLaneComputerTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

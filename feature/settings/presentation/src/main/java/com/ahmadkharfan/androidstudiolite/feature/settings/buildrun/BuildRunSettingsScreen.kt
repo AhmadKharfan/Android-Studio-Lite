@@ -11,10 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslSnackbarHost
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslSnackbarState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.rememberAslSnackbarState
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +39,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.layout.aslImePadding
 import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -59,16 +60,16 @@ private fun BuildRunSettingsScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = rememberAslSnackbarState()
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
             snackbarHostState.showSnackbar(it)
             interactionListener.onMessageShown()
         }
     }
-    Scaffold(
+    AslScaffold(
         containerColor = colors.bgBase,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { AslSnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             AslTopAppBar(title = stringResource(CommonR.string.settings_build_run), onBack = onBack)
@@ -118,9 +119,9 @@ private fun BuildRunOutputSection(
             modifier = Modifier.fillMaxWidth(),
         )
     }
-    Text(
+    AslText(
         text = stringResource(R.string.settings_build_aab_hint),
-        style = AslTypography.bodySmall,
+        style = AslTextStyles.bodySmall,
         color = colors.textTertiary,
         modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
     )
@@ -136,18 +137,18 @@ private fun BuildRunSigningSection(
     AslSectionHeader(stringResource(R.string.settings_build_signing))
     SectionCard {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            Text(stringResource(R.string.settings_build_debug_keystore), style = AslTypography.labelMedium, color = colors.textSecondary)
-            Text(
+            AslText(stringResource(R.string.settings_build_debug_keystore), style = AslTextStyles.labelMedium, color = colors.textSecondary)
+            AslText(
                 text = uiState.debugKeystorePath.ifBlank { stringResource(R.string.settings_build_debug_keystore_auto) },
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = colors.textTertiary,
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(stringResource(R.string.settings_build_release_keystore), style = AslTypography.labelMedium, color = colors.textSecondary)
+            AslText(stringResource(R.string.settings_build_release_keystore), style = AslTextStyles.labelMedium, color = colors.textSecondary)
             if (uiState.hasReleaseKeystore) {
-                Text(
+                AslText(
                     text = uiState.releaseKeystoreSummary.orEmpty(),
-                    style = AslTypography.bodySmall,
+                    style = AslTextStyles.bodySmall,
                     color = colors.textPrimary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -157,9 +158,9 @@ private fun BuildRunSigningSection(
                     variant = AslButtonVariant.Tertiary,
                 )
             } else {
-                Text(
+                AslText(
                     text = stringResource(R.string.settings_build_release_blocked),
-                    style = AslTypography.bodySmall,
+                    style = AslTextStyles.bodySmall,
                     color = colors.textTertiary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -273,7 +274,7 @@ private fun ReleaseKeystoreDialog(
                     AslTextField(value = validity, onValueChange = { validity = it }, label = stringResource(R.string.settings_build_validity_years), type = AslTextFieldType.Number)
                 }
                 if (error != null) {
-                    Text(text = error, style = AslTypography.bodySmall, color = AslTheme.colors.error)
+                    AslText(text = error, style = AslTextStyles.bodySmall, color = AslTheme.colors.error)
                 }
             }
         },

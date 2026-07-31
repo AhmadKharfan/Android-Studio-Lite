@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -20,7 +20,7 @@ import com.ahmadkharfan.androidstudiolite.core.format.middleEllipsis
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslEmptyState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslLinearProgress
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslTopAppBar
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.feature.git.blameGutterText
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -34,7 +34,7 @@ fun GitBlameRoute(
     viewModel: GitBlameViewModel = koinViewModel { parametersOf(projectId, path) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(topBar = { AslTopAppBar(stringResource(R.string.git_blame_title), subtitle = state.path.ifBlank { path }.middleEllipsis(), onBack = onBack, applyStatusBarInset = true) }) { padding ->
+    AslScaffold(topBar = { AslTopAppBar(stringResource(R.string.git_blame_title), subtitle = state.path.ifBlank { path }.middleEllipsis(), onBack = onBack, applyStatusBarInset = true) }) { padding ->
         when {
             state.loading -> AslLinearProgress(label = stringResource(R.string.git_blame_computing), modifier = Modifier.padding(padding).padding(16.dp))
             state.error != null -> AslEmptyState(
@@ -48,8 +48,8 @@ fun GitBlameRoute(
                 LazyColumn(Modifier.padding(padding).fillMaxSize()) {
                     items(state.lines, key = { it.lineNo }) { line ->
                         Row(Modifier.horizontalScroll(scroll).padding(horizontal = 8.dp, vertical = 2.dp)) {
-                            Text(blameGutterText(line.lineNo, line.shortId, line.authorName), fontFamily = FontFamily.Monospace, style = AslTypography.bodySmall)
-                            Text(line.lineText, fontFamily = FontFamily.Monospace, style = AslTypography.bodySmall)
+                            AslText(blameGutterText(line.lineNo, line.shortId, line.authorName), fontFamily = FontFamily.Monospace, style = AslTextStyles.bodySmall)
+                            AslText(line.lineText, fontFamily = FontFamily.Monospace, style = AslTextStyles.bodySmall)
                         }
                     }
                 }

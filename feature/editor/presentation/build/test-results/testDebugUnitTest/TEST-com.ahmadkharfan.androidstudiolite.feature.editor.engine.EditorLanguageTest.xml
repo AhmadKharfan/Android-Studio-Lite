@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:42.415Z" hostname="pop-os" time="0.03">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.786Z" hostname="pop-os" time="0.003">
   <properties/>
-  <testcase name="file icons map by extension" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.001"/>
-  <testcase name="Java files use Java editor behavior and label" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.003"/>
-  <testcase name="Java session accepts edits and Java formatting" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.011"/>
-  <testcase name="Markdown files are detected from md and markdown extensions" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.012"/>
+  <testcase name="file icons map by extension" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.0"/>
+  <testcase name="Java files use Java editor behavior and label" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.001"/>
+  <testcase name="Java session accepts edits and Java formatting" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.002"/>
+  <testcase name="Markdown files are detected from md and markdown extensions" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorLanguageTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:49:40.801Z" hostname="pop-os" time="0.189">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.150Z" hostname="pop-os" time="0.05">
   <properties/>
-  <testcase name="layeredGitStatusIsNullForUntrackedFileOrMissingRoot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.081"/>
-  <testcase name="toEditorNodeLayersGitStatusOnFilesAndLeavesFoldersUnmarked" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.098"/>
-  <testcase name="layeredGitStatusResolvesPathRelativeToProjectRoot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.007"/>
+  <testcase name="layeredGitStatusIsNullForUntrackedFileOrMissingRoot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.039"/>
+  <testcase name="toEditorNodeLayersGitStatusOnFilesAndLeavesFoldersUnmarked" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.01"/>
+  <testcase name="layeredGitStatusResolvesPathRelativeToProjectRoot" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorFileTreePresentationTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

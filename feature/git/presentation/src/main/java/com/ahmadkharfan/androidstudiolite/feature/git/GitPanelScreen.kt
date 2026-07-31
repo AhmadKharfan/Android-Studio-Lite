@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,7 +56,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslT
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.rememberAslToolWindowWidth
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.model.PullMode
@@ -257,7 +257,7 @@ private fun ChangesView(
             OperationBanner(uiState, interactionListener)
         }
         GitChangedFileList(uiState = uiState, interactionListener = interactionListener, onOpenConflicts = onOpenConflicts, modifier = Modifier.weight(1f).fillMaxSize())
-        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
         GitCommitBox(
             uiState = uiState,
             interactionListener = interactionListener,
@@ -290,7 +290,7 @@ private fun GitChangesHeader(
     if (uiState.hasChipRow) {
         GitChangesChipRow(uiState, interactionListener)
     }
-    HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+    AslHorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
 }
 
 @Composable
@@ -303,9 +303,9 @@ private fun GitChangesStatus(
     Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp)) {
         if (statusText != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
+                AslText(
                     text = statusText,
-                    style = AslTypography.labelSmall,
+                    style = AslTextStyles.labelSmall,
                     color = textColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -479,9 +479,9 @@ private fun SubmodulesView(
     interactionListener: GitPanelInteractionListener,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
+        AslText(
             text = stringResource(R.string.git_submodules_hint),
-            style = AslTypography.bodySmall,
+            style = AslTextStyles.bodySmall,
             color = AslTheme.colors.textSecondary,
             modifier = Modifier.padding(12.dp),
         )
@@ -503,7 +503,7 @@ private fun SubmodulesView(
                 modifier = Modifier.weight(1f),
             )
         }
-        HorizontalDivider(color = AslTheme.colors.borderSubtle, modifier = Modifier.padding(top = 8.dp))
+        AslHorizontalDivider(color = AslTheme.colors.borderSubtle, modifier = Modifier.padding(top = 8.dp))
         when {
             uiState.submodulesLoading -> AslLinearProgress(label = stringResource(R.string.git_submodules_loading), modifier = Modifier.padding(16.dp))
             uiState.submodules.isEmpty() -> AslEmptyState(
@@ -566,13 +566,13 @@ private fun OperationBanner(uiState: GitPanelUiState, interactionListener: GitPa
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
+        AslText(
             stringResource(
                 R.string.git_operation_progress,
                 repositoryStateLabel(uiState.repositoryState),
             ),
             modifier = Modifier.weight(1f),
-            style = AslTypography.labelMedium,
+            style = AslTextStyles.labelMedium,
             color = colors.error,
         )
         if (uiState.repositoryState == GitRepositoryState.REBASING) {
@@ -746,14 +746,14 @@ private fun SectionHeader(
                 tint = if (sectionSelected || sectionIndeterminate) colors.accentPrimary else colors.textTertiary,
             )
         }
-        Text(
+        AslText(
             text = title,
-            style = AslTypography.labelMedium,
+            style = AslTextStyles.labelMedium,
             color = colors.textSecondary,
         )
-        Text(
+        AslText(
             text = count.toString(),
-            style = AslTypography.labelSmall,
+            style = AslTextStyles.labelSmall,
             color = colors.textTertiary,
             modifier = Modifier
                 .background(colors.surfaceContainerLow, AslShape.xs)
@@ -840,9 +840,9 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            AslText(
                 text = stringResource(R.string.git_remotes_configured),
-                style = AslTypography.labelMedium,
+                style = AslTextStyles.labelMedium,
                 color = AslTheme.colors.textSecondary,
                 modifier = Modifier.weight(1f),
             )
@@ -854,7 +854,7 @@ private fun RemotesView(uiState: GitPanelUiState, interactionListener: GitPanelI
                 disabled = uiState.isBusy,
             )
         }
-        HorizontalDivider(color = AslTheme.colors.borderSubtle)
+        AslHorizontalDivider(color = AslTheme.colors.borderSubtle)
         RemotesContent(uiState, interactionListener)
     }
 }
@@ -946,9 +946,9 @@ private fun DiffView(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = { interactionListener.onCloseDiff() })
-            Text(
+            AslText(
                 text = uiState.selectedPath.orEmpty(),
-                style = AslTypography.bodySmall,
+                style = AslTextStyles.bodySmall,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -960,7 +960,7 @@ private fun DiffView(
                 onClick = { onOpenDiff(uiState.selectedPath.orEmpty(), uiState.selectedDiffTarget) },
             )
         }
-        HorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderSubtle, thickness = 1.dp)
 
 
         val vScroll = rememberScrollState()

@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
-import androidx.compose.material3.Scaffold
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslHorizontalDivider
+import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslText
+import com.ahmadkharfan.androidstudiolite.designsystem.component.ide.AslScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,7 +30,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslCode
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslShape
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
-import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 
 
 private val EXTRA_KEYS = listOf("Esc", "Tab", "Ctrl+C", "←", "↑", "↓", "→", "/", "|", "~", "-")
@@ -67,7 +67,7 @@ private fun TerminalScreen(
     onBack: () -> Unit,
 ) {
     val colors = AslTheme.colors
-    Scaffold(containerColor = colors.bgBase) { padding ->
+    AslScaffold(containerColor = colors.bgBase) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             TerminalTopBar(interactionListener = interactionListener, onBack = onBack, colors = colors)
             TerminalTabStrip(uiState = uiState, interactionListener = interactionListener, colors = colors)
@@ -102,16 +102,16 @@ private fun TerminalTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AslIconButton(icon = "arrow-left", contentDescription = stringResource(CommonR.string.action_back), onClick = onBack)
-            Text(
+            AslText(
                 text = stringResource(R.string.terminal_title),
-                style = AslTypography.titleMedium,
+                style = AslTextStyles.titleMedium,
                 color = colors.textPrimary,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
             AslIconButton(icon = "plus", contentDescription = stringResource(R.string.terminal_new_session), onClick = { interactionListener.onNewSession() })
             AslIconButton(icon = "settings-2", contentDescription = stringResource(R.string.terminal_settings_title), onClick = { interactionListener.onOpenSettings() })
         }
-        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
 }
 
@@ -142,7 +142,7 @@ private fun TerminalTabStrip(
                 )
             }
         }
-        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
 }
 
@@ -163,7 +163,7 @@ private fun TerminalLinuxBanner(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                AslText(
                     text = when {
                         linux.isBusy -> linux.phaseText() ?: stringResource(R.string.terminal_linux_installing)
                         linux.error != null -> stringResource(R.string.terminal_linux_install_failed)
@@ -173,7 +173,7 @@ private fun TerminalLinuxBanner(
                     color = colors.textPrimary,
                 )
                 linux.error?.let {
-                    Text(text = it, style = AslCode.codeTiny, color = colors.error)
+                    AslText(text = it, style = AslCode.codeTiny, color = colors.error)
                 }
             }
             if (!linux.isBusy) {
@@ -199,7 +199,7 @@ private fun TerminalLinuxBanner(
                 )
             }
         }
-        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
     }
 }
 
@@ -221,7 +221,7 @@ private fun InstallPill(label: String, onClick: () -> Unit, colors: AslColorSche
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, style = AslCode.codeSmall, color = colors.bgBase)
+        AslText(text = label, style = AslCode.codeSmall, color = colors.bgBase)
     }
 }
 
@@ -231,7 +231,7 @@ private fun TerminalExtraKeysRow(
     colors: AslColorScheme,
 ) {
     Column(modifier = Modifier.background(colors.bgElevated)) {
-        HorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
+        AslHorizontalDivider(color = colors.borderDefault, thickness = 1.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -259,6 +259,6 @@ private fun ExtraKeyChip(label: String, onClick: () -> Unit) {
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, style = AslCode.codeSmall, color = colors.textPrimary)
+        AslText(text = label, style = AslCode.codeSmall, color = colors.textPrimary)
     }
 }

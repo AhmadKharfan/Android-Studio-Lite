@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.349Z" hostname="pop-os" time="0.055">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.716Z" hostname="pop-os" time="0.041">
   <properties/>
-  <testcase name="ensureSession_creates_exactly_one_tab" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.033"/>
-  <testcase name="select_switches_active_tab" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.005"/>
-  <testcase name="newSession_adds_a_tab_and_activates_it_without_closing_others" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.006"/>
-  <testcase name="closing_active_tab_activates_a_neighbour" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.01"/>
+  <testcase name="ensureSession_creates_exactly_one_tab" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.028"/>
+  <testcase name="select_switches_active_tab" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.003"/>
+  <testcase name="newSession_adds_a_tab_and_activates_it_without_closing_others" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.002"/>
+  <testcase name="closing_active_tab_activates_a_neighbour" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManagerTest" time="0.006"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

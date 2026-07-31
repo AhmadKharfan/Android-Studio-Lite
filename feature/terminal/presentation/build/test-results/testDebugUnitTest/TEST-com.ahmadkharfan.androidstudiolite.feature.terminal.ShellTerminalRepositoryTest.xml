@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.ShellTerminalRepositoryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T08:30:53.055Z" hostname="pop-os" time="0.251">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.ShellTerminalRepositoryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.425Z" hostname="pop-os" time="0.24">
   <properties/>
-  <testcase name="streamsRealOutputExpandsEnvAndReportsExitCodes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.ShellTerminalRepositoryTest" time="0.225"/>
+  <testcase name="streamsRealOutputExpandsEnvAndReportsExitCodes" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.ShellTerminalRepositoryTest" time="0.211"/>
   <testcase name="cdPersistsAcrossCommandsInOneSession" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.ShellTerminalRepositoryTest" time="0.014"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
