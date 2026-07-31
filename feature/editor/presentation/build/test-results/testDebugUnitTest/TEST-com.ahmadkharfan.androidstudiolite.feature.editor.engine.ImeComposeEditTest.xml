@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.492Z" hostname="pop-os" time="0.011">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.800Z" hostname="pop-os" time="0.009">
   <properties/>
   <testcase name="composing update replaces typed word instead of appending" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.001"/>
-  <testcase name="backspace then composing update keeps shortened word" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.001"/>
-  <testcase name="ime commit of word plus paren strips duplicate word" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.008"/>
-  <testcase name="accepting completion then opening paren keeps single identifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.001"/>
-  <testcase name="ime commit of duplicate word alone is no-op" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.0"/>
+  <testcase name="backspace then composing update keeps shortened word" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.0"/>
+  <testcase name="ime commit of word plus paren strips duplicate word" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.007"/>
+  <testcase name="accepting completion then opening paren keeps single identifier" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.0"/>
+  <testcase name="ime commit of duplicate word alone is no-op" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.ImeComposeEditTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

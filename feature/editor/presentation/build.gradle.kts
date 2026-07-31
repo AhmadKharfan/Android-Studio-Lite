@@ -16,7 +16,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.datastore.preferences)
     testImplementation(projects.feature.buildrun.presentation)
     testImplementation(projects.data.build)
     testImplementation(projects.data.local)

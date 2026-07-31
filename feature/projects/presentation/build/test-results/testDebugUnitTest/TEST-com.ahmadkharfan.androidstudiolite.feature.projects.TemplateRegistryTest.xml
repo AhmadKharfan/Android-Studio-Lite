@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:52.510Z" hostname="pop-os" time="0.08">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.587Z" hostname="pop-os" time="0.063">
   <properties/>
-  <testcase name="every template points at thumbnail artwork that exists" classname="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" time="0.066"/>
-  <testcase name="templates are listed in the same order, under the same names" classname="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" time="0.003"/>
+  <testcase name="every template points at thumbnail artwork that exists" classname="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" time="0.052"/>
+  <testcase name="templates are listed in the same order, under the same names" classname="com.ahmadkharfan.androidstudiolite.feature.projects.TemplateRegistryTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

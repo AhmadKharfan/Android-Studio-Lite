@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.417Z" hostname="pop-os" time="0.019">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.759Z" hostname="pop-os" time="0.009">
   <properties/>
   <testcase name="query_offersMatchingKeywordAndSnippet" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
   <testcase name="query_importAndroidxComposeDot_suggestsComposeChildren" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
-  <testcase name="accept_isASingleUndoStep" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.002"/>
+  <testcase name="accept_isASingleUndoStep" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
   <testcase name="query_insideStringLiteral_returnsEmpty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
   <testcase name="query_namingNewClass_returnsEmpty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
-  <testcase name="plainLanguage_hasNoKeywordOrSnippetNoise" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
-  <testcase name="buildContext_detectsImportMemberAccess" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
+  <testcase name="plainLanguage_hasNoKeywordOrSnippetNoise" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
+  <testcase name="buildContext_detectsImportMemberAccess" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
   <testcase name="query_namingNewFunction_returnsEmpty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
-  <testcase name="accept_snippetInsertsAndPlacesCaretAtDollarZero" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
-  <testcase name="query_composeFile_suggestsTextAndImage" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.002"/>
-  <testcase name="autoPopup_notTriggeredByOpenParenOrBrace" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
-  <testcase name="query_importAndroidDot_suggestsSubpackagesNotKeywords" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
+  <testcase name="accept_snippetInsertsAndPlacesCaretAtDollarZero" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
+  <testcase name="query_composeFile_suggestsTextAndImage" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
+  <testcase name="autoPopup_notTriggeredByOpenParenOrBrace" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
+  <testcase name="query_importAndroidDot_suggestsSubpackagesNotKeywords" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
   <testcase name="query_offersDocumentIdentifiers" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
   <testcase name="query_namingNewVal_returnsEmpty" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
-  <testcase name="accept_importFqSuggestion_replacesWholeTypedPath" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.002"/>
+  <testcase name="accept_importFqSuggestion_replacesWholeTypedPath" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
   <testcase name="importAndroidxAct_suggestsActivity" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
   <testcase name="buildContext_extractsPrefixUnderCaret" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
-  <testcase name="query_modifierDot_suggestsLayoutModifiers" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
-  <testcase name="accept_importPartialSegment_replacesOnlyLastSegment" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.001"/>
+  <testcase name="query_modifierDot_suggestsLayoutModifiers" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
+  <testcase name="accept_importPartialSegment_replacesOnlyLastSegment" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.CompletionTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

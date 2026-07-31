@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:57.979Z" hostname="pop-os" time="0.09">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:18.769Z" hostname="pop-os" time="0.037">
   <properties/>
-  <testcase name="writes_plain_text_and_advances_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.006"/>
-  <testcase name="wraps_at_last_column" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.0"/>
+  <testcase name="writes_plain_text_and_advances_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
+  <testcase name="wraps_at_last_column" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
   <testcase name="scrolls_when_output_exceeds_height" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
-  <testcase name="alt_screen_does_not_pollute_scrollback" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
-  <testcase name="resize_preserves_content_and_clamps_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
-  <testcase name="sgr_sets_colors_and_reset_clears_them" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.029"/>
-  <testcase name="lines_scrolled_off_the_top_go_to_scrollback" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.017"/>
-  <testcase name="erase_display_clears_screen" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.003"/>
-  <testcase name="newline_and_carriage_return_move_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.004"/>
-  <testcase name="scroll_region_confines_scrolling" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.003"/>
-  <testcase name="cursor_positioning_overwrites_in_place" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
-  <testcase name="delete_and_insert_characters" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
-  <testcase name="hides_and_shows_cursor_via_dec_private_mode" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.002"/>
-  <testcase name="snapshot_reuses_unchanged_row_instances" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.004"/>
-  <testcase name="erase_to_end_of_line" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.008"/>
+  <testcase name="alt_screen_does_not_pollute_scrollback" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="resize_preserves_content_and_clamps_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="sgr_sets_colors_and_reset_clears_them" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.014"/>
+  <testcase name="lines_scrolled_off_the_top_go_to_scrollback" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.007"/>
+  <testcase name="erase_display_clears_screen" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="newline_and_carriage_return_move_cursor" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="scroll_region_confines_scrolling" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.0"/>
+  <testcase name="cursor_positioning_overwrites_in_place" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="delete_and_insert_characters" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="hides_and_shows_cursor_via_dec_private_mode" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.0"/>
+  <testcase name="snapshot_reuses_unchanged_row_instances" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.001"/>
+  <testcase name="erase_to_end_of_line" classname="com.ahmadkharfan.androidstudiolite.feature.terminal.emulator.TerminalEmulatorTest" time="0.003"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -10,5 +10,4 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.navigation.compose)
 }

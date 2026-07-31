@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:54.202Z" hostname="pop-os" time="0.155">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.072Z" hostname="pop-os" time="0.18">
   <properties/>
-  <testcase name="install conflict preserves package and reason in failed execution" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" time="0.146"/>
-  <testcase name="successful install events advance execution through current phases" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" time="0.008"/>
+  <testcase name="install conflict preserves package and reason in failed execution" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" time="0.166"/>
+  <testcase name="successful install events advance execution through current phases" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildInstallOrchestrationTest" time="0.012"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

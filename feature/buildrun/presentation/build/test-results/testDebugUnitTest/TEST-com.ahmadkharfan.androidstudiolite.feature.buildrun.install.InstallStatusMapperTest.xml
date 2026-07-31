@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:19:54.386Z" hostname="pop-os" time="0.011">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.300Z" hostname="pop-os" time="0.015">
   <properties/>
   <testcase name="storage failure produces a specific reason" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.008"/>
-  <testcase name="success carries the package name" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.0"/>
+  <testcase name="success carries the package name" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.001"/>
   <testcase name="aborted maps to a cancelled reason" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.001"/>
-  <testcase name="conflict maps to its own outcome, not a generic failure" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.0"/>
+  <testcase name="conflict maps to its own outcome, not a generic failure" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.001"/>
   <testcase name="pending user action maps to needs-user-action" classname="com.ahmadkharfan.androidstudiolite.feature.buildrun.install.InstallStatusMapperTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

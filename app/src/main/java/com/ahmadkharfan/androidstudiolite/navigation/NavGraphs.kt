@@ -12,7 +12,6 @@ import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorRou
 import com.ahmadkharfan.androidstudiolite.feature.blockingerror.BlockingErrorType
 import com.ahmadkharfan.androidstudiolite.feature.crashreport.CrashReportRoute
 import com.ahmadkharfan.androidstudiolite.feature.editor.api.EditorFeatureApi
-import com.ahmadkharfan.androidstudiolite.feature.editor.api.EditorRoutes
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.api.OnboardingFeatureApi
 import com.ahmadkharfan.androidstudiolite.feature.onboarding.api.OnboardingRoutes
 import com.ahmadkharfan.androidstudiolite.feature.projects.api.ProjectsFeatureApi

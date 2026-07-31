@@ -11,7 +11,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.navigation.compose)
     testImplementation(projects.data.templates)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

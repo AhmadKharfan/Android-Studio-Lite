@@ -12,9 +12,6 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.security.crypto)
-    implementation(libs.okhttp)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.240Z" hostname="pop-os" time="0.073">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.579Z" hostname="pop-os" time="0.094">
   <properties/>
-  <testcase name="closingActiveTabRemovesItAndActivatesRemaining" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.031"/>
-  <testcase name="opensDefaultFileOnLoad" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.012"/>
-  <testcase name="openingASecondFileAddsAnActiveTabAndReopeningActivatesWithoutDuplicating" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.013"/>
-  <testcase name="editingASessionMarksItsTabModified" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.015"/>
+  <testcase name="closingActiveTabRemovesItAndActivatesRemaining" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.032"/>
+  <testcase name="opensDefaultFileOnLoad" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.015"/>
+  <testcase name="openingASecondFileAddsAnActiveTabAndReopeningActivatesWithoutDuplicating" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.029"/>
+  <testcase name="editingASessionMarksItsTabModified" classname="com.ahmadkharfan.androidstudiolite.feature.editor.EditorTabLifecycleTest" time="0.018"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

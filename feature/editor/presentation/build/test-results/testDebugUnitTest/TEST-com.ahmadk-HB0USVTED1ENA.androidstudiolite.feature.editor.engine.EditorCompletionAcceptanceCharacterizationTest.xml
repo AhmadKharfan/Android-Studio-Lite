@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorCompletionAcceptanceCharacterizationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:20:06.440Z" hostname="pop-os" time="0.006">
+<testsuite name="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorCompletionAcceptanceCharacterizationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-07-31T14:29:19.770Z" hostname="pop-os" time="0.008">
   <properties/>
-  <testcase name="xml attribute acceptance replaces the typed name and places caret inside quotes" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorCompletionAcceptanceCharacterizationTest" time="0.005"/>
+  <testcase name="xml attribute acceptance replaces the typed name and places caret inside quotes" classname="com.ahmadkharfan.androidstudiolite.feature.editor.engine.EditorCompletionAcceptanceCharacterizationTest" time="0.008"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
