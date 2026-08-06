@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     `kotlin-dsl`
 }
@@ -9,8 +11,8 @@ repositories {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:9.2.1")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.10")
+    implementation(libs.gradle)
+    implementation(libs.kotlin.gradle.plugin)
     testImplementation(kotlin("test"))
 }
 
