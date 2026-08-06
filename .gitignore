@@ -25,6 +25,9 @@ local.properties
 /feature/buildrun/build/
 /feature/git/build/
 /feature/editor/build/
+/core/gitauth/build/
+/feature/*/api/build/
+/feature/*/presentation/build/
 /buildsystem/*/build/
 /tooling/*/build/
 /captures
