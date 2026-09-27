@@ -1,6 +1,12 @@
 build:
   maxIssues: 0
 
+config:
+  validation: true
+  # compose-rules 0.6 still reads this key but no longer declares it in its bundled defaults, so
+  # detekt's validation rejects it. Exempt only this property; everything else is still validated.
+  excludes: 'Compose>CompositionLocalAllowlist>allowedCompositionLocals'
+
 complexity:
   LongMethod:
     active: true
