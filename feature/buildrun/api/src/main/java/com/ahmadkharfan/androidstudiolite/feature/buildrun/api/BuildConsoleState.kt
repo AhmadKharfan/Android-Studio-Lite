@@ -81,6 +81,7 @@ public fun BuildConsoleState.reduce(event: BuildEvent): BuildConsoleState =
         is BuildEvent.Started -> startBuild(event)
         is BuildEvent.RemoteBuildBound -> this
         is BuildEvent.Progress -> copy(progressMessage = event.message)
+        is BuildEvent.StatusChanged -> event.message?.let { copy(progressMessage = it) } ?: this
         is BuildEvent.TaskStarted -> upsertTask(event.taskPath, result = null)
         is BuildEvent.TaskFinished -> upsertTask(event.taskPath, result = event.result)
         is BuildEvent.Output -> appendOutput(event)
