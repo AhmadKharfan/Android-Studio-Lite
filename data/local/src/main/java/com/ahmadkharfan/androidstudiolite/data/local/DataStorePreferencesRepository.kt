@@ -79,6 +79,7 @@ class DataStorePreferencesRepository(
             launchAfterInstall = this[LAUNCH_AFTER_INSTALL] ?: defaults.launchAfterInstall,
             buildOutputAab = this[BUILD_OUTPUT_AAB] ?: defaults.buildOutputAab,
             preferGitSource = this[PREFER_GIT_SOURCE] ?: defaults.preferGitSource,
+            buildProviderId = this[BUILD_PROVIDER_ID]?.takeIf { it.isNotBlank() },
         )
     }
 
@@ -94,6 +95,7 @@ class DataStorePreferencesRepository(
         this[LAUNCH_AFTER_INSTALL] = value.launchAfterInstall
         this[BUILD_OUTPUT_AAB] = value.buildOutputAab
         this[PREFER_GIT_SOURCE] = value.preferGitSource
+        value.buildProviderId?.let { this[BUILD_PROVIDER_ID] = it } ?: remove(BUILD_PROVIDER_ID)
     }
 
     private companion object {
@@ -108,6 +110,7 @@ class DataStorePreferencesRepository(
         val LAUNCH_AFTER_INSTALL = booleanPreferencesKey("launch_after_install")
         val BUILD_OUTPUT_AAB = booleanPreferencesKey("build_output_aab")
         val PREFER_GIT_SOURCE = booleanPreferencesKey("prefer_git_source")
+        val BUILD_PROVIDER_ID = stringPreferencesKey("build_provider_id")
 
         fun selectedVariantKey(projectId: String) = stringPreferencesKey("selected_variant::$projectId")
     }

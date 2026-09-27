@@ -14,4 +14,6 @@ data class AppPreferences(
     val launchAfterInstall: Boolean = true,
     val buildOutputAab: Boolean = false,
     val preferGitSource: Boolean = false,
+    /** The build provider to use, or null for the app default. */
+    val buildProviderId: String? = null,
 )
