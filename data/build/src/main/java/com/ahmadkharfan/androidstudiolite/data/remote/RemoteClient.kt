@@ -38,6 +38,7 @@ class RemoteClient(
     private val httpClient: OkHttpClient = defaultClient(),
     private val transferClient: OkHttpClient = defaultTransferClient(),
     private val integrityProvider: IntegrityTokenProvider = NoopIntegrityTokenProvider,
+    private val isDeviceOnline: () -> Boolean? = { null },
 ) : RemoteBuildGateway {
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -213,7 +214,7 @@ class RemoteClient(
                 return
             } catch (e: IOException) {
                 if (attempt >= MAX_ATTEMPTS - 1) {
-                    throw RemoteException(0, "NETWORK", networkErrorMessage(e))
+                    throw RemoteException(0, "NETWORK", networkErrorMessage(e, isDeviceOnline()))
                 }
             } catch (e: RemoteException) {
                 val transient = e.httpStatus == 0 || e.httpStatus in 500..599
@@ -237,38 +238,11 @@ class RemoteClient(
                 if (snapshot.code == 401 && allowUnauthorizedThrow) throw ex
                 if (!transient || attempt >= MAX_ATTEMPTS - 1) throw ex
             } catch (e: IOException) {
-                val mapped = RemoteException(0, "NETWORK", networkErrorMessage(e))
+                val mapped = RemoteException(0, "NETWORK", networkErrorMessage(e, isDeviceOnline()))
                 if (attempt >= MAX_ATTEMPTS - 1) throw mapped
             }
             delay((BASE_BACKOFF_MS shl attempt).milliseconds)
             attempt++
-        }
-    }
-
-    private fun networkErrorMessage(e: IOException): String {
-        val chain = generateSequence<Throwable>(e) { it.cause }.toList()
-        for (err in chain) {
-            when (err) {
-                is java.net.UnknownHostException ->
-                    return "You're offline or DNS failed. Check your internet connection and try again."
-                is java.net.ConnectException ->
-                    return "Can't reach the build server. Check your internet connection and try again."
-                is java.net.NoRouteToHostException ->
-                    return "No network route to the build server. Check your internet connection."
-                is java.net.SocketTimeoutException ->
-                    return "Build server timed out. Check your internet connection and try again."
-            }
-        }
-        val message = e.message.orEmpty().lowercase()
-        return when {
-            "unable to resolve host" in message ||
-                "failed to connect" in message ||
-                "network is unreachable" in message ||
-                "connection refused" in message ->
-                "You're offline or can't reach the build server. Check your internet connection and try again."
-            e.message.isNullOrBlank() ->
-                "Network error. Check your internet connection and try again."
-            else -> e.message!!
         }
     }
 
