@@ -12,6 +12,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuild
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
@@ -95,12 +96,26 @@ class BuildStartAdmissionCharacterizationTest {
         assertTrue(coordinator.execution.value.active)
     }
 
+    @Test
+    fun `preflight blocks the build when the provider is not ready`() = runBlocking {
+        val notReady = object : BuildSystem by UnusedBuildSystem {
+            override suspend fun readiness() = BuildReadiness.NeedsSignIn("Sign in to GitHub to build")
+        }
+        val coordinator = coordinator(RecordingContext(), InMemoryActiveBuildRepository(), notReady)
+
+        val preflight = coordinator.preflight(temporaryFolder.root)
+
+        assertFalse(preflight.canProceed)
+        assertTrue(preflight.warnings.any { it.detail == "Sign in to GitHub to build" })
+    }
+
     private fun coordinator(
         context: RecordingContext,
         activeBuildStore: InMemoryActiveBuildRepository,
+        buildSystem: BuildSystem = UnusedBuildSystem,
     ) = BuildRunCoordinator(
         context = context,
-        buildSystem = UnusedBuildSystem,
+        buildSystem = buildSystem,
         keystoreManager = MissingReleaseKeystoreManager,
         installOperations = BuildInstallOperations(
             install = { _, _, _, _ -> flowOf() },

@@ -21,6 +21,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildReposito
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
@@ -30,6 +31,7 @@ import com.ahmadkharfan.androidstudiolite.domain.time.SystemAslClock
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.BuildPreflight
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.BuildPreflightResult
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.DeviceStorage
+import com.ahmadkharfan.androidstudiolite.feature.buildrun.preflight.readinessWarning
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.ToolchainVersions
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -459,7 +461,9 @@ class BuildRunCoordinator internal constructor(
                 jdkMajor = TOOLCHAIN_JDK_MAJOR,
             )
         }.getOrDefault(ToolchainVersions(jdkMajor = TOOLCHAIN_JDK_MAJOR))
-        BuildPreflight.run(versions, DeviceStorage.availableBytes(projectRoot))
+        val result = BuildPreflight.run(versions, DeviceStorage.availableBytes(projectRoot))
+        val readiness = runCatching { buildSystem.readiness() }.getOrDefault(BuildReadiness.Ready)
+        readinessWarning(readiness)?.let { BuildPreflightResult(listOf(it) + result.warnings) } ?: result
     }
 
     override suspend fun syncProject(projectRoot: File) = buildSystem.sync(projectRoot)

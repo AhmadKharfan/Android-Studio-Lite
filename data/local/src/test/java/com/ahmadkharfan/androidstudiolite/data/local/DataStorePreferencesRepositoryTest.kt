@@ -104,4 +104,13 @@ class DataStorePreferencesRepositoryTest {
         val reloaded = withRepository { it.observePreferences().first() }
         assertEquals(expected, reloaded)
     }
+
+    @Test
+    fun `build provider selection persists and can be cleared back to the default`() {
+        withRepository { repo -> repo.update { it.copy(buildProviderId = "gha") } }
+        assertEquals("gha", withRepository { it.observePreferences().first() }.buildProviderId)
+
+        withRepository { repo -> repo.update { it.copy(buildProviderId = null) } }
+        assertEquals(null, withRepository { it.observePreferences().first() }.buildProviderId)
+    }
 }

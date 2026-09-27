@@ -59,6 +59,12 @@ android {
 
         buildConfigField(
             "String",
+            "DEFAULT_BUILD_PROVIDER",
+            "\"${configValue("asl.buildProvider", "ASL_BUILD_PROVIDER", "remote")}\"",
+        )
+
+        buildConfigField(
+            "String",
             "GITHUB_OAUTH_CLIENT_ID",
             "\"${configValue("asl.githubOauthClientId", "ASL_GITHUB_OAUTH_CLIENT_ID", "Ov23liwZZUUv9fXJksGe")}\"",
         )
