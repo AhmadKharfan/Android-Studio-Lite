@@ -14,9 +14,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,17 +63,8 @@ class RemoteBuildKeepAliveService : Service() {
                     progress = getString(R.string.build_notification_preparing),
                 )
                 if (executionJob?.isActive == true) return START_REDELIVER_INTENT
-                val root = intent.getStringExtra(EXTRA_PROJECT_ROOT)?.let(::File) ?: return START_NOT_STICKY
-                val kind = runCatching {
-                    BuildKind.valueOf(intent.getStringExtra(EXTRA_BUILD_KIND).orEmpty())
-                }.getOrDefault(BuildKind.ASSEMBLE)
-                val request = BuildRequest(
-                    projectRoot = root,
-                    modulePath = intent.getStringExtra(EXTRA_MODULE_PATH).orEmpty().ifBlank { ":app" },
-                    variantName = intent.getStringExtra(EXTRA_VARIANT).orEmpty().ifBlank { "debug" },
-                    kind = kind,
-                    operationId = operationId,
-                )
+                val request = BuildRequestExtras.read(operationId, intent::getStringExtra)
+                    ?: return START_NOT_STICKY
                 val meta = BuildClientMeta(
                     projectId = intent.getStringExtra(EXTRA_PROJECT_ID).orEmpty(),
                     projectName = intent.getStringExtra(EXTRA_PROJECT_NAME).orEmpty(),
@@ -197,6 +186,8 @@ class RemoteBuildKeepAliveService : Service() {
         const val EXTRA_MODULE_PATH = "module_path"
         const val EXTRA_VARIANT = "variant"
         const val EXTRA_BUILD_KIND = "build_kind"
+        const val EXTRA_TASK_PATH = "task_path"
+        const val EXTRA_BUILD_TYPE = "build_type"
         const val EXTRA_INSTALL = "install"
         const val EXTRA_AUTO_LAUNCH = "auto_launch"
         const val EXTRA_ATTACH_BUILD_ID = "attach_build_id"
@@ -215,10 +206,7 @@ class RemoteBuildKeepAliveService : Service() {
                 putExtra(EXTRA_OPERATION_ID, operationId)
                 putExtra(EXTRA_PROJECT_ID, meta.projectId)
                 putExtra(EXTRA_PROJECT_NAME, meta.projectName)
-                putExtra(EXTRA_PROJECT_ROOT, request.projectRoot.absolutePath)
-                putExtra(EXTRA_MODULE_PATH, request.modulePath)
-                putExtra(EXTRA_VARIANT, request.variantName)
-                putExtra(EXTRA_BUILD_KIND, request.kind.name)
+                BuildRequestExtras.write(request) { key, value -> putExtra(key, value) }
                 putExtra(EXTRA_INSTALL, meta.installAfterSuccess)
                 putExtra(EXTRA_AUTO_LAUNCH, meta.autoLaunchAfterInstall)
                 if (!attachBuildId.isNullOrBlank()) putExtra(EXTRA_ATTACH_BUILD_ID, attachBuildId)
