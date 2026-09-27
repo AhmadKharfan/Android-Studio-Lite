@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.di
 
 import com.ahmadkharfan.androidstudiolite.BuildConfig
+import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
 import com.ahmadkharfan.androidstudiolite.data.remote.ArtifactDownloader
 import com.ahmadkharfan.androidstudiolite.data.remote.ProjectPackager
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteClient
@@ -24,7 +25,10 @@ val remoteModule = module {
             NoopIntegrityTokenProvider
         }
     }
-    single { RemoteClient(settings = get(), integrityProvider = get()) }
+    single {
+        val networkMonitor = get<NetworkMonitor>()
+        RemoteClient(settings = get(), integrityProvider = get(), isDeviceOnline = networkMonitor::isOnline)
+    }
     single { ProjectPackager() }
     single { ArtifactDownloader(client = get(), downloadDir = File(androidContext().cacheDir, "build-artifacts")) }
 }
