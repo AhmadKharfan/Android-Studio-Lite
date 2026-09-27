@@ -24,7 +24,7 @@ public data class BuildExecutionSnapshot(
 public enum class InstallExecutionState { None, Preparing, AwaitingConfirmation, Installed, Failed }
 
 public enum class BuildExecutionPhase {
-    Idle, Preparing, Running, Reconnecting, DownloadingArtifact, Installing,
+    Idle, Preparing, Queued, Running, Reconnecting, DownloadingArtifact, Installing,
     AwaitingInstallConfirmation, Succeeded, Failed, Cancelling, Cancelled, TimedOut,
 }
 

@@ -10,6 +10,12 @@ sealed interface BuildEvent {
 
     data class Progress(val message: String) : BuildEvent
 
+    /**
+     * Where a remote build is in its lifecycle, for providers that know it. Lets consumers track the
+     * phase without parsing [Progress] text; [message], when present, is shown like a [Progress].
+     */
+    data class StatusChanged(val phase: RemoteBuildPhase, val message: String? = null) : BuildEvent
+
     data class TaskStarted(val taskPath: String) : BuildEvent
 
     data class TaskFinished(val taskPath: String, val result: TaskResult) : BuildEvent
@@ -34,6 +40,8 @@ sealed interface BuildEvent {
     ) : BuildEvent
 
     data class Finished(val success: Boolean, val durationMillis: Long) : BuildEvent
+
+    enum class RemoteBuildPhase { QUEUED, PREPARING, UPLOADING, RUNNING, DOWNLOADING }
 
     enum class TaskResult { SUCCESS, UP_TO_DATE, SKIPPED, FAILED }
 

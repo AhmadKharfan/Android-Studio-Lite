@@ -341,7 +341,7 @@ class BuildRunCoordinator internal constructor(
             console = console.reduce(event)
             _execution.value = _execution.value.copy(
                 console = console,
-                phase = phaseFor(event, _execution.value.phase),
+                phase = nextExecutionPhase(event, _execution.value.phase),
             )
         }
         return console
@@ -533,30 +533,11 @@ class BuildRunCoordinator internal constructor(
                     event.message,
                 )
             }
+            is BuildEvent.StatusChanged -> event.message?.let { message ->
+                RemoteBuildKeepAliveService.updateProgress(context, meta.projectId, meta.projectName, message)
+            }
             is BuildEvent.Finished -> Unit
             else -> Unit
-        }
-    }
-
-    private fun phaseFor(event: BuildEvent, current: BuildExecutionPhase): BuildExecutionPhase = when (event) {
-        is BuildEvent.Started, is BuildEvent.RemoteBuildBound, is BuildEvent.TaskStarted,
-        is BuildEvent.TaskFinished, is BuildEvent.Output -> BuildExecutionPhase.Running
-        is BuildEvent.Progress -> when {
-            event.message.contains("download", ignoreCase = true) -> BuildExecutionPhase.DownloadingArtifact
-            event.message.contains("reconnect", ignoreCase = true) ||
-                event.message.contains("retry", ignoreCase = true) -> BuildExecutionPhase.Reconnecting
-            else -> BuildExecutionPhase.Running
-        }
-        is BuildEvent.ArtifactProduced -> BuildExecutionPhase.DownloadingArtifact
-        is BuildEvent.Problem -> if (event.message.contains("timed out", ignoreCase = true)) {
-            BuildExecutionPhase.TimedOut
-        } else {
-            current
-        }
-        is BuildEvent.Finished -> when {
-            current == BuildExecutionPhase.TimedOut -> current
-            event.success -> BuildExecutionPhase.Succeeded
-            else -> BuildExecutionPhase.Failed
         }
     }
 
