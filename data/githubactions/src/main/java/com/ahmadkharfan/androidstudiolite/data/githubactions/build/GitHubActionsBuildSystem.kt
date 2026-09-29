@@ -113,7 +113,7 @@ class GitHubActionsBuildSystem internal constructor(
             val inputs = BuildWorkflow.dispatchInputs(correlationId, snapshot.branch, snapshot.sha, tasks, config.javaVersion)
             run.handle = BuildHandle(repository.owner, repository.name, correlationId)
             val runId = dispatch(repository, inputs)
-            followRun(run, repository, runId, request, startedAt) { send(it) }
+            followRun(run, repository, runId, request, request.projectRoot, startedAt) { send(it) }
         }
     }
 
@@ -125,7 +125,7 @@ class GitHubActionsBuildSystem internal constructor(
             run.handle = handle
             send(BuildEvent.StatusChanged(RemoteBuildPhase.RUNNING, "Reconnecting to the GitHub build…"))
             val repository = provisioner.ensure()
-            followRun(run, repository, handle.runId, request = null, startedAt) { send(it) }
+            followRun(run, repository, handle.runId, request = null, projectRoot, startedAt) { send(it) }
         }
     }
 
@@ -141,6 +141,7 @@ class GitHubActionsBuildSystem internal constructor(
         repository: BuildRepository,
         knownRunId: Long?,
         request: BuildRequest?,
+        projectRoot: File,
         startedAt: Long,
         emit: suspend (BuildEvent) -> Unit,
     ) {
@@ -151,7 +152,7 @@ class GitHubActionsBuildSystem internal constructor(
         emit(BuildEvent.RemoteBuildBound(handle.encode()))
         if (run.cancelRequested) seams.cancelScope.launch { cancelRemote(handle) }
         val finished = follower.follow(handle, runId, startedAt + FOLLOW_TIMEOUT_MS, emit)
-        val success = collector.collect(handle, finished, request, emit)
+        val success = collector.collect(handle, finished, request, projectRoot, emit)
         emit(BuildEvent.Finished(success, seams.clock.elapsedMillis() - startedAt))
     }
 
