@@ -11,7 +11,7 @@ package com.ahmadkharfan.androidstudiolite.data.githubactions.workflow
  */
 object BuildWorkflow {
 
-    const val VERSION = 2
+    const val VERSION = 3
 
     /** Where the workflow lives in the build repository. */
     const val PATH = ".github/workflows/asl-build.yml"

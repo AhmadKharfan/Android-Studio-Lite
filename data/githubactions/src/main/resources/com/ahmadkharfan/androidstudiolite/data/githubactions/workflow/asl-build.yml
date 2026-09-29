@@ -1,6 +1,6 @@
 # Managed by Android Studio Lite. The app rewrites this file when it ships a newer version,
 # so local edits do not survive.
-# asl-workflow-version: 2
+# asl-workflow-version: 3
 name: ASL Build
 run-name: asl-${{ inputs.correlation_id }}
 
@@ -213,7 +213,8 @@ jobs:
             -f status=completed -f conclusion=neutral > /dev/null || true
 
       - name: Collect outputs
-        if: always()
+        # A cancelled build has no reader for its result; skip it rather than leave an artifact behind.
+        if: "!cancelled()"
         env:
           ASL_BUILD_OUTCOME: ${{ steps.build.outcome }}
         run: |
@@ -238,7 +239,7 @@ jobs:
           cat "$ASL_OUT/asl-result.json"
 
       - name: Upload result
-        if: always()
+        if: "!cancelled()"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: asl-result
