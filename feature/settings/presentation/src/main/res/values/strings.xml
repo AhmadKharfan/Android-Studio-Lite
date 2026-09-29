@@ -16,6 +16,11 @@
     <string name="settings_editor_behavior">Behavior</string>
     <string name="settings_editor_auto_save">Auto-save</string>
 
+    <string name="settings_build_service">Build service</string>
+    <string name="settings_build_service_remote">Android Studio Lite build server</string>
+    <string name="settings_build_service_remote_hint">Builds run on the app\'s own build servers.</string>
+    <string name="settings_build_service_gha">GitHub Actions</string>
+    <string name="settings_build_service_gha_hint">Builds run in a private asl-build repository on your GitHub account and use your Actions minutes. Sign in to GitHub under Settings › Git &amp; GitHub first.</string>
     <string name="settings_build_output_format">Output format</string>
     <string name="settings_build_aab_release">Build App Bundle (.aab) for release</string>
     <string name="settings_build_aab_hint">App Bundles are required for Play Store uploads; APKs install directly on device.</string>

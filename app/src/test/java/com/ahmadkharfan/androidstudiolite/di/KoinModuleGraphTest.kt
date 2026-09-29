@@ -2,6 +2,8 @@ package com.ahmadkharfan.androidstudiolite.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
+import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsBuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
@@ -47,6 +49,8 @@ class KoinModuleGraphTest {
                 definition<GitRefsViewModel>(String::class, GitRefsMode::class),
                 definition<GitConflictViewModel>(String::class),
                 definition<AssetsViewModel>(String::class),
+                definition<GitHubApiClient>(Function1::class),
+                definition<GitHubActionsBuildSystem>(Function1::class),
             ),
         )
     }

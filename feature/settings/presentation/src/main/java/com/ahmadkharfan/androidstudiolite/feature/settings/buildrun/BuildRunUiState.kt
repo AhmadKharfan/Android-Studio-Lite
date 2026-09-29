@@ -5,6 +5,8 @@ import androidx.compose.runtime.Immutable
 data class BuildRunUiState(
     val launchAfterInstall: Boolean = true,
     val buildOutputAab: Boolean = false,
+    val buildProviders: List<String> = emptyList(),
+    val selectedBuildProvider: String = "",
     val debugKeystorePath: String = "",
     val releaseKeystoreSummary: String? = null,
     val suggestedReleaseKeystorePath: String = "",

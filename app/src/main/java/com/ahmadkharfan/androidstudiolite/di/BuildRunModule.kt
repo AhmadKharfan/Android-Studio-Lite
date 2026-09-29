@@ -7,13 +7,18 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.ahmadkharfan.androidstudiolite.BuildConfig
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.install.ApkInstaller
 import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.AndroidKeystoreManager
+import com.ahmadkharfan.androidstudiolite.data.buildsystem.signing.ApksigApkSigner
+import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsBuildSystem
 import com.ahmadkharfan.androidstudiolite.data.remote.ActiveBuildStore
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ActiveBuildRepository
 import com.ahmadkharfan.androidstudiolite.data.remote.RemoteBuildSystem
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.RoutingBuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitRepository
+import com.ahmadkharfan.androidstudiolite.domain.signing.ApkSigner
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.BuildNotifier
 import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.BuildRunApi
@@ -27,15 +32,22 @@ private val Context.activeBuildDataStore: DataStore<Preferences> by preferencesD
     name = "active_build",
 )
 
-/** Id of the Kubernetes-backed build server; persisted inside build ids, so it must not change. */
-private const val REMOTE_BUILD_PROVIDER = "remote"
+private val BUILD_PROVIDERS = listOf(BuildProviderIds.REMOTE, BuildProviderIds.GITHUB_ACTIONS)
 
 val buildRunModule = module {
     single<ActiveBuildRepository> { ActiveBuildStore(androidContext().activeBuildDataStore) }
+    single {
+        BuildProviderCatalog(
+            available = BUILD_PROVIDERS,
+            defaultProviderId = BuildConfig.DEFAULT_BUILD_PROVIDER.takeIf { it in BUILD_PROVIDERS }
+                ?: BuildProviderIds.REMOTE,
+        )
+    }
     single<BuildSystem> {
         val gitRepository = get<GitRepository>()
         val keystoreManager = get<KeystoreManager>()
         val preferences = get<PreferencesRepository>()
+        val catalog = get<BuildProviderCatalog>()
         val remote = RemoteBuildSystem(
             client = get(),
             packager = get(),
@@ -46,15 +58,18 @@ val buildRunModule = module {
             gitSourceResolver = { root -> gitRepository.remoteInfo(root) },
             releaseSigningResolver = { keystoreManager.releaseSigningConfig() },
         )
-        val providers = mapOf(REMOTE_BUILD_PROVIDER to remote)
         RoutingBuildSystem(
-            providers = providers,
-            defaultProviderId = BuildConfig.DEFAULT_BUILD_PROVIDER.takeIf { it in providers } ?: REMOTE_BUILD_PROVIDER,
-            legacyProviderId = REMOTE_BUILD_PROVIDER,
+            providers = mapOf(
+                BuildProviderIds.REMOTE to remote,
+                BuildProviderIds.GITHUB_ACTIONS to get<GitHubActionsBuildSystem>(),
+            ),
+            defaultProviderId = catalog.defaultProviderId,
+            legacyProviderId = BuildProviderIds.REMOTE,
             selectedProviderId = { preferences.observePreferences().first().buildProviderId },
         )
     }
     single<KeystoreManager> { AndroidKeystoreManager(androidContext()) }
+    single<ApkSigner> { ApksigApkSigner() }
     single { ApkInstaller(androidContext()) }
     single { BuildNotifier(androidContext()) }
     single<BuildRunCoordinator> {

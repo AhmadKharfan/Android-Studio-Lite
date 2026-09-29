@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderCatalog
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreException
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 class BuildRunViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val keystoreManager: KeystoreManager,
+    private val providerCatalog: BuildProviderCatalog,
     context: Context,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
 
@@ -29,6 +31,8 @@ class BuildRunViewModel(
                     copy(
                         launchAfterInstall = prefs.launchAfterInstall,
                         buildOutputAab = prefs.buildOutputAab,
+                        buildProviders = providerCatalog.available,
+                        selectedBuildProvider = providerCatalog.effective(prefs.buildProviderId),
                     )
                 }
             },
@@ -55,6 +59,10 @@ class BuildRunViewModel(
 
     override fun onToggleAabOutput(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.update { it.copy(buildOutputAab = enabled) } }
+    }
+
+    override fun onSelectBuildProvider(providerId: String) {
+        viewModelScope.launch { preferencesRepository.update { it.copy(buildProviderId = providerId) } }
     }
 
     override fun onOpenKeystoreDialog(mode: KeystoreDialogMode) {

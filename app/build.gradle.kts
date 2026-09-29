@@ -133,6 +133,7 @@ dependencies {
     implementation(projects.data.git)
     implementation(projects.data.build)
     implementation(projects.data.ai)
+    implementation(projects.data.githubactions)
     implementation(projects.feature.onboarding.api)
     implementation(projects.feature.settings.api)
     implementation(projects.feature.projects.api)
