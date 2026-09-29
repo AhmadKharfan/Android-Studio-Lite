@@ -7,9 +7,11 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.RemoteBuildPhase
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildTasks
 import java.io.File
 import java.security.MessageDigest
 import java.util.zip.ZipInputStream
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -17,11 +19,12 @@ import kotlinx.serialization.json.Json
 
 /**
  * Turns a finished run's `asl-result` artifact into build events: the task outcomes, the Gradle log,
- * the reason for a failure, and the verified APK or AAB.
+ * the reason for a failure, and the verified APK (re-signed on the device when [signing] is set) or AAB.
  */
 internal class ResultCollector(
     private val api: GitHubApiClient,
     private val downloadDir: File,
+    private val signing: ApkSigning?,
 ) {
 
     /**
@@ -77,6 +80,29 @@ internal class ResultCollector(
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
         if (request?.kind == BuildKind.CLEAN || request?.kind == BuildKind.MODEL) return true
+        val (kind, entry) = pickArtifact(manifest, request)
+        val file = entry?.let { File(File(dir, "artifacts"), it.name) }?.takeIf(File::isFile)
+        if (entry == null || file == null) {
+            emit(error("The build succeeded but produced no ${kind.name}."))
+            return false
+        }
+        if (file.length() != entry.sizeBytes || !sha256(file).equals(entry.sha256, ignoreCase = true)) {
+            emit(error("The downloaded ${entry.name} didn't match what GitHub built. Build again."))
+            return false
+        }
+        val signing = signing
+        if (kind != BuildEvent.ArtifactKind.APK || signing == null) {
+            emit(BuildEvent.ArtifactProduced(file = file, kind = kind, sizeBytes = entry.sizeBytes, sha256 = entry.sha256))
+            return true
+        }
+        return emitSigned(signing, file, isRelease(request, entry), emit)
+    }
+
+    /**
+     * The artifact [request] asked for (preferring one named after its variant) and its kind. A null
+     * [request] accepts an APK, else an AAB.
+     */
+    private fun pickArtifact(manifest: ResultManifest, request: BuildRequest?): Pair<BuildEvent.ArtifactKind, ResultArtifact?> {
         val kinds = when (request?.kind) {
             null -> listOf(BuildEvent.ArtifactKind.APK, BuildEvent.ArtifactKind.AAB)
             BuildKind.BUNDLE -> listOf(BuildEvent.ArtifactKind.AAB)
@@ -89,18 +115,41 @@ internal class ResultCollector(
             )
             .firstOrNull()
         val kind = entry?.let { found -> kinds.first { it.name == found.kind } } ?: kinds.first()
-        val file = entry?.let { File(File(dir, "artifacts"), it.name) }?.takeIf(File::isFile)
-        if (entry == null || file == null) {
-            emit(error("The build succeeded but produced no ${kind.name}."))
+        return kind to entry
+    }
+
+    private suspend fun emitSigned(
+        signing: ApkSigning,
+        apk: File,
+        release: Boolean,
+        emit: suspend (BuildEvent) -> Unit,
+    ): Boolean {
+        val signed = File(File(apk.parentFile?.parentFile, "signed"), apk.name)
+        val certificate = runCatching { signing.sign(apk, signed, release) }
+        val failure = certificate.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        if (failure != null) {
+            emit(error("Couldn't sign the APK on this device: ${failure.message ?: failure.javaClass.simpleName}"))
             return false
         }
-        if (file.length() != entry.sizeBytes || !sha256(file).equals(entry.sha256, ignoreCase = true)) {
-            emit(error("The downloaded ${entry.name} didn't match what GitHub built. Build again."))
-            return false
-        }
-        emit(BuildEvent.ArtifactProduced(file = file, kind = kind, sizeBytes = entry.sizeBytes, sha256 = entry.sha256))
+        emit(
+            BuildEvent.ArtifactProduced(
+                file = signed,
+                kind = BuildEvent.ArtifactKind.APK,
+                sizeBytes = signed.length(),
+                sha256 = sha256(signed),
+                signed = true,
+                certificateSha256 = certificate.getOrNull(),
+            ),
+        )
         return true
     }
+
+    /** Release builds are signed with the release keystore; the request knows, else the file name tells. */
+    private fun isRelease(request: BuildRequest?, entry: ResultArtifact): Boolean =
+        request?.buildType?.equals("release", ignoreCase = true)
+            ?: request?.variantName?.takeIf { it.isNotBlank() }?.let(BuildTasks::isReleaseVariant)
+            ?: entry.name.contains("release", ignoreCase = true)
 
     private fun taskEvents(file: File): List<BuildEvent> =
         file.takeIf(File::isFile)?.readLines().orEmpty().mapNotNull { line ->

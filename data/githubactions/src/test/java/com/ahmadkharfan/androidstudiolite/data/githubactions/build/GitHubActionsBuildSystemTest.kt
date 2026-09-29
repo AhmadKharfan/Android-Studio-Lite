@@ -10,6 +10,12 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectSummary
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
+import com.ahmadkharfan.androidstudiolite.domain.signing.ApkSigner
+import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
+import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreException
+import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreManager
+import com.ahmadkharfan.androidstudiolite.domain.signing.ReleaseKeystoreParams
+import com.ahmadkharfan.androidstudiolite.domain.signing.SigningConfig
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +61,8 @@ class GitHubActionsBuildSystemTest {
         github.server.shutdown()
     }
 
+    private var signing: ApkSigning? = null
+
     private fun buildSystem(): GitHubActionsBuildSystem {
         val api = GitHubApiClient(token = { token }, baseUrl = github.server.url("/"), waitBeforeRetry = {})
         return GitHubActionsBuildSystem(
@@ -62,8 +70,8 @@ class GitHubActionsBuildSystemTest {
             token = { token },
             snapshots = SourceSnapshotPusher(File(tmp.root, "shadow")),
             inspector = Inspector,
-            downloadDir = File(tmp.root, "downloads"),
-            config = GitHubActionsConfig(gitBaseUrl = gitRoot.toURI().toString()),
+            config = GitHubActionsConfig(File(tmp.root, "downloads"), gitBaseUrl = gitRoot.toURI().toString()),
+            signing = signing,
             seams = GitHubActionsSeams(
                 clock = { now },
                 ids = { FakeGitHub.CORRELATION },
@@ -290,6 +298,67 @@ class GitHubActionsBuildSystemTest {
         github.scopes = null
 
         assertEquals(BuildReadiness.Ready, buildSystem().readiness())
+    }
+
+    @Test
+    fun `apks are re-signed with the device debug key`() {
+        val signer = RecordingSigner()
+        signing = ApkSigning(signer, Keystores)
+
+        val artifact = build().filterIsInstance<BuildEvent.ArtifactProduced>().single()
+
+        assertEquals(listOf("debug"), signer.buildTypes)
+        assertEquals(true, artifact.signed)
+        assertEquals("cert-sha", artifact.certificateSha256)
+        assertEquals("signed:fake-apk-bytes", artifact.file.readText())
+        assertEquals(FakeGitHub.sha256(artifact.file.readBytes()), artifact.sha256)
+    }
+
+    @Test
+    fun `release builds are signed with the release keystore`() {
+        val signer = RecordingSigner()
+        signing = ApkSigning(signer, Keystores)
+
+        runBlocking { buildSystem().build(request.copy(variantName = "release", buildType = "release")).toList() }
+
+        assertEquals(listOf("release"), signer.buildTypes)
+    }
+
+    @Test
+    fun `a signing failure fails the build instead of installing a foreign signature`() {
+        signing = ApkSigning(RecordingSigner(fail = true), Keystores)
+
+        val events = build()
+
+        assertTrue(events.none { it is BuildEvent.ArtifactProduced })
+        val problem = events.filterIsInstance<BuildEvent.Problem>().single()
+        assertTrue(problem.message, problem.message.startsWith("Couldn't sign the APK on this device"))
+        assertFalse((events.last() as BuildEvent.Finished).success)
+    }
+
+    private class RecordingSigner(private val fail: Boolean = false) : ApkSigner {
+        val buildTypes = mutableListOf<String>()
+
+        override suspend fun sign(input: File, output: File, config: SigningConfig): String {
+            buildTypes += config.keyAlias
+            if (fail) throw KeystoreException(KeystoreError.WrongKeyPassword)
+            output.parentFile?.mkdirs()
+            output.writeText("signed:" + input.readText())
+            return "cert-sha"
+        }
+    }
+
+    private object Keystores : KeystoreManager {
+        private fun config(type: String) = SigningConfig(File(type), "pw", type, "pw", isDebug = type == "debug")
+        override suspend fun signingConfigFor(buildType: String) = config(buildType)
+        override suspend fun debugSigningConfig() = config("debug")
+        override suspend fun releaseSigningConfig() = config("release")
+        override fun debugKeystoreFile() = File("debug")
+        override fun suggestedReleaseKeystoreFile() = File("release")
+        override suspend fun createReleaseKeystore(params: ReleaseKeystoreParams) = config("release")
+        override suspend fun importReleaseKeystore(storeFile: File, storePassword: String, keyAlias: String, keyPassword: String) =
+            config("release")
+        override suspend fun clearReleaseKeystore() = Unit
     }
 
     private object Inspector : GradleProjectInspector {

@@ -50,18 +50,7 @@ internal object KeystoreFiles {
     }
 
     fun import(storeFile: File, storePassword: String, keyAlias: String, keyPassword: String): SigningConfig {
-        if (!storeFile.isFile) throw KeystoreException(KeystoreError.FileNotFound)
-        val bytes = runCatching { storeFile.readBytes() }
-            .getOrElse { throw KeystoreException(KeystoreError.Io(it.message ?: "Could not read keystore")) }
-        val keyStore = listOf(KEYSTORE_TYPE, "JKS")
-            .distinct()
-            .firstNotNullOfOrNull { type ->
-                runCatching {
-                    KeyStore.getInstance(type).apply {
-                        bytes.inputStream().use { load(it, storePassword.toCharArray()) }
-                    }
-                }.getOrNull()
-            } ?: throw KeystoreException(KeystoreError.WrongStorePassword)
+        val keyStore = load(storeFile, storePassword)
         if (!keyStore.containsAlias(keyAlias)) {
             throw KeystoreException(KeystoreError.AliasNotFound(keyStore.aliases().toList()))
         }
@@ -74,6 +63,26 @@ internal object KeystoreFiles {
             throw KeystoreException(KeystoreError.WrongKeyPassword, e)
         }
         return SigningConfig(storeFile, storePassword, keyAlias, keyPassword, isDebug = false)
+    }
+
+    /** Opens a PKCS12 or JKS keystore. */
+    fun load(storeFile: File, storePassword: String): KeyStore {
+        val bytes = readKeystore(storeFile)
+        return listOf(KEYSTORE_TYPE, "JKS")
+            .distinct()
+            .firstNotNullOfOrNull { type ->
+                runCatching {
+                    KeyStore.getInstance(type).apply {
+                        bytes.inputStream().use { load(it, storePassword.toCharArray()) }
+                    }
+                }.getOrNull()
+            } ?: throw KeystoreException(KeystoreError.WrongStorePassword)
+    }
+
+    private fun readKeystore(storeFile: File): ByteArray {
+        if (!storeFile.isFile) throw KeystoreException(KeystoreError.FileNotFound)
+        return runCatching { storeFile.readBytes() }
+            .getOrElse { throw KeystoreException(KeystoreError.Io(it.message ?: "Could not read keystore")) }
     }
 
     private fun validate(params: ReleaseKeystoreParams) {
