@@ -129,3 +129,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+
+  build-workflow:
+    name: Managed build workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint the workflow installed into build repositories
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color data/githubactions/src/main/resources/com/ahmadkharfan/androidstudiolite/data/githubactions/workflow/asl-build.yml
+
+      - name: Check the workflow's embedded scripts
+        run: bash data/githubactions/src/test/workflow/check-workflow-scripts.sh
