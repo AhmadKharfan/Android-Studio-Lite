@@ -307,6 +307,33 @@ class GitHubActionsBuildSystemTest {
     }
 
     @Test
+    fun `live output streams while the build runs and is not repeated at the end`() {
+        github.runStatuses = ArrayDeque(listOf("queued", "in_progress", "in_progress", "completed"))
+        github.liveOutputs = ArrayDeque(listOf(2 to "a\nb\n", 4 to "a\nb\nc\nd\n"))
+        github.resultZip = FakeGitHub.resultZip(log = "a\nb\nc\nd\ne")
+
+        val events = build()
+
+        val lines = events.filterIsInstance<BuildEvent.Output>().map { it.line }
+        assertEquals(listOf("a", "b", "c", "d", "e"), lines)
+        val firstLine = events.indexOfFirst { it is BuildEvent.Output }
+        val download = events.indexOfFirst { it is BuildEvent.StatusChanged && it.phase == RemoteBuildPhase.DOWNLOADING }
+        assertTrue("live output came after the download", firstLine < download)
+    }
+
+    @Test
+    fun `a gap in live output is announced and the full log follows`() {
+        github.runStatuses = ArrayDeque(listOf("in_progress", "completed"))
+        github.liveOutputs = ArrayDeque(listOf(10 to "i\nj\n"))
+        github.resultZip = FakeGitHub.resultZip(log = "a\nb")
+
+        val lines = build().filterIsInstance<BuildEvent.Output>().map { it.line }
+
+        assertTrue(lines.toString(), lines.first().startsWith("… 8 lines not shown live"))
+        assertEquals(listOf("i", "j", "── Full build log ──", "a", "b"), lines.drop(1))
+    }
+
+    @Test
     fun `apks are re-signed with the device debug key`() {
         val signer = RecordingSigner()
         signing = ApkSigning(signer, Keystores)

@@ -38,6 +38,7 @@ internal class ResultCollector(
         run: WorkflowRun,
         request: BuildRequest?,
         projectRoot: File,
+        liveLog: LiveLog?,
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
         val artifact = runCatching { api.artifacts(handle.owner, handle.repo, run.id) }.getOrNull()
@@ -55,7 +56,7 @@ internal class ResultCollector(
         runCatching { api.deleteArtifact(handle.owner, handle.repo, artifact.id) }
         // GitHub-hosted runners check a repository out at /home/runner/work/<repo>/<repo>.
         val problems = GradleProblemParser(projectRoot, workspace = "/home/runner/work/${handle.repo}/${handle.repo}")
-        return report(File(resultDir, "result"), request, conclusionProblem, problems, emit)
+        return report(File(resultDir, "result"), request, conclusionProblem, problems, liveLog, emit)
     }
 
     private suspend fun report(
@@ -63,11 +64,12 @@ internal class ResultCollector(
         request: BuildRequest?,
         conclusionProblem: String?,
         problems: GradleProblemParser,
+        liveLog: LiveLog?,
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
         taskEvents(File(dir, "events.ndjson")).forEach { emit(it) }
         val log = File(dir, "build.log").takeIf(File::isFile)?.readLines().orEmpty()
-        log.takeLast(MAX_LOG_LINES).forEach { emit(BuildEvent.Output(it, BuildEvent.OutputStream.STDOUT)) }
+        emitLog(log, liveLog, emit)
         val manifest = File(dir, "asl-result.json").takeIf(File::isFile)
             ?.let { runCatching { JSON.decodeFromString<ResultManifest>(it.readText()) }.getOrNull() }
         val found = log.mapNotNull(problems::parse).distinct().take(MAX_PROBLEMS)
@@ -80,6 +82,19 @@ internal class ResultCollector(
         }
         found.forEach { emit(it) }
         return emitArtifact(dir, request, manifest, emit)
+    }
+
+    /** The log lines not already shown live; all of it, after a marker, if live output had gaps. */
+    private suspend fun emitLog(log: List<String>, liveLog: LiveLog?, emit: suspend (BuildEvent) -> Unit) {
+        val remaining = when {
+            liveLog == null -> log
+            liveLog.complete -> log.drop(liveLog.linesShown)
+            else -> {
+                emit(BuildEvent.Output("── Full build log ──", BuildEvent.OutputStream.STDOUT))
+                log
+            }
+        }
+        remaining.takeLast(MAX_LOG_LINES).forEach { emit(BuildEvent.Output(it, BuildEvent.OutputStream.STDOUT)) }
     }
 
     private suspend fun emitArtifact(

@@ -129,6 +129,15 @@ class GitHubApiClient(
         send("DELETE", "repos/$owner/$repo/actions/artifacts/$artifactId", null)
     }
 
+    /** Check runs named [name] on the commit [ref] points at. */
+    suspend fun checkRunsNamed(owner: String, repo: String, ref: String, name: String): List<CheckRun> =
+        JSON.decodeFromString<CheckRunsPage>(
+            get("repos/$owner/$repo/commits/$ref/check-runs", mapOf("check_name" to name)).body,
+        ).checkRuns
+
+    suspend fun checkRun(owner: String, repo: String, id: Long): CheckRun =
+        JSON.decodeFromString(get("repos/$owner/$repo/check-runs/$id").body)
+
     /** The plain-text log of a finished job. */
     suspend fun jobLog(owner: String, repo: String, jobId: Long): String =
         get("repos/$owner/$repo/actions/jobs/$jobId/logs", conditional = false).body

@@ -84,6 +84,34 @@ rm -rf "$work/out" && mkdir -p "$work/out/artifacts"
 (cd "$project" && ASL_OUT="$work/out" ASL_BUILD_OUTCOME=failure bash "$work/collect.sh" > /dev/null)
 check_json "failed build reported" '.success == false'
 
+# The Build step runs Gradle in the background and republishes the log tail to a check run.
+step_script "Build" > "$work/build.sh"
+[ -s "$work/build.sh" ] || { echo "FAIL: Build step not found"; exit 1; }
+bin="$work/bin"
+mkdir -p "$bin" "$work/live/out" "$work/live/project"
+cat > "$bin/gh" <<'STUB'
+#!/usr/bin/env bash
+# Records the last check-run update the step published.
+cat > "$ASL_OUT/last-publish.json"
+STUB
+chmod +x "$bin/gh"
+run_build() { # run_build <exit code of the fake gradle>
+  printf '#!/usr/bin/env bash\nfor i in 1 2 3 4 5; do echo "line $i"; done\nexit %s\n' "$1" > "$work/live/project/gradlew"
+  chmod +x "$work/live/project/gradlew"
+  (cd "$work/live/project" && PATH="$bin:$PATH" ASL_OUT="$work/live/out" ASL_TASKS=assembleDebug \
+    ASL_CHECK_RUN_ID=1 GITHUB_REPOSITORY=octo/asl-build bash "$work/build.sh" > /dev/null 2>&1)
+}
+if ! run_build 0; then
+  echo "FAIL: live build step failed for a successful build"; failures=$((failures + 1))
+fi
+if ! jq -e '.output.summary == "asl-lines 5" and (.output.text | endswith("line 5\n"))' \
+  "$work/live/out/last-publish.json" > /dev/null; then
+  echo "FAIL: live log did not publish the final tail"; failures=$((failures + 1))
+fi
+if run_build 3; then
+  echo "FAIL: live build step hid a gradle failure"; failures=$((failures + 1))
+fi
+
 if [ "$failures" -gt 0 ]; then
   echo "$failures workflow script check(s) failed"
   exit 1
