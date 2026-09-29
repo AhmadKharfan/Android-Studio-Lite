@@ -1,0 +1,108 @@
+package com.ahmadkharfan.androidstudiolite.data.githubactions.api
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/** The signed-in user, plus the OAuth scopes the token carries (null when GitHub doesn't report them). */
+data class AuthenticatedUser(val login: String, val scopes: Set<String>?)
+
+@Serializable
+internal data class UserDto(val login: String)
+
+@Serializable
+data class GitHubRepository(
+    @SerialName("full_name") val fullName: String,
+    val private: Boolean,
+    @SerialName("default_branch") val defaultBranch: String? = null,
+    @SerialName("clone_url") val cloneUrl: String? = null,
+)
+
+@Serializable
+internal data class CreateRepositoryRequest(
+    val name: String,
+    val description: String,
+    val private: Boolean,
+    @SerialName("auto_init") val autoInit: Boolean,
+)
+
+/** A file read through the contents API. [sha] is the blob sha needed to update it. */
+data class RepositoryFile(val path: String, val sha: String, val content: String)
+
+@Serializable
+internal data class ContentDto(
+    val path: String,
+    val sha: String,
+    val content: String? = null,
+    val encoding: String? = null,
+)
+
+@Serializable
+internal data class PutContentRequest(
+    val message: String,
+    val content: String,
+    val sha: String? = null,
+    val branch: String? = null,
+)
+
+@Serializable
+internal data class DispatchRequest(val ref: String, val inputs: Map<String, String>)
+
+@Serializable
+internal data class DispatchResponse(@SerialName("workflow_run_id") val workflowRunId: Long? = null)
+
+@Serializable
+data class WorkflowRun(
+    val id: Long,
+    val status: String? = null,
+    val conclusion: String? = null,
+    @SerialName("display_title") val displayTitle: String? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("run_started_at") val runStartedAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+) {
+    val isCompleted: Boolean get() = status == "completed"
+}
+
+@Serializable
+internal data class WorkflowRunsPage(@SerialName("workflow_runs") val workflowRuns: List<WorkflowRun> = emptyList())
+
+@Serializable
+data class WorkflowJob(
+    val id: Long,
+    val name: String,
+    val status: String? = null,
+    val conclusion: String? = null,
+    val steps: List<WorkflowStep> = emptyList(),
+)
+
+@Serializable
+data class WorkflowStep(
+    val name: String,
+    val number: Int,
+    val status: String? = null,
+    val conclusion: String? = null,
+)
+
+@Serializable
+internal data class WorkflowJobsPage(val jobs: List<WorkflowJob> = emptyList())
+
+@Serializable
+data class WorkflowArtifact(
+    val id: Long,
+    val name: String,
+    @SerialName("size_in_bytes") val sizeInBytes: Long = 0,
+    val expired: Boolean = false,
+)
+
+@Serializable
+internal data class ArtifactsPage(val artifacts: List<WorkflowArtifact> = emptyList())
+
+@Serializable
+internal data class ErrorDto(
+    val message: String? = null,
+    @SerialName("documentation_url") val documentationUrl: String? = null,
+)
+
+/** The primary rate limit as last reported by GitHub. */
+data class RateLimit(val limit: Int, val remaining: Int, val resetEpochSeconds: Long)
