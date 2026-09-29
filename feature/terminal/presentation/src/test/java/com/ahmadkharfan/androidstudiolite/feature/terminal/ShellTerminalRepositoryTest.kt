@@ -33,6 +33,9 @@ class ShellTerminalRepositoryTest {
         return job
     }
 
+    // Iterating a synchronizedList requires holding its monitor while the collector appends.
+    private fun <T> List<T>.snapshot(): List<T> = synchronized(this) { toList() }
+
     @Test
     fun streamsRealOutputExpandsEnvAndReportsExitCodes() = runBlocking {
         assumeTrue("requires a POSIX /bin/sh on the host", hostShell.exists())
@@ -55,13 +58,13 @@ class ShellTerminalRepositoryTest {
         repo.send("(exit 7)")
 
         withTimeout(60.seconds) {
-            while (events.count { it is TerminalEvent.CommandFinished } < 4) delay(20.milliseconds)
+            while (events.snapshot().count { it is TerminalEvent.CommandFinished } < 4) delay(20.milliseconds)
         }
         repo.stop()
         collector.cancel()
 
-        val outputs = events.filterIsInstance<TerminalEvent.Output>().map { it.line.text }
-        val exitCodes = events.filterIsInstance<TerminalEvent.CommandFinished>().map { it.exitCode }
+        val outputs = events.snapshot().filterIsInstance<TerminalEvent.Output>().map { it.line.text }
+        val exitCodes = events.snapshot().filterIsInstance<TerminalEvent.CommandFinished>().map { it.exitCode }
 
         assertTrue("echo output should stream through: $outputs", outputs.contains("hello"))
         assertTrue("injected env var should expand: $outputs", outputs.contains("greetings"))
@@ -92,12 +95,12 @@ class ShellTerminalRepositoryTest {
         repo.send("cd sub")
         repo.send("pwd")
         withTimeout(60.seconds) {
-            while (events.count { it is TerminalEvent.CommandFinished } < 2) delay(20.milliseconds)
+            while (events.snapshot().count { it is TerminalEvent.CommandFinished } < 2) delay(20.milliseconds)
         }
         repo.stop()
         collector.cancel()
 
-        val outputs = events.filterIsInstance<TerminalEvent.Output>().map { it.line.text }
+        val outputs = events.snapshot().filterIsInstance<TerminalEvent.Output>().map { it.line.text }
         assertTrue("cd should carry over to the next command: $outputs", outputs.any { it.endsWith("sub") })
     }
 }
