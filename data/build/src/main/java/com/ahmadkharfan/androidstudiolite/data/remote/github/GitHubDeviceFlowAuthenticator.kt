@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.remote.github
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
+import com.ahmadkharfan.androidstudiolite.domain.model.GitHubTokenGrant
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthenticator
@@ -23,6 +24,13 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
+/**
+ * GitHub's device-flow sign-in, for OAuth apps and GitHub Apps alike.
+ *
+ * @param scope OAuth scopes to request; blank for a GitHub App, whose access comes from its permissions.
+ * @param onGranted receives the full grant (including a GitHub App's refresh token); by default the access
+ *   token is saved to [credentialStore] for github.com.
+ */
 class GitHubDeviceFlowAuthenticator(
     private val clientId: String,
     private val credentialStore: GitCredentialStore,
@@ -30,6 +38,7 @@ class GitHubDeviceFlowAuthenticator(
     private val scope: String = "repo",
     private val clock: MonotonicClock = SystemMonotonicClock,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val onGranted: ((GitHubTokenGrant) -> Unit)? = null,
 ) : GitHubDeviceAuthenticator {
 
     override val isConfigured: Boolean get() = clientId.isNotBlank()
@@ -91,11 +100,11 @@ class GitHubDeviceFlowAuthenticator(
         }
         is TokenPoll.Denied -> GitHubDeviceAuthState.Error(token.message)
         is TokenPoll.Granted -> {
-            credentialStore.save(
+            onGranted?.invoke(token.grant) ?: credentialStore.save(
                 GITHUB_HOST,
-                GitCredentials(username = DEFAULT_USERNAME, token = token.accessToken),
+                GitCredentials(username = DEFAULT_USERNAME, token = token.grant.accessToken),
             )
-            val login = runCatching { fetchLogin(token.accessToken) }.getOrNull()
+            val login = runCatching { fetchLogin(token.grant.accessToken) }.getOrNull()
             GitHubDeviceAuthState.Success(login)
         }
     }
@@ -103,7 +112,7 @@ class GitHubDeviceFlowAuthenticator(
     private fun requestDeviceCode(): DeviceCode {
         val body = FormBody.Builder()
             .add("client_id", clientId)
-            .add("scope", scope)
+            .apply { if (scope.isNotBlank()) add("scope", scope) }
             .build()
         val request = Request.Builder()
             .url("https://github.com/login/device/code")
@@ -132,7 +141,16 @@ class GitHubDeviceFlowAuthenticator(
             .post(body)
             .build()
         val response = executeToJson<AccessTokenResponse>(request)
-        response.accessToken?.takeIf { it.isNotBlank() }?.let { return TokenPoll.Granted(it) }
+        response.accessToken?.takeIf { it.isNotBlank() }?.let { token ->
+            return TokenPoll.Granted(
+                GitHubTokenGrant(
+                    accessToken = token,
+                    expiresInSeconds = response.expiresIn,
+                    refreshToken = response.refreshToken?.takeIf { it.isNotBlank() },
+                    refreshTokenExpiresInSeconds = response.refreshTokenExpiresIn,
+                ),
+            )
+        }
         return when (response.error) {
             "authorization_pending" -> TokenPoll.Pending
             "slow_down" -> TokenPoll.SlowDown
@@ -180,7 +198,7 @@ class GitHubDeviceFlowAuthenticator(
         data object Pending : TokenPoll
         data object SlowDown : TokenPoll
         data class Denied(val message: String) : TokenPoll
-        data class Granted(val accessToken: String) : TokenPoll
+        data class Granted(val grant: GitHubTokenGrant) : TokenPoll
     }
 
     @Serializable
@@ -195,6 +213,9 @@ class GitHubDeviceFlowAuthenticator(
     @Serializable
     private data class AccessTokenResponse(
         @SerialName("access_token") val accessToken: String? = null,
+        @SerialName("expires_in") val expiresIn: Long? = null,
+        @SerialName("refresh_token") val refreshToken: String? = null,
+        @SerialName("refresh_token_expires_in") val refreshTokenExpiresIn: Long? = null,
         val error: String? = null,
         @SerialName("error_description") val errorDescription: String? = null,
     )

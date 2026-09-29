@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.data.remote.github
 
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
+import com.ahmadkharfan.androidstudiolite.domain.model.GitHubTokenGrant
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubDeviceAuthState
 import com.ahmadkharfan.androidstudiolite.domain.time.MonotonicClock
@@ -137,9 +138,40 @@ class GitHubDeviceFlowAuthenticatorTest {
         assertEquals(0, requestCount)
     }
 
+    @Test
+    fun `a github app grant reaches onGranted with its refresh token instead of the git store`() = runTest {
+        val credentialStore = RecordingCredentialStore()
+        var grant: GitHubTokenGrant? = null
+        val bodies = mutableListOf<String>()
+        val authenticator = authenticator(
+            credentialStore,
+            scope = "",
+            onGranted = { grant = it },
+            onBody = { bodies += it },
+        ) { path ->
+            when (path) {
+                DEVICE_CODE_PATH -> deviceCodeJson(expiresIn = 30)
+                ACCESS_TOKEN_PATH ->
+                    """{"access_token":"ghu_x","expires_in":28800,"refresh_token":"ghr_x","refresh_token_expires_in":15897600}"""
+                USER_PATH -> """{"login":"octocat"}"""
+                else -> "{}"
+            }
+        }
+
+        val states = authenticator.authenticate().toList()
+
+        assertEquals(GitHubDeviceAuthState.Success("octocat"), states.last())
+        assertEquals(GitHubTokenGrant("ghu_x", 28_800, "ghr_x", 15_897_600), grant)
+        assertNull(credentialStore.savedCredentials)
+        assertEquals("client_id=client-id", bodies.first())
+    }
+
     private fun TestScope.authenticator(
         credentialStore: RecordingCredentialStore,
         clientId: String = "client-id",
+        scope: String = "repo",
+        onGranted: ((GitHubTokenGrant) -> Unit)? = null,
+        onBody: (String) -> Unit = {},
         onRequest: (String) -> Unit = {},
         respondTo: (String) -> String,
     ): GitHubDeviceFlowAuthenticator {
@@ -147,6 +179,11 @@ class GitHubDeviceFlowAuthenticatorTest {
             .addInterceptor { chain ->
                 val path = chain.request().url.encodedPath
                 onRequest(path)
+                chain.request().body?.let { body ->
+                    val buffer = okio.Buffer()
+                    body.writeTo(buffer)
+                    onBody(buffer.readUtf8())
+                }
                 Response.Builder()
                     .request(chain.request())
                     .protocol(Protocol.HTTP_1_1)
@@ -160,8 +197,10 @@ class GitHubDeviceFlowAuthenticatorTest {
             clientId = clientId,
             credentialStore = credentialStore,
             httpClient = httpClient,
+            scope = scope,
             clock = MonotonicClock { testScheduler.currentTime },
             ioDispatcher = StandardTestDispatcher(testScheduler),
+            onGranted = onGranted,
         )
     }
 
