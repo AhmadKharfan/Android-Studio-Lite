@@ -54,7 +54,7 @@ class SourceSnapshotPusherTest {
     }
 
     private fun write(path: String, text: String) {
-        File(project, path).apply { parentFile.mkdirs() }.writeText(text)
+        File(project, path).apply { parentFile?.mkdirs() }.writeText(text)
     }
 
     private suspend fun push() = pusher.push(project, remote.toURI().toString(), "gho_test", "MyApp")
