@@ -17,6 +17,7 @@ import com.ahmadkharfan.androidstudiolite.domain.id.UuidIdGenerator
 import com.ahmadkharfan.androidstudiolite.domain.time.MonotonicClock
 import com.ahmadkharfan.androidstudiolite.domain.time.SystemMonotonicClock
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -132,8 +133,7 @@ class GitHubActionsBuildSystem internal constructor(
     override fun cancel() {
         val run = active ?: return
         run.cancelRequested = true
-        val handle = run.handle ?: return
-        seams.cancelScope.launch { cancelRemote(handle) }
+        requestRemoteCancel(run)
     }
 
     private suspend fun followRun(
@@ -150,7 +150,7 @@ class GitHubActionsBuildSystem internal constructor(
         val runId = knownRunId ?: follower.resolveRunId(pending, repository)
         val handle = pending.copy(runId = runId).also { run.handle = it }
         emit(BuildEvent.RemoteBuildBound(handle.encode()))
-        if (run.cancelRequested) seams.cancelScope.launch { cancelRemote(handle) }
+        if (run.cancelRequested) requestRemoteCancel(run)
         val liveLog = LiveLog(api, handle, repository.defaultBranch)
         val finished = follower.follow(handle, runId, startedAt + FOLLOW_TIMEOUT_MS, liveLog, emit)
         val success = collector.collect(handle, finished, request, projectRoot, liveLog, emit)
@@ -188,7 +188,7 @@ class GitHubActionsBuildSystem internal constructor(
             null -> Unit
             is CancellationException -> {
                 // The coordinator cancels collection right after cancel(); make sure the run stops too.
-                run.handle?.takeIf { run.cancelRequested }?.let { seams.cancelScope.launch { cancelRemote(it) } }
+                if (run.cancelRequested) requestRemoteCancel(run)
                 throw failure
             }
             else -> {
@@ -198,22 +198,51 @@ class GitHubActionsBuildSystem internal constructor(
         }
     }
 
+    /** Cancels [run] on GitHub once, in the background, as soon as its dispatch is known. */
+    private fun requestRemoteCancel(run: ActiveRun) {
+        val handle = run.handle ?: return
+        if (!run.cancelSent.compareAndSet(false, true)) return
+        seams.cancelScope.launch { cancelRemote(handle) }
+    }
+
     private suspend fun cancelRemote(handle: BuildHandle) {
         runCatching {
             val runId = handle.runId ?: follower.resolveRunId(handle, provisioner.ensure())
             api.cancelRun(handle.owner, handle.repo, runId)
+            deleteResultWhenDone(handle, runId)
+        }
+    }
+
+    /**
+     * GitHub doesn't always stop a running job when its run is cancelled: the job can run to the end and
+     * still upload its result, which nothing will download now. Wait (bounded) for the run to finish and
+     * delete that result so it doesn't take up the user's Actions storage until it expires.
+     */
+    private suspend fun deleteResultWhenDone(handle: BuildHandle, runId: Long) {
+        repeat(CANCEL_CLEANUP_POLLS) {
+            val completed = runCatching { api.run(handle.owner, handle.repo, runId).isCompleted }.getOrDefault(false)
+            if (completed) {
+                api.artifacts(handle.owner, handle.repo, runId)
+                    .filter { it.name == BuildWorkflow.RESULT_ARTIFACT }
+                    .forEach { runCatching { api.deleteArtifact(handle.owner, handle.repo, it.id) } }
+                return
+            }
+            seams.wait(CANCEL_CLEANUP_INTERVAL_MS)
         }
     }
 
     private class ActiveRun {
         @Volatile var handle: BuildHandle? = null
         @Volatile var cancelRequested: Boolean = false
+        val cancelSent = AtomicBoolean(false)
     }
 
     companion object {
         private const val FOLLOW_TIMEOUT_MS = 75 * 60 * 1000L
         private const val DISPATCH_ATTEMPTS = 6
         private const val DISPATCH_RETRY_MS = 5_000L
+        private const val CANCEL_CLEANUP_POLLS = 80
+        private const val CANCEL_CLEANUP_INTERVAL_MS = 15_000L
         private val REQUIRED_SCOPES = setOf("repo", "workflow")
     }
 }
