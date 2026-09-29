@@ -123,9 +123,11 @@ internal class FakeGitHub {
             log: String = "> Task :app:assembleDebug\nBUILD SUCCESSFUL",
             apkSha: String = sha256(APK_BYTES),
             extraEntry: String? = null,
+            artifactName: String = "app-debug.apk",
         ): ByteArray {
+            val kind = if (artifactName.endsWith(".aab")) "AAB" else "APK"
             val manifest = """{"protocol":1,"success":$success,"artifacts":""" +
-                (if (success) """[{"name":"app-debug.apk","kind":"APK","sizeBytes":${APK_BYTES.size},"sha256":"$apkSha"}]""" else "[]") + "}"
+                (if (success) """[{"name":"$artifactName","kind":"$kind","sizeBytes":${APK_BYTES.size},"sha256":"$apkSha"}]""" else "[]") + "}"
             val out = ByteArrayOutputStream()
             ZipOutputStream(out).use { zip ->
                 fun put(name: String, bytes: ByteArray) {
@@ -136,7 +138,7 @@ internal class FakeGitHub {
                 put("asl-result.json", manifest.toByteArray())
                 put("build.log", log.toByteArray())
                 put("events.ndjson", """{"type":"taskFinished","taskPath":":app:compileDebugKotlin","result":"SUCCESS"}""".toByteArray())
-                if (success) put("artifacts/app-debug.apk", APK_BYTES)
+                if (success) put("artifacts/$artifactName", APK_BYTES)
                 extraEntry?.let { put(it, "x".toByteArray()) }
             }
             return out.toByteArray()

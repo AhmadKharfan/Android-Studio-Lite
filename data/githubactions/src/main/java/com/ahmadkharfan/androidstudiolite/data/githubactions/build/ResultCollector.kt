@@ -115,11 +115,11 @@ internal class ResultCollector(
             return false
         }
         val signing = signing
-        if (kind != BuildEvent.ArtifactKind.APK || signing == null) {
+        if (signing == null) {
             emit(BuildEvent.ArtifactProduced(file = file, kind = kind, sizeBytes = entry.sizeBytes, sha256 = entry.sha256))
             return true
         }
-        return emitSigned(signing, file, isRelease(request, entry), emit)
+        return emitSigned(signing, file, kind, isRelease(request, entry), emit)
     }
 
     /**
@@ -144,22 +144,27 @@ internal class ResultCollector(
 
     private suspend fun emitSigned(
         signing: ApkSigning,
-        apk: File,
+        built: File,
+        kind: BuildEvent.ArtifactKind,
         release: Boolean,
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
-        val signed = File(File(apk.parentFile?.parentFile, "signed"), apk.name)
-        val certificate = runCatching { signing.sign(apk, signed, release) }
+        val signed = File(File(built.parentFile?.parentFile, "signed"), built.name)
+        val bundle = kind == BuildEvent.ArtifactKind.AAB
+        val certificate = runCatching {
+            if (bundle) signing.signBundle(built, signed, release) else signing.sign(built, signed, release)
+        }
         val failure = certificate.exceptionOrNull()
         if (failure is CancellationException) throw failure
         if (failure != null) {
-            emit(error("Couldn't sign the APK on this device: ${failure.message ?: failure.javaClass.simpleName}"))
+            val what = if (bundle) "App Bundle" else "APK"
+            emit(error("Couldn't sign the $what on this device: ${failure.message ?: failure.javaClass.simpleName}"))
             return false
         }
         emit(
             BuildEvent.ArtifactProduced(
                 file = signed,
-                kind = BuildEvent.ArtifactKind.APK,
+                kind = kind,
                 sizeBytes = signed.length(),
                 sha256 = sha256(signed),
                 signed = true,

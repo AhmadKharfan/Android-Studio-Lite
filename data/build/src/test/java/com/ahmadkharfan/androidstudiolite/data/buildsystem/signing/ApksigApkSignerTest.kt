@@ -93,6 +93,32 @@ class ApksigApkSignerTest {
     }
 
     @Test
+    fun `bundles get a verifiable jar signature and no apk signing block`() = runBlocking {
+        val bundle = File(tmp.root, "app-release.aab").apply {
+            ZipOutputStream(outputStream()).use { zip ->
+                listOf("base/manifest/AndroidManifest.xml", "base/dex/classes.dex", "BundleConfig.pb").forEach { name ->
+                    zip.putNextEntry(ZipEntry(name))
+                    zip.write(name.toByteArray())
+                    zip.closeEntry()
+                }
+            }
+        }
+        val output = File(tmp.root, "signed.aab")
+
+        signer.signBundle(bundle, output, keystore("upload"))
+
+        java.util.jar.JarFile(output, true).use { jar ->
+            val content = jar.entries().toList().filterNot { it.isDirectory || it.name.startsWith("META-INF/") }
+            assertEquals(3, content.size)
+            content.forEach { entry ->
+                jar.getInputStream(entry).use { it.readBytes() }
+                assertTrue("${entry.name} is not signed", !entry.codeSigners.isNullOrEmpty())
+            }
+        }
+        assertFalse("bundle carries an APK signing block", String(output.readBytes(), Charsets.ISO_8859_1).contains("APK Sig Block 42"))
+    }
+
+    @Test
     fun `wrong key password is a keystore error`() = runBlocking {
         val config = keystore("device-debug").copy(keyPassword = "not-it")
 
