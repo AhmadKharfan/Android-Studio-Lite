@@ -48,7 +48,7 @@ class RunFollowerTest {
         server.enqueue(run("completed", "success"))
         val events = mutableListOf<BuildEvent>()
 
-        val finished = follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE) { events += it }
+        val finished = follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) { events += it }
 
         assertEquals("success", finished.conclusion)
         assertEquals(1, events.count { it is BuildEvent.Problem && it.message.startsWith("Connection to GitHub lost") })
@@ -64,7 +64,7 @@ class RunFollowerTest {
         )
         server.enqueue(run("completed", "success"))
 
-        follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE) {}
+        follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) {}
 
         assertEquals(listOf(30_000L), waits)
     }
@@ -73,7 +73,7 @@ class RunFollowerTest {
     fun `permission errors stop following immediately`() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(403).setBody("""{"message":"Resource not accessible"}"""))
 
-        val error = runCatching { follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE) {} }.exceptionOrNull()
+        val error = runCatching { follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) {} }.exceptionOrNull()
 
         assertTrue(error is GitHubApiException)
         assertEquals(1, server.requestCount)
@@ -84,7 +84,7 @@ class RunFollowerTest {
         repeat(5) { server.enqueue(run("in_progress")) }
         repeat(5) { server.enqueue(MockResponse().setBody("""{"jobs":[]}""")) }
 
-        val error = runCatching { follower().follow(handle, 77, deadlineMillis = 7_000) {} }.exceptionOrNull()
+        val error = runCatching { follower().follow(handle, 77, deadlineMillis = 7_000, liveLog = null) {} }.exceptionOrNull()
 
         assertTrue(error is BuildFailure)
     }

@@ -43,6 +43,7 @@ internal class RunFollower(
         handle: BuildHandle,
         runId: Long,
         deadlineMillis: Long,
+        liveLog: LiveLog?,
         emit: suspend (BuildEvent) -> Unit,
     ): WorkflowRun {
         val state = FollowState()
@@ -59,6 +60,7 @@ internal class RunFollower(
             state.consecutiveFailures = 0
             if (run.isCompleted) return run
             report(handle, run, state, emit)
+            if (run.status !in QUEUED_STATUSES) liveLog?.poll(emit)
             wait(pollInterval(run))
         }
     }

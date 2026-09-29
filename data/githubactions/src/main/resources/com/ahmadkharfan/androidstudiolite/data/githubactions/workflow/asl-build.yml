@@ -1,6 +1,6 @@
 # Managed by Android Studio Lite. The app rewrites this file when it ships a newer version,
 # so local edits do not survive.
-# asl-workflow-version: 1
+# asl-workflow-version: 2
 name: ASL Build
 run-name: asl-${{ inputs.correlation_id }}
 
@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 concurrency:
   group: asl-${{ inputs.source_ref }}
@@ -160,14 +161,56 @@ jobs:
           gradle.beforeSettings { settings -> settings.pluginManager.apply(AslEventsPlugin) }
           GROOVY
 
+      - name: Open live log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The app follows the build through this check run; the Actions API only serves logs once a job ends.
+          id="$(gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" \
+            -f name="asl-live-$ASL_CORRELATION_ID" -f head_sha="$GITHUB_SHA" -f status=in_progress --jq .id)"
+          echo "ASL_CHECK_RUN_ID=$id" >> "$GITHUB_ENV"
+
       - name: Build
         id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           read -r -a tasks <<< "$ASL_TASKS"
           export ASL_EVENTS_FILE="$ASL_OUT/events.ndjson"
-          ./gradlew "${tasks[@]}" --console=plain --init-script "$ASL_OUT/asl-events.init.gradle" 2>&1 \
-            | tee "$ASL_OUT/build.log"
+          : > "$ASL_OUT/build.log"
+          (
+            set +e -o pipefail
+            ./gradlew "${tasks[@]}" --console=plain --init-script "$ASL_OUT/asl-events.init.gradle" 2>&1 \
+              | tee "$ASL_OUT/build.log"
+            echo "$?" > "$ASL_OUT/exit_code"
+          ) &
+          gradle_pid=$!
+          # Publishes the last complete lines as `asl-lines <count>` plus their text; best effort only.
+          publish() {
+            local lines
+            lines="$(wc -l < "$ASL_OUT/build.log")"
+            head -n "$lines" "$ASL_OUT/build.log" | tail -n 300 | tail -c 60000 > "$ASL_OUT/tail.txt"
+            jq -n --arg lines "$lines" --rawfile tail "$ASL_OUT/tail.txt" \
+              '{output: {title: "Gradle output", summary: ("asl-lines " + $lines), text: $tail}}' \
+              | gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$ASL_CHECK_RUN_ID" --input - > /dev/null 2>&1 || true
+          }
+          while kill -0 "$gradle_pid" 2> /dev/null; do
+            publish
+            sleep 8
+          done
+          wait "$gradle_pid" || true
+          publish
+          exit "$(cat "$ASL_OUT/exit_code")"
+
+      - name: Close live log
+        if: always() && env.ASL_CHECK_RUN_ID != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$ASL_CHECK_RUN_ID" \
+            -f status=completed -f conclusion=neutral > /dev/null || true
 
       - name: Collect outputs
         if: always()

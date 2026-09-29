@@ -106,3 +106,21 @@ internal data class ErrorDto(
 
 /** The primary rate limit as last reported by GitHub. */
 data class RateLimit(val limit: Int, val remaining: Int, val resetEpochSeconds: Long)
+
+@Serializable
+data class CheckRun(
+    val id: Long,
+    val name: String,
+    val status: String? = null,
+    val output: CheckRunOutput? = null,
+)
+
+@Serializable
+data class CheckRunOutput(
+    val title: String? = null,
+    val summary: String? = null,
+    val text: String? = null,
+)
+
+@Serializable
+internal data class CheckRunsPage(@SerialName("check_runs") val checkRuns: List<CheckRun> = emptyList())

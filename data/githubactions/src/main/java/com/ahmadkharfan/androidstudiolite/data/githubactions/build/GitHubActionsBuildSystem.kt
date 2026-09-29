@@ -151,8 +151,9 @@ class GitHubActionsBuildSystem internal constructor(
         val handle = pending.copy(runId = runId).also { run.handle = it }
         emit(BuildEvent.RemoteBuildBound(handle.encode()))
         if (run.cancelRequested) seams.cancelScope.launch { cancelRemote(handle) }
-        val finished = follower.follow(handle, runId, startedAt + FOLLOW_TIMEOUT_MS, emit)
-        val success = collector.collect(handle, finished, request, projectRoot, emit)
+        val liveLog = LiveLog(api, handle, repository.defaultBranch)
+        val finished = follower.follow(handle, runId, startedAt + FOLLOW_TIMEOUT_MS, liveLog, emit)
+        val success = collector.collect(handle, finished, request, projectRoot, liveLog, emit)
         emit(BuildEvent.Finished(success, seams.clock.elapsedMillis() - startedAt))
     }
 

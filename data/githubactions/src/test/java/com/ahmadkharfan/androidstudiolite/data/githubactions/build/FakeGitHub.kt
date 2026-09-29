@@ -10,6 +10,9 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okio.Buffer
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 /**
  * A scripted GitHub REST API for one user (`octo`) and one build repository. Tests shape the scenario
@@ -29,6 +32,10 @@ internal class FakeGitHub {
     var conclusion = "success"
     var resultZip: ByteArray? = resultZip()
     var runListed = true
+
+    /** Successive `(asl-lines, tail)` states of the live-log check run; empty means no live log. */
+    var liveOutputs = ArrayDeque<Pair<Int, String>>()
+    private var lastLive: Pair<Int, String>? = null
 
     private var lastStatus = "queued"
 
@@ -77,6 +84,19 @@ internal class FakeGitHub {
         method == "GET" && path == "/repos/octo/asl-build/actions/runs/77/jobs" ->
             json("""{"jobs":[{"id":5,"name":"Build","status":"in_progress","steps":[{"name":"Build","number":7,"status":"in_progress"}]}]}""")
         method == "POST" && path == "/repos/octo/asl-build/actions/runs/77/cancel" -> MockResponse().setResponseCode(202)
+        method == "GET" && path == "/repos/octo/asl-build/commits/main/check-runs" ->
+            json(if (liveOutputs.isEmpty() && lastLive == null) """{"check_runs":[]}""" else """{"check_runs":[{"id":55,"name":"asl-live-$CORRELATION"}]}""")
+        method == "GET" && path == "/repos/octo/asl-build/check-runs/55" -> {
+            val (lines, text) = (liveOutputs.removeFirstOrNull() ?: lastLive ?: (0 to "")).also { lastLive = it }
+            json(buildJsonObject {
+                put("id", 55)
+                put("name", "asl-live-$CORRELATION")
+                putJsonObject("output") {
+                    put("summary", "asl-lines $lines")
+                    put("text", text)
+                }
+            }.toString())
+        }
         method == "GET" && path == "/repos/octo/asl-build/actions/runs/77/artifacts" ->
             json(if (resultZip != null) """{"artifacts":[{"id":9,"name":"asl-result","size_in_bytes":10}]}""" else """{"artifacts":[]}""")
         method == "GET" && path == "/repos/octo/asl-build/actions/artifacts/9/zip" ->

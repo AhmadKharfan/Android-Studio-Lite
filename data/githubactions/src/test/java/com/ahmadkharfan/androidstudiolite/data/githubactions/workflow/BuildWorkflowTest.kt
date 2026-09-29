@@ -34,9 +34,9 @@ class BuildWorkflowTest {
     }
 
     @Test
-    fun `workflow only runs on manual dispatch with read-only contents`() {
+    fun `workflow only runs on manual dispatch with read-only contents and its own check runs`() {
         assertTrue(workflow.contains("\non:\n  workflow_dispatch:\n"))
-        assertTrue(workflow.contains("\npermissions:\n  contents: read\n"))
+        assertTrue(workflow.contains("\npermissions:\n  contents: read\n  checks: write\n\n"))
     }
 
     @Test
