@@ -1,0 +1,300 @@
+package com.ahmadkharfan.androidstudiolite.data.githubactions.build
+
+import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
+import com.ahmadkharfan.androidstudiolite.data.githubactions.snapshot.SourceSnapshotPusher
+import com.ahmadkharfan.androidstudiolite.data.githubactions.workflow.BuildWorkflow
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.RemoteBuildPhase
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectSummary
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
+import org.eclipse.jgit.api.Git
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+
+class GitHubActionsBuildSystemTest {
+
+    @get:Rule
+    val tmp = TemporaryFolder()
+
+    private val github = FakeGitHub()
+    private lateinit var project: File
+    private lateinit var gitRoot: File
+    private var token: String? = "gho_test"
+    private var now = 0L
+
+    @Before
+    fun setUp() {
+        github.start()
+        project = tmp.newFolder("MyApp")
+        File(project, "settings.gradle.kts").writeText("include(\":app\")")
+        File(project, "gradlew").writeText("#!/bin/sh")
+        File(project, "app").mkdirs()
+        File(project, "app/build.gradle.kts").writeText("plugins {}")
+        gitRoot = tmp.newFolder("git")
+        Git.init().setBare(true).setDirectory(File(gitRoot, "octo/asl-build.git")).call().close()
+    }
+
+    @After
+    fun tearDown() {
+        github.server.shutdown()
+    }
+
+    private fun buildSystem(): GitHubActionsBuildSystem {
+        val api = GitHubApiClient(token = { token }, baseUrl = github.server.url("/"), waitBeforeRetry = {})
+        return GitHubActionsBuildSystem(
+            api = api,
+            token = { token },
+            snapshots = SourceSnapshotPusher(File(tmp.root, "shadow")),
+            inspector = Inspector,
+            downloadDir = File(tmp.root, "downloads"),
+            config = GitHubActionsConfig(gitBaseUrl = gitRoot.toURI().toString()),
+            seams = GitHubActionsSeams(
+                clock = { now },
+                ids = { FakeGitHub.CORRELATION },
+                wait = { now += it },
+                cancelScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+            ),
+        )
+    }
+
+    private val request get() = BuildRequest(project, ":app", "debug", taskPath = ":app:assembleDebug")
+
+    private fun build(): List<BuildEvent> = runBlocking { buildSystem().build(request).toList() }
+
+    @Test
+    fun `first build provisions the repository, uploads, dispatches and returns the verified apk`() {
+        val events = build()
+
+        assertTrue(github.paths().contains("POST /user/repos"))
+        assertTrue(github.paths().contains("PUT /repos/octo/asl-build/contents/.github/workflows/asl-build.yml"))
+        val finished = events.last() as BuildEvent.Finished
+        assertTrue(events.toString(), finished.success)
+        val artifact = events.filterIsInstance<BuildEvent.ArtifactProduced>().single()
+        assertEquals(FakeGitHub.APK_BYTES.toList(), artifact.file.readBytes().toList())
+        assertEquals(BuildEvent.ArtifactKind.APK, artifact.kind)
+        assertEquals(FakeGitHub.sha256(FakeGitHub.APK_BYTES), artifact.sha256)
+    }
+
+    @Test
+    fun `events describe the whole lifecycle in order`() {
+        val events = build()
+
+        assertTrue(events.first() is BuildEvent.Started)
+        val phases = events.filterIsInstance<BuildEvent.StatusChanged>().map { it.phase }
+        assertEquals(
+            listOf(
+                RemoteBuildPhase.PREPARING,
+                RemoteBuildPhase.UPLOADING,
+                RemoteBuildPhase.QUEUED,
+                RemoteBuildPhase.RUNNING,
+                RemoteBuildPhase.DOWNLOADING,
+            ),
+            phases,
+        )
+        assertTrue(events.contains(BuildEvent.Progress("Running Gradle…")))
+        assertTrue(events.contains(BuildEvent.TaskFinished(":app:compileDebugKotlin", BuildEvent.TaskResult.SUCCESS)))
+        assertTrue(events.contains(BuildEvent.Output("BUILD SUCCESSFUL", BuildEvent.OutputStream.STDOUT)))
+    }
+
+    @Test
+    fun `build ids can be re-attached and carry the run id once known`() {
+        val bound = build().filterIsInstance<BuildEvent.RemoteBuildBound>().map { BuildHandle.decode(it.buildId) }
+
+        assertEquals(
+            listOf(
+                BuildHandle("octo", "asl-build", FakeGitHub.CORRELATION, null),
+                BuildHandle("octo", "asl-build", FakeGitHub.CORRELATION, 77),
+            ),
+            bound,
+        )
+    }
+
+    @Test
+    fun `dispatch carries the snapshot that was pushed and the exact task`() {
+        build()
+
+        val remote = Git.open(File(gitRoot, "octo/asl-build.git"))
+        val branch = remote.use { git -> git.repository.refDatabase.getRefsByPrefix("refs/heads/asl/src/").single() }
+        val body = github.bodyOf("POST /repos/octo/asl-build/actions/workflows/asl-build.yml/dispatches")
+        assertTrue(body, body.contains("\"ref\":\"main\""))
+        assertTrue(body, body.contains("\"source_ref\":\"${branch.name.removePrefix("refs/heads/")}\""))
+        assertTrue(body, body.contains("\"source_sha\":\"${branch.objectId.name}\""))
+        assertTrue(body, body.contains("\"tasks\":\":app:assembleDebug\""))
+        assertTrue(body, body.contains("\"java_version\":\"17\""))
+    }
+
+    @Test
+    fun `an up to date repository is used as is`() {
+        github.repositoryExists = true
+        github.workflowContent = BuildWorkflow.contents()
+
+        build()
+
+        assertFalse(github.paths().contains("POST /user/repos"))
+        assertFalse(github.paths().any { it.startsWith("PUT ") })
+    }
+
+    @Test
+    fun `a newer workflow written by a newer app is not downgraded`() {
+        github.repositoryExists = true
+        github.workflowContent = "# asl-workflow-version: ${BuildWorkflow.VERSION + 1}\nname: newer"
+
+        build()
+
+        assertFalse(github.paths().any { it.startsWith("PUT ") })
+    }
+
+    @Test
+    fun `a public build repository is refused before any source is pushed`() {
+        github.repositoryExists = true
+        github.repositoryPrivate = false
+
+        val events = build()
+
+        val problem = events.filterIsInstance<BuildEvent.Problem>().single()
+        assertTrue(problem.message, problem.message.contains("is public"))
+        assertFalse((events.last() as BuildEvent.Finished).success)
+        assertFalse(github.paths().any { it.contains("dispatches") })
+    }
+
+    @Test
+    fun `run is found through its name when dispatch doesn't return it`() {
+        github.dispatchReturnsRunId = false
+
+        val events = build()
+
+        assertTrue(github.paths().any { it.startsWith("GET /repos/octo/asl-build/actions/workflows/asl-build.yml/runs") })
+        assertTrue((events.last() as BuildEvent.Finished).success)
+    }
+
+    @Test
+    fun `failed build reports gradle's reason and no artifact`() {
+        github.conclusion = "failure"
+        github.resultZip = FakeGitHub.resultZip(
+            success = false,
+            log = "e: MainActivity.kt: Unresolved reference 'foo'\n\n* What went wrong:\nExecution failed for task ':app:compileDebugKotlin'.\n> Compilation error\n\n* Try:",
+        )
+
+        val events = build()
+
+        val problems = events.filterIsInstance<BuildEvent.Problem>().map { it.message }
+        assertTrue(problems.toString(), problems.first().startsWith("Gradle: Execution failed for task ':app:compileDebugKotlin'."))
+        assertTrue(events.none { it is BuildEvent.ArtifactProduced })
+        assertFalse((events.last() as BuildEvent.Finished).success)
+    }
+
+    @Test
+    fun `run that never produced a result explains the conclusion`() {
+        github.conclusion = "startup_failure"
+        github.resultZip = null
+
+        val events = build()
+
+        val problem = events.filterIsInstance<BuildEvent.Problem>().single()
+        assertTrue(problem.message, problem.message.startsWith("GitHub couldn't start the build workflow."))
+    }
+
+    @Test
+    fun `tampered apk is rejected`() {
+        github.resultZip = FakeGitHub.resultZip(apkSha = "0".repeat(64))
+
+        val events = build()
+
+        assertTrue(events.none { it is BuildEvent.ArtifactProduced })
+        assertFalse((events.last() as BuildEvent.Finished).success)
+    }
+
+    @Test
+    fun `result entries outside the result folder are refused`() {
+        github.resultZip = FakeGitHub.resultZip(extraEntry = "../../evil.txt")
+
+        val events = build()
+
+        assertFalse((events.last() as BuildEvent.Finished).success)
+        assertFalse(File(tmp.root, "evil.txt").exists())
+    }
+
+    @Test
+    fun `signed out builds fail before touching github`() {
+        token = null
+
+        val events = build()
+
+        assertFalse((events.last() as BuildEvent.Finished).success)
+        assertEquals(0, github.server.requestCount)
+    }
+
+    @Test
+    fun `attach resumes a build that died before its run id was known`() {
+        github.repositoryExists = true
+        github.workflowContent = BuildWorkflow.contents()
+        github.runStatuses = ArrayDeque(listOf("in_progress", "completed"))
+
+        val events = runBlocking {
+            buildSystem().attach(BuildHandle("octo", "asl-build", FakeGitHub.CORRELATION).encode(), project).toList()
+        }
+
+        assertNotNull(events.filterIsInstance<BuildEvent.ArtifactProduced>().singleOrNull())
+        assertTrue((events.last() as BuildEvent.Finished).success)
+    }
+
+    @Test
+    fun `cancel stops the run on github`() {
+        val system = buildSystem()
+        runBlocking {
+            system.build(request).toList().also { events ->
+                assertTrue(events.any { it is BuildEvent.Finished })
+            }
+        }
+        github.runStatuses = ArrayDeque(listOf("in_progress", "in_progress", "completed"))
+
+        runBlocking {
+            system.build(request).collect { event ->
+                if (event is BuildEvent.RemoteBuildBound && BuildHandle.decode(event.buildId)?.runId != null) system.cancel()
+            }
+        }
+
+        assertTrue(github.paths().contains("POST /repos/octo/asl-build/actions/runs/77/cancel"))
+    }
+
+    @Test
+    fun `readiness asks for sign-in or the missing workflow scope`() = runBlocking {
+        token = null
+        assertEquals(BuildReadiness.NeedsSignIn(GitHubBuildMessages.SIGN_IN_REQUIRED), buildSystem().readiness())
+
+        token = "gho_test"
+        github.scopes = "repo"
+        assertEquals(BuildReadiness.NeedsSignIn(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING), buildSystem().readiness())
+
+        github.scopes = "repo, workflow"
+        assertEquals(BuildReadiness.Ready, buildSystem().readiness())
+    }
+
+    @Test
+    fun `fine-grained tokens without scope reporting are ready`() = runBlocking {
+        github.scopes = null
+
+        assertEquals(BuildReadiness.Ready, buildSystem().readiness())
+    }
+
+    private object Inspector : GradleProjectInspector {
+        override fun isGradleProject(dir: File) = true
+        override fun inspect(projectRoot: File) = GradleProjectSummary(ProjectModel("MyApp", projectRoot, emptyList()))
+    }
+}
