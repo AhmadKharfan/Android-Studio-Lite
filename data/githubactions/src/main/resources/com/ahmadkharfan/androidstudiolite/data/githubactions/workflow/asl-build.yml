@@ -1,0 +1,208 @@
+# Managed by Android Studio Lite. The app rewrites this file when it ships a newer version,
+# so local edits do not survive.
+# asl-workflow-version: 1
+name: ASL Build
+run-name: asl-${{ inputs.correlation_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      correlation_id:
+        description: Id the app uses to find this run
+        required: true
+        type: string
+      source_ref:
+        description: Branch that holds the project snapshot
+        required: true
+        type: string
+      source_sha:
+        description: Commit of the snapshot to build
+        required: true
+        type: string
+      tasks:
+        description: Space-separated Gradle task paths
+        required: true
+        type: string
+      java_version:
+        description: JDK major version
+        required: false
+        default: '17'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asl-${{ inputs.source_ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Inputs reach the shell only through the environment, never through ${{ }} in a script.
+      ASL_CORRELATION_ID: ${{ inputs.correlation_id }}
+      ASL_SOURCE_REF: ${{ inputs.source_ref }}
+      ASL_SOURCE_SHA: ${{ inputs.source_sha }}
+      ASL_TASKS: ${{ inputs.tasks }}
+      ASL_JAVA_VERSION: ${{ inputs.java_version }}
+    steps:
+      - name: Validate request
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [[ "$ASL_CORRELATION_ID" =~ ^[A-Za-z0-9-]{8,64}$ ]] || fail "Invalid correlation id"
+          [[ "$ASL_SOURCE_REF" =~ ^asl/src/[A-Za-z0-9-]{1,64}$ ]] || fail "Invalid source ref"
+          [[ "$ASL_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "Invalid source commit"
+          [[ "$ASL_JAVA_VERSION" =~ ^(11|17|21)$ ]] || fail "Unsupported JDK version: $ASL_JAVA_VERSION"
+          read -r -a tasks <<< "$ASL_TASKS"
+          (( ${#tasks[@]} >= 1 && ${#tasks[@]} <= 8 )) || fail "Expected between 1 and 8 Gradle tasks"
+          for task in "${tasks[@]}"; do
+            [[ "$task" =~ ^:?[A-Za-z0-9_-]+(:[A-Za-z0-9_-]+)*$ ]] || fail "Invalid Gradle task: $task"
+          done
+          echo "ASL_OUT=$RUNNER_TEMP/asl" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/asl/artifacts"
+
+      - name: Check out project snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify snapshot
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "$ASL_SOURCE_SHA" ] || { echo "::error::Checked out $actual, expected $ASL_SOURCE_SHA"; exit 1; }
+
+      - name: Set up JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          add-job-summary: on-failure
+
+      - name: Prepare project
+        run: |
+          set -euo pipefail
+          # A snapshot taken on the phone may carry the device's SDK path; the runner has its own.
+          rm -f local.properties
+          if [ ! -f gradlew ]; then
+            echo "::error::This project has no Gradle wrapper (gradlew). Add one and build again."
+            exit 1
+          fi
+          chmod +x gradlew
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          cat > "$ASL_OUT/asl-events.init.gradle" <<'GROOVY'
+          import javax.inject.Inject
+          import org.gradle.api.provider.Property
+          import org.gradle.api.services.BuildService
+          import org.gradle.api.services.BuildServiceParameters
+          import org.gradle.build.event.BuildEventsListenerRegistry
+          import org.gradle.tooling.events.FinishEvent
+          import org.gradle.tooling.events.OperationCompletionListener
+          import org.gradle.tooling.events.task.TaskFailureResult
+          import org.gradle.tooling.events.task.TaskFinishEvent
+          import org.gradle.tooling.events.task.TaskSkippedResult
+          import org.gradle.tooling.events.task.TaskSuccessResult
+
+          // Writes one JSON line per finished task, in the app's build event protocol.
+          abstract class AslEventsService implements BuildService<AslEventsService.Params>, OperationCompletionListener {
+              interface Params extends BuildServiceParameters {
+                  Property<String> getEventsFile()
+              }
+
+              @Override
+              void onFinish(FinishEvent event) {
+                  if (!(event instanceof TaskFinishEvent)) return
+                  def result = event.result
+                  String outcome = 'SUCCESS'
+                  if (result instanceof TaskFailureResult) {
+                      outcome = 'FAILED'
+                  } else if (result instanceof TaskSkippedResult) {
+                      outcome = 'SKIPPED'
+                  } else if (result instanceof TaskSuccessResult && (result.upToDate || result.fromCache)) {
+                      outcome = 'UP_TO_DATE'
+                  }
+                  def line = groovy.json.JsonOutput.toJson(
+                      [type: 'taskFinished', taskPath: event.descriptor.taskPath, result: outcome]
+                  )
+                  synchronized (this) {
+                      new File(parameters.eventsFile.get()).append(line + '\n', 'UTF-8')
+                  }
+              }
+          }
+
+          abstract class AslEventsPlugin implements Plugin<Settings> {
+              @Inject
+              abstract BuildEventsListenerRegistry getRegistry()
+
+              @Override
+              void apply(Settings settings) {
+                  def file = System.getenv('ASL_EVENTS_FILE')
+                  // The listener sees every task in the build tree, so register it once, for the root build.
+                  if (!file || settings.gradle.parent != null) return
+                  def service = settings.gradle.sharedServices.registerIfAbsent('aslEvents', AslEventsService) { spec ->
+                      spec.parameters.eventsFile.set(file)
+                  }
+                  registry.onTaskCompletion(service)
+              }
+          }
+
+          gradle.beforeSettings { settings -> settings.pluginManager.apply(AslEventsPlugin) }
+          GROOVY
+
+      - name: Build
+        id: build
+        run: |
+          set -euo pipefail
+          read -r -a tasks <<< "$ASL_TASKS"
+          export ASL_EVENTS_FILE="$ASL_OUT/events.ndjson"
+          ./gradlew "${tasks[@]}" --console=plain --init-script "$ASL_OUT/asl-events.init.gradle" 2>&1 \
+            | tee "$ASL_OUT/build.log"
+
+      - name: Collect outputs
+        if: always()
+        env:
+          ASL_BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          set -euo pipefail
+          entries='[]'
+          while IFS= read -r -d '' file; do
+            name="$(basename "$file")"
+            case "$name" in
+              *.apk) kind=APK ;;
+              *.aab) kind=AAB ;;
+              *) continue ;;
+            esac
+            cp "$file" "$ASL_OUT/artifacts/$name"
+            size="$(stat -c %s "$file")"
+            sha="$(sha256sum "$file" | cut -d' ' -f1)"
+            entries="$(jq -c --arg n "$name" --arg k "$kind" --argjson s "$size" --arg h "$sha" \
+              '. + [{name: $n, kind: $k, sizeBytes: $s, sha256: $h}]' <<< "$entries")"
+          done < <(find . \( -path '*/build/outputs/apk/*' -o -path '*/build/outputs/bundle/*' \) \
+            -not -path '*/androidTest/*' \( -name '*.apk' -o -name '*.aab' \) -print0)
+          jq -n --argjson artifacts "$entries" --arg outcome "$ASL_BUILD_OUTCOME" \
+            '{protocol: 1, success: ($outcome == "success"), artifacts: $artifacts}' > "$ASL_OUT/asl-result.json"
+          cat "$ASL_OUT/asl-result.json"
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: asl-result
+          path: |
+            ${{ runner.temp }}/asl/asl-result.json
+            ${{ runner.temp }}/asl/build.log
+            ${{ runner.temp }}/asl/events.ndjson
+            ${{ runner.temp }}/asl/artifacts/
+          retention-days: 1
+          if-no-files-found: ignore

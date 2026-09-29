@@ -18,6 +18,7 @@ local.properties
 /data/git/build/
 /data/build/build/
 /data/ai/build/
+/data/githubactions/build/
 /feature/onboarding/build/
 /feature/terminal/build/
 /feature/projects/build/
