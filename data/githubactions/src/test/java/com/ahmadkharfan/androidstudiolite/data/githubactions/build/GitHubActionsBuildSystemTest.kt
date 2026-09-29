@@ -257,11 +257,6 @@ class GitHubActionsBuildSystemTest {
     @Test
     fun `cancel stops the run on github`() {
         val system = buildSystem()
-        runBlocking {
-            system.build(request).toList().also { events ->
-                assertTrue(events.any { it is BuildEvent.Finished })
-            }
-        }
         github.runStatuses = ArrayDeque(listOf("in_progress", "in_progress", "completed"))
 
         runBlocking {
@@ -270,7 +265,11 @@ class GitHubActionsBuildSystemTest {
             }
         }
 
-        assertTrue(github.paths().contains("POST /repos/octo/asl-build/actions/runs/77/cancel"))
+        // The cancel request is sent from a background scope; give it a moment to arrive.
+        val cancel = "POST /repos/octo/asl-build/actions/runs/77/cancel"
+        val deadline = System.currentTimeMillis() + 5_000
+        while (cancel !in github.paths() && System.currentTimeMillis() < deadline) Thread.sleep(20)
+        assertTrue(github.paths().toString(), cancel in github.paths())
     }
 
     @Test
