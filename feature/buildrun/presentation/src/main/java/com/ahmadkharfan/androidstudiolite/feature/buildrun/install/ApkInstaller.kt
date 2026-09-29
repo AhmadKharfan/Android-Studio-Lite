@@ -79,8 +79,9 @@ class ApkInstaller(private val context: Context) {
                 trySend(InstallEvent.AwaitingConfirmation)
                 if (prompt != null && watchdogJob == null) {
                     watchdogJob = launch {
+                        // Giving up leaves the session alone: the user may have approved it and Android may
+                        // still be installing. A late result still reaches the coordinator.
                         watchConfirmation(installer, { sessionId }, prompt) { reason ->
-                            runCatching { installer.abandonSession(sessionId) }
                             InstallPromptNotifier(context).cancel(requestToken)
                             trySend(InstallEvent.Failed(reason))
                             close()

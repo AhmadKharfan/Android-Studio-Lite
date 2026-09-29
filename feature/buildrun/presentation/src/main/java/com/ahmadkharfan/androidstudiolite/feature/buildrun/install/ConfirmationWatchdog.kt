@@ -7,7 +7,9 @@ package com.ahmadkharfan.androidstudiolite.feature.buildrun.install
  * installer starts cold), no result is ever broadcast and the install would wait forever. The prompt is
  * considered gone once one of this app's activities has been resumed for [graceTicks] consecutive checks
  * while the session is still pending: while the prompt shows, it covers (pauses) this app's activity.
- * Each disappearance re-opens the prompt, up to [maxReopens] times, after which the install gives up.
+ * Each disappearance re-opens the prompt, up to [maxReopens] times, after which the install gives up
+ * waiting. The session stays pending while Android installs an approved app too, so the grace period
+ * outlasts a normal install, and a re-open or give-up never cancels the session.
  */
 internal class ConfirmationWatchdog(
     private val graceTicks: Int = GRACE_TICKS,
@@ -40,8 +42,9 @@ internal class ConfirmationWatchdog(
 
     companion object {
         const val CHECK_INTERVAL_MS = 1_000L
-        const val GIVE_UP_MESSAGE = "The system installer closed without an answer. Tap Run to try again."
-        private const val GRACE_TICKS = 3
+        const val GIVE_UP_MESSAGE =
+            "The system installer didn't answer. If the app isn't installed, tap Run to try again."
+        private const val GRACE_TICKS = 10
         private const val MAX_REOPENS = 2
     }
 }
