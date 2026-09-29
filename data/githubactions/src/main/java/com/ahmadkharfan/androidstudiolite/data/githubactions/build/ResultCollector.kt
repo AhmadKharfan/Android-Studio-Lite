@@ -2,6 +2,7 @@ package com.ahmadkharfan.androidstudiolite.data.githubactions.build
 
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.WorkflowRun
+import com.ahmadkharfan.androidstudiolite.data.githubactions.logs.GradleProblemParser
 import com.ahmadkharfan.androidstudiolite.data.githubactions.workflow.BuildWorkflow
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.RemoteBuildPhase
@@ -30,11 +31,13 @@ internal class ResultCollector(
     /**
      * Emits the run's results and returns whether it produced what [request] asked for. A null [request]
      * (re-attached build, original request unknown) accepts whichever artifact the run produced.
+     * Compiler problems in the log are reported against files under [projectRoot].
      */
     suspend fun collect(
         handle: BuildHandle,
         run: WorkflowRun,
         request: BuildRequest?,
+        projectRoot: File,
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
         val artifact = runCatching { api.artifacts(handle.owner, handle.repo, run.id) }.getOrNull()
@@ -50,13 +53,16 @@ internal class ResultCollector(
         api.downloadArtifact(handle.owner, handle.repo, artifact.id, zip)
         withContext(Dispatchers.IO) { unzip(zip, File(resultDir, "result")) }
         runCatching { api.deleteArtifact(handle.owner, handle.repo, artifact.id) }
-        return report(File(resultDir, "result"), request, conclusionProblem, emit)
+        // GitHub-hosted runners check a repository out at /home/runner/work/<repo>/<repo>.
+        val problems = GradleProblemParser(projectRoot, workspace = "/home/runner/work/${handle.repo}/${handle.repo}")
+        return report(File(resultDir, "result"), request, conclusionProblem, problems, emit)
     }
 
     private suspend fun report(
         dir: File,
         request: BuildRequest?,
         conclusionProblem: String?,
+        problems: GradleProblemParser,
         emit: suspend (BuildEvent) -> Unit,
     ): Boolean {
         taskEvents(File(dir, "events.ndjson")).forEach { emit(it) }
@@ -64,12 +70,15 @@ internal class ResultCollector(
         log.takeLast(MAX_LOG_LINES).forEach { emit(BuildEvent.Output(it, BuildEvent.OutputStream.STDOUT)) }
         val manifest = File(dir, "asl-result.json").takeIf(File::isFile)
             ?.let { runCatching { JSON.decodeFromString<ResultManifest>(it.readText()) }.getOrNull() }
+        val found = log.mapNotNull(problems::parse).distinct().take(MAX_PROBLEMS)
         if (conclusionProblem != null || manifest?.success != true) {
             val reason = whatWentWrong(log)?.let { "Gradle: $it" }
             emit(error(reason ?: conclusionProblem ?: "The build failed."))
             if (reason != null && conclusionProblem != null) emit(BuildEvent.Problem(BuildEvent.ProblemSeverity.INFO, conclusionProblem))
+            found.forEach { emit(it) }
             return false
         }
+        found.forEach { emit(it) }
         return emitArtifact(dir, request, manifest, emit)
     }
 
@@ -220,6 +229,7 @@ internal class ResultCollector(
 
     private companion object {
         const val MAX_LOG_LINES = 5_000
+        const val MAX_PROBLEMS = 200
         const val MAX_REASON_CHARS = 500
         val JSON = Json { ignoreUnknownKeys = true }
     }

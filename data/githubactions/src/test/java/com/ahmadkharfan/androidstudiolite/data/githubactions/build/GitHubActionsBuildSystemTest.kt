@@ -196,13 +196,19 @@ class GitHubActionsBuildSystemTest {
         github.conclusion = "failure"
         github.resultZip = FakeGitHub.resultZip(
             success = false,
-            log = "e: MainActivity.kt: Unresolved reference 'foo'\n\n* What went wrong:\nExecution failed for task ':app:compileDebugKotlin'.\n> Compilation error\n\n* Try:",
+            log = "e: file:///home/runner/work/asl-build/asl-build/app/src/main/java/MainActivity.kt:20:9 " +
+                "Unresolved reference 'foo'.\n\n* What went wrong:\nExecution failed for task ':app:compileDebugKotlin'.\n> Compilation error\n\n* Try:",
         )
 
         val events = build()
 
         val problems = events.filterIsInstance<BuildEvent.Problem>().map { it.message }
         assertTrue(problems.toString(), problems.first().startsWith("Gradle: Execution failed for task ':app:compileDebugKotlin'."))
+        val located = events.filterIsInstance<BuildEvent.Problem>().single { it.file != null }
+        assertEquals(File(project, "app/src/main/java/MainActivity.kt"), located.file)
+        assertEquals(20, located.line)
+        assertEquals(9, located.column)
+        assertEquals("Unresolved reference 'foo'.", located.message)
         assertTrue(events.none { it is BuildEvent.ArtifactProduced })
         assertFalse((events.last() as BuildEvent.Finished).success)
     }
