@@ -65,6 +65,8 @@ class GitHubActionsBuildSystemTest {
     }
 
     private var signing: ApkSigning? = null
+    private var repositorySetup: RepositorySetup = RepositorySetup.CreateIfMissing
+    private var signInMessage = GitHubBuildMessages.SIGN_IN_REQUIRED
 
     private fun buildSystem(): GitHubActionsBuildSystem {
         val api = GitHubApiClient(token = { token }, baseUrl = github.server.url("/"), waitBeforeRetry = {})
@@ -73,7 +75,12 @@ class GitHubActionsBuildSystemTest {
             token = { token },
             snapshots = SourceSnapshotPusher(File(tmp.root, "shadow")),
             inspector = Inspector,
-            config = GitHubActionsConfig(File(tmp.root, "downloads"), gitBaseUrl = gitRoot.toURI().toString()),
+            config = GitHubActionsConfig(
+                File(tmp.root, "downloads"),
+                gitBaseUrl = gitRoot.toURI().toString(),
+                repositorySetup = repositorySetup,
+                signInMessage = signInMessage,
+            ),
             signing = signing,
             seams = GitHubActionsSeams(
                 clock = { now },
@@ -326,6 +333,36 @@ class GitHubActionsBuildSystemTest {
         assertEquals(BuildReadiness.NeedsSignIn(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING), buildSystem().readiness())
 
         github.scopes = "repo, workflow"
+        assertEquals(BuildReadiness.Ready, buildSystem().readiness())
+    }
+
+    @Test
+    fun `with the github app a missing repository is set up by the user, never created`() {
+        repositorySetup = RepositorySetup.Manual("https://github.com/apps/asl/installations/new")
+
+        val events = build()
+
+        val problem = events.filterIsInstance<BuildEvent.Problem>().single()
+        assertTrue(problem.message, problem.message.contains("https://github.com/apps/asl/installations/new"))
+        assertFalse((events.last() as BuildEvent.Finished).success)
+        assertFalse(github.paths().contains("POST /user/repos"))
+        assertFalse(github.paths().any { it.contains("dispatches") })
+    }
+
+    @Test
+    fun `with the github app readiness asks for app sign-in, then repository setup`() = runBlocking {
+        val setup = RepositorySetup.Manual(installUrl = null)
+        repositorySetup = setup
+        signInMessage = "Connect GitHub for builds."
+        github.scopes = null
+
+        token = null
+        assertEquals(BuildReadiness.NeedsSignIn("Connect GitHub for builds."), buildSystem().readiness())
+
+        token = "ghu_test"
+        assertEquals(BuildReadiness.NeedsSetup(setup.message("asl-build")), buildSystem().readiness())
+
+        github.repositoryExists = true
         assertEquals(BuildReadiness.Ready, buildSystem().readiness())
     }
 

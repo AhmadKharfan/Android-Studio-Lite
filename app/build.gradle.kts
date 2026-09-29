@@ -63,6 +63,20 @@ android {
             "\"${configValue("asl.buildProvider", "ASL_BUILD_PROVIDER", "remote")}\"",
         )
 
+        // The GitHub App that builds sign in with. Both values are public identifiers; the app uses device
+        // flow and never needs the App's client secret or private key. A blank client id falls back to
+        // building with the Git sign-in.
+        buildConfigField(
+            "String",
+            "GITHUB_APP_CLIENT_ID",
+            "\"${configValue("asl.githubAppClientId", "ASL_GITHUB_APP_CLIENT_ID", "Iv23lifvel1wMa7QuT3M")}\"",
+        )
+        buildConfigField(
+            "String",
+            "GITHUB_APP_SLUG",
+            "\"${configValue("asl.githubAppSlug", "ASL_GITHUB_APP_SLUG", "")}\"",
+        )
+
         buildConfigField(
             "String",
             "GITHUB_OAUTH_CLIENT_ID",

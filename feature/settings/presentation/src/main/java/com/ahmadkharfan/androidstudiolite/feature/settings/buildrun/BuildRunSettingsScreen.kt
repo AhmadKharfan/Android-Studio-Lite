@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +44,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -84,12 +86,14 @@ private fun BuildRunSettingsScreen(
                     .padding(16.dp),
             ) {
                 BuildRunServiceSection(uiState = uiState, interactionListener = interactionListener)
+                BuildAccessSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener)
             }
         }
     }
+    GitHubAuthDialog(uiState.authPrompt, interactionListener)
     val dialogMode = uiState.keystoreDialog
     if (dialogMode != null) {
         ReleaseKeystoreDialog(
@@ -117,7 +121,7 @@ private fun BuildRunServiceSection(
     AslSectionHeader(stringResource(R.string.settings_build_service))
     SectionCard {
         AslRadioGroup(
-            options = uiState.buildProviders.map { providerOption(it) },
+            options = uiState.buildProviders.map { providerOption(it, usesGitHubApp = uiState.buildAccess != null) },
             value = uiState.selectedBuildProvider,
             onValueChange = { interactionListener.onSelectBuildProvider(it) },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -127,7 +131,7 @@ private fun BuildRunServiceSection(
 }
 
 @Composable
-private fun providerOption(providerId: String): AslRadioOption = when (providerId) {
+private fun providerOption(providerId: String, usesGitHubApp: Boolean): AslRadioOption = when (providerId) {
     BuildProviderIds.REMOTE -> AslRadioOption(
         label = stringResource(R.string.settings_build_service_remote),
         value = providerId,
@@ -136,9 +140,60 @@ private fun providerOption(providerId: String): AslRadioOption = when (providerI
     BuildProviderIds.GITHUB_ACTIONS -> AslRadioOption(
         label = stringResource(R.string.settings_build_service_gha),
         value = providerId,
-        description = stringResource(R.string.settings_build_service_gha_hint),
+        description = stringResource(
+            if (usesGitHubApp) R.string.settings_build_service_gha_app_hint else R.string.settings_build_service_gha_hint,
+        ),
     )
     else -> AslRadioOption(label = providerId, value = providerId)
+}
+
+@Composable
+private fun BuildAccessSection(
+    uiState: BuildRunUiState,
+    interactionListener: BuildRunInteractionListener,
+    colors: AslColorScheme,
+) {
+    val access = uiState.buildAccess ?: return
+    if (uiState.selectedBuildProvider != BuildProviderIds.GITHUB_ACTIONS) return
+    val uriHandler = LocalUriHandler.current
+    AslSectionHeader(stringResource(R.string.settings_build_access))
+    SectionCard {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+            AslText(
+                text = stringResource(if (access.connected) R.string.settings_git_connected else R.string.settings_git_not_connected),
+                style = AslTextStyles.titleSmall,
+                color = if (access.connected) colors.success else colors.textSecondary,
+            )
+            Spacer(Modifier.height(4.dp))
+            AslText(
+                text = stringResource(R.string.settings_build_access_hint),
+                style = AslTextStyles.bodySmall,
+                color = colors.textTertiary,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (access.connected) {
+                    AslButton(
+                        label = stringResource(R.string.settings_git_sign_out),
+                        onClick = { interactionListener.onDisconnectBuildAccess() },
+                        variant = AslButtonVariant.Secondary,
+                    )
+                } else {
+                    AslButton(
+                        label = stringResource(R.string.settings_build_access_connect),
+                        icon = "github",
+                        onClick = { interactionListener.onConnectBuildAccess() },
+                    )
+                }
+                AslButton(
+                    label = stringResource(R.string.settings_build_access_install),
+                    onClick = { uriHandler.openUri(access.installUrl) },
+                    variant = AslButtonVariant.Tertiary,
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(20.dp))
 }
 
 @Composable
