@@ -40,6 +40,14 @@ class BuildWorkflowTest {
     }
 
     @Test
+    fun `a cancelled build leaves no result artifact behind`() {
+        listOf("Collect outputs", "Upload result").forEach { step ->
+            val block = workflow.substringAfter("- name: $step\n").substringBefore("\n      - name:")
+            assertTrue(block, block.lines().any { it == "        if: \"!cancelled()\"" })
+        }
+    }
+
+    @Test
     fun `inputs never reach a shell through expressions`() {
         val runBlocks = workflow.split("run: |").drop(1).map { it.substringBefore("\n      - name:") }
         runBlocks.forEach { block -> assertFalse("expression inside run: $block", block.contains("\${{")) }
