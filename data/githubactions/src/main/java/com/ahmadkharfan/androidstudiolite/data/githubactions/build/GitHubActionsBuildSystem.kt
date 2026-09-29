@@ -28,8 +28,9 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Where builds run and on which JDK. */
+/** Where builds run, on which JDK, and where their results are downloaded to. */
 data class GitHubActionsConfig(
+    val downloadDir: File,
     val repositoryName: String = "asl-build",
     val javaVersion: Int = 17,
     /** Where build repositories are pushed to; the repository's full name and `.git` are appended. */
@@ -56,22 +57,23 @@ class GitHubActionsBuildSystem internal constructor(
     private val token: suspend () -> String?,
     private val snapshots: SourceSnapshotPusher,
     private val inspector: GradleProjectInspector,
-    downloadDir: File,
     private val config: GitHubActionsConfig,
+    signing: ApkSigning?,
     private val seams: GitHubActionsSeams,
 ) : BuildSystem {
 
+    /** @param signing re-signs APKs with this device's keys; without it APKs keep the runner's signature. */
     constructor(
         api: GitHubApiClient,
         token: suspend () -> String?,
         snapshots: SourceSnapshotPusher,
         inspector: GradleProjectInspector,
-        downloadDir: File,
-        config: GitHubActionsConfig = GitHubActionsConfig(),
-    ) : this(api, token, snapshots, inspector, downloadDir, config, GitHubActionsSeams())
+        config: GitHubActionsConfig,
+        signing: ApkSigning? = null,
+    ) : this(api, token, snapshots, inspector, config, signing, GitHubActionsSeams())
 
     private val provisioner = BuildRepositoryProvisioner(api, config.repositoryName, config.gitBaseUrl, seams.wait)
-    private val collector = ResultCollector(api, downloadDir)
+    private val collector = ResultCollector(api, config.downloadDir, signing)
     private val follower = RunFollower(api, seams.clock, seams.wait)
 
     @Volatile private var active: ActiveRun? = null
