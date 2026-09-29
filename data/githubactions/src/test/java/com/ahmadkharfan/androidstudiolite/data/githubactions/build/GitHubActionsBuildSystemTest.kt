@@ -21,7 +21,9 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.eclipse.jgit.api.Git
 import org.junit.After
@@ -285,6 +287,33 @@ class GitHubActionsBuildSystemTest {
         val deadline = System.currentTimeMillis() + 5_000
         while (cancel !in github.paths() && System.currentTimeMillis() < deadline) Thread.sleep(20)
         assertTrue(github.paths().toString(), cancel in github.paths())
+    }
+
+    @Test
+    fun `a cancelled run that finishes anyway has its result deleted`() {
+        val system = buildSystem()
+        github.runStatuses = ArrayDeque(listOf("in_progress", "in_progress", "in_progress", "completed"))
+        github.conclusion = "cancelled"
+
+        runBlocking {
+            // As the coordinator does: cancel the build, then stop collecting it.
+            val collecting = launch {
+                system.build(request).collect { event ->
+                    if (event is BuildEvent.RemoteBuildBound && BuildHandle.decode(event.buildId)?.runId != null) {
+                        system.cancel()
+                        cancel()
+                    }
+                }
+            }
+            collecting.join()
+        }
+
+        val delete = "DELETE /repos/octo/asl-build/actions/artifacts/9"
+        val deadline = System.currentTimeMillis() + 5_000
+        while (delete !in github.paths() && System.currentTimeMillis() < deadline) Thread.sleep(20)
+        assertTrue(github.paths().toString(), delete in github.paths())
+        assertEquals(1, github.paths().count { it == "POST /repos/octo/asl-build/actions/runs/77/cancel" })
+        assertFalse(github.paths().any { it.startsWith("GET /repos/octo/asl-build/actions/artifacts/9/zip") })
     }
 
     @Test
