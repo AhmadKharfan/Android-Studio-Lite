@@ -27,4 +27,4 @@ private val featureModules = listOf(
 val appModules = listOf(dataModule, gradleModule)
 
 val allModules = appModules + featureModules + localDataModule + templatesModule +
-    preferencesModule + terminalModule + gitModule + remoteModule + buildRunModule + aiModule
+    preferencesModule + terminalModule + gitModule + remoteModule + githubActionsModule + buildRunModule + aiModule

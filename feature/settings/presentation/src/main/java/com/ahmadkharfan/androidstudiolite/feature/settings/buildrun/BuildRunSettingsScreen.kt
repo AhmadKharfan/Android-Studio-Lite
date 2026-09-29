@@ -31,6 +31,8 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButt
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslSectionHeader
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialog
 import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslDialogVariant
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslRadioGroup
+import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslRadioOption
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslSwitch
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextField
 import com.ahmadkharfan.androidstudiolite.designsystem.component.inputs.AslTextFieldType
@@ -40,6 +42,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.modifier.aslCard
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslColorScheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -80,6 +83,7 @@ private fun BuildRunSettingsScreen(
                     .aslImePadding()
                     .padding(16.dp),
             ) {
+                BuildRunServiceSection(uiState = uiState, interactionListener = interactionListener)
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener)
@@ -102,6 +106,39 @@ private fun BuildRunSettingsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun BuildRunServiceSection(
+    uiState: BuildRunUiState,
+    interactionListener: BuildRunInteractionListener,
+) {
+    if (uiState.buildProviders.size < 2) return
+    AslSectionHeader(stringResource(R.string.settings_build_service))
+    SectionCard {
+        AslRadioGroup(
+            options = uiState.buildProviders.map { providerOption(it) },
+            value = uiState.selectedBuildProvider,
+            onValueChange = { interactionListener.onSelectBuildProvider(it) },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        )
+    }
+    Spacer(Modifier.height(20.dp))
+}
+
+@Composable
+private fun providerOption(providerId: String): AslRadioOption = when (providerId) {
+    BuildProviderIds.REMOTE -> AslRadioOption(
+        label = stringResource(R.string.settings_build_service_remote),
+        value = providerId,
+        description = stringResource(R.string.settings_build_service_remote_hint),
+    )
+    BuildProviderIds.GITHUB_ACTIONS -> AslRadioOption(
+        label = stringResource(R.string.settings_build_service_gha),
+        value = providerId,
+        description = stringResource(R.string.settings_build_service_gha_hint),
+    )
+    else -> AslRadioOption(label = providerId, value = providerId)
 }
 
 @Composable
