@@ -1,6 +1,7 @@
 package com.ahmadkharfan.androidstudiolite.feature.buildrun.install
 
 import kotlin.time.Duration.Companion.milliseconds
+import android.app.Application
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,6 +13,7 @@ import android.os.Build
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +22,10 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 class ApkInstaller(private val context: Context) {
+    init {
+        (context.applicationContext as? Application)?.let(ResumedActivities::install)
+    }
+
     @Volatile private var currentSessionId: Int = -1
 
     fun install(
@@ -67,8 +73,22 @@ class ApkInstaller(private val context: Context) {
         var sessionId = -1
         var committed = false
 
+        var watchdogJob: Job? = null
         val receiver = statusReceiver(
-            onNeedsUserAction = { trySend(InstallEvent.AwaitingConfirmation) },
+            onNeedsUserAction = { prompt ->
+                trySend(InstallEvent.AwaitingConfirmation)
+                if (prompt != null && watchdogJob == null) {
+                    watchdogJob = launch {
+                        // Giving up leaves the session alone: the user may have approved it and Android may
+                        // still be installing. A late result still reaches the coordinator.
+                        watchConfirmation(installer, { sessionId }, prompt) { reason ->
+                            InstallPromptNotifier(context).cancel(requestToken)
+                            trySend(InstallEvent.Failed(reason))
+                            close()
+                        }
+                    }
+                }
+            },
             onNoPrompt = {
                 trySend(InstallEvent.Failed("System did not provide a confirmation prompt"))
                 close()
@@ -158,7 +178,7 @@ class ApkInstaller(private val context: Context) {
     }
 
     private fun statusReceiver(
-        onNeedsUserAction: () -> Unit,
+        onNeedsUserAction: (prompt: Intent?) -> Unit,
         onNoPrompt: () -> Unit,
         onSuccess: (packageName: String?) -> Unit,
         onConflict: (packageName: String?, message: String) -> Unit,
@@ -170,13 +190,40 @@ class ApkInstaller(private val context: Context) {
             val pkg = intent.getStringExtra(PackageInstaller.EXTRA_PACKAGE_NAME)
             when (val outcome = InstallStatusMapper.map(status, message, pkg)) {
                 is InstallStatusMapper.Outcome.NeedsUserAction -> {
-                    onNeedsUserAction()
-                    if (intent.confirmationIntent() == null) onNoPrompt()
+                    val prompt = intent.confirmationIntent()
+                    onNeedsUserAction(prompt)
+                    if (prompt == null) onNoPrompt()
                 }
 
                 is InstallStatusMapper.Outcome.Success -> onSuccess(outcome.packageName)
                 is InstallStatusMapper.Outcome.Conflict -> onConflict(outcome.packageName, outcome.message)
                 is InstallStatusMapper.Outcome.Failure -> onFailure(outcome.message)
+            }
+        }
+    }
+
+    /**
+     * Re-opens the confirmation if it vanished without an answer (the system installer crashed), and
+     * gives up after a few tries instead of leaving the install waiting forever.
+     */
+    private suspend fun watchConfirmation(
+        installer: PackageInstaller,
+        sessionId: () -> Int,
+        prompt: Intent,
+        giveUp: (String) -> Unit,
+    ) {
+        val watchdog = ConfirmationWatchdog()
+        while (true) {
+            delay(ConfirmationWatchdog.CHECK_INTERVAL_MS.milliseconds)
+            val pending = runCatching { installer.getSessionInfo(sessionId()) != null }.getOrDefault(false)
+            when (watchdog.check(ResumedActivities.anyResumed, pending)) {
+                ConfirmationWatchdog.Action.Wait -> Unit
+                ConfirmationWatchdog.Action.Reopen ->
+                    runCatching { context.startActivity(Intent(prompt).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                ConfirmationWatchdog.Action.GiveUp -> {
+                    giveUp(ConfirmationWatchdog.GIVE_UP_MESSAGE)
+                    return
+                }
             }
         }
     }
