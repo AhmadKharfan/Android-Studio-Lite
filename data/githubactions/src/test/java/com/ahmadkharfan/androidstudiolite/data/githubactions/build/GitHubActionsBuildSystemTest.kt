@@ -5,6 +5,7 @@ import com.ahmadkharfan.androidstudiolite.data.githubactions.snapshot.SourceSnap
 import com.ahmadkharfan.androidstudiolite.data.githubactions.workflow.BuildWorkflow
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.RemoteBuildPhase
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
@@ -358,6 +359,23 @@ class GitHubActionsBuildSystemTest {
     }
 
     @Test
+    fun `release app bundles are signed on the device with the release keystore`() {
+        val signer = RecordingSigner()
+        signing = ApkSigning(signer, Keystores)
+        github.resultZip = FakeGitHub.resultZip(artifactName = "app-release.aab")
+
+        val events = runBlocking {
+            buildSystem().build(request.copy(variantName = "release", buildType = "release", kind = BuildKind.BUNDLE)).toList()
+        }
+
+        val artifact = events.filterIsInstance<BuildEvent.ArtifactProduced>().single()
+        assertEquals(listOf("bundle:release"), signer.buildTypes)
+        assertEquals(BuildEvent.ArtifactKind.AAB, artifact.kind)
+        assertEquals(true, artifact.signed)
+        assertEquals("bundle-signed:fake-apk-bytes", artifact.file.readText())
+    }
+
+    @Test
     fun `a signing failure fails the build instead of installing a foreign signature`() {
         signing = ApkSigning(RecordingSigner(fail = true), Keystores)
 
@@ -377,6 +395,13 @@ class GitHubActionsBuildSystemTest {
             if (fail) throw KeystoreException(KeystoreError.WrongKeyPassword)
             output.parentFile?.mkdirs()
             output.writeText("signed:" + input.readText())
+            return "cert-sha"
+        }
+
+        override suspend fun signBundle(input: File, output: File, config: SigningConfig): String {
+            buildTypes += "bundle:" + config.keyAlias
+            output.parentFile?.mkdirs()
+            output.writeText("bundle-signed:" + input.readText())
             return "cert-sha"
         }
     }

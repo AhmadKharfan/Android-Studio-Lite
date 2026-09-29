@@ -15,12 +15,37 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * [ApkSigner] backed by `apksig`, the library Android's own `apksigner` uses. Signs with the v1, v2 and
- * v3 schemes, replacing whatever signature the APK was built with.
+ * [ApkSigner] backed by `apksig`, the library Android's own `apksigner` uses. APKs are signed with the
+ * v1, v2 and v3 schemes and bundles with a v1 (JAR) signature only, as `jarsigner` would; either way
+ * whatever signature the file was built with is replaced.
  */
 class ApksigApkSigner : ApkSigner {
 
-    override suspend fun sign(input: File, output: File, config: SigningConfig): String = withContext(Dispatchers.IO) {
+    override suspend fun sign(input: File, output: File, config: SigningConfig): String =
+        signAtomically(input, output, config) { signer, from, to -> signApk(signer, from, to) }
+
+    override suspend fun signBundle(input: File, output: File, config: SigningConfig): String =
+        signAtomically(input, output, config) { signer, from, to ->
+            // A bundle's manifest is a protobuf apksig can't read, and APK signature blocks don't belong
+            // in bundles, so sign the JAR way with an explicit minimum SDK.
+            Apksig.Builder(listOf(signer))
+                .setInputApk(from)
+                .setOutputApk(to)
+                .setV1SigningEnabled(true)
+                .setV2SigningEnabled(false)
+                .setV3SigningEnabled(false)
+                .setMinSdkVersion(BUNDLE_MIN_SDK)
+                .build()
+                .sign()
+        }
+
+    /** Loads the key, lets [sign] write to a temporary file, and only then replaces [output]. */
+    private suspend fun signAtomically(
+        input: File,
+        output: File,
+        config: SigningConfig,
+        sign: (Apksig.SignerConfig, File, File) -> Unit,
+    ): String = withContext(Dispatchers.IO) {
         val keyStore = KeystoreFiles.load(config.storeFile, config.storePassword)
         val key = try {
             keyStore.getKey(config.keyAlias, config.keyPassword.toCharArray()) as? PrivateKey
@@ -32,16 +57,16 @@ class ApksigApkSigner : ApkSigner {
         output.parentFile?.mkdirs()
         val partial = File(output.path + ".part")
         try {
-            signWith(signer, input, partial)
+            sign(signer, input, partial)
             if (output.exists()) output.delete()
-            check(partial.renameTo(output)) { "Couldn't write the signed APK to $output" }
+            check(partial.renameTo(output)) { "Couldn't write the signed file to $output" }
         } finally {
             partial.delete()
         }
         MessageDigest.getInstance("SHA-256").digest(chain.first().encoded).joinToString("") { "%02x".format(it) }
     }
 
-    private fun signWith(signer: Apksig.SignerConfig, input: File, output: File) {
+    private fun signApk(signer: Apksig.SignerConfig, input: File, output: File) {
         fun builder() = Apksig.Builder(listOf(signer))
             .setInputApk(input)
             .setOutputApk(output)
@@ -58,5 +83,6 @@ class ApksigApkSigner : ApkSigner {
     private companion object {
         const val SIGNER_NAME = "CERT"
         const val FALLBACK_MIN_SDK = 21
+        const val BUNDLE_MIN_SDK = 24
     }
 }
