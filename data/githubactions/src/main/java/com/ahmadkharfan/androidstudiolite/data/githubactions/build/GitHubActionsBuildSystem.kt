@@ -2,6 +2,10 @@ package com.ahmadkharfan.androidstudiolite.data.githubactions.build
 
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiException
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.BuildStorageLocator
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.BuildStorageMemory
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessChecker
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.toBuildReadiness
 import com.ahmadkharfan.androidstudiolite.data.githubactions.snapshot.SourceSnapshotPusher
 import com.ahmadkharfan.androidstudiolite.data.githubactions.workflow.BuildWorkflow
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
@@ -10,6 +14,7 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildSystem
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildTasks
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
 import com.ahmadkharfan.androidstudiolite.domain.id.IdGenerator
@@ -42,12 +47,24 @@ data class GitHubActionsConfig(
     val signInMessage: String = GitHubBuildMessages.SIGN_IN_REQUIRED,
 )
 
-/** Collaborators of [GitHubActionsBuildSystem] that tests replace. */
+/**
+ * How [GitHubActionsBuildSystem] answers readiness.
+ *
+ * @param storageMemory remembers the build repository's id, so a renamed one is still found.
+ * @param shared answers readiness and keeps its state for the UI; without it, readiness is checked directly.
+ */
+class GitHubActionsReadiness(
+    val storageMemory: BuildStorageMemory = BuildStorageMemory.inMemory(),
+    val shared: CloudBuildReadiness? = null,
+)
+
+/** Collaborators of [GitHubActionsBuildSystem]; tests replace the time, id and scope ones. */
 internal class GitHubActionsSeams(
     val clock: MonotonicClock = SystemMonotonicClock,
     val ids: IdGenerator = UuidIdGenerator,
     val wait: suspend (Long) -> Unit = { delay(it.milliseconds) },
     val cancelScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    val readiness: GitHubActionsReadiness = GitHubActionsReadiness(),
 )
 
 /**
@@ -67,7 +84,10 @@ class GitHubActionsBuildSystem internal constructor(
     private val seams: GitHubActionsSeams,
 ) : BuildSystem {
 
-    /** @param signing re-signs APKs with this device's keys; without it APKs keep the runner's signature. */
+    /**
+     * @param signing re-signs APKs with this device's keys; without it APKs keep the runner's signature.
+     * @param readiness how readiness is answered and the build repository remembered.
+     */
     constructor(
         api: GitHubApiClient,
         token: suspend () -> String?,
@@ -75,43 +95,33 @@ class GitHubActionsBuildSystem internal constructor(
         inspector: GradleProjectInspector,
         config: GitHubActionsConfig,
         signing: ApkSigning? = null,
-    ) : this(api, token, snapshots, inspector, config, signing, GitHubActionsSeams())
+        readiness: GitHubActionsReadiness = GitHubActionsReadiness(),
+    ) : this(api, token, snapshots, inspector, config, signing, GitHubActionsSeams(readiness = readiness))
 
+    private val locator = BuildStorageLocator(api, config.repositoryName, seams.readiness.storageMemory)
+    private val checker = CloudBuildReadinessChecker(
+        api,
+        token,
+        config.repositoryName,
+        config.repositorySetup,
+        seams.readiness.storageMemory,
+    )
     private val provisioner = BuildRepositoryProvisioner(
         api,
         config.repositoryName,
         config.gitBaseUrl,
         config.repositorySetup,
         seams.wait,
+        locator,
     )
     private val collector = ResultCollector(api, config.downloadDir, signing)
     private val follower = RunFollower(api, seams.clock, seams.wait)
 
     @Volatile private var active: ActiveRun? = null
 
-    override suspend fun readiness(): BuildReadiness {
-        if (token().isNullOrBlank()) return BuildReadiness.NeedsSignIn(config.signInMessage)
-        val user = runCatching { api.authenticatedUser() }
-        val error = user.exceptionOrNull()
-        return when {
-            error is GitHubApiException && error.isUnauthorized ->
-                BuildReadiness.NeedsSignIn("Your GitHub sign-in has expired or was revoked. ${config.signInMessage}")
-            user.getOrNull()?.scopes?.containsAll(REQUIRED_SCOPES) == false ->
-                BuildReadiness.NeedsSignIn(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING)
-            else -> user.getOrNull()?.let { repositoryReadiness(it.login) } ?: BuildReadiness.Ready
-        }
-    }
-
-    /** A GitHub App can't create the build repository, so check up front that it exists and is reachable. */
-    private suspend fun repositoryReadiness(login: String): BuildReadiness? {
-        val setup = config.repositorySetup as? RepositorySetup.Manual ?: return null
-        val repository = runCatching { api.repository(login, config.repositoryName) }
-        return if (repository.isSuccess && repository.getOrNull() == null) {
-            BuildReadiness.NeedsSetup(setup.message(config.repositoryName))
-        } else {
-            null
-        }
-    }
+    override suspend fun readiness(): BuildReadiness =
+        (seams.readiness.shared?.check() ?: checker.check())
+            .toBuildReadiness(config.signInMessage, config.repositoryName, config.repositorySetup)
 
     override suspend fun sync(projectRoot: File): ProjectModel =
         withContext(Dispatchers.IO) { inspector.inspect(projectRoot).model }
@@ -264,6 +274,5 @@ class GitHubActionsBuildSystem internal constructor(
         private const val DISPATCH_RETRY_MS = 5_000L
         private const val CANCEL_CLEANUP_POLLS = 80
         private const val CANCEL_CLEANUP_INTERVAL_MS = 15_000L
-        private val REQUIRED_SCOPES = setOf("repo", "workflow")
     }
 }

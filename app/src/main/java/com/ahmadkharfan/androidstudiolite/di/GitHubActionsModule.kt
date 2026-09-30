@@ -9,11 +9,22 @@ import com.ahmadkharfan.androidstudiolite.data.githubactions.auth.GitHubTokenRef
 import com.ahmadkharfan.androidstudiolite.data.githubactions.build.ApkSigning
 import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsBuildSystem
 import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsConfig
+import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsReadiness
 import com.ahmadkharfan.androidstudiolite.data.githubactions.build.RepositorySetup
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.BuildStorageMemory
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessChecker
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessMonitor
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.ReadinessSignals
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.SharedPreferencesBuildStorageMemory
 import com.ahmadkharfan.androidstudiolite.data.githubactions.snapshot.SourceSnapshotPusher
 import com.ahmadkharfan.androidstudiolite.data.remote.github.GitHubDeviceFlowAuthenticator
+import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -62,6 +73,30 @@ val githubActionsModule = module {
         val access = get<GitHubActionsAccess>()
         GitHubApiClient(token = { access.token() })
     }
+    single<BuildStorageMemory> { SharedPreferencesBuildStorageMemory(androidContext()) }
+    single {
+        val access = get<GitHubActionsAccess>()
+        val config = get<GitHubActionsConfig>()
+        val network = get<NetworkMonitor>()
+        CloudBuildReadinessChecker(
+            api = get(),
+            token = { access.token() },
+            repositoryName = config.repositoryName,
+            setup = config.repositorySetup,
+            memory = get(),
+            signals = ReadinessSignals(isOnline = network::isOnline, signedOutByGitHub = { access.signedOutByGitHub }),
+        )
+    }
+    single<CloudBuildReadiness> {
+        val checker = get<CloudBuildReadinessChecker>()
+        CloudBuildReadinessMonitor(
+            checker = { checker.check() },
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            // Connecting, disconnecting, or GitHub ending the connection all change readiness.
+            recheckTriggers = get<GitHubActionsAccess>().credentials.changes,
+            onlineChanges = get<NetworkMonitor>().observeOnline(),
+        )
+    }
     single {
         val access = get<GitHubActionsAccess>()
         GitHubActionsBuildSystem(
@@ -71,6 +106,7 @@ val githubActionsModule = module {
             inspector = get(),
             config = get(),
             signing = get(),
+            readiness = GitHubActionsReadiness(storageMemory = get(), shared = get()),
         )
     }
 }

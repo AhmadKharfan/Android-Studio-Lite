@@ -15,7 +15,31 @@ data class GitHubRepository(
     val private: Boolean,
     @SerialName("default_branch") val defaultBranch: String? = null,
     @SerialName("clone_url") val cloneUrl: String? = null,
+    val id: Long? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
 )
+
+/** An installation of this GitHub App. [htmlUrl] is where its access is managed on GitHub. */
+@Serializable
+data class AppInstallation(
+    val id: Long,
+    val account: InstallationAccount? = null,
+    @SerialName("repository_selection") val repositorySelection: String? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("suspended_at") val suspendedAt: String? = null,
+) {
+    /** True only when GitHub says the App can see every repository of the account. */
+    val coversAllRepositories: Boolean get() = repositorySelection == "all"
+}
+
+@Serializable
+data class InstallationAccount(val login: String? = null)
+
+@Serializable
+internal data class InstallationsPage(val installations: List<AppInstallation> = emptyList())
+
+@Serializable
+internal data class InstallationRepositoriesPage(val repositories: List<GitHubRepository> = emptyList())
 
 @Serializable
 internal data class CreateRepositoryRequest(

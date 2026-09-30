@@ -3,6 +3,7 @@ package com.ahmadkharfan.androidstudiolite.data.githubactions.build
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiException
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubRepository
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.BuildStorageLocator
 import com.ahmadkharfan.androidstudiolite.data.githubactions.workflow.BuildWorkflow
 
 /** The user's build repository, ready to receive snapshots and dispatches. */
@@ -29,6 +30,7 @@ internal class BuildRepositoryProvisioner(
     private val gitBaseUrl: String,
     private val setup: RepositorySetup,
     private val waitBeforeRetry: suspend (Long) -> Unit,
+    private val locator: BuildStorageLocator? = null,
 ) {
 
     @Volatile private var provisioned: Pair<String, BuildRepository>? = null
@@ -39,7 +41,10 @@ internal class BuildRepositoryProvisioner(
             throw BuildFailure(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING)
         }
         provisioned?.takeIf { it.first == user.login }?.let { return it.second }
-        val repository = api.repository(user.login, repositoryName) ?: missingRepository()
+        val repository = api.repository(user.login, repositoryName)
+            ?: renamedRepository(user.login)
+            ?: missingRepository()
+        locator?.remember(user.login, repository)
         if (!repository.private) {
             throw BuildFailure(
                 "github.com/${repository.fullName} is public, and builds would publish your source code there. " +
@@ -50,6 +55,13 @@ internal class BuildRepositoryProvisioner(
             ensureWorkflow(it)
             provisioned = user.login to it
         }
+    }
+
+    /** With a GitHub App, the repository this device built in before, found by its id after a rename. */
+    private suspend fun renamedRepository(login: String): GitHubRepository? {
+        if (setup !is RepositorySetup.Manual || locator?.rememberedId(login) == null) return null
+        val installation = locator.installation(login) ?: return null
+        return locator.locate(login, installation)
     }
 
     private suspend fun missingRepository(): GitHubRepository = when (setup) {
@@ -95,13 +107,14 @@ internal class BuildRepositoryProvisioner(
         }
     }
 
-    private companion object {
+    companion object {
+        /** OAuth scopes an OAuth token needs to create the repository and install the workflow. */
         val REQUIRED_SCOPES = setOf("repo", "workflow")
-        const val DESCRIPTION = "Builds for Android Studio Lite. Managed by the app; keep it private."
-        const val DEFAULT_BRANCH = "main"
-        const val HTTP_CONFLICT = 409
-        const val INITIALISING_ATTEMPTS = 5
-        const val INITIALISING_BACKOFF_MS = 2_000L
+        private const val DESCRIPTION = "Builds for Android Studio Lite. Managed by the app; keep it private."
+        private const val DEFAULT_BRANCH = "main"
+        private const val HTTP_CONFLICT = 409
+        private const val INITIALISING_ATTEMPTS = 5
+        private const val INITIALISING_BACKOFF_MS = 2_000L
     }
 }
 

@@ -246,6 +246,53 @@ class GitHubApiClientTest {
         val error = runCatching { client.run("octo", "asl-build", 7) }.exceptionOrNull() as GitHubApiException
 
         assertFalse(error.isRateLimited)
+        assertFalse(error.isMissingPermission)
+    }
+
+    @Test
+    fun `forbidden naming the accepted permissions is a missing permission`() = runTest {
+        server.enqueue(
+            json("""{"message":"Resource not accessible by integration"}""", 403)
+                .setHeader("X-Accepted-GitHub-Permissions", "actions=write"),
+        )
+
+        val error = runCatching { client.run("octo", "asl-build", 7) }.exceptionOrNull() as GitHubApiException
+
+        assertTrue(error.isMissingPermission)
+        assertEquals("actions=write", error.acceptedPermissions)
+    }
+
+    @Test
+    fun `app installations are read with their access details`() = runTest {
+        server.enqueue(
+            json(
+                """{"total_count":1,"installations":[{"id":42,"account":{"login":"octo"},"repository_selection":"selected",
+                "html_url":"https://github.com/settings/installations/42","suspended_at":null,"app_slug":"asl"}]}""",
+            ),
+        )
+
+        val installation = client.userInstallations().single()
+
+        assertEquals(
+            AppInstallation(42, InstallationAccount("octo"), "selected", "https://github.com/settings/installations/42", null),
+            installation,
+        )
+        assertFalse(installation.coversAllRepositories)
+        assertEquals("/user/installations?per_page=100&page=1", server.takeRequest().path)
+    }
+
+    @Test
+    fun `installation repositories are read across full pages`() = runTest {
+        val fullPage = (1..100).joinToString { """{"id":$it,"full_name":"octo/r$it","private":true}""" }
+        server.enqueue(json("""{"total_count":101,"repositories":[$fullPage]}"""))
+        server.enqueue(json("""{"total_count":101,"repositories":[{"id":101,"full_name":"octo/asl-build","private":true,"html_url":"https://github.com/octo/asl-build"}]}"""))
+
+        val repositories = client.installationRepositories(42)
+
+        assertEquals(101, repositories.size)
+        assertEquals(GitHubRepository("octo/asl-build", true, id = 101, htmlUrl = "https://github.com/octo/asl-build"), repositories.last())
+        assertEquals("/user/installations/42/repositories?per_page=100&page=1", server.takeRequest().path)
+        assertEquals("/user/installations/42/repositories?per_page=100&page=2", server.takeRequest().path)
     }
 
     @Test

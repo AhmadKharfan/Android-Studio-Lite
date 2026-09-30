@@ -55,6 +55,31 @@ class GitHubApiClient(
     suspend fun repository(owner: String, name: String): GitHubRepository? =
         getOrNull("repos/$owner/$name")?.let { JSON.decodeFromString<GitHubRepository>(it.body) }
 
+    /**
+     * Installations of this GitHub App the signed-in user can access. Only works with a GitHub App
+     * user token; OAuth tokens get a 403.
+     */
+    suspend fun userInstallations(): List<AppInstallation> = pages("user/installations") { body ->
+        JSON.decodeFromString<InstallationsPage>(body).installations
+    }
+
+    /** Repositories [installationId] gives the signed-in user access to. */
+    suspend fun installationRepositories(installationId: Long): List<GitHubRepository> =
+        pages("user/installations/$installationId/repositories") { body ->
+            JSON.decodeFromString<InstallationRepositoriesPage>(body).repositories
+        }
+
+    /** Reads up to [MAX_PAGES] pages of [path], stopping at the first page that isn't full. */
+    private suspend fun <T> pages(path: String, parse: (String) -> List<T>): List<T> {
+        val items = mutableListOf<T>()
+        for (page in 1..MAX_PAGES) {
+            val batch = parse(get(path, mapOf("per_page" to PAGE_SIZE.toString(), "page" to page.toString())).body)
+            items += batch
+            if (batch.size < PAGE_SIZE) break
+        }
+        return items
+    }
+
     suspend fun createUserRepository(name: String, description: String): GitHubRepository {
         val body = JSON.encodeToString(CreateRepositoryRequest(name, description, private = true, autoInit = true))
         return JSON.decodeFromString(send("POST", "user/repos", body).body)
@@ -250,7 +275,8 @@ class GitHubApiClient(
         val exhausted = response.header("X-RateLimit-Remaining") == "0" &&
             (response.code == HTTP_FORBIDDEN || response.code == HTTP_TOO_MANY_REQUESTS)
         val reset = if (exhausted) response.header("X-RateLimit-Reset")?.toLongOrNull() else null
-        return GitHubApiException(response.code, message, retryAfter, reset)
+        val acceptedPermissions = response.header("X-Accepted-GitHub-Permissions")?.takeIf { it.isNotBlank() }
+        return GitHubApiException(response.code, message, retryAfter, reset, acceptedPermissions = acceptedPermissions)
     }
 
     /** A successful response, detached from the connection. Header names are lower case. */
@@ -264,6 +290,8 @@ class GitHubApiClient(
         private const val MAX_ATTEMPTS = 3
         private const val BASE_BACKOFF_MS = 1_000L
         private const val ETAG_CACHE_SIZE = 64
+        private const val PAGE_SIZE = 100
+        private const val MAX_PAGES = 10
         private const val HTTP_NOT_MODIFIED = 304
         private const val HTTP_FORBIDDEN = 403
         private const val HTTP_TOO_MANY_REQUESTS = 429
