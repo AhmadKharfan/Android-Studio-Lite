@@ -33,8 +33,9 @@ val gitModule = module {
         GitHubDeviceFlowAuthenticator(
             clientId = BuildConfig.GITHUB_OAUTH_CLIENT_ID,
             credentialStore = get(),
-            // `workflow` lets GitHub Actions builds install their workflow in the user's build repository.
-            scope = "repo workflow",
+            // With a GitHub App, builds sign in separately, so Git only needs `repo`. Without one, builds reuse this
+            // sign-in and need `workflow` to install their workflow in the user's build repository.
+            scope = if (BuildConfig.GITHUB_APP_CLIENT_ID.isBlank()) "repo workflow" else "repo",
         )
     }
     single<GitAuthorStore> { DataStoreGitAuthorStore(androidContext().gitAuthorDataStore) }
