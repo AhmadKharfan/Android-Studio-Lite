@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupSheet
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
@@ -129,6 +130,9 @@ fun EditorRoute(
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onAppForegrounded() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flushPendingSaves() }
+    viewModel.cloudBuildSetup?.let { setup ->
+        CloudBuildSetupSheet(uiState.cloudBuildSetup, setup, onResumed = setup::onResumed)
+    }
 
     EditorScreen(
         uiState = uiState,

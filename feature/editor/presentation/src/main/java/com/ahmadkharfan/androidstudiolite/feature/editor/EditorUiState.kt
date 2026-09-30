@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.editor
 import androidx.compose.runtime.Immutable
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupUiState
 import com.ahmadkharfan.androidstudiolite.designsystem.component.content.AslLineGit
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileStatus
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
@@ -114,6 +115,7 @@ data class EditorUiState(
     val buildConsole: BuildConsoleState = BuildConsoleState(),
     val snackbarMessage: String? = null,
     val installConflict: InstallConflictUiModel? = null,
+    val cloudBuildSetup: CloudBuildSetupUiState = CloudBuildSetupUiState(),
     val fileOperationDialog: EditorFileOperationDialogUiState = EditorFileOperationDialogUiState.None,
     val copiedFileTreeEntry: CopiedFileTreeEntryUiModel? = null,
     val findBarOpen: Boolean = false,

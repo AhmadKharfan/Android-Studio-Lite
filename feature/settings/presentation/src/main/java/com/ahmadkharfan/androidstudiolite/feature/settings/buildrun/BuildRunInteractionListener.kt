@@ -1,8 +1,9 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 
-import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptActions
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupActions
 
-interface BuildRunInteractionListener : GitAuthPromptActions {
+interface BuildRunInteractionListener : CloudBuildSetupActions {
+    fun onScreenResumed()
     fun onToggleLaunchAfterInstall(enabled: Boolean)
     fun onToggleAabOutput(enabled: Boolean)
     fun onSelectBuildProvider(providerId: String)

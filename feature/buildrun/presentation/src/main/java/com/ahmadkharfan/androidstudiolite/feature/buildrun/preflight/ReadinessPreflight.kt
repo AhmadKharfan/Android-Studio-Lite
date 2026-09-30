@@ -8,9 +8,9 @@ import com.ahmadkharfan.androidstudiolite.feature.buildrun.api.preflight.Preflig
 internal fun readinessWarning(readiness: BuildReadiness): PreflightWarning? = when (readiness) {
     BuildReadiness.Ready -> null
     is BuildReadiness.NeedsSignIn ->
-        PreflightWarning(PreflightSeverity.BLOCKER, "Sign in to build", readiness.reason)
+        PreflightWarning(PreflightSeverity.BLOCKER, "Sign in to build", readiness.reason, fromBuildService = true)
     is BuildReadiness.NeedsSetup ->
-        PreflightWarning(PreflightSeverity.BLOCKER, "Build setup required", readiness.reason)
+        PreflightWarning(PreflightSeverity.BLOCKER, "Build setup required", readiness.reason, fromBuildService = true)
     is BuildReadiness.Unavailable ->
-        PreflightWarning(PreflightSeverity.BLOCKER, "Build service unavailable", readiness.reason)
+        PreflightWarning(PreflightSeverity.BLOCKER, "Build service unavailable", readiness.reason, fromBuildService = true)
 }

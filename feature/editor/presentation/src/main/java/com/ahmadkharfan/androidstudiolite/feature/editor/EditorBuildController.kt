@@ -23,6 +23,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/**
+ * Runs builds from the editor.
+ *
+ * @param openBuildServiceSetup opens the Cloud Build setup when the build service blocks a build; its
+ *   `retry` runs that same build again.
+ */
 class EditorBuildController(
     private val projectId: String,
     private val scope: CoroutineScope,
@@ -36,6 +42,7 @@ class EditorBuildController(
     private val shouldLaunchAfterInstall: () -> Boolean,
     private val cancelAutoSave: () -> Unit,
     private val flushDirtyFiles: suspend () -> Boolean,
+    private val openBuildServiceSetup: ((retry: () -> Unit) -> Unit)? = null,
 ) {
     private var isBuildInFlight = false
     private var buildJob: Job? = null
@@ -107,7 +114,7 @@ class EditorBuildController(
     }
 
     private suspend fun runBuild(root: File, variant: String, kind: BuildKind, install: Boolean) {
-        if (!prepareWorkspaceForBuild(root)) return
+        if (!prepareWorkspaceForBuild(root) { startBuild(variant, kind, install) }) return
         val targets = resolveBuildTargets(root, variant, kind, install) ?: return
         reportStartResult(buildRunCoordinator.start(buildRequest(root, kind, targets), buildMeta(install)))
     }
@@ -186,7 +193,7 @@ class EditorBuildController(
         }
     }
 
-    private suspend fun prepareWorkspaceForBuild(root: File): Boolean {
+    private suspend fun prepareWorkspaceForBuild(root: File, retry: () -> Unit): Boolean {
         cancelAutoSave()
         if (!flushDirtyFiles()) {
             failBuildPreparation("Couldn't save pending editor changes before build")
@@ -197,6 +204,7 @@ class EditorBuildController(
         if (!preflight.canProceed) {
             val blocker = preflight.warnings.first { it.severity == PreflightSeverity.BLOCKER }
             failBuildPreparation(blocker.title, problemCount = 1)
+            if (blocker.fromBuildService) openBuildServiceSetup?.invoke(retry)
             return false
         }
         buildRunCoordinator.ensureDebugKeystore()

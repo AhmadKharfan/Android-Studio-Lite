@@ -4,9 +4,11 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
-import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthController
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupController
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
@@ -22,17 +24,15 @@ class BuildRunViewModel(
     private val keystoreManager: KeystoreManager,
     private val providerCatalog: BuildProviderCatalog,
     private val gitHubBuildAccess: GitHubBuildAccess,
+    cloudBuildReadiness: CloudBuildReadiness,
     context: Context,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
 
     private val applicationContext = context.applicationContext
 
-    private val authController = GitAuthController(
-        scope = viewModelScope,
-        credentialStore = gitHubBuildAccess.credentials,
-        authenticator = gitHubBuildAccess.authenticator,
-        emit = { prompt -> updateState { copy(authPrompt = prompt) } },
-    )
+    private val cloudBuild = CloudBuildSetupController(viewModelScope, cloudBuildReadiness, gitHubBuildAccess) { setup ->
+        updateState { copy(cloudBuild = setup) }
+    }
 
     init {
         if (gitHubBuildAccess.usesGitHubApp) {
@@ -42,14 +42,18 @@ class BuildRunViewModel(
         tryToCollect(
             block = { preferencesRepository.observePreferences() },
             onCollect = { prefs ->
+                val provider = providerCatalog.effective(prefs.buildProviderId)
+                val firstCloudBuildView = provider == BuildProviderIds.GITHUB_ACTIONS &&
+                    state.value.selectedBuildProvider != provider
                 updateState {
                     copy(
                         launchAfterInstall = prefs.launchAfterInstall,
                         buildOutputAab = prefs.buildOutputAab,
                         buildProviders = providerCatalog.available,
-                        selectedBuildProvider = providerCatalog.effective(prefs.buildProviderId),
+                        selectedBuildProvider = provider,
                     )
                 }
+                if (firstCloudBuildView) cloudBuild.refresh()
             },
         )
         updateState {
@@ -89,10 +93,12 @@ class BuildRunViewModel(
         viewModelScope.launch { preferencesRepository.update { it.copy(buildProviderId = providerId) } }
     }
 
-    override fun onConnectBuildAccess(): Unit = authController.open(GITHUB_HOST) {
-        updateState { copy(message = "GitHub connected for builds") }
-        refreshBuildAccess()
+    /** Settings are showing again (opened, or back from GitHub): refresh Cloud Build's status. */
+    override fun onScreenResumed() {
+        if (state.value.selectedBuildProvider == BuildProviderIds.GITHUB_ACTIONS) cloudBuild.refresh()
     }
+
+    override fun onConnectBuildAccess(): Unit = cloudBuild.onCloudBuildConnect()
 
     override fun onDisconnectBuildAccess() {
         gitHubBuildAccess.credentials.clear(GITHUB_HOST)
@@ -100,11 +106,17 @@ class BuildRunViewModel(
         refreshBuildAccess()
     }
 
-    override fun onAuthModeChanged(mode: GitAuthMode): Unit = authController.onAuthModeChanged(mode)
-    override fun onAuthTokenChanged(token: String): Unit = authController.onAuthTokenChanged(token)
-    override fun onSubmitAuthToken(): Unit = authController.onSubmitAuthToken()
-    override fun onStartGitHubSignIn(): Unit = authController.onStartGitHubSignIn()
-    override fun onDismissAuthPrompt(): Unit = authController.onDismissAuthPrompt()
+    override fun onCloudBuildConnect(): Unit = cloudBuild.onCloudBuildConnect()
+    override fun onCloudBuildSwitchAccount(): Unit = cloudBuild.onCloudBuildSwitchAccount()
+    override fun onCloudBuildOpenedGitHub(): Unit = cloudBuild.onCloudBuildOpenedGitHub()
+    override fun onCloudBuildCheckAgain(): Unit = cloudBuild.onCloudBuildCheckAgain()
+    override fun onCloudBuildDismiss(): Unit = cloudBuild.onCloudBuildDismiss()
+
+    override fun onAuthModeChanged(mode: GitAuthMode): Unit = cloudBuild.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String): Unit = cloudBuild.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken(): Unit = cloudBuild.onSubmitAuthToken()
+    override fun onStartGitHubSignIn(): Unit = cloudBuild.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt(): Unit = cloudBuild.onDismissAuthPrompt()
 
     override fun onOpenKeystoreDialog(mode: KeystoreDialogMode) {
         updateState { copy(keystoreDialog = mode, keystoreError = null) }

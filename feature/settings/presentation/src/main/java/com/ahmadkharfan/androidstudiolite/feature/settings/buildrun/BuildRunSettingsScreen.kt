@@ -3,6 +3,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButton
 import com.ahmadkharfan.androidstudiolite.designsystem.component.buttons.AslButtonVariant
@@ -45,6 +48,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTextStyles
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitHubAuthDialog
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupContent
 import com.ahmadkharfan.androidstudiolite.core.common.R as CommonR
 import com.ahmadkharfan.androidstudiolite.feature.settings.R
 import org.koin.androidx.compose.koinViewModel
@@ -55,6 +59,7 @@ fun BuildRunSettingsRoute(
     viewModel: BuildRunViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onScreenResumed() }
     BuildRunSettingsScreen(uiState = uiState, interactionListener = viewModel, onBack = onBack)
 }
 
@@ -86,14 +91,14 @@ private fun BuildRunSettingsScreen(
                     .padding(16.dp),
             ) {
                 BuildRunServiceSection(uiState = uiState, interactionListener = interactionListener)
-                BuildAccessSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
+                BuildAccessSection(uiState = uiState, interactionListener = interactionListener)
                 BuildRunOutputSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunSigningSection(uiState = uiState, interactionListener = interactionListener, colors = colors)
                 BuildRunAfterBuildSection(uiState = uiState, interactionListener = interactionListener)
             }
         }
     }
-    GitHubAuthDialog(uiState.authPrompt, interactionListener)
+    GitHubAuthDialog(uiState.cloudBuild.authPrompt, interactionListener)
     val dialogMode = uiState.keystoreDialog
     if (dialogMode != null) {
         ReleaseKeystoreDialog(
@@ -151,45 +156,33 @@ private fun providerOption(providerId: String, usesGitHubApp: Boolean): AslRadio
 private fun BuildAccessSection(
     uiState: BuildRunUiState,
     interactionListener: BuildRunInteractionListener,
-    colors: AslColorScheme,
 ) {
-    val access = uiState.buildAccess ?: return
     if (uiState.selectedBuildProvider != BuildProviderIds.GITHUB_ACTIONS) return
+    val access = uiState.buildAccess
     val uriHandler = LocalUriHandler.current
     AslSectionHeader(stringResource(R.string.settings_build_access))
     SectionCard {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            AslText(
-                text = stringResource(if (access.connected) R.string.settings_git_connected else R.string.settings_git_not_connected),
-                style = AslTextStyles.titleSmall,
-                color = if (access.connected) colors.success else colors.textSecondary,
-            )
-            Spacer(Modifier.height(4.dp))
-            AslText(
-                text = stringResource(R.string.settings_build_access_hint),
-                style = AslTextStyles.bodySmall,
-                color = colors.textTertiary,
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (access.connected) {
+            // The same status and next step the Run setup shows, kept current by Cloud Build's own checks.
+            CloudBuildSetupContent(uiState.cloudBuild, interactionListener, contentPadding = PaddingValues())
+            if (access != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 12.dp),
+                ) {
+                    if (access.connected) {
+                        AslButton(
+                            label = stringResource(R.string.settings_git_sign_out),
+                            onClick = { interactionListener.onDisconnectBuildAccess() },
+                            variant = AslButtonVariant.Secondary,
+                        )
+                    }
                     AslButton(
-                        label = stringResource(R.string.settings_git_sign_out),
-                        onClick = { interactionListener.onDisconnectBuildAccess() },
-                        variant = AslButtonVariant.Secondary,
-                    )
-                } else {
-                    AslButton(
-                        label = stringResource(R.string.settings_build_access_connect),
-                        icon = "github",
-                        onClick = { interactionListener.onConnectBuildAccess() },
+                        label = stringResource(R.string.settings_build_access_install),
+                        onClick = { uriHandler.openUri(access.installUrl) },
+                        variant = AslButtonVariant.Tertiary,
                     )
                 }
-                AslButton(
-                    label = stringResource(R.string.settings_build_access_install),
-                    onClick = { uriHandler.openUri(access.installUrl) },
-                    variant = AslButtonVariant.Tertiary,
-                )
             }
         }
     }

@@ -23,6 +23,7 @@ class ReadinessPreflightTest {
             val warning = readinessWarning(readiness)
 
             assertEquals(PreflightSeverity.BLOCKER, warning?.severity)
+            assertEquals(true, warning?.fromBuildService)
             assertEquals(
                 when (readiness) {
                     is BuildReadiness.NeedsSignIn -> readiness.reason
