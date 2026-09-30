@@ -46,7 +46,9 @@ class GitHubApiClient(
 
     suspend fun authenticatedUser(): AuthenticatedUser {
         val response = get("user")
-        val scopes = response.headers["x-oauth-scopes"]?.split(',')?.map(String::trim)?.filter(String::isNotEmpty)
+        // GitHub App user tokens and fine-grained tokens have no OAuth scopes: the header is absent or empty.
+        val scopes = response.headers["x-oauth-scopes"]?.takeIf { it.isNotBlank() }
+            ?.split(',')?.map(String::trim)?.filter(String::isNotEmpty)
         return AuthenticatedUser(JSON.decodeFromString<UserDto>(response.body).login, scopes?.toSet())
     }
 

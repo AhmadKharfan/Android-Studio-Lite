@@ -374,6 +374,14 @@ class GitHubActionsBuildSystemTest {
     }
 
     @Test
+    fun `github app user tokens report an empty scope header and still build`() {
+        github.scopes = ""
+
+        runBlocking { assertEquals(BuildReadiness.Ready, buildSystem().readiness()) }
+        assertTrue((build().last() as BuildEvent.Finished).success)
+    }
+
+    @Test
     fun `live output streams while the build runs and is not repeated at the end`() {
         github.runStatuses = ArrayDeque(listOf("queued", "in_progress", "in_progress", "completed"))
         github.liveOutputs = ArrayDeque(listOf(2 to "a\nb\n", 4 to "a\nb\nc\nd\n"))
