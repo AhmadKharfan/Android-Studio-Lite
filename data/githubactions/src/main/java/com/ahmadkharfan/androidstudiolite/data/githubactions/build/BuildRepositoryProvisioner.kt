@@ -19,11 +19,15 @@ internal data class BuildRepository(
  * The repository is created on first use. The workflow is (re)written whenever it differs from the
  * one this app ships, unless the repository already holds a newer version written by a newer app.
  * A public repository is refused: every build pushes the project's source code there.
+ *
+ * With [setup] set to [RepositorySetup.Manual] (a GitHub App, which has no permission to create
+ * repositories), a missing repository is reported with the steps to create it instead.
  */
 internal class BuildRepositoryProvisioner(
     private val api: GitHubApiClient,
     private val repositoryName: String,
     private val gitBaseUrl: String,
+    private val setup: RepositorySetup,
     private val waitBeforeRetry: suspend (Long) -> Unit,
 ) {
 
@@ -35,8 +39,7 @@ internal class BuildRepositoryProvisioner(
             throw BuildFailure(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING)
         }
         provisioned?.takeIf { it.first == user.login }?.let { return it.second }
-        val repository = api.repository(user.login, repositoryName)
-            ?: api.createUserRepository(repositoryName, DESCRIPTION)
+        val repository = api.repository(user.login, repositoryName) ?: missingRepository()
         if (!repository.private) {
             throw BuildFailure(
                 "github.com/${repository.fullName} is public, and builds would publish your source code there. " +
@@ -47,6 +50,11 @@ internal class BuildRepositoryProvisioner(
             ensureWorkflow(it)
             provisioned = user.login to it
         }
+    }
+
+    private suspend fun missingRepository(): GitHubRepository = when (setup) {
+        RepositorySetup.CreateIfMissing -> api.createUserRepository(repositoryName, DESCRIPTION)
+        is RepositorySetup.Manual -> throw BuildFailure(setup.message(repositoryName))
     }
 
     private fun target(repository: GitHubRepository) = BuildRepository(
@@ -94,5 +102,18 @@ internal class BuildRepositoryProvisioner(
         const val HTTP_CONFLICT = 409
         const val INITIALISING_ATTEMPTS = 5
         const val INITIALISING_BACKOFF_MS = 2_000L
+    }
+}
+
+/** Who makes the build repository: the app, or the user (when the app may not create repositories). */
+sealed interface RepositorySetup {
+    data object CreateIfMissing : RepositorySetup
+
+    /** @param installUrl where to install the GitHub App, or null to point at the user's installations. */
+    data class Manual(val installUrl: String?) : RepositorySetup {
+        fun message(repositoryName: String): String =
+            "Builds need a private repository named $repositoryName on your GitHub account, with the build GitHub App " +
+                "installed on that repository only. Create the repository, then install the App: " +
+                (installUrl ?: "https://github.com/settings/installations")
     }
 }

@@ -36,6 +36,10 @@ data class GitHubActionsConfig(
     val javaVersion: Int = 17,
     /** Where build repositories are pushed to; the repository's full name and `.git` are appended. */
     val gitBaseUrl: String = "https://github.com/",
+    /** Whether the app may create the build repository, or the user sets it up (GitHub App). */
+    val repositorySetup: RepositorySetup = RepositorySetup.CreateIfMissing,
+    /** What to tell a signed-out user; points at wherever this build's GitHub sign-in lives. */
+    val signInMessage: String = GitHubBuildMessages.SIGN_IN_REQUIRED,
 )
 
 /** Collaborators of [GitHubActionsBuildSystem] that tests replace. */
@@ -73,22 +77,39 @@ class GitHubActionsBuildSystem internal constructor(
         signing: ApkSigning? = null,
     ) : this(api, token, snapshots, inspector, config, signing, GitHubActionsSeams())
 
-    private val provisioner = BuildRepositoryProvisioner(api, config.repositoryName, config.gitBaseUrl, seams.wait)
+    private val provisioner = BuildRepositoryProvisioner(
+        api,
+        config.repositoryName,
+        config.gitBaseUrl,
+        config.repositorySetup,
+        seams.wait,
+    )
     private val collector = ResultCollector(api, config.downloadDir, signing)
     private val follower = RunFollower(api, seams.clock, seams.wait)
 
     @Volatile private var active: ActiveRun? = null
 
     override suspend fun readiness(): BuildReadiness {
-        if (token().isNullOrBlank()) return BuildReadiness.NeedsSignIn(GitHubBuildMessages.SIGN_IN_REQUIRED)
+        if (token().isNullOrBlank()) return BuildReadiness.NeedsSignIn(config.signInMessage)
         val user = runCatching { api.authenticatedUser() }
         val error = user.exceptionOrNull()
         return when {
             error is GitHubApiException && error.isUnauthorized ->
-                BuildReadiness.NeedsSignIn(GitHubBuildMessages.forError(error))
+                BuildReadiness.NeedsSignIn("Your GitHub sign-in has expired or was revoked. ${config.signInMessage}")
             user.getOrNull()?.scopes?.containsAll(REQUIRED_SCOPES) == false ->
                 BuildReadiness.NeedsSignIn(GitHubBuildMessages.WORKFLOW_SCOPE_MISSING)
-            else -> BuildReadiness.Ready
+            else -> user.getOrNull()?.let { repositoryReadiness(it.login) } ?: BuildReadiness.Ready
+        }
+    }
+
+    /** A GitHub App can't create the build repository, so check up front that it exists and is reachable. */
+    private suspend fun repositoryReadiness(login: String): BuildReadiness? {
+        val setup = config.repositorySetup as? RepositorySetup.Manual ?: return null
+        val repository = runCatching { api.repository(login, config.repositoryName) }
+        return if (repository.isSuccess && repository.getOrNull() == null) {
+            BuildReadiness.NeedsSetup(setup.message(config.repositoryName))
+        } else {
+            null
         }
     }
 

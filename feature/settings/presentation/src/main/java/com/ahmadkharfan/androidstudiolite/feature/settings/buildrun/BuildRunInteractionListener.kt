@@ -1,9 +1,13 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 
-interface BuildRunInteractionListener {
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptActions
+
+interface BuildRunInteractionListener : GitAuthPromptActions {
     fun onToggleLaunchAfterInstall(enabled: Boolean)
     fun onToggleAabOutput(enabled: Boolean)
     fun onSelectBuildProvider(providerId: String)
+    fun onConnectBuildAccess()
+    fun onDisconnectBuildAccess()
 
     fun onOpenKeystoreDialog(mode: KeystoreDialogMode)
     fun onDismissKeystoreDialog()

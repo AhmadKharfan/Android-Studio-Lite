@@ -4,7 +4,10 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthController
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthMode
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderCatalog
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreException
@@ -18,12 +21,24 @@ class BuildRunViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val keystoreManager: KeystoreManager,
     private val providerCatalog: BuildProviderCatalog,
+    private val gitHubBuildAccess: GitHubBuildAccess,
     context: Context,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
 
     private val applicationContext = context.applicationContext
 
+    private val authController = GitAuthController(
+        scope = viewModelScope,
+        credentialStore = gitHubBuildAccess.credentials,
+        authenticator = gitHubBuildAccess.authenticator,
+        emit = { prompt -> updateState { copy(authPrompt = prompt) } },
+    )
+
     init {
+        if (gitHubBuildAccess.usesGitHubApp) {
+            refreshBuildAccess()
+            tryToCollect(block = { gitHubBuildAccess.credentials.changes }, onCollect = { refreshBuildAccess() })
+        }
         tryToCollect(
             block = { preferencesRepository.observePreferences() },
             onCollect = { prefs ->
@@ -46,6 +61,15 @@ class BuildRunViewModel(
         refreshReleaseKeystore()
     }
 
+    private fun refreshBuildAccess() = updateState {
+        copy(
+            buildAccess = BuildAccessUiState(
+                connected = gitHubBuildAccess.credentials.hasCredentials(GITHUB_HOST),
+                installUrl = gitHubBuildAccess.installUrl ?: GITHUB_INSTALLATIONS_URL,
+            ),
+        )
+    }
+
     private fun refreshReleaseKeystore() {
         viewModelScope.launch {
             val config = keystoreManager.releaseSigningConfig()
@@ -64,6 +88,23 @@ class BuildRunViewModel(
     override fun onSelectBuildProvider(providerId: String) {
         viewModelScope.launch { preferencesRepository.update { it.copy(buildProviderId = providerId) } }
     }
+
+    override fun onConnectBuildAccess(): Unit = authController.open(GITHUB_HOST) {
+        updateState { copy(message = "GitHub connected for builds") }
+        refreshBuildAccess()
+    }
+
+    override fun onDisconnectBuildAccess() {
+        gitHubBuildAccess.credentials.clear(GITHUB_HOST)
+        updateState { copy(message = "GitHub disconnected from builds") }
+        refreshBuildAccess()
+    }
+
+    override fun onAuthModeChanged(mode: GitAuthMode): Unit = authController.onAuthModeChanged(mode)
+    override fun onAuthTokenChanged(token: String): Unit = authController.onAuthTokenChanged(token)
+    override fun onSubmitAuthToken(): Unit = authController.onSubmitAuthToken()
+    override fun onStartGitHubSignIn(): Unit = authController.onStartGitHubSignIn()
+    override fun onDismissAuthPrompt(): Unit = authController.onDismissAuthPrompt()
 
     override fun onOpenKeystoreDialog(mode: KeystoreDialogMode) {
         updateState { copy(keystoreDialog = mode, keystoreError = null) }
@@ -151,5 +192,10 @@ class BuildRunViewModel(
         is KeystoreError.AliasNotFound -> "Alias not found. Available: ${availableAliases.joinToString()}"
         KeystoreError.WrongKeyPassword -> "Wrong key password"
         is KeystoreError.Io -> message
+    }
+
+    private companion object {
+        const val GITHUB_HOST = "github.com"
+        const val GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations"
     }
 }

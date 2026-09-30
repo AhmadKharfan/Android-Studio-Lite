@@ -1,5 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 import androidx.compose.runtime.Immutable
+import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
 
 @Immutable
 data class BuildRunUiState(
@@ -7,6 +8,8 @@ data class BuildRunUiState(
     val buildOutputAab: Boolean = false,
     val buildProviders: List<String> = emptyList(),
     val selectedBuildProvider: String = "",
+    val buildAccess: BuildAccessUiState? = null,
+    val authPrompt: GitAuthPromptState = GitAuthPromptState(),
     val debugKeystorePath: String = "",
     val releaseKeystoreSummary: String? = null,
     val suggestedReleaseKeystorePath: String = "",
@@ -19,3 +22,10 @@ data class BuildRunUiState(
 }
 
 enum class KeystoreDialogMode { Create, Import }
+
+/** GitHub Actions builds' own GitHub App sign-in; absent when builds reuse the Git sign-in. */
+@Immutable
+data class BuildAccessUiState(
+    val connected: Boolean,
+    val installUrl: String,
+)

@@ -21,6 +21,11 @@
     <string name="settings_build_service_remote_hint">Builds run on the app\'s own build servers.</string>
     <string name="settings_build_service_gha">GitHub Actions</string>
     <string name="settings_build_service_gha_hint">Builds run in a private asl-build repository on your GitHub account and use your Actions minutes. Sign in to GitHub under Settings › Git &amp; GitHub first.</string>
+    <string name="settings_build_service_gha_app_hint">Builds run in a private asl-build repository on your GitHub account and use your Actions minutes. Connect GitHub for builds below.</string>
+    <string name="settings_build_access">GitHub build access</string>
+    <string name="settings_build_access_hint">Builds sign in through the Android Studio Lite GitHub App, which can reach only the asl-build repository you install it on. Create a private repository named asl-build, then install the App on that repository only.</string>
+    <string name="settings_build_access_connect">Connect GitHub</string>
+    <string name="settings_build_access_install">Install GitHub App</string>
     <string name="settings_build_output_format">Output format</string>
     <string name="settings_build_aab_release">Build App Bundle (.aab) for release</string>
     <string name="settings_build_aab_hint">App Bundles are required for Play Store uploads; APKs install directly on device.</string>
