@@ -60,7 +60,7 @@ android {
         buildConfigField(
             "String",
             "DEFAULT_BUILD_PROVIDER",
-            "\"${configValue("asl.buildProvider", "ASL_BUILD_PROVIDER", "remote")}\"",
+            "\"${configValue("asl.buildProvider", "ASL_BUILD_PROVIDER", "gha")}\"",
         )
 
         // The GitHub App that builds sign in with. Both values are public identifiers; the app uses device
