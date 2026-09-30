@@ -74,7 +74,7 @@ android {
         buildConfigField(
             "String",
             "GITHUB_APP_SLUG",
-            "\"${configValue("asl.githubAppSlug", "ASL_GITHUB_APP_SLUG", "")}\"",
+            "\"${configValue("asl.githubAppSlug", "ASL_GITHUB_APP_SLUG", "android-studio-lite-builds")}\"",
         )
 
         buildConfigField(
