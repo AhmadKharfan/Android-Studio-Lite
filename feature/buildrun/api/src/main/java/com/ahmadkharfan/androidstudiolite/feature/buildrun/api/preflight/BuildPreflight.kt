@@ -7,6 +7,8 @@ public data class PreflightWarning(
     val severity: PreflightSeverity,
     val title: String,
     val detail: String,
+    /** True when the build service isn't ready (sign-in or setup), rather than something in the project. */
+    val fromBuildService: Boolean = false,
 )
 
 public data class BuildPreflightResult(val warnings: List<PreflightWarning>) {

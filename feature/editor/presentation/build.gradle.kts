@@ -6,6 +6,7 @@ dependencies {
     implementation(projects.feature.editor.api)
     implementation(platform(libs.androidx.compose.bom))
     implementation(projects.core.common)
+    implementation(projects.core.gitauth)
     implementation(projects.designsystem)
     implementation(projects.feature.buildrun.api)
     implementation(projects.feature.git.api)

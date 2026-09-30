@@ -1,6 +1,6 @@
 package com.ahmadkharfan.androidstudiolite.feature.settings.buildrun
 import androidx.compose.runtime.Immutable
-import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupUiState
 
 @Immutable
 data class BuildRunUiState(
@@ -9,7 +9,7 @@ data class BuildRunUiState(
     val buildProviders: List<String> = emptyList(),
     val selectedBuildProvider: String = "",
     val buildAccess: BuildAccessUiState? = null,
-    val authPrompt: GitAuthPromptState = GitAuthPromptState(),
+    val cloudBuild: CloudBuildSetupUiState = CloudBuildSetupUiState(),
     val debugKeystorePath: String = "",
     val releaseKeystoreSummary: String? = null,
     val suggestedReleaseKeystorePath: String = "",
