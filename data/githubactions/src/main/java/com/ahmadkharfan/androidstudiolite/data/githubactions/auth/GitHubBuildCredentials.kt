@@ -48,6 +48,9 @@ class GitHubBuildCredentials(
         }
     }
 
+    /** True once GitHub itself ended the connection (rejected its refresh), until the user connects again. */
+    val wasSignedOutByGitHub: Boolean get() = vault.get(SIGNED_OUT_BY_GITHUB) != null
+
     /** Stores a grant from device-flow sign-in. */
     fun saveGrant(grant: GitHubTokenGrant) {
         vault.putAll(entriesFor(grant))
@@ -96,7 +99,9 @@ class GitHubBuildCredentials(
     }
 
     private fun signedOut(): String? {
-        clear(GITHUB_HOST)
+        vault.clear()
+        vault.putAll(mapOf(SIGNED_OUT_BY_GITHUB to "true"))
+        changeEvents.tryEmit(Unit)
         return null
     }
 
@@ -107,6 +112,7 @@ class GitHubBuildCredentials(
             EXPIRES_AT to grant.expiresInSeconds?.let { (now + it * 1000).toString() },
             REFRESH_TOKEN to grant.refreshToken,
             REFRESH_EXPIRES_AT to grant.refreshTokenExpiresInSeconds?.let { (now + it * 1000).toString() },
+            SIGNED_OUT_BY_GITHUB to null,
         )
     }
 
@@ -120,6 +126,7 @@ class GitHubBuildCredentials(
         private const val EXPIRES_AT = "access_token_expires_at"
         private const val REFRESH_TOKEN = "refresh_token"
         private const val REFRESH_EXPIRES_AT = "refresh_token_expires_at"
+        private const val SIGNED_OUT_BY_GITHUB = "signed_out_by_github"
         private const val REFRESH_MARGIN_MS = 5 * 60 * 1000L
     }
 }

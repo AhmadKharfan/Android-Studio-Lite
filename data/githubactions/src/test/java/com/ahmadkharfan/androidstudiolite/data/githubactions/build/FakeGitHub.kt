@@ -26,6 +26,7 @@ internal class FakeGitHub {
     var scopes: String? = "repo, workflow"
     var repositoryExists = false
     var repositoryPrivate = true
+    var appInstalled = true
     var workflowContent: String? = null
     var dispatchReturnsRunId = true
     var runStatuses = ArrayDeque(listOf("queued", "in_progress", "completed"))
@@ -60,6 +61,7 @@ internal class FakeGitHub {
             json("""{"login":"octo"}""").apply { scopes?.let { setHeader("X-OAuth-Scopes", it) } }
         method == "GET" && path == "/repos/octo/asl-build" ->
             if (repositoryExists) json(repoJson()) else json("""{"message":"Not Found"}""", 404)
+        method == "GET" && path.startsWith("/user/installations") -> installationRoute(path)
         method == "POST" && path == "/user/repos" -> {
             repositoryExists = true
             json(repoJson(), 201)
@@ -105,14 +107,32 @@ internal class FakeGitHub {
         else -> json("""{"message":"Unexpected $method $path"}""", 500)
     }
 
+    /** The build GitHub App's installation on `octo`, limited to the build repository when it exists. */
+    private fun installationRoute(path: String): MockResponse = when (path) {
+        "/user/installations" -> json(
+            if (appInstalled) {
+                """{"total_count":1,"installations":[{"id":42,"account":{"login":"octo"},"repository_selection":"selected",
+                "html_url":"$INSTALLATION_URL","suspended_at":null}]}"""
+            } else {
+                """{"total_count":0,"installations":[]}"""
+            },
+        )
+        "/user/installations/42/repositories" ->
+            json("""{"total_count":1,"repositories":[${if (repositoryExists) repoJson() else ""}]}""")
+        else -> json("""{"message":"Not Found"}""", 404)
+    }
+
     private fun repoJson() =
-        """{"full_name":"octo/asl-build","private":$repositoryPrivate,"default_branch":"main"}"""
+        """{"id":$REPOSITORY_ID,"full_name":"octo/asl-build","private":$repositoryPrivate,"default_branch":"main",
+        "html_url":"https://github.com/octo/asl-build"}"""
 
     private fun json(body: String, code: Int = 200) =
         MockResponse().setResponseCode(code).setHeader("Content-Type", "application/json").setBody(body)
 
     companion object {
         const val CORRELATION = "corr-0001-abcd"
+        const val REPOSITORY_ID = 555L
+        const val INSTALLATION_URL = "https://github.com/settings/installations/42"
         val APK_BYTES = "fake-apk-bytes".toByteArray()
 
         fun sha256(bytes: ByteArray): String =

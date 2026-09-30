@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
 import com.ahmadkharfan.androidstudiolite.data.githubactions.build.GitHubActionsBuildSystem
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessChecker
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessMonitor
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.ReadinessSignals
+import com.ahmadkharfan.androidstudiolite.data.githubactions.build.RepositorySetup
 import com.ahmadkharfan.androidstudiolite.domain.model.GitDiffTarget
 import com.ahmadkharfan.androidstudiolite.domain.usecase.CloneProjectUseCase
 import com.ahmadkharfan.androidstudiolite.feature.editor.EditorViewModel
@@ -18,6 +22,8 @@ import com.ahmadkharfan.androidstudiolite.feature.git.refs.GitRefsMode
 import com.ahmadkharfan.androidstudiolite.feature.git.refs.GitRefsViewModel
 import com.ahmadkharfan.androidstudiolite.feature.terminal.TerminalSessionManager
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import org.junit.Test
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.module
@@ -51,6 +57,13 @@ class KoinModuleGraphTest {
                 definition<AssetsViewModel>(String::class),
                 definition<GitHubApiClient>(Function1::class),
                 definition<GitHubActionsBuildSystem>(Function1::class),
+                definition<CloudBuildReadinessChecker>(
+                    Function1::class,
+                    String::class,
+                    RepositorySetup::class,
+                    ReadinessSignals::class,
+                ),
+                definition<CloudBuildReadinessMonitor>(Function1::class, CoroutineScope::class, Flow::class),
             ),
         )
     }

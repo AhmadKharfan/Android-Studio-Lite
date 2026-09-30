@@ -32,6 +32,11 @@ internal object GitHubBuildMessages {
         else -> "GitHub refused the request: ${error.message}"
     }
 
+    /** GitHub's API limit is used up, until [resetAtEpochSeconds] when known. */
+    fun rateLimited(resetAtEpochSeconds: Long?, formatTime: (Long) -> String = ::localTime): String =
+        resetAtEpochSeconds?.let { "GitHub's API limit for your account is used up until ${formatTime(it * 1000)}. Try again then." }
+            ?: "GitHub is limiting requests right now. Try again in a few minutes."
+
     /** The message for a run that finished without success, or null when it succeeded. */
     fun forConclusion(conclusion: String?, runUrl: String?): String? {
         val seeRun = runUrl?.let { " See the run on GitHub: $it" }.orEmpty()

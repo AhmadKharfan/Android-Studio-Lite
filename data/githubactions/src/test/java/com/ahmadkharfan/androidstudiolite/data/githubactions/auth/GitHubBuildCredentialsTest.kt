@@ -107,6 +107,7 @@ class GitHubBuildCredentialsTest {
 
         assertNull(credentials.accessToken())
         assertFalse(credentials.hasCredentials("github.com"))
+        assertTrue(credentials.wasSignedOutByGitHub)
     }
 
     @Test
@@ -116,6 +117,27 @@ class GitHubBuildCredentialsTest {
 
         assertNull(credentials.accessToken())
         assertEquals(0, server.requestCount)
+        assertTrue(credentials.wasSignedOutByGitHub)
+    }
+
+    @Test
+    fun `connecting again or disconnecting forgets that github ended the connection`() = runBlocking {
+        credentials.saveGrant(appGrant)
+        now += 15_897_600_000
+        credentials.accessToken()
+
+        credentials.saveGrant(appGrant)
+        assertFalse(credentials.wasSignedOutByGitHub)
+
+        now += 15_897_600_000
+        credentials.accessToken()
+        credentials.clear("github.com")
+        assertFalse(credentials.wasSignedOutByGitHub)
+    }
+
+    @Test
+    fun `a user who never connected was not signed out by github`() {
+        assertFalse(credentials.wasSignedOutByGitHub)
     }
 
     @Test

@@ -19,6 +19,9 @@ class GitHubActionsAccess private constructor(
 
     override val credentials: GitCredentialStore get() = appCredentials ?: gitCredentials
 
+    /** True when GitHub ended the App connection itself; the Git sign-in has no such signal. */
+    val signedOutByGitHub: Boolean get() = appCredentials?.wasSignedOutByGitHub ?: false
+
     /** The token to call GitHub with now, renewed first when the App token is about to expire. */
     suspend fun token(): String? = if (appCredentials != null) {
         appCredentials.accessToken()

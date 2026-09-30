@@ -8,6 +8,8 @@ import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent.RemoteBu
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildKind
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildRequest
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildState
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectInspector
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.GradleProjectSummary
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.ProjectModel
@@ -22,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -350,7 +353,7 @@ class GitHubActionsBuildSystemTest {
     }
 
     @Test
-    fun `with the github app readiness asks for app sign-in, then repository setup`() = runBlocking {
+    fun `with the github app readiness asks for app sign-in, then access, then the repository`() = runBlocking {
         val setup = RepositorySetup.Manual(installUrl = null)
         repositorySetup = setup
         signInMessage = "Connect GitHub for builds."
@@ -360,10 +363,45 @@ class GitHubActionsBuildSystemTest {
         assertEquals(BuildReadiness.NeedsSignIn("Connect GitHub for builds."), buildSystem().readiness())
 
         token = "ghu_test"
+        github.appInstalled = false
         assertEquals(BuildReadiness.NeedsSetup(setup.message("asl-build")), buildSystem().readiness())
+
+        github.appInstalled = true
+        val unreachable = buildSystem().readiness() as BuildReadiness.NeedsSetup
+        assertTrue(unreachable.reason, unreachable.reason.contains(FakeGitHub.INSTALLATION_URL))
 
         github.repositoryExists = true
         assertEquals(BuildReadiness.Ready, buildSystem().readiness())
+    }
+
+    @Test
+    fun `with the github app a public repository blocks the build up front`() = runBlocking {
+        repositorySetup = RepositorySetup.Manual(installUrl = null)
+        github.repositoryExists = true
+        github.repositoryPrivate = false
+
+        val readiness = buildSystem().readiness() as BuildReadiness.NeedsSetup
+        assertTrue(readiness.reason, readiness.reason.contains("is public"))
+    }
+
+    @Test
+    fun `readiness answers through the shared readiness when one is given`() = runBlocking {
+        val shared = object : CloudBuildReadiness {
+            override val state = MutableStateFlow<CloudBuildState?>(null)
+            override suspend fun check(): CloudBuildState = CloudBuildState.Offline.also { state.value = it }
+        }
+        val system = GitHubActionsBuildSystem(
+            api = GitHubApiClient(token = { token }, baseUrl = github.server.url("/"), waitBeforeRetry = {}),
+            token = { token },
+            snapshots = SourceSnapshotPusher(File(tmp.root, "shadow")),
+            inspector = Inspector,
+            config = GitHubActionsConfig(File(tmp.root, "downloads")),
+            readiness = GitHubActionsReadiness(shared = shared),
+        )
+
+        assertTrue(system.readiness() is BuildReadiness.Unavailable)
+        assertEquals(CloudBuildState.Offline, shared.state.value)
+        assertEquals(0, github.server.requestCount)
     }
 
     @Test
