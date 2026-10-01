@@ -28,6 +28,8 @@ internal class ResultCollector(
     private val signing: ApkSigning?,
 ) {
 
+    private val annotations = RunAnnotations(api)
+
     /**
      * Emits the run's results and returns whether it produced what [request] asked for. A null [request]
      * (re-attached build, original request unknown) accepts whichever artifact the run produced.
@@ -46,6 +48,8 @@ internal class ResultCollector(
         val conclusionProblem = GitHubBuildMessages.forConclusion(run.conclusion, run.htmlUrl)
         if (artifact == null) {
             emit(error(conclusionProblem ?: "The build finished on GitHub but left no results."))
+            // Without results, GitHub's own words are the only explanation (e.g. a job that was never started).
+            annotations.failures(handle, run.id).forEach { emit(error("GitHub: $it")) }
             return false
         }
         emit(BuildEvent.StatusChanged(RemoteBuildPhase.DOWNLOADING, "Downloading the build results…"))

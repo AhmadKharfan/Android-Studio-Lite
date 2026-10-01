@@ -4,8 +4,10 @@ import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiClient
 import com.ahmadkharfan.androidstudiolite.data.githubactions.api.GitHubApiException
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildEvent
 import kotlinx.coroutines.runBlocking
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -77,6 +79,55 @@ class RunFollowerTest {
 
         assertTrue(error is GitHubApiException)
         assertEquals(1, server.requestCount)
+    }
+
+    /** Routes by path so polls and job lookups can interleave freely. */
+    private fun scripted(status: () -> String, jobs: () -> String) {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty().substringBefore('?')
+                return when {
+                    request.method == "POST" && path.endsWith("/cancel") -> MockResponse().setResponseCode(409)
+                    path.endsWith("/jobs") -> MockResponse().setHeader("Content-Type", "application/json").setBody(jobs())
+                    else -> run(status())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a run github keeps queued without a job is given up on with a clear message`() = runBlocking {
+        scripted(status = { "queued" }, jobs = { """{"total_count":0,"jobs":[]}""" })
+
+        val error = runCatching { follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) {} }.exceptionOrNull()
+
+        assertTrue(error is BuildFailure)
+        assertTrue(error!!.message!!, error.message!!.startsWith("GitHub accepted the build but hasn't started it."))
+        assertTrue(now in 180_000L..200_000L)
+    }
+
+    @Test
+    fun `a queued run whose job exists is waiting for a machine and keeps being followed`() = runBlocking {
+        var polls = 0
+        scripted(
+            status = { if (++polls > 60) "completed" else "queued" },
+            jobs = { """{"jobs":[{"id":5,"name":"Build","status":"queued"}]}""" },
+        )
+
+        val finished = follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) {}
+
+        assertTrue(finished.isCompleted)
+        assertTrue(now > 180_000L)
+    }
+
+    @Test
+    fun `a run waiting on another of the same group is pending and keeps being followed`() = runBlocking {
+        var polls = 0
+        scripted(status = { if (++polls > 60) "completed" else "pending" }, jobs = { """{"jobs":[]}""" })
+
+        val finished = follower().follow(handle, 77, deadlineMillis = Long.MAX_VALUE, liveLog = null) {}
+
+        assertTrue(finished.isCompleted)
     }
 
     @Test

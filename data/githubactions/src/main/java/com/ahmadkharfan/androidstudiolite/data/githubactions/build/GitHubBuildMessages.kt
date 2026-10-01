@@ -37,6 +37,11 @@ internal object GitHubBuildMessages {
         resetAtEpochSeconds?.let { "GitHub's API limit for your account is used up until ${formatTime(it * 1000)}. Try again then." }
             ?: "GitHub is limiting requests right now. Try again in a few minutes."
 
+    /** A run GitHub accepted but never started; GitHub doesn't say why, so neither does this. */
+    fun notPickedUp(runUrl: String?): String =
+        "GitHub accepted the build but hasn't started it. Check that cloud builds are allowed for your " +
+            "build storage on GitHub, then try again." + (runUrl?.let { " See the run on GitHub: $it" }.orEmpty())
+
     /** The message for a run that finished without success, or null when it succeeded. */
     fun forConclusion(conclusion: String?, runUrl: String?): String? {
         val seeRun = runUrl?.let { " See the run on GitHub: $it" }.orEmpty()

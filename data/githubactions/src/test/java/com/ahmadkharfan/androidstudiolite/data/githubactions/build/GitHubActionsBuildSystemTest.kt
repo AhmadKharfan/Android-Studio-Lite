@@ -238,6 +238,33 @@ class GitHubActionsBuildSystemTest {
     }
 
     @Test
+    fun `a run that never ran shows github's own reason, not a guessed one`() {
+        github.conclusion = "failure"
+        github.resultZip = null
+        github.jobAnnotations = """[
+            {"annotation_level":"failure","message":"The job was not started because recent account payments have failed or your spending limit needs to be increased."},
+            {"annotation_level":"notice","message":"The ubuntu-latest label will migrate soon."}
+        ]"""
+
+        val problems = build().filterIsInstance<BuildEvent.Problem>().map { it.message }
+
+        assertTrue(problems.toString(), problems.first().startsWith("The build failed."))
+        assertEquals(
+            "GitHub: The job was not started because recent account payments have failed or your spending limit needs to be increased.",
+            problems[1],
+        )
+        assertEquals(2, problems.size)
+    }
+
+    @Test
+    fun `dispatch asks github for the run id`() {
+        build()
+
+        val body = github.bodyOf("POST /repos/octo/asl-build/actions/workflows/asl-build.yml/dispatches")
+        assertTrue(body, body.contains("\"return_run_details\":true"))
+    }
+
+    @Test
     fun `tampered apk is rejected`() {
         github.resultZip = FakeGitHub.resultZip(apkSha = "0".repeat(64))
 

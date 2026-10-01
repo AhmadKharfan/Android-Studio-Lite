@@ -34,6 +34,9 @@ internal class FakeGitHub {
     var resultZip: ByteArray? = resultZip()
     var runListed = true
 
+    /** The build job's check-run annotations, as GitHub returns them. */
+    var jobAnnotations = "[]"
+
     /** Successive `(asl-lines, tail)` states of the live-log check run; empty means no live log. */
     var liveOutputs = ArrayDeque<Pair<Int, String>>()
     private var lastLive: Pair<Int, String>? = null
@@ -84,7 +87,8 @@ internal class FakeGitHub {
             json("""{"id":77,"status":"$lastStatus","conclusion":$conclusionJson,"html_url":"https://github.com/octo/asl-build/actions/runs/77"}""")
         }
         method == "GET" && path == "/repos/octo/asl-build/actions/runs/77/jobs" ->
-            json("""{"jobs":[{"id":5,"name":"Build","status":"in_progress","steps":[{"name":"Build","number":7,"status":"in_progress"}]}]}""")
+            json("""{"jobs":[{"id":5,"name":"Build","status":"in_progress","check_run_url":"https://api.github.com/repos/octo/asl-build/check-runs/66","steps":[{"name":"Build","number":7,"status":"in_progress"}]}]}""")
+        method == "GET" && path == "/repos/octo/asl-build/check-runs/66/annotations" -> json(jobAnnotations)
         method == "POST" && path == "/repos/octo/asl-build/actions/runs/77/cancel" -> MockResponse().setResponseCode(202)
         method == "GET" && path == "/repos/octo/asl-build/commits/main/check-runs" ->
             json(if (liveOutputs.isEmpty() && lastLive == null) """{"check_runs":[]}""" else """{"check_runs":[{"id":55,"name":"asl-live-$CORRELATION"}]}""")
