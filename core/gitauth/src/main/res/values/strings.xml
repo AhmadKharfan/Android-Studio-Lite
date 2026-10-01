@@ -52,6 +52,20 @@
     <string name="cloud_build_create_body">Cloud Build keeps a copy of your project here while it builds. GitHub opens with everything filled in. Just tap “Create repository”.</string>
     <string name="cloud_build_create_action">Create on GitHub</string>
     <string name="cloud_build_create_secondary">Create build storage</string>
+    <string name="cloud_build_create_auto_action">Create private build storage</string>
+    <string name="cloud_build_create_auto_body">Android Studio Lite creates a private repository named “asl-build” on your GitHub account and keeps a copy of your project there while it builds.</string>
+    <string name="cloud_build_create_manual_instead">Create it on GitHub instead</string>
+    <string name="cloud_build_created">Private build storage is ready. Now allow Cloud Build to use it.</string>
+    <string name="cloud_build_created_existing">Your private build storage already exists. Now allow Cloud Build to use it.</string>
+    <string name="cloud_build_create_public">A repository named “asl-build” already exists and is public, so it was left untouched. Make it private on GitHub, then check again.</string>
+    <string name="cloud_build_create_mismatch">Your Git sign-in is @%1$s, but Cloud Build uses @%2$s, so nothing was created. Create the build storage on GitHub instead.</string>
+    <string name="cloud_build_create_not_allowed">Your GitHub sign-in isn\'t allowed to create private repositories. Create the build storage on GitHub instead.</string>
+    <string name="cloud_build_create_expired">Your Git sign-in has expired. Sign in again under Settings › Git &amp; GitHub, or create the build storage on GitHub.</string>
+    <string name="cloud_build_create_no_sign_in">Sign in under Settings › Git &amp; GitHub to let Android Studio Lite create it, or create it on GitHub.</string>
+    <string name="cloud_build_create_not_connected">Connect GitHub for builds first.</string>
+    <string name="cloud_build_create_offline">You\'re offline. Try again when you\'re connected.</string>
+    <string name="cloud_build_create_unavailable">GitHub isn\'t responding. Try again in a moment.</string>
+    <string name="cloud_build_create_failed">Couldn\'t create the build storage: %1$s</string>
 
     <string name="cloud_build_unreachable_title">Cloud Build can\'t reach your build storage</string>
     <string name="cloud_build_unreachable_body">It may have been deleted, renamed, or removed from Cloud Build\'s access on GitHub. Your projects on this phone are safe.</string>

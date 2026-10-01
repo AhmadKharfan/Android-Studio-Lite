@@ -2,11 +2,10 @@ package com.ahmadkharfan.androidstudiolite.feature.editor
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildServices
 import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupController
 import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupOrigin
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
-import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import com.ahmadkharfan.androidstudiolite.domain.model.FileNode
 import com.ahmadkharfan.androidstudiolite.domain.model.GitFileState
 import com.ahmadkharfan.androidstudiolite.domain.repository.FileContentRepository
@@ -56,8 +55,7 @@ class EditorViewModel(
     private val networkMonitor: NetworkMonitor? = null,
     private val gitRepository: GitRepository? = null,
     private val workspaceWriteGate: WorkspaceWriteGate? = null,
-    cloudBuildReadiness: CloudBuildReadiness? = null,
-    gitHubBuildAccess: GitHubBuildAccess? = null,
+    cloudBuild: CloudBuildServices? = null,
 ) : BaseViewModel<EditorUiState, EditorEffect>(
     initialState = EditorUiState(bottomPanelTabs = BOTTOM_PANEL_TABS),
 ), EditorInteractionListener {
@@ -100,14 +98,9 @@ class EditorViewModel(
     )
 
     /** The Cloud Build setup, shown when Run is blocked because Cloud Build isn't ready; null without Cloud Build. */
-    val cloudBuildSetup: CloudBuildSetupController? =
-        if (cloudBuildReadiness != null && gitHubBuildAccess != null) {
-            CloudBuildSetupController(viewModelScope, cloudBuildReadiness, gitHubBuildAccess) { setup ->
-                updateState { copy(cloudBuildSetup = setup) }
-            }
-        } else {
-            null
-        }
+    val cloudBuildSetup: CloudBuildSetupController? = cloudBuild?.let { services ->
+        CloudBuildSetupController(viewModelScope, services) { setup -> updateState { copy(cloudBuildSetup = setup) } }
+    }
 
     private val buildController = EditorBuildController(
         projectId = projectId,

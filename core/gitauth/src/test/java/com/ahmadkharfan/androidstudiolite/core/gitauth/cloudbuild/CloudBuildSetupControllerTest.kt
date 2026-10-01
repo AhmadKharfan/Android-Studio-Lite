@@ -3,6 +3,8 @@ package com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildState
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorage
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorageCreation
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorageCreator
 import com.ahmadkharfan.androidstudiolite.domain.model.GitCredentials
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
@@ -73,10 +75,22 @@ class CloudBuildSetupControllerTest {
     @After
     fun tearDown() = scopes.forEach { it.cancel() }
 
-    private fun TestScope.controller(readiness: CloudBuildReadiness): Pair<CloudBuildSetupController, () -> CloudBuildSetupUiState> {
+    private fun TestScope.controller(
+        readiness: CloudBuildReadiness,
+        creator: CloudBuildStorageCreator? = null,
+    ): Pair<CloudBuildSetupController, () -> CloudBuildSetupUiState> {
         var latest = CloudBuildSetupUiState()
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler)).also { scopes += it }
-        return CloudBuildSetupController(scope, readiness, access) { latest = it } to { latest }
+        return CloudBuildSetupController(scope, CloudBuildServices(readiness, access, creator)) { latest = it } to { latest }
+    }
+
+    private class ScriptedCreator(private val outcome: CloudBuildStorageCreation) : CloudBuildStorageCreator {
+        var calls = 0
+        override val isAvailable = true
+        override suspend fun create(): CloudBuildStorageCreation {
+            calls++
+            return outcome
+        }
     }
 
     @Test
@@ -194,6 +208,94 @@ class CloudBuildSetupControllerTest {
 
         assertEquals(listOf("github.com"), access.credentials.cleared)
         assertTrue(ui().authPrompt.visible)
+    }
+
+    @Test
+    fun `creating the storage re-checks, then allowing access leads to ready and the build`() = runTest {
+        val readiness = ScriptedReadiness(CloudBuildState.StorageNotReachable("https://github.com/settings/installations/42", false))
+        val creator = ScriptedCreator(CloudBuildStorageCreation.Created(storage()))
+        val (controller, ui) = controller(readiness, creator)
+        var builds = 0
+        controller.open(CloudBuildSetupOrigin.Run) { builds++ }
+        advanceUntilIdle()
+        assertEquals(CloudBuildAction.CreateStorage, ui().screen.secondary)
+        val checks = readiness.checks
+
+        controller.onCloudBuildCreateStorage()
+        advanceUntilIdle()
+
+        assertEquals(1, creator.calls)
+        assertEquals(checks + 1, readiness.checks)
+        assertEquals(CloudBuildStorageCreation.Created(storage()), ui().storageCreation)
+        assertEquals(null, ui().screen.secondary)
+
+        controller.onCloudBuildOpenedGitHub()
+        readiness.becomes(CloudBuildState.Ready("octo", storage()))
+        controller.onResumed()
+        advanceUntilIdle()
+
+        assertEquals(1, builds)
+    }
+
+    @Test
+    fun `creation that turns ready right away starts the build`() = runTest {
+        val readiness = ScriptedReadiness(CloudBuildState.StorageMissing(null))
+        val creator = ScriptedCreator(CloudBuildStorageCreation.AlreadyExists(storage()))
+        val (controller, _) = controller(readiness, creator)
+        var builds = 0
+        controller.open(CloudBuildSetupOrigin.Run) { builds++ }
+        advanceUntilIdle()
+
+        readiness.becomes(CloudBuildState.Ready("octo", storage()))
+        controller.onCloudBuildCreateStorage()
+        advanceUntilIdle()
+
+        assertEquals(1, builds)
+    }
+
+    @Test
+    fun `when creating isn't allowed the manual github form is offered instead`() = runTest {
+        val readiness = ScriptedReadiness(CloudBuildState.StorageMissing(null))
+        val (controller, ui) = controller(readiness, ScriptedCreator(CloudBuildStorageCreation.NotAllowed))
+        controller.open(CloudBuildSetupOrigin.Run) {}
+        advanceUntilIdle()
+        val checks = readiness.checks
+
+        controller.onCloudBuildCreateStorage()
+        advanceUntilIdle()
+
+        assertEquals(CloudBuildStorageCreation.NotAllowed, ui().storageCreation)
+        assertEquals(checks, readiness.checks)
+        assertEquals(
+            CloudBuildAction.OpenGitHub(CREATE_STORAGE_URL, CloudBuildAction.Purpose.CreateStorage),
+            ui().screen.primary,
+        )
+    }
+
+    @Test
+    fun `a transient failure keeps offering to create`() = runTest {
+        val readiness = ScriptedReadiness(CloudBuildState.StorageMissing(null))
+        val (controller, ui) = controller(readiness, ScriptedCreator(CloudBuildStorageCreation.GitHubUnavailable))
+        controller.open(CloudBuildSetupOrigin.Run) {}
+        advanceUntilIdle()
+
+        controller.onCloudBuildCreateStorage()
+        advanceUntilIdle()
+
+        assertEquals(CloudBuildAction.CreateStorage, ui().screen.primary)
+    }
+
+    @Test
+    fun `without a creator the manual path is unchanged`() = runTest {
+        val (controller, ui) = controller(ScriptedReadiness(CloudBuildState.StorageMissing(null)))
+        controller.open(CloudBuildSetupOrigin.Run) {}
+        advanceUntilIdle()
+
+        assertFalse(ui().canCreateStorage)
+        assertEquals(
+            CloudBuildAction.OpenGitHub(CREATE_STORAGE_URL, CloudBuildAction.Purpose.CreateStorage),
+            ui().screen.primary,
+        )
     }
 
     @Test

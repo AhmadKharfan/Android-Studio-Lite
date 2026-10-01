@@ -110,7 +110,8 @@ internal class BuildRepositoryProvisioner(
     companion object {
         /** OAuth scopes an OAuth token needs to create the repository and install the workflow. */
         val REQUIRED_SCOPES = setOf("repo", "workflow")
-        private const val DESCRIPTION = "Builds for Android Studio Lite. Managed by the app; keep it private."
+        /** The description the build repository is created with. */
+        const val DESCRIPTION = "Builds for Android Studio Lite. Managed by the app; keep it private."
         private const val DEFAULT_BRANCH = "main"
         private const val HTTP_CONFLICT = 409
         private const val INITIALISING_ATTEMPTS = 5

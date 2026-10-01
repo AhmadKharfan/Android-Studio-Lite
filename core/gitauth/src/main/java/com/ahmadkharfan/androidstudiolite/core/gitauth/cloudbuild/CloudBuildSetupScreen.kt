@@ -45,6 +45,9 @@ sealed interface CloudBuildAction {
     /** Open [url] on GitHub; the setup re-checks when the user comes back. */
     data class OpenGitHub(val url: String, val purpose: Purpose) : CloudBuildAction
 
+    /** Create the private build storage from the app, with a GitHub sign-in that's allowed to. */
+    data object CreateStorage : CloudBuildAction
+
     enum class Purpose { AllowAccess, ManageAccess, CreateStorage, StorageSettings, ReviewAccess }
 }
 
@@ -60,8 +63,13 @@ const val INSTALLATIONS_URL = "https://github.com/settings/installations"
  * `html_url`s) or from a documented GitHub URL; none is built from ids.
  *
  * @param installUrl where to install the build App when it isn't installed and the state carries no link.
+ * @param storage whether the app can create the build storage itself, and whether it just did.
  */
-fun cloudBuildSetupScreen(state: CloudBuildState?, installUrl: String?): CloudBuildSetupScreen = when (state) {
+fun cloudBuildSetupScreen(
+    state: CloudBuildState?,
+    installUrl: String?,
+    storage: StorageCreationOptions = StorageCreationOptions(),
+): CloudBuildSetupScreen = when (state) {
     null, CloudBuildState.Checking -> CloudBuildSetupScreen(CloudBuildStep.Checking, primary = null)
     CloudBuildState.NotConnected -> CloudBuildSetupScreen(CloudBuildStep.Connect, CloudBuildAction.Connect)
     CloudBuildState.Revoked -> CloudBuildSetupScreen(CloudBuildStep.Reconnect, CloudBuildAction.Connect)
@@ -72,13 +80,19 @@ fun cloudBuildSetupScreen(state: CloudBuildState?, installUrl: String?): CloudBu
         CloudBuildSetupScreen(CloudBuildStep.RateLimited, CloudBuildAction.CheckAgain, resetAtEpochSeconds = state.resetAtEpochSeconds)
     is CloudBuildState.Unknown ->
         CloudBuildSetupScreen(CloudBuildStep.Unknown, CloudBuildAction.CheckAgain, detail = state.message)
-    else -> accessScreen(state, installUrl)
+    else -> accessScreen(state, installUrl, storage)
 }
 
+/**
+ * Whether the setup offers to create the build storage from the app ([canCreate]), and whether it just
+ * created it or found it ([created]), after which only allowing access is left.
+ */
+@Immutable
+data class StorageCreationOptions(val canCreate: Boolean = false, val created: Boolean = false)
+
 /** Screens that send the user to GitHub to fix access or the build storage. */
-private fun accessScreen(state: CloudBuildState, installUrl: String?): CloudBuildSetupScreen {
-    val createStorage = CloudBuildAction.OpenGitHub(CREATE_STORAGE_URL, CloudBuildAction.Purpose.CreateStorage)
-    fun manage(url: String?) = CloudBuildAction.OpenGitHub(url ?: INSTALLATIONS_URL, CloudBuildAction.Purpose.ManageAccess)
+private fun accessScreen(state: CloudBuildState, installUrl: String?, storage: StorageCreationOptions): CloudBuildSetupScreen {
+    val createStorage = createStorageAction(storage)
     return when (state) {
         is CloudBuildState.AccessMissing -> CloudBuildSetupScreen(
             CloudBuildStep.AllowAccess,
@@ -86,7 +100,7 @@ private fun accessScreen(state: CloudBuildState, installUrl: String?): CloudBuil
             secondary = createStorage,
         )
         is CloudBuildState.AccessPaused -> CloudBuildSetupScreen(CloudBuildStep.AccessPaused, manage(state.manageUrl))
-        is CloudBuildState.StorageMissing -> CloudBuildSetupScreen(CloudBuildStep.CreateStorage, createStorage)
+        is CloudBuildState.StorageMissing -> missingStorageScreen(createStorage)
         is CloudBuildState.StorageNotReachable ->
             CloudBuildSetupScreen(CloudBuildStep.StorageNotReachable, manage(state.manageUrl), secondary = createStorage)
         is CloudBuildState.StoragePublic -> CloudBuildSetupScreen(
@@ -100,6 +114,24 @@ private fun accessScreen(state: CloudBuildState, installUrl: String?): CloudBuil
         else -> CloudBuildSetupScreen(CloudBuildStep.Unknown, CloudBuildAction.CheckAgain)
     }
 }
+
+private val manualCreateStorage = CloudBuildAction.OpenGitHub(CREATE_STORAGE_URL, CloudBuildAction.Purpose.CreateStorage)
+
+private fun manage(url: String?) = CloudBuildAction.OpenGitHub(url ?: INSTALLATIONS_URL, CloudBuildAction.Purpose.ManageAccess)
+
+/** How the build storage can be created now: by the app, on GitHub, or not at all once it's done. */
+private fun createStorageAction(storage: StorageCreationOptions): CloudBuildAction? = when {
+    storage.created -> null
+    storage.canCreate -> CloudBuildAction.CreateStorage
+    else -> manualCreateStorage
+}
+
+private fun missingStorageScreen(createStorage: CloudBuildAction?) = CloudBuildSetupScreen(
+    CloudBuildStep.CreateStorage,
+    createStorage ?: CloudBuildAction.CheckAgain,
+    // When the app creates it, GitHub's form stays available as the manual way.
+    secondary = manualCreateStorage.takeIf { createStorage == CloudBuildAction.CreateStorage },
+)
 
 private fun permissionScreen(state: CloudBuildState.PermissionUpdateRequired): CloudBuildSetupScreen =
     if (state.manageUrl == null && state.acceptedPermissions == null) {
