@@ -69,7 +69,12 @@ internal data class PutContentRequest(
 )
 
 @Serializable
-internal data class DispatchRequest(val ref: String, val inputs: Map<String, String>)
+internal data class DispatchRequest(
+    val ref: String,
+    val inputs: Map<String, String>,
+    /** Asks GitHub to answer with the new run's id rather than an empty 204. */
+    @SerialName("return_run_details") val returnRunDetails: Boolean,
+)
 
 @Serializable
 internal data class DispatchResponse(@SerialName("workflow_run_id") val workflowRunId: Long? = null)
@@ -98,6 +103,17 @@ data class WorkflowJob(
     val status: String? = null,
     val conclusion: String? = null,
     val steps: List<WorkflowStep> = emptyList(),
+    @SerialName("check_run_url") val checkRunUrl: String? = null,
+) {
+    /** The job's check run, whose annotations hold GitHub's own messages about it. */
+    val checkRunId: Long? get() = checkRunUrl?.substringAfterLast('/')?.toLongOrNull()
+}
+
+/** A message GitHub attached to a job, e.g. why it never started or was cancelled. */
+@Serializable
+data class CheckAnnotation(
+    @SerialName("annotation_level") val level: String? = null,
+    val message: String? = null,
 )
 
 @Serializable

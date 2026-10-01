@@ -60,6 +60,7 @@ internal class RunFollower(
             state.consecutiveFailures = 0
             if (run.isCompleted) return run
             report(handle, run, state, emit)
+            checkPickedUp(handle, run, state)
             if (run.status !in QUEUED_STATUSES) liveLog?.poll(emit)
             wait(pollInterval(run))
         }
@@ -82,6 +83,30 @@ internal class RunFollower(
         if (step != null && step != state.lastStep) {
             state.lastStep = step
             emit(BuildEvent.Progress(stepLabel(step)))
+        }
+    }
+
+    /**
+     * Gives up on a run GitHub keeps "queued" without ever creating its job. A run whose job exists is
+     * waiting for a build machine and is left alone; one with no job after [NOT_PICKED_UP_MS] won't
+     * start by itself (seen when Actions is turned off for the repository). Concurrency waits are
+     * "pending", not "queued", and aren't affected.
+     */
+    private suspend fun checkPickedUp(handle: BuildHandle, run: WorkflowRun, state: FollowState) {
+        if (run.status != QUEUED) {
+            state.queuedWithoutJobSince = null
+            return
+        }
+        val hasJob = runCatching { api.jobs(handle.owner, handle.repo, run.id) }.getOrNull()?.isNotEmpty() ?: return
+        if (hasJob) {
+            state.queuedWithoutJobSince = null
+            return
+        }
+        val since = state.queuedWithoutJobSince ?: clock.elapsedMillis().also { state.queuedWithoutJobSince = it }
+        if (clock.elapsedMillis() - since >= NOT_PICKED_UP_MS) {
+            // Best effort: GitHub may refuse to cancel a run it never queued.
+            runCatching { api.cancelRun(handle.owner, handle.repo, run.id) }
+            throw BuildFailure(GitHubBuildMessages.notPickedUp(run.htmlUrl))
         }
     }
 
@@ -133,10 +158,13 @@ internal class RunFollower(
         var lastStatus: String? = null,
         var lastStep: String? = null,
         var consecutiveFailures: Int = 0,
+        var queuedWithoutJobSince: Long? = null,
     )
 
     private companion object {
-        val QUEUED_STATUSES = setOf("queued", "waiting", "pending", "requested")
+        const val QUEUED = "queued"
+        val QUEUED_STATUSES = setOf(QUEUED, "waiting", "pending", "requested")
+        const val NOT_PICKED_UP_MS = 3 * 60_000L
         const val RESOLVE_TIMEOUT_MS = 90_000L
         const val RESOLVE_INTERVAL_MS = 3_000L
         const val RUNNING_POLL_MS = 5_000L

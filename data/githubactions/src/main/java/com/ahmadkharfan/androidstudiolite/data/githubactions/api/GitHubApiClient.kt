@@ -120,7 +120,7 @@ class GitHubApiClient(
         ref: String,
         inputs: Map<String, String>,
     ): Long? {
-        val body = JSON.encodeToString(DispatchRequest(ref, inputs))
+        val body = JSON.encodeToString(DispatchRequest(ref, inputs, returnRunDetails = true))
         val response = send("POST", "repos/$owner/$repo/actions/workflows/$workflowFile/dispatches", body)
         if (response.body.isBlank()) return null
         return runCatching { JSON.decodeFromString<DispatchResponse>(response.body).workflowRunId }.getOrNull()
@@ -139,6 +139,10 @@ class GitHubApiClient(
 
     suspend fun jobs(owner: String, repo: String, runId: Long): List<WorkflowJob> =
         JSON.decodeFromString<WorkflowJobsPage>(get("repos/$owner/$repo/actions/runs/$runId/jobs").body).jobs
+
+    /** GitHub's annotations on check run [checkRunId]: its own explanations of failures and cancellations. */
+    suspend fun checkRunAnnotations(owner: String, repo: String, checkRunId: Long): List<CheckAnnotation> =
+        JSON.decodeFromString(get("repos/$owner/$repo/check-runs/$checkRunId/annotations").body)
 
     suspend fun cancelRun(owner: String, repo: String, runId: Long, force: Boolean = false) {
         send("POST", "repos/$owner/$repo/actions/runs/$runId/${if (force) "force-cancel" else "cancel"}", null)

@@ -133,7 +133,7 @@ class GitHubApiClientTest {
         assertEquals(42L, runId)
         val request = server.takeRequest()
         assertEquals("/repos/octo/asl-build/actions/workflows/asl-build.yml/dispatches", request.path)
-        assertEquals("""{"ref":"main","inputs":{"tasks":"a"}}""", request.body.readUtf8())
+        assertEquals("""{"ref":"main","inputs":{"tasks":"a"},"return_run_details":true}""", request.body.readUtf8())
     }
 
     @Test
