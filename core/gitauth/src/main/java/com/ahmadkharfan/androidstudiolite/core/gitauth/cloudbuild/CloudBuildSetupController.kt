@@ -7,9 +7,21 @@ import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptActions
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthPromptState
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildState
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorageCreation
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorageCreator
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/**
+ * What a screen needs to offer the Cloud Build setup. [storageCreator] is null when the app can't create
+ * the build storage itself.
+ */
+class CloudBuildServices(
+    val readiness: CloudBuildReadiness,
+    val access: GitHubBuildAccess,
+    val storageCreator: CloudBuildStorageCreator? = null,
+)
 
 /** Where the setup was opened from: Run starts the build once ready, Settings just closes. */
 enum class CloudBuildSetupOrigin { Run, Settings }
@@ -25,12 +37,35 @@ data class CloudBuildSetupUiState(
     val awaitingReturn: Boolean = false,
     val installUrl: String? = null,
     val authPrompt: GitAuthPromptState = GitAuthPromptState(),
+    /** Whether the app can create the build storage itself (a GitHub sign-in that might is on this device). */
+    val canCreateStorage: Boolean = false,
+    val creatingStorage: Boolean = false,
+    /** The last creation attempt, when it created or found the storage, or explains why it couldn't. */
+    val storageCreation: CloudBuildStorageCreation? = null,
 ) {
-    val screen: CloudBuildSetupScreen get() = cloudBuildSetupScreen(readiness, installUrl)
+    val screen: CloudBuildSetupScreen
+        get() = cloudBuildSetupScreen(
+            readiness,
+            installUrl,
+            StorageCreationOptions(
+                canCreate = canCreateStorage && storageCreation.allowsRetry(),
+                created = storageCreation is CloudBuildStorageCreation.Created ||
+                    storageCreation is CloudBuildStorageCreation.AlreadyExists,
+            ),
+        )
+}
+
+/** After these, creating again from the app can't help; GitHub's own form is the way. */
+private fun CloudBuildStorageCreation?.allowsRetry(): Boolean = when (this) {
+    null, CloudBuildStorageCreation.Offline, CloudBuildStorageCreation.GitHubUnavailable,
+    is CloudBuildStorageCreation.Failed, CloudBuildStorageCreation.BuildNotConnected,
+    -> true
+    else -> false
 }
 
 interface CloudBuildSetupActions : GitAuthPromptActions {
     fun onCloudBuildConnect()
+    fun onCloudBuildCreateStorage()
     fun onCloudBuildSwitchAccount()
     fun onCloudBuildOpenedGitHub()
     fun onCloudBuildCheckAgain()
@@ -49,10 +84,17 @@ class CloudBuildSetupController(
     private val scope: CoroutineScope,
     private val readiness: CloudBuildReadiness,
     private val access: GitHubBuildAccess,
+    private val storageCreator: CloudBuildStorageCreator? = null,
     private val emit: (CloudBuildSetupUiState) -> Unit,
 ) : CloudBuildSetupActions {
 
-    private var current = CloudBuildSetupUiState(installUrl = access.installUrl)
+    constructor(scope: CoroutineScope, services: CloudBuildServices, emit: (CloudBuildSetupUiState) -> Unit) :
+        this(scope, services.readiness, services.access, services.storageCreator, emit)
+
+    private var current = CloudBuildSetupUiState(
+        installUrl = access.installUrl,
+        canCreateStorage = storageCreator?.isAvailable == true,
+    )
     private var onReady: (() -> Unit)? = null
     private var armed = false
 
@@ -77,7 +119,15 @@ class CloudBuildSetupController(
     fun open(origin: CloudBuildSetupOrigin, onReady: (() -> Unit)? = null) {
         this.onReady = onReady
         armed = false
-        set { copy(visible = true, origin = origin, awaitingReturn = false) }
+        set {
+            copy(
+                visible = true,
+                origin = origin,
+                awaitingReturn = false,
+                canCreateStorage = storageCreator?.isAvailable == true,
+                storageCreation = null,
+            )
+        }
         scope.launch {
             val first = readiness.check()
             if (first is CloudBuildState.Ready && origin == CloudBuildSetupOrigin.Run) {
@@ -104,6 +154,21 @@ class CloudBuildSetupController(
     }
 
     override fun onCloudBuildConnect() = auth.open(GITHUB_HOST) { refresh() }
+
+    /** Creates the private build storage from the app, then checks again: allowing access may be next. */
+    override fun onCloudBuildCreateStorage() {
+        val creator = storageCreator ?: return
+        if (current.creatingStorage) return
+        set { copy(creatingStorage = true, storageCreation = null) }
+        scope.launch {
+            val outcome = creator.create()
+            set { copy(creatingStorage = false, storageCreation = outcome) }
+            if (outcome is CloudBuildStorageCreation.Created || outcome is CloudBuildStorageCreation.AlreadyExists) {
+                armed = true
+                settle(readiness.check())
+            }
+        }
+    }
 
     override fun onCloudBuildSwitchAccount() {
         access.credentials.clear(GITHUB_HOST)

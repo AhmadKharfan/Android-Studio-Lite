@@ -23,6 +23,7 @@ import com.ahmadkharfan.androidstudiolite.designsystem.component.feedback.AslCir
 import com.ahmadkharfan.androidstudiolite.designsystem.component.navigation.AslBottomSheet
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTheme
 import com.ahmadkharfan.androidstudiolite.designsystem.theme.AslTypography
+import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildStorageCreation
 import java.text.DateFormat
 import java.util.Date
 
@@ -48,60 +49,126 @@ fun CloudBuildSetupContent(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
 ) {
-    val colors = AslTheme.colors
-    val uriHandler = LocalUriHandler.current
-    val screen = state.screen
-    val copy = copyFor(screen)
+    val copy = copyFor(state.screen)
     Column(
         modifier = modifier.fillMaxWidth().padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (screen.step == CloudBuildStep.Checking || state.checking) AslCircularProgress()
-            Text(copy.title, style = AslTypography.titleMedium, color = colors.textPrimary)
-        }
-        copy.body?.let { Text(it, style = AslTypography.bodyMedium, color = colors.textSecondary) }
-        screen.account?.let { account ->
-            Text(stringResource(R.string.cloud_build_connected_as, account), style = AslTypography.bodySmall, color = colors.success)
-            AslButton(
-                label = stringResource(R.string.cloud_build_switch_account),
-                onClick = actions::onCloudBuildSwitchAccount,
-                variant = AslButtonVariant.Tertiary,
-            )
-        }
-        screen.primary?.let { action ->
-            AslButton(
-                label = copy.primaryLabel,
-                onClick = { perform(action, actions) { uriHandler.openUri(it) } },
-                icon = if (action is CloudBuildAction.OpenGitHub) "external-link" else null,
-                loading = state.checking && action == CloudBuildAction.CheckAgain,
-                fullWidth = true,
-            )
-        }
-        screen.secondary?.let { action ->
-            copy.secondaryHint?.let { Text(it, style = AslTypography.bodySmall, color = colors.textTertiary) }
-            AslButton(
-                label = copy.secondaryLabel.orEmpty(),
-                onClick = { perform(action, actions) { uriHandler.openUri(it) } },
-                variant = AslButtonVariant.Secondary,
-                fullWidth = true,
-            )
-        }
-        if (screen.primary is CloudBuildAction.OpenGitHub) {
-            Text(stringResource(R.string.cloud_build_back_hint), style = AslTypography.bodySmall, color = colors.textTertiary)
-            AslButton(
-                label = stringResource(R.string.cloud_build_check_again),
-                onClick = actions::onCloudBuildCheckAgain,
-                variant = AslButtonVariant.Tertiary,
-                loading = state.checking,
-            )
-        }
+        SetupHeader(state, copy, actions)
+        SetupButtons(state, copy, actions)
     }
+}
+
+/** The step's title and explanation, what creating the storage did, and the connected account. */
+@Composable
+private fun SetupHeader(state: CloudBuildSetupUiState, copy: SetupCopy, actions: CloudBuildSetupActions) {
+    val colors = AslTheme.colors
+    val screen = state.screen
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (screen.step == CloudBuildStep.Checking || state.checking) AslCircularProgress()
+        Text(copy.title, style = AslTypography.titleMedium, color = colors.textPrimary)
+    }
+    val body = if (screen.primary == CloudBuildAction.CreateStorage) {
+        stringResource(R.string.cloud_build_create_auto_body)
+    } else {
+        copy.body
+    }
+    body?.let { Text(it, style = AslTypography.bodyMedium, color = colors.textSecondary) }
+    StorageCreationNote(state.storageCreation)
+    screen.account?.let { account ->
+        Text(stringResource(R.string.cloud_build_connected_as, account), style = AslTypography.bodySmall, color = colors.success)
+        AslButton(
+            label = stringResource(R.string.cloud_build_switch_account),
+            onClick = actions::onCloudBuildSwitchAccount,
+            variant = AslButtonVariant.Tertiary,
+        )
+    }
+}
+
+/** The step's actions, plus "Check again" whenever the fix happens on GitHub. */
+@Composable
+private fun SetupButtons(state: CloudBuildSetupUiState, copy: SetupCopy, actions: CloudBuildSetupActions) {
+    val colors = AslTheme.colors
+    val uriHandler = LocalUriHandler.current
+    val screen = state.screen
+    val labels = ActionLabels(
+        create = stringResource(R.string.cloud_build_create_auto_action),
+        manualInstead = stringResource(R.string.cloud_build_create_manual_instead),
+    )
+    screen.primary?.let { action ->
+        AslButton(
+            label = labels.primary(action, copy),
+            onClick = { perform(action, actions) { uriHandler.openUri(it) } },
+            icon = if (action is CloudBuildAction.OpenGitHub) "external-link" else null,
+            loading = state.isBusyWith(action),
+            fullWidth = true,
+        )
+    }
+    screen.secondary?.let { action ->
+        copy.secondaryHint?.let { Text(it, style = AslTypography.bodySmall, color = colors.textTertiary) }
+        AslButton(
+            label = labels.secondary(action, screen, copy),
+            onClick = { perform(action, actions) { uriHandler.openUri(it) } },
+            variant = AslButtonVariant.Secondary,
+            loading = state.isBusyWith(action),
+            fullWidth = true,
+        )
+    }
+    if (screen.primary is CloudBuildAction.OpenGitHub) {
+        Text(stringResource(R.string.cloud_build_back_hint), style = AslTypography.bodySmall, color = colors.textTertiary)
+        AslButton(
+            label = stringResource(R.string.cloud_build_check_again),
+            onClick = actions::onCloudBuildCheckAgain,
+            variant = AslButtonVariant.Tertiary,
+            loading = state.checking,
+        )
+    }
+}
+
+/** Labels for actions whose text doesn't depend on the step. */
+private class ActionLabels(val create: String, val manualInstead: String) {
+    fun primary(action: CloudBuildAction, copy: SetupCopy): String =
+        if (action == CloudBuildAction.CreateStorage) create else copy.primaryLabel
+
+    fun secondary(action: CloudBuildAction, screen: CloudBuildSetupScreen, copy: SetupCopy): String = when {
+        action == CloudBuildAction.CreateStorage -> create
+        screen.primary == CloudBuildAction.CreateStorage -> manualInstead
+        else -> copy.secondaryLabel.orEmpty()
+    }
+}
+
+private fun CloudBuildSetupUiState.isBusyWith(action: CloudBuildAction): Boolean = when (action) {
+    CloudBuildAction.CheckAgain -> checking
+    CloudBuildAction.CreateStorage -> creatingStorage
+    else -> false
+}
+
+/** What the last attempt to create the build storage from the app did, or why it couldn't. */
+@Composable
+private fun StorageCreationNote(outcome: CloudBuildStorageCreation?) {
+    val colors = AslTheme.colors
+    val (text, success) = when (outcome) {
+        null -> return
+        is CloudBuildStorageCreation.Created -> stringResource(R.string.cloud_build_created) to true
+        is CloudBuildStorageCreation.AlreadyExists -> stringResource(R.string.cloud_build_created_existing) to true
+        is CloudBuildStorageCreation.ExistsButPublic -> stringResource(R.string.cloud_build_create_public) to false
+        is CloudBuildStorageCreation.AccountMismatch ->
+            stringResource(R.string.cloud_build_create_mismatch, outcome.signInAccount, outcome.buildAccount) to false
+        CloudBuildStorageCreation.NotAllowed -> stringResource(R.string.cloud_build_create_not_allowed) to false
+        CloudBuildStorageCreation.SignInExpired -> stringResource(R.string.cloud_build_create_expired) to false
+        CloudBuildStorageCreation.NoSignIn -> stringResource(R.string.cloud_build_create_no_sign_in) to false
+        CloudBuildStorageCreation.BuildNotConnected -> stringResource(R.string.cloud_build_create_not_connected) to false
+        CloudBuildStorageCreation.Offline -> stringResource(R.string.cloud_build_create_offline) to false
+        CloudBuildStorageCreation.GitHubUnavailable -> stringResource(R.string.cloud_build_create_unavailable) to false
+        is CloudBuildStorageCreation.Failed -> stringResource(R.string.cloud_build_create_failed, outcome.message) to false
+    }
+    Text(text, style = AslTypography.bodySmall, color = if (success) colors.success else colors.error)
 }
 
 private fun perform(action: CloudBuildAction, actions: CloudBuildSetupActions, openUri: (String) -> Unit) = when (action) {
     CloudBuildAction.Connect -> actions.onCloudBuildConnect()
     CloudBuildAction.CheckAgain -> actions.onCloudBuildCheckAgain()
+    CloudBuildAction.CreateStorage -> actions.onCloudBuildCreateStorage()
     is CloudBuildAction.OpenGitHub -> {
         actions.onCloudBuildOpenedGitHub()
         openUri(action.url)

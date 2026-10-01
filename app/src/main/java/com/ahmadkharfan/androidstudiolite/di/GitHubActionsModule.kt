@@ -14,12 +14,15 @@ import com.ahmadkharfan.androidstudiolite.data.githubactions.build.RepositorySet
 import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.BuildStorageMemory
 import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessChecker
 import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.CloudBuildReadinessMonitor
+import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.GitHubBuildStorageCreator
 import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.ReadinessSignals
 import com.ahmadkharfan.androidstudiolite.data.githubactions.readiness.SharedPreferencesBuildStorageMemory
 import com.ahmadkharfan.androidstudiolite.data.githubactions.snapshot.SourceSnapshotPusher
 import com.ahmadkharfan.androidstudiolite.data.remote.github.GitHubDeviceFlowAuthenticator
 import com.ahmadkharfan.androidstudiolite.core.network.NetworkMonitor
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildServices
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
+import com.ahmadkharfan.androidstudiolite.domain.repository.GitCredentialStore
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -99,6 +102,29 @@ val githubActionsModule = module {
     }
     single {
         val access = get<GitHubActionsAccess>()
+        val gitCredentials = get<GitCredentialStore>()
+        val config = get<GitHubActionsConfig>()
+        CloudBuildServices(
+            readiness = get(),
+            access = access,
+            // With the GitHub App, the Git sign-in (OAuth, `repo` scope) creates the build storage: the App
+            // can't. Without the App, builds create it themselves with the Git sign-in.
+            storageCreator = if (access.usesGitHubApp) {
+                GitHubBuildStorageCreator(
+                    buildApi = get(),
+                    signInApi = GitHubApiClient(token = { gitCredentials.credentialsForHost(GITHUB_HOST)?.token }),
+                    hasSignIn = { gitCredentials.hasCredentials(GITHUB_HOST) },
+                    repositoryName = config.repositoryName,
+                    memory = get(),
+                    isOnline = get<NetworkMonitor>()::isOnline,
+                )
+            } else {
+                null
+            },
+        )
+    }
+    single {
+        val access = get<GitHubActionsAccess>()
         GitHubActionsBuildSystem(
             api = get(),
             token = { access.token() },
@@ -110,3 +136,5 @@ val githubActionsModule = module {
         )
     }
 }
+
+private const val GITHUB_HOST = "github.com"

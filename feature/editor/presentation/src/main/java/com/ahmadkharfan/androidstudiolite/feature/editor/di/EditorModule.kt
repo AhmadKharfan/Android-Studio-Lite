@@ -24,8 +24,7 @@ val editorModule = module {
             gradleProjectReader = get(),
             buildRunCoordinator = get(),
             networkMonitor = get(),
-            cloudBuildReadiness = getOrNull(),
-            gitHubBuildAccess = getOrNull(),
+            cloudBuild = getOrNull(),
         )
     }
 }

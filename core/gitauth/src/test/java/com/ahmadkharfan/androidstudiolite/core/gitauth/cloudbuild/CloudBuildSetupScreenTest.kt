@@ -101,6 +101,34 @@ class CloudBuildSetupScreenTest {
     }
 
     @Test
+    fun `when the app can create storage it offers to, keeping github's form as the manual way`() {
+        val options = StorageCreationOptions(canCreate = true)
+
+        val missing = cloudBuildSetupScreen(CloudBuildState.StorageMissing(manage), install, options)
+        assertEquals(CloudBuildAction.CreateStorage, missing.primary)
+        assertEquals(OpenGitHub(CREATE_STORAGE_URL, Purpose.CreateStorage), missing.secondary)
+
+        assertEquals(
+            CloudBuildAction.CreateStorage,
+            cloudBuildSetupScreen(CloudBuildState.AccessMissing(null), install, options).secondary,
+        )
+        assertEquals(
+            CloudBuildAction.CreateStorage,
+            cloudBuildSetupScreen(CloudBuildState.StorageNotReachable(manage, false), install, options).secondary,
+        )
+    }
+
+    @Test
+    fun `once the storage is created only allowing access is left`() {
+        val created = StorageCreationOptions(canCreate = true, created = true)
+
+        val screen = cloudBuildSetupScreen(CloudBuildState.StorageNotReachable(manage, false), install, created)
+
+        assertEquals(OpenGitHub(manage, Purpose.ManageAccess), screen.primary)
+        assertNull(screen.secondary)
+    }
+
+    @Test
     fun `before the first answer the setup is checking`() {
         assertEquals(CloudBuildStep.Checking, screen(null).step)
         assertEquals(CloudBuildStep.Checking, screen(CloudBuildState.Checking).step)

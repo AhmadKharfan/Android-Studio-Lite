@@ -5,10 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.ahmadkharfan.androidstudiolite.core.BaseViewModel
 import com.ahmadkharfan.androidstudiolite.core.gitauth.GitAuthMode
+import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildServices
 import com.ahmadkharfan.androidstudiolite.core.gitauth.cloudbuild.CloudBuildSetupController
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderCatalog
 import com.ahmadkharfan.androidstudiolite.domain.buildsystem.BuildProviderIds
-import com.ahmadkharfan.androidstudiolite.domain.buildsystem.CloudBuildReadiness
 import com.ahmadkharfan.androidstudiolite.domain.repository.GitHubBuildAccess
 import com.ahmadkharfan.androidstudiolite.domain.repository.PreferencesRepository
 import com.ahmadkharfan.androidstudiolite.domain.signing.KeystoreError
@@ -24,13 +24,13 @@ class BuildRunViewModel(
     private val keystoreManager: KeystoreManager,
     private val providerCatalog: BuildProviderCatalog,
     private val gitHubBuildAccess: GitHubBuildAccess,
-    cloudBuildReadiness: CloudBuildReadiness,
+    cloudBuildServices: CloudBuildServices,
     context: Context,
 ) : BaseViewModel<BuildRunUiState, Nothing>(initialState = BuildRunUiState()), BuildRunInteractionListener {
 
     private val applicationContext = context.applicationContext
 
-    private val cloudBuild = CloudBuildSetupController(viewModelScope, cloudBuildReadiness, gitHubBuildAccess) { setup ->
+    private val cloudBuild = CloudBuildSetupController(viewModelScope, cloudBuildServices) { setup ->
         updateState { copy(cloudBuild = setup) }
     }
 
@@ -107,6 +107,7 @@ class BuildRunViewModel(
     }
 
     override fun onCloudBuildConnect(): Unit = cloudBuild.onCloudBuildConnect()
+    override fun onCloudBuildCreateStorage(): Unit = cloudBuild.onCloudBuildCreateStorage()
     override fun onCloudBuildSwitchAccount(): Unit = cloudBuild.onCloudBuildSwitchAccount()
     override fun onCloudBuildOpenedGitHub(): Unit = cloudBuild.onCloudBuildOpenedGitHub()
     override fun onCloudBuildCheckAgain(): Unit = cloudBuild.onCloudBuildCheckAgain()
